@@ -1,0 +1,563 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 17: Concurrency [DRAFT]
+
+=head1 AUTHOR
+
+ Elizabeth Mattijsen <liz@dijkmat.nl>
+ Audrey Tang <autrijus@autrijus.org>
+
+=head1 VERSION
+
+ Maintainer: Elizabeth Mattijsen <liz@dijkmat.nl>
+ Date: 13 Jun 2005
+ Last Modified: 13 Nov 2005
+ Number: 0
+ Version: 1
+
+=head1 SKETCH
+
+This is a rough sketch of how concurrency works in Perl 6.
+
+(actually these are just random notes, put here under the release-early
+release-often principle, slowly being integrated in a more textual format.
+Patches welcome!)
+
+=head1 OVERVIEW
+
+Concurrency can take many forms in Perl 6.  With varying degrees of
+explicitness and control capabilities.  This document attempts to describe
+what these capabilities are and in which form they can be accessed in Perl 6.
+
+=head2 Processes, threads, fibers?
+
+Concurrency comes in many shapes and forms.  Most Perl users are used to
+the concept of a "process" or a "thread" (usually depending on the OS they
+work on).  Some systems even are familiar with very lightweight threads
+called "fibers".
+
+When discussing issues about concurrency with different people, it soon
+becomes apparent that everybody has his own set of "understandings" about
+what each word means, which doesn't make it any easier to describe
+Perl 6 concurrency.
+
+It seemed the most natural to use the word "thread" to describe a process
+which has its own context, but also shares context with 0 or more
+concurrently running processes.  Depending on your OS, or even specific
+version of your OS, this could still be a single "process" from the OS's
+point of view.  Or it could contain an OS process for each thread.  Or
+any mixture of these two implementations.
+
+In this document we try to be agnostic about this: all we know in Perl 6
+are "threads", which have their own context and share context with other
+concurrently running "threads".  Whether they be process, threads or fibres
+at the OS level should not matter at the Perl 6 level.
+
+And for sake of consistency, an unthreaded "normal" program is considered
+to be also running in a single thread.
+
+=head2 Variables
+
+In the past, there have been two models for concurrent processes in Perl.
+In general, these are referred to as "5.005 threads" (C<perldoc perlothrtut>)
+and "ithreads" (C<perldoc perlthrtut>).
+
+The main difference between these two models from a programmer's point of
+view, is that variables in "5.005 threads" are shared by default.  Whereas
+in the "ithreads" model, only variables that have been indicated to be
+"shared", are actually shared between threads.  All other variable values
+are actually copies of the variable's value in the "parent" thread.
+
+With regards to variables, the concurrency model of Perl 6 is closer to the
+"5.005 threads" model than it is to the "ithreads" model.  In fact, all
+variables "visible" to a particular scope in Perl 6 will be accessible and
+modifiable from all of the concurrent processes that start from that scope.
+In that sense, one could consider the "ithreads" model as a historical
+diversion: the Perl 6 concurrency picks up where the "5.005 threads" path
+left off.
+
+(EM: maybe point out that the "ithreads" behaviour can be simulated with
+some kind of copy-on-write magic to be automagically added to all variable
+access inside a thread, except for those with an explicit "is shared"
+attribute?)
+
+=head2 No user accessible locks
+
+Differently from any current concurrent process implementation in Perl, there
+are no user accessible locks.  Instead, the concept of Software
+Transactionable Memory is used.  This is in concept similar to the use of
+
+ BEGIN TRANSACTION
+ ... do your uninterruptible actions
+ COMMIT
+
+in the database world.  More interestingly, this also includes the concept of
+rollback:
+
+ BEGIN TRANSACTION
+ ... do your stuff, but impossible to complete: ROLLBACK
+
+This causes the state of the process to be reverted to the state at the moment
+the BEGIN TRANSACTION was executed.
+
+Perl 6 supports this concept through Code blocks which are marked "is atomic".
+These sections are guaranteed to either be completed totally (when the Code
+block is exited), or have their state reverted to the state at the start of
+the Code block (with the L<retry> statement).
+
+(EM: maybe point out if / how old style locks can be "simulated", for those
+needing a migration path?)
+
+=head2 Atomic Code blocks
+
+    my ($x, $y);
+    sub c is atomic {
+        $x -= 3;
+        $y += 3;
+        if $x < 10 { retry }
+    };
+
+    $e = &c.retry_with( &d ); # 
+    $e();
+
+    if $i { is atomic; ...  } else { ...; }
+
+A Code block can be marked as "is atomic".  This means that code executed
+inside that scope is guaranteed not to be interrupted in any way.
+
+The start of a block marked "is atomic" also becomes a "checkpoint" to
+which execution can return (in exactly the same state) if a problem occurs
+(a.k.a. a L<retry> is done) inside the scope of the Code block.
+
+=head3 retry
+
+The C<retry> function basically restores the state of the thread at the
+last checkpoint and will wait there until an external event allows it to
+potentially run that atomic section of code again without having to retry
+again.
+
+If there are no external events possible that could restart execution, an
+exception will be raised.
+
+The last checkpoint is either the last atomic / non-atomic boundary, or
+the most immediate caller constructed with C<retry_with>.
+
+=head3 retry_with
+
+The C<retry_with> method on an atomic Code object causes a checkpoint to
+be made for C<retry>, creating an alternate execution path to be followed
+when a C<retry> is done.
+
+=head3 limitations
+
+Because Perl 6 must be able to revert its state to the state it had at the
+checkpoint, it is not allowed to perform any non-revertable actions.  These
+would include reading / writing from file handles that do not support
+C<seek> (such as sockets).  Attempting to do so will cause a fatal error
+to occur.
+
+If you're not interested in revertability, but are interested in
+uninteruptability, you could use the "is critical" trait.
+
+=head2 Critical Code blocks
+
+ sub tricky is critical {
+     # code accessing external info, not to be interrupted
+ }
+
+ if ($update) {
+     is critical;
+     # code accessing external info, not to be interrupted
+ }
+
+A Code block marked "is critical" can not be interrupted in any way.  But
+since it is able to access non-revertible data structures (such as
+non-seekable file handles), it cannot do a C<retry> as it would be impossible
+to restore the state to the beginning of the Code block.
+
+=head2 Mixing Atomic and Critical
+
+Both "atomic" as well as "critical" propagate down the call chain.  This means
+that any subroutine that in itself is not "atomic" or "critical" becomes
+uninterruptible if called inside a code block that is marked as "atomic" or
+"critical".
+
+Atomic Code blocks called inside the call chain of a "critical" code block
+do not pose a problem, as they are more restrictive.
+
+Any code that attempts to perform any non-revertible action (e.g. reading
+from a socket) will cause a fatal error when called inside the call chain
+of an Atomic Code block.
+
+=head2 Co-Routines
+
+The execution of co-routine (or "coro" for short) could be considered as a
+short "side-step" from the normal path of execution, much like the normal
+calling of a subroutine.  
+
+The main difference with a normal subroutine, is that the co-routine supports
+a special type of return, called "yield".
+
+(EM: not sure whether the "threads->yield" causes so much mental interference
+that we should use something else for "yield" in the coro context.  And
+whether we should have a seperate "coro" keyword at all: after all, the "yield"
+could be in a normal subroutine called from a coro, so it's not like the
+compiler would be allowed to flag "yield" in a sub as an error).
+
+
+#######################################################################
+Below here still the more or less unorganized stuff
+
+CORE::GLOBAL::exit; # kills all the threads
+
+# We intententionally do not list cross-machine parallelism Conc:: classes here.
+# Consult your local 6PAN mirror with a time machine.
+use Conc::Processes; # fork() or createProcess based implementation
+use Conc::Threads;   # maybe it just exports &async to override the default one, yay
+use Conc::Multiplex; # this is default
+
+my $thr = async {
+    ...do something...
+    END { }
+};
+
+Conc::Thread.this
+Conc::Proc.this
+
+Conc object # name is still up for grabs!
+- numify to TIDs (as in pugs)
+- stringify to something sensible (eg. "<Conc:tid=5>");
+- enumerable with Conc.list
+- Conc.yield (if this is to live but deprecated, maybe call it sleep(0)?)
+- sleep() always respects other threads, thank you very much
+- standard methods:
+    - .join    # wait for invocant to finish (always item cxt)
+    - .die     # throw exception in the invocant thread
+    - .alarm   # set up alarms
+    - .alarms  # query existing alarms
+    - .suspend # pause a thread; fail if already paused
+    - .resume  # revive a thread; fail if already running
+    - .detach  # survives parent thread demise (promoted to process)
+               # process-local changes no longer affects parent
+               # tentatively, the control methods still applies to it
+               # including wait (which will always return undef)
+               # also needs to discard any atomicity context
+- attributes:
+    - .started  # time
+    - .finished # time
+    - .waiting  # suspened (not diff from block on wakeup signal)
+                # waiting on a handle, a condition, a lock, et cetera
+                # otherwise returns false for running threads
+                # if it's finished then it's undef(?)
+    - .current_continuation
+                # the CC currently running in that thread
+
+- "is throttled" trait
+
+    method throttled::trait_auxillary:<is> ($limit=1, :$key=gensym()) {
+        # "is throttled" limits max connection to this Code object
+        # the throttling is shared among closures with the same key
+        # the limit may differ on closures with the same key.
+        # if the counter with the "key" equals or exceeds a closure's limit,
+        # the closure can't be entered until it's released
+        # (this can be trivially implmented using atomic+retry)
+    }
+
+    class Foo {
+        method a is throttled(:limit(3) :key<blah>) { ... }
+        method b is throttled(:limit(2) :key<blah>) { ... }
+    }
+    my Foo $f .= new;
+    async { $f.a }
+    async { $f.b }
+
+- Thread::Status
+- IO objects and containers gets concurrency love!
+    - $obj.wake_on_readable
+    - $obj.wake_on_writable
+    - $obj.wake_on_either_readable_or_writable_or_passed_time(3); # fixme fixme
+    - $obj.wake_on:{.readable} # busy wait, probably
+
+    my @a is Array::Chan = 1..Inf;
+    async { @a.push(1) };
+    async { @a.blocking_shift({ ... }) };
+    async { @a.unshift({ ... }) };
+
+Communication abstractions
+- shared, transactional variables by default
+
+# program will wait for _all_ threads
+# unjoined threads will be joined at the beginning of the END block batch
+# of the parent thread that spawned them
+
+### INTERFACE BARRIER ###
+module Blah;
+{
+
+    is atomic;   # retry/orelse/whatever other rollback stuff
+                 # limitation: no external IO (without lethal warnings anyway)
+                 # can't do anything irreversible
+
+    is critical; # free to do anything irreversible
+                 # means "don't interrupt me"
+                 # in system with critical section, no interrupts from
+                 # other threads will happen during execution
+                 # you can't suspend me
+
+    my $boo is export;
+    $boo = 1;
+
+    # We decree that this part forms the static interface
+    # it's run once during initial compilation under the
+    # Separate Compilation doctrine and the syms sealed off
+    # to form part fo bytecode syms headers
+    %CALLER::<&blah> = { 1 }; # work - adds to export set
+    die "Eureka!" if %CALLER::<$sym>; # never dies
+
+    # BEGIN { $boo = time };
+
+    sub IMPORT {
+        # VERY DYNAMIC!
+
+        our $i = time;
+        %CALLER::<&blah> = { 1 }; # work - adds to export set
+        die "Eureka!" if %CALLER::<$sym>; # probes interactively
+    }
+}
+### INTERFACE BARRIER ###
+
+my $sym;
+threads.new({
+    use Blah;
+    BEGIN { require(Blah).import }
+
+    my $boo; BEGIN { eval slurp<Blah.pm>; $boo := $Blah::boo };
+
+    ...
+});
+
+=head2 Signals
+
+Asynchronous exceptions are just like user-initiated exceptions with C<die>,
+so you can also catch it with regular C<CATCH> blocks as specified in S04.
+
+To declare your main program catches INT signals, put a CATCH block anywhere
+in the toplevel to handle exceptions like this:
+
+ CATCH {
+     when Error::Signal::INT { ... }
+ }
+
+=head2 Alarm
+
+An alarm is just a pre-arranged exception to be delivered to your program.
+
+By the time alarm has arrived, the current block may have already finished
+executing, so you would need to set up CATCH blocks in places where an alarm
+can rise to handle it properly.
+
+You can request an alarm using the number of seconds, or with a target date.
+It returns a proxy alarm object that you can do interesting things with.
+
+    multi Alarm *alarm (Num $seconds = $CALLER::_, &do = {die Sig::ALARM}, :$repeat = 1)
+    multi Alarm *alarm (Date $date, &do = {die Sig::ALARM}, :$repeat = 1)
+
+Perl 6's C<alarm> has three additional features over traditional alarms:
+
+=head3 Multiple and Lexical Alarms
+
+One can set up multiple alarms using repeated alarm calls:
+
+    {
+        my $a1 = alarm(2);
+        my $a2 = alarm(2);
+        sleep 10;
+        CATCH {
+            is critical; # if you don't want $a2 to be raised inside this
+            when Sig::ALARM { ... } 
+        }
+    }
+
+To stop an alarm, call C<$alarm.stop>.  The C<alarms> method for Conc objects
+(including process and threads) returns a list of alarms currently scheduled
+for that concurrent context.
+
+When an alarm object is garbage collected, the alarm is stopped automatically.
+Under void context, the implicit alarm object can only be stopped by querying
+C<.alarms> on the current process.
+
+We are not sure what C<alarm(0)> would mean.  Probably a deprecation warning?
+
+=head3 Repeated Alarms
+
+If you request a repeated alarm using the C<repeated> named argument, it will
+attempt to fire off the alarm that many times.  However, the alarm will be
+supressed when inside a C<CATCH> block that's already handling the exception
+raised by I<same> alarm.
+
+To repeat 0 times is to not fire off any alarms at all.  To repeat +Inf times
+is to repeat over and over again.
+
+=head3 Callbacks in Alarms
+
+You can arrange a callback (like JavaScript's setTimeOut) in C<alarm>, which
+will then be invoked with the then-current code as caller.
+
+If you set up such a callback to another Conc object, what happens is just like
+when you called C<.die> on behalf of that object -- namely, the callback
+closure, along with anything it referenced, is shared to the target Conc
+context.
+
+Unlike in Perl 5's ithreads where you cannot share anything after the fact,
+this allows passing shared objects in an C<ad-hoc> fashion across concurrent
+parts of the program.  Under the default (multiplexing) concurrency model, this
+is basically a no-op.
+
+=head2 Continuations
+
+=head3 Coroutines
+
+## braindump of coro meeting by Liz and Autri, more to follow
+
+- Coros are _like_ processes
+
+coro dbl { yield $_ * 2; yield $_; return };
+my @x = 1..10;
+my %y = map &dbl, @x;
+# 2 => 2, 6 => 4, 10 => 6, ...
+
+coro perm (@x) {
+    @x.splice(rand(@x),1).yield while @x;
+}
+
+my &p1 := &perm.start(1..10);
+my &p2 := &perm.start(1..20);
+
+p1(); p1();
+p2(); p2();
+
+coro foo { yield 42 };
+
+(1..10).pick;
+
+coro foo ($x) {
+    yield $x;
+    yield $x+2;
+    cleanup();
+    while (2) {
+        while (1) {
+            &?SUB.kill; # seppuku
+        }
+    }
+} # implicit falloff return + return() means startover without yielding
+  # return() means yielding and restart + no implicit falloff (I LIKE THIS)
+
+&foo.finished; # true on return() and false on midway yield()
+
+foo(4); # and that's all she wrote
+
+coro foo ($x) {
+    yield $x;
+    # this point with $x bound to 10
+    yield $x+1;
+    return 5;
+    ... # this is never reached, I think we all agree
+}
+
+# If you don't want your variables to get rebound, use "is copy":
+coro foo ($x is copy) {...}
+# which is sugar for
+coro foo ($x) {
+  {
+    my $x := $OUTER::x;
+    ...;
+    # Further calls of &foo rebound $OUTER::x, not $x.
+  }
+}
+
+sub foo {
+    return undef if rand;
+    ...
+}
+
+use overload {
+    '&{}' => sub { ... }
+}
+
+class Coro is Conc::Multiplex does Code {
+    method postcircumfix:<( )> {
+        # start the thread, block stuff (we are in the caller's context)
+    }
+}
+
+class Hash is extended {
+    method postcircumfix:<( )> (&self: *@_) {
+        &self = ./start(@_);
+    }
+    method start {
+        # remember self
+        # upon return() or normal falloff, restore self
+    }
+}
+
+%ENV(123);
+
+&foo_continued := &foo.start(10);
+&foo.start(20);
+
+foo(10);    # returns 10
+
+foo();      # be "insufficient param" error or just return 11?
+foo(20);    # returns 21
+
+# continuation coros
+multi foo () { ...no rebinding... }
+multi foo ($x) { ...rebinding... }
+
+&foo.kill;
+
+
+my $first_ret = zoro( type => <even> );
+&zoro.variant(:type<even>).kill;
+&zoro.variant(type => 'even').kill;
+
+zoro( type => <odd> );
+
+zoro( even => 1 );
+zoro( odd => 1 );
+
+multi coro zoro ($type where 'even') {}
+multi coro zoro ($type where 'odd') {}
+
+multi coro zoro ($even is named) {}
+multi coro zoro ($odd is named) {}
+
+
+# iblech's thoughts:
+# Coroutine parameters should never be rebound. Instead, yield(...)s return
+# value is an Arglist object containing the new arguments:
+coro bar ($a, $b) {
+    ...;
+    my $new_set_of_args = yield(...);
+    my $sum_of_old_a_and_new_a = $a + $new_set_of_args<$a>;
+    ...;
+}
+bar(42, 23);  # $a is 42, $b is 23
+bar(17, 19);  # $a still 42, $b still 19,
+              # $new_set_of_args is \(a => 17, b => 19)
+
+=head2 Junctive Autothreading and Hyper Operations
+
+Live in userland for the time being.
+
+=head2 Interprocess Communication
+
+=head2 I/O Considerations
+
+=head3 File Descriptors
+
+=head3 Sockets
+
+=cut
