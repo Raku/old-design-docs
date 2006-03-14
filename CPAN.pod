@@ -1,0 +1,1168 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 22: CPAN [DRAFT]
+
+=head1 AUTHOR
+
+    Jos Boumans <kane@cpan.org>
+    Audrey Tang <autrijus@autrijus.org>
+    Florian Ragwitz <rafl@debian.org>
+
+=head1 VERSION
+
+    Maintainer: Jos Boumans <kane@cpan.org>
+    Date: 3 Nov 2005
+    Last Modified: 28 Nov 2005
+    Number: 0
+    Version: 1
+
+=head1 Overview
+
+    - None of the known tools can do what we want
+    - Will have to implement chain ourselves
+        - Be inspired by dpkg, apt-get and debian policy
+            - See: http://www.us.debian.org/doc/debian-policy
+    - Start with the elementary things
+        - See C<Plan of Attack> for first steps
+
+
+=head2 General Flow (Basic)
+
+
+This describes the basic flow for installing modules using the new 6pan
+installer. This just deals with building a package from source and installing
+it. Not with the distribution of these files through the means of CPAN.
+That will be covered in the advanced flow.
+
+    1.  Setup package directory
+            * creates a directory for the project
+            * includes all relevant default files
+            * and default metadata setup
+            * [ ... write code ... ]
+    2.  Extract/Update metadata
+            * done by giving project code to the compiler
+            * extract the info given by the compiler about the code
+            * update the metadata according
+                * this involves 'use' statements, versions, packages, etc
+    3.  Build package based on metadata
+            * verify integrity of the code/metadata
+            * create a source package called a '.jib' file
+                See '.jib files' further down
+            * contains source code
+            * contains metadata
+    4.  Install package from '.jib' file
+            * Extract '.jib' to a temporary directory
+                * Verify dependencies based on metadata
+            * Build the source code to installable code
+            * Move the installable code to it's final destination
+                * Run appropriate hook-code
+                * Perform appropriate linking
+            * Update system metadata based on package metadata
+    5.  Uninstall packages
+            * Query metadata to verify dependencies
+            * Remove the installed code
+                * Run appropriate hook-code
+                * Perform appropriate linking
+            * Update system metadata based on package metadata 
+    
+
+=head2 Package Layout
+
+
+=head3 Project directory
+    
+Step 1 of the general flow should ideally be done by an automated tool, like
+p5's current Module::Starter or somesuch. Suffice to say, it should produce
+a layout something along these lines (note, this is just an example):
+
+    p5-Foo-Bar/
+        lib/
+            Foo/
+                Bar.pm
+        t/
+            00_load.t
+        _jib/
+            META.info
+
+The files in the _jib dir are part of the package metadata. The most important
+file is the META.info file that holds all the collected metadata about the
+package, which ideally gets filled (mostly) by what is described in step 2 of
+the C<General Flow>. Any pre/posthook files should also go in this directory.
+This directory should be extensible, so new files can be added to extend
+functionality.
+See the section on C< Metadata Spec > for details.
+
+=head3 .jib files
+
+These files are created in step 3 of the C<General Flow>
+
+# XXX - What does C<.jib> stand for?  Why not C<.p6d> or C<.p6z> or something 
+along that line?
+
+# XXX - Also C<package> is carrying double meaning in P6 as both namespace
+and source distribution.  Can we remove the former meaning and refer to them
+as C<module> and C<namespace> from now on?
+
+C<.jib> files are archives designed to distribute source packages, not
+installable packages. As we will need to compile things on the client side
+(things that have C bits or equivalent), and because we can not know the
+install path before hand, a source package is an obvious choice.
+A binary, installable package like C<.deb> is therefor no option.
+
+These C<.jib> contain metadata and installable code quite analogous to 
+the C<.deb> packages we know, except that the metadata is also used to
+C<compile> (for the lack of a better term so far) the code on the user side.
+
+The name of a C<.jib> file is determined as follows:
+
+    <prefix>-<package-name>-<version>-<authority>.<extension>
+    
+In praxis, this will produce a name along these lines:
+
+    p5-Foo-Bar-1.1-cpan+kane.jib
+
+The Internal layout is as follows:
+
+    - control.tgz
+        * contains the data in the _jib directory
+    - data.tgz      
+        * contains the following directories the other directories.
+            This may be limited in the future, by say, a manifest.skip
+            like functionality, or by dictating a list of directories/
+            files that will be included
+
+There is room to ship more files alongside the 2 above mentioned archives.
+This allows us to ship an extra md5sum, version, signature, anything.
+
+=head3 Installing a C<.jib>
+
+As outlines in step 4 of the C<General Flow>, a C<.jib> will need a few
+steps on the client machine to be installed. Here are some important details
+about that installation.
+
+    * Files will be installed in one base directory, prefixed with a 
+        user-defined prefix. 
+        By default this will be the C<site_perl> directory for this 
+        particular perl. I.e.:
+        /sw/site_perl/5.8.3
+
+    * The name of this base directory is the full name of the package, 
+        minus the extension. I.e.:
+        p5-Foo-Bar-1.2-cpan+kane
+
+    * The lib/, bin/ and docs/ directories, as well as the (generated) 
+        man/ directories, will be placed straight under this base 
+        directory. I.e.:
+        p5-Foo-Bar-1.2-cpan+kane/
+            lib/
+            bin/
+            man/
+            docs/
+    
+    * As the base directories bin/ and man/ path will not be in the 
+        standard $PATH and $MANPATH, symlinks will be created from the 
+        standard paths to the current active version of the package.
+        These links will go via an intermediate link in the metadir,
+        so all diversions to the automatic linking can be contained
+        to the metadir. I.e:
+        ln -s /sw/site_perl/5.8.3/p5-Foo-Bar-1.2-cpan+kane/bin/X
+            /our/metadir/alternatives/X
+        ln -s /our/metadir/alternatives/X
+            /usr/local/bin/X
+        # XXX - Question - in platforms without symlinks, do we emulate
+        #       using hardlinks and fallback to copying?  
+
+    * In the case of multiple installs of the same package (where 'same'
+        is determined by identical <prefix>-<package-name>), the perl6 
+        policy will determine which is the current active package, just
+        like it would for a C<use> statement in normal perl6 code.
+        
+    * These links will be maintained by a linking system managed by the
+        installer, meaning that they will be updated according to policy 
+        when any up/downgrades or installs occur.
+        See the section on C<Alternatives>
+
+=head1 Plan Of Attack
+
+    - Take small steps first
+        - build packages based only on metadata
+        - begin with Metadata -> source-package
+            - see metadata basic spec
+        - write basic create/install/uninstall scripts
+        - go from there
+
+=head2 What NOT to do
+
+    - dpkg is too hard to port
+        - needs custom patches
+        - needs unix emulation layer
+        - needs to be compiled
+    - apt-get won't work on 'intermediate files'
+        - needs complete .debs
+        - gotten from standard archive meta-data
+
+=head2 What do we have so far?
+
+Prototyping code is in the pugs repository under misc/sixpan
+
+Read the README files to see how to test the prototypes
+
+Note shortcomings are mostly mentioned in the code itself with 'XXX' markers.
+
+=head3 Basic cleanup/setup script
+
+    - Got a basic cleanup script:
+        - Cleans out create's builddirectories
+        - Removes the 'root' directory for installs
+        - Creates a fresh structure of a 'root'
+        - Touches all relevant files
+
+=head3 Basic create/install/uninstall scripts
+
+See README for details on these scripts.
+
+    - Got a basic create script:
+        (Step 3 from general flow)
+        - makes an archive (.jib file):
+            - reads in the META.info file
+            - builds archive in a separate builddir
+                - takes all files, no MANIFEST/meta.info list yet for
+                    files to be packaged
+                - splits out metadata and installable files into 2 
+                    different .tgz archives (a la dpkg)
+                - creates a .tgz of both those archives in the name of
+                    ${package}.jib in the builddir
+        - outputs archive location when finished
+
+    - Got a basic install script:
+        (Step 4 from general flow)
+        - installs an archive (.jib file):
+            - extracts .jib file to temp dir
+            - extracts metadata to metadir/${package}
+                - doesn't write to tmpdir first, then moves at the end
+            - writes a .packlist equiv file
+            - verifies if dependencies have been met
+                - uses dependency engine that can deal with AND, OR and
+                    grouping. See C<Dependencies>.
+                - aborts install if not
+            - registers this archive in the 'available' file (a la dpkg)
+            - runs preinst script if supplied
+                - no arguments yet
+            - copies installable files to target dir 
+                - does not use a specific 'build' tool yet
+                - doesn't write to tmpdir first, then moves at the end
+            - links scripts from the bindir to the targetdir
+                ie /usr/local/bin/script to /site_perl/${package}/bin/script
+                - manages link generation, recording and linking
+                - supports up/downgrades 
+                    ie 2 installs of different versions of 1 package
+                - all up/downgrades considered 'auto' for now                    
+            - runs postinst script if supplied
+                - no arguments yet
+            - cleans up temp dir
+        - outputs diagnostics along the way
+
+    - Got a basic uninstall script:
+        (Step 5 from general flow)
+        - removes an archive
+            - verifies if uninstall is safe to do:
+                - verifies (simplistically) if dependencies are not violated
+                    - aborts install if not
+        - runs prerm script if supplied
+            - no arguments yet
+        - reads in .packlist equiv
+            - unlinks all files listed
+            - unlinks all bin/$script files that were linked
+                - relinks them if there's a suitable replacement available
+                - doesn't unlink manpages # XXX - Why?
+                - all up/downgrades considered 'auto' for now                
+        - updates 'available' file (a la dpkg)
+        - removes meta data associated with this package
+
+=head3 Repository create/search/install
+
+See README.repo for details on these scripts.
+
+    - Basic repository create script:
+        - takes one or more source directories and finds the .jib files
+        - extracts their meta files to a temp dir
+        - copies the archive and and the meta file (as $archive.info) to
+            the repository root
+        - aggregates all the meta files into one big index file
+    
+    - Basic repository search script:
+        - takes one or more key:value pairs
+            - key is key in the meta file
+            - value is compiled into a regex
+        - prints out every meta file where key matches value
+
+    - Basic repository install script:
+        - a la apt-get
+        - takes one or more packages and scans it recursively for
+            dependencies using our dependency engine. See C<Dependencies>.
+        - the to be installed files are then given in the right order to
+            our basic install script, which installs them one by one.
+
+=head3 Dependency/installation pretty printers
+
+    - Basic installed script:
+        - a la dpkg -l
+        - lists all packages installed
+            - and all their files
+            - and all alternatives they own
+            - no manpages yet
+    
+    - Basic dependency printer
+        - takes one or more packages and pretty prints their
+            dependencies
+        - then prints out which files would be installed if you
+            were to install this package
+        - samples the usage of the dependency engine
+        - see C<Dependency Engine> for details.
+        - see README.deps for some samples
+
+=head1 Metadata Spec
+
+    - Define no more than needed to get started for now
+        - Allow for future extensions
+        - Use YAML as metadata format as it's portable and available standard
+            in perl6
+
+
+=head2 Supported fields
+
+    - Author        CPAN author id              (KANE)
+    - Name          Perl module name            (Foo::Bar)
+    - Version       Perl module version         (1.2.3)
+    - Description   Description of function     (This is what it does)
+    - Authority     From S11                    (cpan+KANE)
+    - Package       Full package name           (p5-Foo-Bar-1.2.3-cpan+kane)
+    - Depends       Packages it depends on[1][2](p5-Foo)
+    - Provides      Packages this one provides  (p5-Foo-Bar, 
+                                                    p5-Foo-Bar-cpan+kane)
+
+    [1] This is packages, *not* modules. If we need a module -> package 
+        mapping, this needs to be done when extracting the data from the
+        compiler, and queried against the available packages cache.
+    [2] See the section on L<Dependencies>
+
+=head2 Suggested fields[3]
+
+    - Build-Depends Packages needed to build this package
+    - Suggests      Packages suggested by this package
+    - Recommends    Packages recommended by this package
+    - Enhances      Packages that are enhanced by this package
+    - Conflicts     Packages this one conflicts with
+    - Replaces      Packages this one replaces
+    - Tags          Arbitrary metadata about the package, 
+                    like flickr and debtags
+    - Contains      List of modules (and scripts?) contained 
+                    in the package
+
+    [3] Steal more tags from debian policy
+
+
+=head1 Alternatives
+
+The alternatives mechanism closely follows the ideas behind the debian's
+C<update-alternatives> system: 
+
+    http://www.die.net/doc/linux/man/man8/update-alternatives.8.html
+
+Alternatives, which may not be the most apt name, will be used in all cases
+where a module provides B<scripts> or B<manpages> that must be visible to
+any tool that looks in different places than where the installer will put them.
+
+Alternatives will be updated/altered when another version of the same package
+is installed (where 'same' is determined by identical <prefix>-<package-name>).
+
+Since an alternative can only point to one particular version at a time, another
+version might be the new C<current alternative>. 
+Deciding which alternative is to be used, is something that will be answered
+by the perl6 policy file, which also resolves C<use> statements.
+
+Alternatives will be stored in the C<alternatives> file in the metadata dir
+of the installation. Alternatives will have at least the following properties:
+
+    * package that registered one or more alternatives
+        * Files written for the 'man' alternative
+        * Files written for the 'bin' alternative
+        * [ ... more possible alternatives ... ]
+        * Whether the alternatives manager should update the alternatives
+            automatically, or leave it to the sysadmin (manually)
+
+The rules in changing the alternatives are as follows:
+
+    Install:
+                                            no
+        Should i register an alternative?   --->    Done
+            |
+            | yes
+            |
+            v                               no
+        Does the file exist already?        --->    Register alternative            
+            |
+            | yes
+            |
+            v                               no
+        Is this an upgrade?                 --->    Error[1]
+            |
+            | yes
+            |
+            v                               no
+        Are we the new alternative?         --->    Done
+        (Based on policy file)
+            |
+            | yes
+            |
+            v                               
+        Install new links, update alternatives file
+
+
+    [1] The alternative system doesn't support 2 different packages to
+        supply the same file. This would be solved with with debian-style
+        alternatives. Since we recognize the condition, we can implement
+        deb-style behaviour later, without breaking anything
+
+The uninstall rules are quite similar, except the installer has to check, when
+removing the links for this version, if the policy can point to a new default,
+and register those alternatives instead.
+
+=head1 Dependencies
+
+=head2 Dependency Notation
+
+Dependency notation allows you to express the following concepts:
+
+=over
+
+=item OR
+
+Specifies alternatives
+
+=item AND
+
+Specifies cumulative requirements
+
+=item associate VERSION requirement
+
+Specifies a criteria for the version requirement
+
+=item grouping
+
+This allows nesting of the above expressions
+
+=head3 Basic notation:
+
+    a, b                        # a AND b
+    [a, b]                      # a OR b
+    { a => "> 2" }              # a greater than 2
+    { a => 1 }                  # shorthand for a greater or equal to 1
+    \[ ... ]                    # grouping
+    
+=head3 More complex examples:
+
+    a, [b,c]                    # a AND (b OR c)
+    { a => 1 }, { a => '< 2' }  # a greater or equal to 1 AND smaller than 2
+    [a, \[ b, c ] ]             # a OR (b AND c) [1]
+    
+    [1] This is possibly not portable to other languages. Options seem
+        thin as we don't have some /other/ grouping mechanism than [ ], { }
+        and \[ ]; ( ) gets flattened and \( ) == [ ].
+        We could abuse { } to create { OR => [ ] } and { AND => [ ] } 
+        groups, but it would not read very intuitively. It would also mean
+        that the version requirements would have to be in the package naming,
+        ie. 'a > 2' rather than a => '> 2'
+
+=head3 Serialization Examples 
+
+    # a, b -- AND
+    - a
+    - b
+
+    # [a, b] -- OR
+    -
+      - a
+      - b
+
+    # { a => "> 2" } -- VERSIONED
+    a: > 2
+    
+    # { a => 1 } -- VERSIONED
+    a: 1
+    
+    
+    # \[ ... ]  -- GROUPING
+    - !perl/ref:
+      =:
+        - ...
+
+=head2 Dependency Engine
+
+    - short circuits on OR (first named gets priority)
+    - favours higher versions over lower versions on draw
+        - this should be policy based
+    - checks if already installed packages satisfy the dependency
+        before checking the repository for options
+    - is completely recursive -- any combination of AND, OR and
+        GROUPING should work.
+    - returns a list of missing packages
+        - in installation order
+    - need a split out between the printer and the resolver
+        - so one can list all dependencies as they are resolved
+            and just the ones that need installing
+
+=head3 Shortcomings to that approach, according to vasi:
+
+[4:13PM] vasi: the idea is basically, you have an object to represent the state-of-the-system
+[4:13PM] vasi: (all the packages that are installed, essentially)
+[4:13PM] vasi: and then you say "i have this state, i want to do operation X on it, what's the best way to achieve that?"
+[4:14PM] vasi: so you look at the state and say "what's WRONG with this state, wrt op X?"
+[4:15PM] vasi: and resolve the first wrong thing in every reasonable way, and now you have a list of (state, operations-remaining)
+[4:15PM] vasi: and a slightly smaller list of things wrong
+[4:15PM] vasi: and you keep doing that until nothing is wrong anymore, and you have a final list of states that satisfy all the requirements
+[4:15PM] vasi: then you pick the preferred one of those states, according to some heuristic
+[4:16PM] vasi: The naive approach, "get a list of the packages we need", falls down badly in the face of OR-depends and virtual-packages and conflicts
+[4:16PM] kane: i understand what you just said. how does that make my life better over a simple fifo, shortcircuit approach?
+[4:19PM] vasi: ok, here's a test case that normally fails with the simple approach
+[4:19PM] vasi: i'm using 'Dep' as a binary operator here, so 'a Dep b' means a depends on b
+[4:19PM] vasi: if you have 'parent Dep (child1 AND child2)', 'child1 Dep (grandchild1 OR grandchild2)', 'child2 Conf grandchild1'
+and then you do 'install parent'
+[4:20PM] vasi: the recursive algorithm says 'ok, i need child1...now i need one of gc1 or gc2, let's just pick gc1...now i need child2, oh shite gc1 is bad CRASH"
+[4:20PM] vasi: at least that's what fink does :-)
+[4:20PM] vasi: cuz our dep engine is naive
+[4:20PM] kane: vasi: here's an idea -- as our goal is to be pluggable on all this, so it's possible to swap dep engines around.. wouldn't it be trivial to take the naive version, and up it to the smart one as we go?
+[4:24PM] vasi: you ought to at least architecture the engine so it takes a (state, set-of-operations) set
+[4:24PM] vasi: and then returns a list-of-things-to-do
+[4:24PM] vasi: so that then, it's easy to substitute any system
+[4:25PM] vasi: (and use callbacks for things like user interactions)
+[4:25PM] vasi: The reason we can't just swap in a new dep engine to fink is that the current one is sufficiently useful and has enough side effects, that it would just be too much pain
+[4:26PM] vasi: so don't get yourself stuck in the same situation as we're in
+
+Vasi wrote a proof of concept for fink, that does this sort of detecting 
+(no resolving yet):
+    http://cvs.sf.net/viewcvs.py/fink/fink/perlmod/Fink/SysState.pm?view=markup
+
+Vasi points to a good dep engine written in python:
+    http://labix.org/smart
+
+=head1 Miscelaneous Open Issues
+
+These are not implemented in the prototype, but should be well kept in 
+mind for a serious release.
+
+=head2 Binary packages
+
+Rather than letting the build tool generate a magic list of files which
+we are to move to their final destination, building a binary package will
+be much easier. We can adopt the debian strategy to let the builder install
+into a fake root directory, provided to it. 
+That way we can package up this directory and have a complete list of files
+and their destination on this machine.
+
+Another benefit to building these packages:
+
+    [3:25PM] vasi: basically some users are likely to want to uninstall
+    packages, and re-install without a whole compile
+    [3:25PM] vasi: or create packages on a fast machine, and then install 
+    them on a slow machine
+    [3:25PM] vasi: or create packages once, and then distribute them to 
+    their whole organization
+
+Of course, they're not as portable as debian binary packages, as the location
+depends on perl version, architecture and install prefix. So this is something
+to come back to later, but keep in mind.
+
+=head2 Upgrades causing deletes
+
+For perl6, there's no direct need to delete an older package when upgrading,
+but for quite a few architectures it is. Our current dependency engine doesn't
+keep this in mind yet, but it's something to add later on.
+
+=head2 Stacking available paths
+
+Most package managers assume control of /, which we don't. Following the perl
+installation style, we'll have several directories that can hold modules, that
+can be mixed and matched using dynamic assignments to @INC (by using say, 
+$ENV{PERL5LIB}). To facilitate this, we should have a meta dir below every
+@INC root dir, which tells us what modules are available in this root.
+The order of @INC will tell us in what order they come, when resolving
+dependencies.
+It's unclear how we will proceed with our alternatives scheme in this setup.
+
+=head2 Depth level to follow dependencies
+
+With more tags describing dependencies than just C<Depends:> we should have 
+a way to tell the package manager until what level you wish to follow these
+tags. For example '0' to not install dependencies ever, '1' to just do 
+C<Depends:>, '2' to also do C<Suggests:>, etc.
+
+=head2 Probing external files
+
+Since we do not rule all of /, there are going to be dependencies we are
+unaware of. Therefor we need probing classes that can tell us (and possibly
+somewhere in the future resolve) whether a certain non-perl dependency has
+been met. For example, we might have a dependency on:
+
+    c_header-pgsql
+    
+And a probing class for the type C<c_header> would be able to tell us
+whether or not we have this dependency satisfied. The same probing class
+should be able to tell us something about this dependency, like location and
+so on, so the build modules may use it.
+This also means our dependency engine should use these probing classes.
+
+=head1 Repositories
+
+My (rafl) ideas for the repository layout look like this. 
+It's modeled after the Debian archive structure.
+
+ /
+ |
+ |- pool/                                 The real modules are stored here. 
+ |  |
+ |  |                                     The index files in dist/ point here.
+ |  |- a/                                 Modules startihg with 'a'. The pool is
+ |  |  |                                  grouped alphabetically for performance
+ |  |  |                                  reasons.
+ |  |  |
+ |  |  |- acme-foo-0.1-cpan+RAFL.jib
+ |  |  |- acme-foo-0.2-cpan+RAFL.jib
+ |  |  `- acme-hello-1-cpan+AUTRIJUS.jib
+ |  |
+ |  |- b/
+ |  |- c/
+ |  |- ./
+ |  |- ./
+ |  |- ./
+ |  |- y/
+ |  `- z/
+ |
+ `- dists/                  This directory only contains so called index files
+    |                       files. They know some meta-information about the 
+    |                       packages (description, ...) and a path to the real
+    |                       package inside pool/. Using this index files
+    |                       modules can be categorized very well. There are
+    |                       more then the showed categories possible, of 
+    |                       course. It's only an example.
+    |
+    |- index.gz             Main index file with all modules
+    |
+    |- author/              The whole archive sorted by authors
+    |  |- stevan.gz         Stevan's modules
+    |  |- autrijus.gz       All of autrijus modules
+    |  |- autrijus/         ... and so on
+    |  |  |- language/
+    |  |  |  |- python.gz
+    |  |  |  |- perl.gz
+    |  |  |  `- perl/
+    |  |  |     `- module/
+    |  |  |        |- Perl6-Pugs.gz
+    |  |  |        `- Acme-Hello.gz
+    |  |  |
+    |  |  `- module/
+    |  |     |- Perl6-Pugs.gz
+    |  |     |- Acme-Hello.gz
+    |  |     `- Acme-Hello/
+    |  |        `- language/
+    |  |           |- perl.gz
+    |  |           `- js.gz
+    |  |
+    |  `- rafl.gz
+    |
+    |- language/
+    |  |- perl.gz
+    |  |- perl/
+    |  |  |- auhor/
+    |  |  |  |- kane.gz
+    |  |  |  |- rafl.gz
+    |  |  |  |- rafl/
+    |  |  |  |  `- module/
+    |  |  |  |     |- Audio-Moosic.gz
+    |  |  |  |     `- Audio-File.gz
+    |  |  |  |
+    |  |  |  `- gbarr.gz
+    |  |  |
+    |  |  `- module/
+    |  |     |- Audio-Moosic.gz
+    |  |     |- Audio-Moosic/
+    |  |     |  `- author/
+    |  |     |     |- rafl.gz
+    |  |     |     `- kane.gz
+    |  |     |
+    |  |     |- Audio-File.gz
+    |  |     `- Audio-File/ 
+    |  |
+    |  |- js.gz
+    |  |- js/
+    |  |- ruby.gz
+    |  `- ruby/
+    |
+    `- module/
+       |- DBI.gz
+       |- DBI/
+       |  |- author/
+       |  |  |- timb.gz
+       |  |  |- timb/
+       |  |  |  `- language/
+       |  |  |     |- perl.gz
+       |  |  |     `- js.gz
+       |  |  |
+       |  |  `- rafl.gz
+       |  |
+       |  `- language/
+       |     |- perl.gz
+       |     |- perl/
+       |     |  `- author/
+       |     |     |- timb.gz
+       |     |     `- rafl.gz
+       |     |
+       |     `- ruby.gz
+       |
+       |- Net-SMTP/
+       `- Net-IMCP/
+
+In this layout we have a pool directory, where all .jib's live, and a dists
+directory, which contains the needed meta informations for the .jib's in pool.
+The dists directory contains a index.gz file which is a gziped list of all
+modules plus their meta information. This file will get pretty as the number of
+modules on sixpan grows. Therefor the dists directory is split up.
+
+This can be done by all meta tags a .jib file can have. I've choosen the author
+name, the module name and the language a module is implemented in as the
+default.
+
+The dists directory contains a directory for each meta tag we're grouping after.
+This directory has the same name as the meta tag. This directory now contains
+gziped index files for all available values of the given meta tag. These index
+files are named after the value of the meta tag.
+
+Beside that index files we also have directories in the meta tag subdirectories
+of dists. These are named after the meta value as well and contain a similar
+structure as the subdirectories of dists. But grouped after all remaining meta
+tags. This continues recursively until no meta tags are left.
+
+So if we want to get a specifig index file which contains all modules with given
+meta tags we use a path like this:
+
+  dists/tag1/value1/tag2/value2/tag3/value3.gz
+
+ # XXX - Alias suggests that we normalize our query syntax for selecting based
+ #       on languages, modules, tags etc, and take a digest hash of it as the
+ #       file name for the .gz file; that way a given repository can cache a
+ #       large amount of queries, and we can add more columns/axis after the
+ #       fact, without inventing whole directory structures to support them.
+ #       (it's essentially the git/monotone idea.)
+
+=head1 Implications for module resolving from the compiler
+
+=head2 Facilitating muliple versions
+
+As outlined in the C<S11> synopsis on modules, it's quite possible
+to install multiple versions of a certain module. To facilitate this,
+the old directory structure, as used in C<perl 5> must be abondoned, in
+favor of a more layered structure as outlined in the "Installing a C<.jib>"
+section above.
+
+This of course has some implications for the compiler as it will no longer
+be able to use the old translation:
+    
+    $mod =~ s|::|/|g; $mod .= '.pm';
+    for ( @INC ) { $file = "$_/$mod" if -e "$_/$mod" }
+    
+Instead, a module must be found within one of the package subdirectories.
+The C<Policy> will describe which package is favored over the other. However,
+it does not (currently) describe which I<package> is preferred over the other;
+It is quite possible (under perl5, and presumably perl6) that the following
+scenario exists:
+
+=over 4
+
+=item A package C<p5-Foo-1-cpan+KANE> holds Foo.pm and Foo::Bar.pm
+=item A package C<p5-Foo-Bar-1-cpan+KANE> holds Foo::Bar.pm
+
+=back
+
+As the C<S11> draft only speaks of how to resolve the use of Foo::Bar.pm 
+which is I<assumed> to be in C<p5-Foo-Bar>, a possible ambiguity creeps in.
+
+In order to resolve this ambiguity, 2 options present themselves currently:
+
+=over 4
+
+=item 1
+
+Use the package manager information which holds metadata from every installed
+package, including what modules it provides. The compiler can find every
+package that provides a module, and use the policy to decide which is to be
+favoured.
+
+The downsides to this approach are:
+
+=over 8
+
+=item * 
+
+The package manager becomes a vital part of the compilation, which will both
+slow it down, and introduces a quite hefty single point of failure.
+
+=item * 
+
+Modules available outside the package manager (home-grown, source files, vcs,
+etc) will not be compilable this way
+
+=item *
+
+Requires an extension of the Policy definition to disambiguate in these cases
+
+=item *
+
+The modules included could unexpectedly change upon installation of a package
+that was not thought to have any influence
+
+=back
+
+=item 2
+
+Extend the current C<use> syntax to include an optional C<from> tag, much
+along the way pythons imports work. Where python uses C<from> to say:
+
+    from MODULE import FUNCTIONS
+    
+We propose to have perl6 use:
+
+    use MODULE from PACKAGE;
+
+This means that the C<use> syntax can be 'dummed down' to the current perl5 
+sytnax, and all the magic of the new syntax goes in the C<from> section.
+
+To keep the C<from> part optional, the C<from> defaults to:
+
+    MODULE =~ s/::/-/g;
+
+This means one would write the following thigs:
+
+=over 4
+
+=item use Foo;
+
+to use Foo.pm from p6-Foo-(ANY)-(ANY)
+
+=item use Foo::Bar;
+
+to use Foo::Bar.pm from p6-Foo-Bar-(ANY)-(ANY)
+
+=item use Foo::Bar from Foo;
+
+to use Foo::Bar.pm from p6-Foo-(ANY)-(ANY)
+
+=back
+
+The only noticable downsides to this approach are the extension of the
+language keywords, and the occasional requirement on the user to identify
+which package a certain module should come from. The latter may actually
+be argued a feature.
+
+=head2 Querying the compiler
+
+As the C<META.info> files describe the package in quite a bit of detail,
+it would be very nice if those could be (largely) generated from the 
+information the compiler can give us about chunks of code (now to be named
+C<compile units>).
+
+Many fields in the C<META.info> file are completely analogous to 
+declarations in the files packaged. It would therefor be handy to, rather 
+than scanning or parsing files under the package tree, have the compiler
+answer certain questions for us. These are along the lines of:
+
+=over 4
+
+=item What classes are declared in this package?
+
+=item What other libraries/packages/headers are being pulled in by this package?
+
+=back
+
+Even though perl is a dynamic language, it is possible to identify whether
+or not any 'dynamic' calls are unresolvable at compile time and could therefor
+change or add to what we have found already.
+So in any case, we can at least be certain whether or not we are certain about
+what the code does -- any ambiguities can be presented to the user and edited
+manually in the C<META.info>.
+
+
+
+
+__END__
+
+
+=head1 Past Rantings/Notes/Etc
+
+# This file needs reorganization - gnomes welcome!
+
+'package management means several things':
+    - metadata collection                           (1) perl6-thingy or maybe debtags?
+    - package building                              (2) make dist
+        - intermediate format for transport
+            - the equiv of Makefile.PL in it
+            - decomposed to hooks and probes
+        - uploading package to central area         (3) CPAN
+        - indexing                                  (4) apt-ftparchive
+            - I don't think apt-ftparchive is enough here. I think we'll 
+                need to set up or even wright something like dak, the 
+                Debian archive maintaince scripts: packages.debian.org/dak
+        - understanding/querying index              (5) apt-cache, debtags
+        - fetching package
+        - building final package                    (6) dpkg-deb
+            - with dependency, conflict, alternative, etc resolution (7) apt
+        - installing package                        (8) dpkg -i
+
+- Check out the "prototype" directory here for the meta.info for #1
+http://p4.elixus.org:8181/@md=d&cd=//member/kane/pms/docs/&cdf=//member/kane/pms/docs/notes.txt&c=BYo@//member/kane/pms/
+
+- To use dpkg, let's not do manual patchfile
+    - instead import dpkg src into a src control
+    - then fink patches becomes a branch
+    - and we branch again
+    - and brings the diffs between them and figure out who can accept what
+    - but it's all in version control, not .diff files
+
+(au will bring this to jhi and aevil next Monday and see what they think about it, btw.)
+
+=head2 Packages
+
+- Binary and Source Package
+- Only Source Packages
+    - source -> package compilation on the client machine we can not use
+        standard dependency resolution engines, as the package that would
+        satisfy the dependency doesn't exist
+    - apt only groks binary pkgs
+        - which is why we are doing something finkish
+- Assume user have a compiler and other dev tools
+    - Because we are going to bundle them damnit
+    - Fall back statically and gracefully due to static C-side dep declaration
+
+Though this not necessarily represents the view of Runtimes:
+
+when comping to pir we need to recognize "use" for pir lib bundles
+when comping to p5 we need to recognize PAR (not really)
+when targetting jvm we have .jar capability
+but that's the runtime - we only provide bridge to them on the syntax level instead of on the package management level - to users of perl 6 it's all just "perl 6" regardless of the runtime they are going to use on the system.
+
+
+[foo.p6]
+given (use (perl5:DBI | java:JDBC)) {
+    when /perl5/ { ... }
+    when /java/ { ... }
+};
+
+[foo.p6o]
+- symbol resolution links to java:JDBC
+- remembers the policy that shaped this decision
+- would not relink unless the environment changes
+    - new available perl5:DBI
+    - modified policy
+    - et cetera
+- trigger a relink if the env changed under it
+    - it's the same as Inline::* for the changed source files
+    - except we also chase the dep pkgs and reqs
+
+- When you install a package
+    - you list the resolved pkgs as part of its install profile
+    - because perl6 uses ahead-of-time compilation (most of the times)
+    - this means the pkg is already statically linked to those resolved deps
+    - to change that requires a rebuild from source anyway
+    - the runtime is going to be exactly the same as install time
+    - to change that requires essentially a relink therefore a reinstall
+    - exactly like C#, Java, C, whatever
+        (not like Ruby, Python, PHP)
+
+separate compilation doctrine
+- each package will just remember specific versions it linked against
+    - when you do upgrade, you have the chance of relinking past
+      packages that depends on the older version
+      (again, just like C)
+
+ldd libfoo 
+    libz.3
+
+upgrade to libz4
+/usr/lib/libz.3.so
+
+
+=head2 Policies
+
+=head3 Probing
+
+Compress::Zlib
+- need zlib.h and -lz on the system
+- since it's C, we can reasonably put it as part of metadata
+- the requires section is probed according to the prefix
+- new prefixes may be added later in an extensible fashion
+- 2 categories of prefixes:
+    - those we are 'authoritive' for, i.e. can resolve
+    - the others are delegated to powers-that-be in the local system
+
+
+Requires: p5-Foo, p6-Bar,  c_lib-zlib, c_inc-malloc, bin-postfix
+
+mapping:
+    prefix -> probing tool
+
+c headers
+binaries
+libraries
+file
+
+network?
+
+
+=head3 Package Management
+
+kane thinks:
+- dpkg seems to be not the optimal choice
+- functionality good, custom patches bad
+    - described well in policy & we have source code :)
+    - rafl seems to be very passionate on the Right Thing
+    - (has C-fu and Perl-fu and dpkg-fu, worked with Parrot+Pugs)
+    - patch only works on osx
+    - patched against an old version
+        - patch fails against newer versions of dpkg
+        - finkers claim updating patch is a PITA
+            - this is bad
+    - Use dpkg policy & source to write own tool?
+        - be dpkg-inspired?
+- fink "fixed" dpkg by introducing their own branch
+    - distributed as a "patchfile"
+        - http://cvs.sourceforge.net/viewcvs.py/fink/fink/10.4-transitional/dpkg.patch?rev=1.3&view=log
+            http://cvs.sourceforge.net/viewcvs.py/*checkout*/fink/fink/10.4-transitional/dpkg.patch
+            http://cvs.sourceforge.net/viewcvs.py/*checkout*/fink/fink/10.4-transitional/dpkg.info
+        
+        - main patch: adding @PREFIX@ to dpkg, so it no longer assumes it
+            manages all of /, but in finks case, just /sw
+            - that is a must-have patch for us, if using dpkg
+            - also means a shared root between admin & install files
+    - no hope of upstream merge?
+    - (make them our upstream and see if they take patches better?)
+    - dual-track system
+        - "fink" is srcpkg # this is more like what we are after
+        - "apt-get" is binpkg # don't have to realize that part right now?
+        - use 'intermediate format' (a la tarballs from "make dist")
+            - contains all files & metadata
+                - usable for anyone to build packages
+            - build .deb (or similar) on client machine
+                - deb has name (full pkg name) and provides:
+                    - p5-Foo-Bar
+                    - p5-Foo-Bar-Origin
+                    - allows users to depend more specifically
+               - requires a new EU::MM/M::B (no more make!)     
+            
+
+(other alternatives)
+- yum (as in yummy)
+    - vasi on irc.freenode.org:#fink knows a lot
+- xar (http://www.opendarwin.org/projects/xar/)
+    - XAR requires libcurl, libxml2, OpenSSL, and zlib. 
+    - all c code
+    - underdevelopment by some #fink-ers, like bbraun
+
+autrijus thinks:
+- ddundan is porting DBI::PurePerl to Perl6
+    - Going to call it "DBI-0.0.1-cpan:DDUNCAN"
+    - 4 parts in the name
+        - implicit: "perl6" -- "use perl6:DBI" is the same as "use DBI"
+            - mapped to "p6-" in the ondisk pkg string
+        - "DBI" is just "DBI"
+        - "0.0.1" (it is decreed that thou shalt not upload malformed 
+                version strings)
+        - scheme:location (with some validation somewhere.. or something)
+            - on disk, we turn the initial colon into dash
+            - URI-escape the location part
+    - one-to-one, reversible mapping between long names and ondisk 
+        package dirs
+        - adopting the "only.pm"-like scheme of installing modfiles into
+            pkgdirs
+        
+    - blib/scripts/ & blib/man/
+        - problem is because shell could care less about multiversioning
+        - some sort of ln-s inevitable
+        - adopt the debian "alternatives" notion and be done with it
+        - DBI.3pm links to the "most desired" variant of DBI manpage
+    - we do have a way to tell what is more desired
+        - it's called the Policy File!
+            - Policy file API?
+        - whatever gets used via "use DBI" will win DBI.3pm as a bonus
+        - install everything under the module/package dir vs install
+            systemwide + links?
+    - in the pugs buildsystem currently we're still using p5 MM
+        - except it goes to perl6sitelibdir perl6scriptdir perl6man3dir
+        - this can't go on forever - esp. we are having separate
+            - Net::IRC
+            - DBI
+            - Date
+            - Set
+        - only thing pending multiversioning is the Policy File
+            - without which we can't possibly roll this out
+
+rafl thinks:
+- dpkg seems to be not the optimal choice
+    - maybe only adopt the package and metadata format from the .deb 
+        format version 2 and write the tools to manipulate and install it
+        ourself. Preferably in Perl 6.
+    - I fear that tools like dpkg/apt/.. aren't portable as we need it 
+        because they were mainly written for use with a single Linux
+        distribution.
+    - The Debian tools can be useful as a provisional solutions until we wrote
+        something own or as a reference implementation.
+
+=head2 Policy File
+
+=head3 API
+
+Policy.resolve_module(@modulespecs)
+    (see S11 for some module specs)
+    (allow junctions, yay)
+
+    - returns zero, one module object
+    - or an exception with 2+ overlapping ones
+
+=head3 Syntax
+
+Core < Vendor < Site < User policies
+
+- Whenever there could be a "use" line that is ambiguous,
+  the policy set is considered bogus and you have to edit
+  it to continue.
+
+
+- Tie breaker for multiple matches to a "use" line
+- Also a 'hintsfile' for package installer (& builder?)
+- Reasonable defaults
+
+p6-M-*-* > p5-M-*-*
+L-M-1.0.0-O > L-M-2.0.0-O
+
+language, module, version, origin
+
+- The user just have to subscribe to a policy source
+    - supplies the "user" part of the policy defaults
+    - eg. the CPAN policy source will prioritize anything cpan: 
+        in (say) modlist
+
+
+
+
+
+# Local variables:
+# c-indentation-style: bsd
+# c-basic-offset: 4
+# indent-tabs-mode: nil
+# End:
+# vim: expandtab shiftwidth=4:
+
+
+
+
+
