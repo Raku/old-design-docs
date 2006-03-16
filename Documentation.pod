@@ -14,7 +14,7 @@ Damian Conway <damian@conway.org>
 
   Maintainer:    Ingy döt Net <ingy@cpan.org>
   Date:          9 Apr 2005
-  Last Modified: 15 Mar 2006
+  Last Modified: 16 Mar 2006
 
 This document describes the documentation capabilities of
 Perl 6. It assumes familiarity with Perl 5 and its POD (Plain Old
@@ -93,10 +93,13 @@ PDOM model:
      - Document
      - External         (intervening code or other non-Perldoc text)
      - Block
-         - Heading
+         - Heading      (a section heading)
          - Paragraph    (regular text to be formatted)
          - Verbatim     (preformatted regular text)
-         - Annotation    (output as a footnote or other elaboration)
+         - Annotation   (output as a footnote or other elaboration)
+         - Insertion    (documentation included from another file)
+         - Module       (the specification of a parsing extension)
+         - Data         (a data section for the surrounding code)
          - External     (unknown Perldoc block to be handled externally)
          - Item         (a list item)
      - Phrase
@@ -104,7 +107,7 @@ PDOM model:
          - Strong       (typically set in bold)
          - Emphasis     (typically set in italic)
          - Code         (typically set in fixed-width)
-         - Link
+         - Link         (an internal or external cross-reference)
          - Nonbreaking  (preserves and doesn't break whitespace)
          - Entity       (Unicode codepoint or XML entity)
          - Indexer      (index entry, never shown inline)
@@ -206,7 +209,7 @@ For example:
 
      =doc kwid
 
-     =doc markdown
+     =doc Markdown
 
      =doc JavaDoc
 
@@ -247,6 +250,35 @@ is encountered. That is, if the previous example had been written:
 then the last two lines would be treated as Pod, not Perl.
 
 
+=head2 Code-specific regions
+
+Perldoc defines two special directives that relate to the non-Perldoc
+components of a file: C<=DATA> and C<=END>.
+
+The C<DATA> directive creates a Perl DATA block within your document. Any Perl
+code in the document can access this data via the special C<%=DATA> variable.
+DATA blocks can be labelled (unlabelled DATA blocks have an empty string as 
+their implicit label):
+
+    =begin DATA Fibonacci
+    0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987,
+    1597, 2584, 4181, 6765, 10946, 17711, 28657, 46368, 75025, 121393,
+    196418, 317811, 514229, 832040, 1346269, 2178309, 3524578, 5702887,
+    9227465, 14930352, 24157817, 39088169
+    =end DATA
+
+    my $fib_seq = %DATA{Fibonacci};
+
+DATA blocks are included in the internal representation of a Perldoc document.
+They are treated as a specific type of L<external block|"External blocks">.
+
+The C<=END> directive indicates the termination of the non-Perldoc component
+of a file. Everything after that line until the end of the file is parsed
+as Perldoc. In a sense, C<=END> is like C<=doc>, except that the Perldoc
+region it introduces is not terminated by a C<=cut> (or anything else except
+end-of-file).
+
+
 =head2 Standard Perldoc dialects
 
 The two standard Perldoc dialects (L<Pod|The Pod Dialect>
@@ -285,6 +317,7 @@ which is semantically equivalent to:
 Note that the C<=doc>, C<=cut>, C<=pod>, and C<=kwid> lines are not
 considered part of the Perldoc information (they are not seen by the API or
 included in an internal representation). They are simply containment markers.
+
 
 
 =head2 File Containment
@@ -348,8 +381,12 @@ I<paragraph>, and I<unlabelled>.
 =head3 Delimited blocks
 
 Delimited block directives are delimited by C<=begin> and C<=end>
-markers, both of which are followed by the typename of the directive. The
-C<=begin> marker may also be followed by a multi-word label for the
+markers, both of which are followed by the typename of the directive.
+Typenames that are entirely upper-case or entirely lower-case are reserved for
+Perldoc. External formatters (including users!) should use only mixed-case
+typenames.
+
+The C<=begin> marker may also be followed by a multi-word label for the
 block (which is used in different ways by different types of blocks).
 The general syntax is:
 
@@ -359,14 +396,14 @@ The general syntax is:
 
 For example:
 
-     =begin table Table of Contents
+     =begin Table  Table of Contents
          Constants           1
          Variables           10
 
          Subroutines         33
 
          Everything else     57
-     =end table
+     =end Table
 
      =begin item Name
      The applicant's full name
@@ -395,7 +432,7 @@ syntax is:
 
 For example:
 
-     =for table Table of Contents
+     =for Table  Table of Contents
          Constants           1
          Variables           10
          Subroutines         33
@@ -872,25 +909,26 @@ of an item (or first word of an unlabelled item):
      =end item
 
 
-=head3 Modular Perldoc
+=head3 Inserted Perldoc
 
 You can incorporate sections of documentation drawn from other files
-using the C<=use> directive. This directive takes one or more URLs or
-shellish file globs as its block data, parses the resulting file(s) for
-Perldoc, and then adds the resulting internal representation of the
-file contents to the current internal Perldoc representation that's
-being built.
+using the C<=insert> directive.
 
-C<=use> directives are handy for breaking out standard components of your
+This directive takes one or more URLs or shellish file globs as its
+block data, parses the resulting file(s) for Perldoc, and then adds the
+resulting internal representation(s) of the file contents to the current
+internal Perldoc representation that's being built.
+
+C<=insert> directives are handy for breaking out standard components of your
 documentation set into reusable "modules":
 
      =head1 COPYRIGHT
 
-     =use file:/shared/docs/std_copyright.pod
+     =insert file:/shared/docs/std_copyright.pod
 
      =head1 DISCLAIMER
 
-     =use file:/shared/docs/std_disclaimer.pod
+     =insert file:/shared/docs/std_disclaimer.pod
 
 or for incorporating documentation from helper modules:
 
@@ -898,10 +936,10 @@ or for incorporating documentation from helper modules:
 
      The following extensions are currently available:
 
-     =begin use
+     =begin insert
          glob:lib/perl6/MyModule/Plugins/*.pm
          glob:/usr/local/lib/perl6/MyModule/Plugins/*.pm
-     =end use
+     =end insert
 
 
 =head3 External blocks
@@ -909,7 +947,7 @@ or for incorporating documentation from helper modules:
 Directives whose names are not recognized as Pod built-ins are assumed to be
 destined for external formatters or parser plug-ins. For example:
 
-     =begin table The Other Guys
+     =begin Table  The Other Guys
 
           Superhero     | Secret Identity | Superpower
          ---------------|-----------------|------------------------------
@@ -918,14 +956,14 @@ destined for external formatters or parser plug-ins. For example:
           Mr Furious    | Roy Orson       | Ticking time bomb of fury
           The Bowler    | Carol Pinnsler  | Haunted bowling ball
 
-     =end table
+     =end Table
 
 
-     =for XHTML
+     =for Xhtml
      <object type="video/quicktime" data="onion.mov">
 
 
-     =image http://www.perlfoundation.org/images/perl_logo_32x104.png
+     =Image http://www.perlfoundation.org/images/perl_logo_32x104.png
 
 External blocks are converted by the Perldoc parser to
 Perldoc::Block::External objects. The resulting object's C<.typename>
@@ -934,7 +972,66 @@ C<'image'>, etc. The object's C<.contents> method retrieves the block's
 (unformatted) data.
 
 By default, Perldoc formatters ignore external blocks that they do not
-recognize and for which they cannot find a suitable plug-in.
+recognize.
+
+
+=head3 Modular blocks
+
+Although external blocks are normally ignored, Perldoc provides a mechanism
+whereby you can specify how particular external blocks are handled: the
+C<=use> directive.
+
+Specifying a C<=use> causes a Perldoc processor to load the corresponding
+plug-in module at that point. Plug-ins can use L<the PDOM API|"PDOM API">
+to change the way subsequent Perldoc is parsed (even to the extent of
+installing new parsing rules or a new grammar), or they can simply provide
+handlers for specific types of L<external blocks|"External blocks">.
+
+For example:
+
+    =comment Install the Table plugin to render the following table...
+
+    =use Table
+
+    =begin Table  The Other Guys
+
+          Superhero     | Secret Identity | Superpower
+         ---------------|-----------------|------------------------------
+          The Shoveller | Eddie Stevens   | King Arthur's singing shovel
+          Blue Raja     | Geoffrey Smith  | Master of cutlery
+          Mr Furious    | Roy Orson       | Ticking time bomb of fury
+          The Bowler    | Carol Pinnsler  | Haunted bowling ball
+
+    =end Table
+
+The C<=use> statement causes the Perldoc processor immediately to look
+for a module named C<Perldoc::Plugin::Table> and to load it. More
+genarally, the first word of any C<=use> block is appended to a standard
+plugin prefix (C<Perldoc::Plugin::>) and passed as the first argument of
+a Perl 6 C<require>.
+
+If the processor is unable to load the requested module, it should (but
+is not required to) issue a warning. However, in all cases it must
+continue processing the remaining Perldoc. The processor may also elect
+to change the way it handles subsequent external blocks (for example,
+if a C<=use Table> fails, it may choose to convert subsequent C<=Table>
+blocks to C<=verbatim> blocks so that at least some form of the
+information is presented).
+
+You can use fully and partially specified module names (as in a Perl 6
+C<require> statement):
+
+    =use Table::Html-1.2.1-(Any)
+
+and even pass arguments:
+
+    =use Image :Jpeg prefix=>'http://dev.perl.org'
+
+This last example would result in a C<require> statement something like:
+
+    require $STD_MODULE_PREFIX ~ 'Image',
+            eval q{ :Jpeg prefix=>'http://dev.perl.org' }
+        or warn "Couldn't load Perldoc module 'Image' at $LOCATION\n";
 
 
 =head3 Comments
@@ -1420,11 +1517,11 @@ Kwid:
 
      Some V<B<escaped>> markup           Some \*escaped\* markup
 
-     =begin section_type                 .section_name
+     =begin Section_type                 .Section_type
 
-     =end section_type                   ..section_type
+     =end Section_type                   ..Section_type
 
-     =for section_type                   .:section_type
+     =for Section_type                   .:Section_type
 
 
 =head1 EMBEDDING DIALECTS
