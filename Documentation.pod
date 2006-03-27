@@ -14,7 +14,7 @@ Damian Conway <damian@conway.org>
 
   Maintainer:    Ingy döt Net <ingy@cpan.org>
   Date:          9 Apr 2005
-  Last Modified: 16 Mar 2006
+  Last Modified: 27 Mar 2006
 
 This document describes the documentation capabilities of
 Perl 6. It assumes familiarity with Perl 5 and its POD (Plain Old
@@ -24,6 +24,19 @@ Throughout this document, the term "Perldoc" will be used as the generic
 term to describe Perl Documentation. "Pod" now refers to a specific
 I<dialect> of Perldoc. With Perl 6, there's more than one way to
 document it.
+
+
+=for discussion
+    Perhaps people coming to this document looking for how to write
+    Perl documentation (or worse, looking for Perl documentation)
+    are going to be sadly disappointed that it doesn't start out
+    talking about that, or at least give a link or "bypass" to where
+    it actually is talked about.  So far this discussion is mostly
+    PDOM-centric, and that's probably *not* where most people want
+    to start.  It's okay for a spec, but in the long run perhaps
+    this file needs to be renamed to DocumentObjectModel and the
+    other stuff split out elsewhere, with Documentation just a short
+    top-level file directing traffic...
 
 
 =head1 THE PERLDOC OBJECT MODEL (PDOM)
@@ -61,12 +74,27 @@ may be resolved by some other process at some other time. This might
 include I<tables>, I<images>, I<diagrams> or I<raw html>. External nodes
 are typically handled by PDOM extensions, described later on.
 
+=for discussion
+    I am not sure that this distinction between internal and external
+    nodes is useful.  I'd like to think of nodes as having various
+    roles, some of which are relevant to the current process and some
+    of which are not.  In particular, for some purposes a node should
+    be able to be both code and documentation.
+
 =item Ignorable Nodes
 
 Nodes corresponding to text in the syntax presentation that has no
 bearing on the document's intended content, but must be preserved for
 applications like editors and syntax highlighting. This typically
 includes non-significant whitespace and throwaway comments.
+
+=for discussion
+    Likewise, "ignorable" is just an absence of interest, but
+    Damian's "sufficient advanced magic" demonstrates that one
+    person's ignorable is another person's "please don't ignore".
+    We need to make sure that any chunk of text can be annotated with
+    multiple roles, or we at least need a fast way to declare that
+    a particular kind of chunk fills a particular set of roles.
 
 =back
 
@@ -92,16 +120,89 @@ PDOM model:
 
      - Document
      - External         (intervening code or other non-Perldoc text)
+
+=for discussion
+    Wait a minute, it isn't important to identify code as "code"
+    to the document?  What about if some of the code wants to be
+    included in the document when the clearest way to spec some
+    aspects might be with the code itself.  (Plus any time you can
+    get away with that, you prevent the doc from getting out of sync
+    with the code by definition.)  It seems like we're falling into a
+    fixed class-based heirarchy in Perldoc just about the time we're
+    escaping it with the Perl 6 type system...
+
      - Block
          - Heading      (a section heading)
+
+=for discussion
+    Hmm, maybe the real block wants to be the section, and the heading
+    is its label?  A heading seems to be falling more into the <p>
+    separator mold rather than <p></p> container mold.  Maybe that's
+    okay, but we should talk about it.  (I guess I'm sensitive to
+    this because Perl 5 has statement separator opcodes when the
+    doc model wants statement containers, and that turned out to
+    be painful for p5-to-p5.)  I guess there's a sense in which a
+    heading is a block within a block, but you'd sometimes like to
+    treat everything this heading controls as a single object, and
+    the separator model doesn't provide that.
+
          - Paragraph    (regular text to be formatted)
          - Verbatim     (preformatted regular text)
+
+=for discussion
+    A weakness of current pod is that there's no "slightly formatted"
+    verbatim.  It'd be nice to have a semi-verbatim paragraph with a
+    single hard-to-use-accidentally escape, much like '\qq[...]' in P6.
+    Again, role based behaviors might make this easier to thread through
+    other names or conventions within a particular lexical scope.
+
          - Annotation   (output as a footnote or other elaboration)
+
+=for discussion
+    This seems to be a role specifying disposition of the current text
+    rather late in processing, but this should be orthogonal to other
+    roles.  For example, you could have something that's simultaneously
+    an insertion and an annotation.  Maybe there are better examples.
+    Anyway, I just get the feeling we're describing several different
+    snapshots of trees at different stages of processing, and maybe they're
+    not all the same type of tree.
+
          - Insertion    (documentation included from another file)
+
+=for discussion
+    There's a fundamental inconsistency here, and we can't have it both
+    ways, at least not easily.  Is this document view before or after
+    the processors?  Annotation is talking about future processing.
+    Insertion is talking about past processing.  Or does "Insertion"
+    mean a hyperlink?  The current verbiage, plus the existence of
+    "Link" below,  seems to point the former.  But if some preprocessor
+    has got ahold of the text before we even start in on it, why do
+    we give a rip?  (Not intended to be a rhetorical question.)
+
          - Module       (the specification of a parsing extension)
+
+=for discussion
+    Only parsing?  I think this view is too limited under a role-based
+    view.  How do we define what new documentation roles can do?
+
          - Data         (a data section for the surrounding code)
+
+=for discussion
+    What if we want to apply some filtering role before the program sees it.
+
          - External     (unknown Perldoc block to be handled externally)
+
+=for discussion
+    This strikes me as a figure/ground violation.  I don't really
+    believe in "miscellanous" except by process of elimination,
+    which implies some process has already happened.
+
          - Item         (a list item)
+
+=for discussion
+    What's the outer list block called?  How do we distinguish different
+    list roles?  Do lists support lexically scoped declarations?
+
      - Phrase
          - Plaintext    (typically set in roman)
          - Strong       (typically set in bold)
@@ -116,6 +217,15 @@ PDOM model:
 Documents contain one or more blocks, which in turn contain one or more
 phrases. Blocks may also contain nested blocks and phrases may contain nested
 phrases.
+
+=for discussion
+    While stongly implying it, this doesn't actually come out and
+    say that it is illegal to put a block inside a phrase.  Is it?
+    (And should it be?  Seems like kind of an artificial distinction.
+    What is fundamental about the scoping of phrasal roles that
+    prohibits blocks?  I don't think XML forces a distinction like
+    this, though I believe it allows you to define your tags to force
+    the distinction...)
 
 =head1 PDOM API
 
@@ -148,22 +258,66 @@ For example:
      PD::Doc.end;
 
 
+=for discussion
+    There seems to be an implicitly curried stream parameter threaded
+    through here.  Might be better to make it an explicit object
+    so you can generate two streams of events at once?  Then the
+    curried form can be defined in terms of the non-curried form.
+    Define the class and let the user curry it into different modules
+    in different scopes if they like.
+
+
 =head2 PDOM Random Access API
 
 This API consists of functions that would likely look similar to
 an XML/DOM API.
+
+=for discussion
+    This seems kinda hand wavey.  If we can't use the XML/DOM api
+    directly, we need to be clear on why and/or where it's bogus or
+    suboptimal.
+
 
 The documentation of a program will be available through the global
 variable C<%*DOC>. It has not yet been determined how all the parts of
 the PDOM would be accessed through this hash. Perhaps the variable
 C<$*DOC> could hold a reference to the program's PDOM object.
 
+=for discussion
+    What's a "program"?  Each compilation unit probably thinks of
+    its own PDOM as a document, and those can't all be named %*DOC
+    because that namespace is shared.  At best each module could have
+    bits of %*DOC, and then you have to figure out how to name each
+    module's bits as a key.  That's partly why we've reserved the
+    = twigil to indicate the current compilation unit's document,
+    though that's of course a lexical (file) scope rather than a
+    module scope.  Maybe you can get at another namespace's pdom via
+    THAT::MODULE<%=foo> if we assume there's some mapping of module
+    names to their associated file scope (though that's slightly
+    problematic for reopened packages).  But anyway, if we can delay
+    that leap to after we know which package we're talking about,
+    then if any name mangling has to be done, it can all be automatic,
+    rather than guessing at how the keys of %*DOC are formed from
+    package names.
+
+=for discussion
+    If there's a singular top-level object, it should probably be
+    $*DOC anyway.  %*DOC.lookatme is going to introspect that hash
+    rather than the document object.
 
 =head1 SYNTAX CONTAINMENT
+
+=for discussion
+    Ouch, the cognitive dissonance.  We just shifted from
+    anti-syntactic PDOM to syntactic bikeshedding...
 
 Various interpreters (including the Perl interpreter) need to
 distinguish which characters in a file or stream are actual Perldoc
 and which are irrelevant (typically because they're Perl code).
+
+=for discussion
+    Maybe a use or =use should be able to change the default /^^=/
+    syntax somehow.
 
 Regardless of the code or data in which it's embedded, every section of
 Perldoc begins with a line whose first character (in column 1) is C<=>,
@@ -174,7 +328,16 @@ C<'cut'>. In other words, any line that matches the Perl 6 regex:
 
 indicates the start of a section of Perldoc.
 
+=for discussion
+    I'd like to kill =cut as dead as possible, but no deader.
+
+
 Each section of Perldoc ends at either:
+
+=for discussion
+    Nit: this "either" has three possibilities.  You see, subconsciously
+    you're thinking we can get rid of =cut.  :-)
+
 
 =over
 
@@ -195,6 +358,9 @@ The special directive C<=cut>
 
 =back
 
+=for discussion
+    For that matter, I don't much like =pod, =doc, or =kwid either...
+
 
 =head2 Explicit documentation regions
 
@@ -202,6 +368,11 @@ Perldoc also provides a directive that explicitly indicates the
 start of an extended piece of documentation:
 
      =doc <dialect>
+
+=for discussion
+    Don't see the need for a =doc declarator.  Why not unify with =use,
+    and make modules powerful enough to do the general syntactic and
+    role-based switching.
 
 For example:
 
@@ -216,6 +387,12 @@ For example:
 If C<=doc> has no dialect qualifier, it is assumed to be the same dialect as
 the previous C<=doc> region specified (it is an error if the first C<=doc>
 doesn't specify a dialect).
+
+=for discussion
+    I think bare =doc/=cut is just =begin/=end spelled badly.  All we need
+    to do is say that =use scopes to the end of the current =begin/=end block,
+    if any, or the rest of the file if not.
+
 
 Normally a section of Perldoc finishes after the closing delimiter of its
 directive, and the Perl interpreter goes back to parsing code:
@@ -250,10 +427,21 @@ is encountered. That is, if the previous example had been written:
 then the last two lines would be treated as Pod, not Perl.
 
 
+=for discussion
+    =begin without =end can do that too.
+
+
 =head2 Code-specific regions
 
 Perldoc defines two special directives that relate to the non-Perldoc
 components of a file: C<=DATA> and C<=END>.
+
+=for discussion
+    Why do they have to be special?  Data is not used often enough to
+    warrant short huffman coding.  And what if you want something to
+    be simultaneously data and a Perldoc component?  To me, data is just
+    a Perldoc component with a name or role that only the program is
+    (usually) interested in.
 
 The C<DATA> directive creates a Perl DATA block within your document. Any Perl
 code in the document can access this data via the special C<%=DATA> variable.
@@ -277,6 +465,12 @@ of a file. Everything after that line until the end of the file is parsed
 as Perldoc. In a sense, C<=END> is like C<=doc>, except that the Perldoc
 region it introduces is not terminated by a C<=cut> (or anything else except
 end-of-file).
+
+
+=for discussion
+    more like:
+        =begin END
+    suppressing the warning of missing =end END
 
 
 =head2 Standard Perldoc dialects
@@ -303,8 +497,19 @@ after a previous `=doc kwid`, then we can just do:
 
 and we don't need to /bless/ Pod and Kwid as standard.
 
+
 =end question-for-damian
 
+=begin answer-from-larry
+    In my mental model that's just
+
+    =use  kwid
+    =begin
+    - Something
+    Some interesting point.
+    =end
+
+=end answer-from-larry
 
 The two standard Perldoc dialects (L<Pod|The Pod Dialect>
 and L<Kwid|The Kwid Dialect>) have abbreviated markers:
@@ -344,6 +549,9 @@ considered part of the Perldoc information (they are not seen by the API or
 included in an internal representation). They are simply containment markers.
 
 
+=for discussion
+    This seems like a relatively useless feature to me
+
 
 =head2 File Containment
 
@@ -356,6 +564,16 @@ Pod dialect and files ending with C<.kwid> to be in the Kwid dialect,
 etc. A perldoc parser can look to the file extension for a dialect hint,
 if no other clue is provided.
 
+=for discussion
+    #!/usr/bin/pod
+    #!/usr/bin/kwid
+        vs
+    =use pod
+    =use kwid
+        as "first thing in file", or even P6-ish file-scoped declarator:
+    =use pod;
+    =use kwid;
+
 This implies that the lines like:
 
      =doc
@@ -365,6 +583,10 @@ This implies that the lines like:
 
 are not necessary in pure Perldoc files. In fact, in a Kwid file, they would
 just be plain text.
+
+
+=for discussion
+    Grumble, I don't think any of those are necessary in Pod files either...
 
 
 =head1 SYNTAX DIALECTS
@@ -411,6 +633,9 @@ Typenames that are entirely upper-case or entirely lower-case are reserved for
 Perldoc. External formatters (including users!) should use only mixed-case
 typenames.
 
+=for discussion
+    oops
+
 The C<=begin> marker may also be followed by a multi-word label for the
 block (which is used in different ways by different types of blocks).
 The general syntax is:
@@ -442,6 +667,10 @@ Note that everything between the C<=begin> line and the C<=end> line is
 considered to be the contents of the block. No blanks lines are
 required around the directives, and blank lines within the contents are
 treated as part of the contents.
+
+=for discussion
+    I think we need to reserve some kind of modifier/adverbial syntax:
+        =begin Table :foo<bar> :title<Table of Contents>
 
 
 =head3 Paragraph blocks
@@ -488,8 +717,12 @@ For example:
 
 =end note-to-damian
 
-Once again, blanks lines are not required around the directive (this is a
+Once again, blank lines are not required around the directive (this is a
 universal feature of Pod).
+
+
+=for discussion
+    Unified handling of adverbials might help with this.
 
 
 =head3 Unlabelled blocks
@@ -522,6 +755,13 @@ C<begin>, C<end>, or C<for>. Instead you have to write:
      =begin cut
      This is a C<cut> type block (whatever I<that> is!)
      =end cut
+
+
+=for discussion
+    So basically,
+        =foo bar
+    is simply sugar for
+        =for foo bar
 
 The C<=pod> and C<=doc> markers are not labelled forms either (because
 they are not terminated at the next blank line, but rather by a
@@ -597,6 +837,9 @@ current encoding changes again after that point. Note, however, that
 the second encoding directive must itself be encoded using the first
 encoding scheme.
 
+=for discussion
+    I'm inclined to agree with ingy.
+
 
 =head2 Blocks
 
@@ -623,6 +866,13 @@ distinctly rendered level.
 
 
 =head4 Numbered headings
+
+
+=for discussion
+    This is ugly, and fails to factor policy.  Need something like:
+        =use head1 N.
+        =use head2 N.
+        =use head3 (N)
 
 To create hierarchical numbered headings, use the C<< NZ<><> >>
 formatting code (see L<Hierarchical ordinals>). For example:
@@ -711,6 +961,10 @@ text no longer has to begin at column 1 because leading whitespace is
 automatically removed.
 
 
+=for discussion
+    =use para :indent(4n)
+
+
 =head3 Verbatim blocks
 
 Verbatim blocks are used to specify pre-formatted text, which should
@@ -745,6 +999,8 @@ start at the first column and to contain blank lines:
 
      =end verbatim
 
+=for discussion
+    =use verbatim :escape{'<<<','>>>'}
 
 =head3 Lists
 
@@ -909,6 +1165,13 @@ As you can see, folk wisdom is often of dubious value.
 
 =head4 Ordered lists
 
+=for discussion
+    Also ugly.  Should be unified with =head numeration.  A leading
+        =use item N.
+    could imply =over and =back much like =item
+    Alternately we might be talking about some kind of macro definition
+    of headings and list items.
+
 Ordered lists can be created using the C<< NZ<><> >> formatting code (see
 L<Hierarchical ordinals>):
 
@@ -966,6 +1229,18 @@ of an item (or first word of an unlabelled item):
      'Rithmatic
      =end item
 
+=for discussion
+    =over
+    =use item *
+    =item
+        ...
+    =for item
+        ...
+    =begin item
+        ...
+    =end item
+    =back
+
 
 =head3 Inserted Perldoc
 
@@ -1000,6 +1275,11 @@ or for incorporating documentation from helper modules:
      =end insert
 
 
+=for discussion
+    Possibly these should just be "eager" links, and unified syntactically.
+    It bothers me that this mechanism seems to preclude inclusion of anything
+    below the paragraph level.
+
 =head3 External blocks
 
 Directives whose names are not recognized as Pod built-ins are assumed to be
@@ -1032,6 +1312,14 @@ C<'image'>, etc. The object's C<.contents> method retrieves the block's
 By default, Perldoc formatters ignore external blocks that they do not
 recognize.
 
+
+=for discussion
+    Or rather, they don't ignore them--they never see them, because
+    those chunks didn't respond when the PDOM was asking for the
+    string of chunks responding to the particular role.  There is no
+    "External" role, just lack of an appropriate internal role, where
+    the list of "internal" roles is extended dynamically by =use,
+    not precanned.
 
 =head3 Modular blocks
 
@@ -1092,6 +1380,11 @@ This last example would result in a C<require> statement something like:
         or warn "Couldn't load Perldoc module 'Image' at $LOCATION\n";
 
 
+=for discussion
+    There needs to be a way to declare a MyTable that does Table|Foo|Bar|Baz.
+    (Or we need at least need to allow | notation for the table itself).
+
+
 =head3 Comments
 
 Comments are Pod blocks that are completely ignored by any formatter. They
@@ -1132,6 +1425,28 @@ comment in code (or after any other Pod block directive for that matter)
 unless the comment is also inside an explicit C<=doc> or C<=pod> region.
 
 
+=for discussion
+    Preceding paragraph can just die.
+
+
+=begin #idea
+    Comments should have more than one identifier.  I think I'd prefer a rule
+    that standard roles never match /^_/ or some such.  Then you can comment out
+    any =begin/=end block merely by putting _ on its name.  Alternately, you mark
+    the beginning with some special character:
+
+        =begin #foo
+            ...
+        =end
+
+    which degenerates to
+
+        =begin #
+            ...
+        =end
+=end
+
+
 =head2 Formatting codes
 
 Formatting codes provide a way to add inline mark-up to a piece of text
@@ -1152,6 +1467,19 @@ as the delimiters. For example:
 
 =head3 Typesetting specifiers
 
+
+=for discussion
+    I had to read that BZ<><> idiom several times before I understood
+    it.  I think a V«B<>» would read much better.  V<< B<> >> would
+    be also be nice if it stripped the spaces.  Anyway, I really hate
+    all the empty X<> variants...
+
+=for discussion
+    Y'know, what we really need often is a C<> variant that does
+    verbatim, since it's really code most of the time.  If C<> did
+    verbatim by default we could say C<< B<> >>.  Maybe relegate
+    current C<> behavior to T<> or some such.
+
 The C<< BZ<><> >> formatting code specifies that the contained text is
 to be set in a 'strong' style (typically B<bold>).
 
@@ -1163,6 +1491,15 @@ to be set in a 'code' style (typically C<fixed width>).
 
 These three codes may be arbitrarily nested and formatters should endeavour to
 convey that nesting accurately. For example, something like:
+
+
+=for discussion
+    I always wonder what the difference is between strong and emphatic,
+    *other* than that one is typically rendered bold, and the other
+    italic.  These seem to be metaphors in search of a real meaning...
+    (I always think of bold as "emphatic", and italic as just "strange".)
+    Perhaps their only real meaning is to serve as shibboleths to
+    the markup community. :)
 
 =over
 
@@ -1317,6 +1654,28 @@ angle brackets. For example:
      =item2 N<Na>. Elective by-laws
      =item1 N<N>. Statutes
 
+
+=for discussion
+     Urque.  Much prefer:
+         =use item1 N.
+         =use item2 Na.
+         =use item3 Na(R).
+         =item1 By-laws
+         =item2 Statutory by-laws
+         =item3 Governance
+         =item3 Elections
+         =item3 Meetings
+         =item2 Executive by-laws
+         =item2 Elective by-laws
+         =item1 Statutes
+    or if you don't like to use use for that:
+         =pre item1 N.
+         =pre item2 Na.
+         =pre item3 Na(R).
+    which could be generalized to prefix any named =foo.
+    (Can still have N<> if we need it, but it sure is ugly.  Did I mention it's ugly?)
+
+
 would be rendered as:
 
 =over
@@ -1455,6 +1814,13 @@ an index for a document. A C<< XZ<><> >> and its contents are never
 actually rendered in a document.
 
 
+=for discussion
+    Sounds like a role to me...what if you also want to autoindex
+    the headings or items?  We need to define the roles that each of
+    these letters fills and allow users to add to or delete from them,
+    much like P6's user-defined quotes.
+
+
 =head3 Annotations
 
 Anything enclosed in an C<< AZ<><> >> code is an inline annotation.
@@ -1487,6 +1853,10 @@ B<Footnotes>
 =back
 
 =back
+
+
+=for discussion
+    What if you want to annotate multiple paragraphs?
 
 
 =head3 External formatting codes
