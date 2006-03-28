@@ -7,15 +7,17 @@
  Author:        Rod Adams <rod@rodadams.net>
  Maintainer:    Larry Wall <larry@wall.org>
  Date:          12 Mar 2005
- Last Modified: 23 Feb 2006
- Version:       1
+ Last Modified: 28 Mar 2006
+ Version:       2
 
 This document attempts to document the list of builtin functions in Perl 6.
 It assumes familiarity with Perl 5 and prior synopses.
 
 The document is now the official S29.  It's still here in the pugs
 repository temporarily to allow easy access to pugs implementors,
-but eventually it will be copied over to svn.perl.org.  -law
+but eventually it will be copied over to svn.perl.org.  Despite its
+being "official", feel free to hack on it as long as it's in the pugs
+space.  -law
 
 =head1 Notes
 
@@ -641,10 +643,10 @@ will support the same levels as the input, unless specified otherwise.
 
 =over
 
-=item P5chop
+=item p5chop
 
- our Char multi P5emul::Str::P5chop ( Str  $string is rw )
- our Char multi P5emul::Str::P5chop ( Str *@strings = ($+_) is rw )
+ our Char multi P5emul::Str::p5chop ( Str  $string is rw )
+ our Char multi P5emul::Str::p5chop ( Str *@strings = ($+_) is rw )
 
 Trims the last character from C<$string>, and returns it. Called with a
 list, it chops each item in turn, and returns the last character
@@ -656,12 +658,12 @@ chopped.
 
 Returns string with one Char removed from the end.
 
-=item P5chomp
+=item p5chomp
 
- our Int multi P5emul::Str::P5chomp ( Str  $string is rw )
- our Int multi P5emul::Str::P5chomp ( Str *@strings = ($+_) is rw )
+ our Int multi P5emul::Str::p5chomp ( Str  $string is rw )
+ our Int multi P5emul::Str::p5chomp ( Str *@strings = ($+_) is rw )
 
-Related to C<P5chop>, only removes trailing chars that match C</\n/>. In
+Related to C<p5chop>, only removes trailing chars that match C</\n/>. In
 either case, it returns the number of chars removed.
 
 =item chomp
@@ -746,8 +748,8 @@ Needs to be in terms of StrPos, not Int.
  our List multi Str::split ( Str $input : Rule $delimiter          , Int $limit = inf )
 
 String delimiters must not be treated as rules but as constants.  The
-default is no longer ' ' since that would be interpreted as a constant.
-P5's split(' ') will translate to .words or some such.  Null trailing fields
+default is no longer S<' '> since that would be interpreted as a constant.
+P5's C<< split('S< >') >> will translate to C<.words> or some such.  Null trailing fields
 are no longer trimmed by default.  We might add some kind of :trim flag or
 introduce a trimlist function of some sort.
 
@@ -910,17 +912,35 @@ Replaces Perl 5 C<hex> and C<oct>.
 
 =over 4
 
-=item study
-
 =item defined
 
-=item undef
+Same as Perl 5, only takes extra optional argument to ask if value is defined
+with respect to a particular role:
 
-=item item 
+    $x.defined(SomeRole);
+
+A value may be defined according to one role and undefined according to another.
+Without the extra argument, defaults to the definition of defined supplied by
+the type of the object.
+
+=item undefine
+
+Perl 5's unary C<undef> function is renamed C<undefine> to avoid
+confusion with the value C<undef> (which is always 0-ary now).
 
 =item want
 
 =item caller
+
+=item each
+
+Unlike Perl 5's each, C<each> is a general method that traverses any
+composite container in a type-specific manner.
+
+For P5-like traversal, see C<Hash::kv> or C<Hash::pairs> instead,
+and put into C<for> instead of C<while>.  Perhaps there is a
+C<Perl5::p5each> emulation.
+
 
 =back
 
@@ -941,12 +961,6 @@ Replaces Perl 5 C<hex> and C<oct>.
 Dumped.
 
 
-=item each
-
-See C<Hash::kv> or C<Hash::pairs> instead, and put into C<for>
-instead of C<while>.  Likely there is a C<Perl5::p5each> emulation though.
-
-
 =item format, formline, write
 
 See Exegesis 7.
@@ -956,6 +970,10 @@ See Exegesis 7.
 
  use IPC::SysV;
 
+
+=item local
+
+Replaced by C<temp> which, unlike C<local>, defaults to not changing the value.
 
 =item ref
 
@@ -978,6 +996,10 @@ Was there a I<good> use for this?
  &func.meta.signature;
  &func.^signature;
 
+
+=item study
+
+Algorithm was too anglo-centric.  Could be brought back if generalized somehow.
 
 =back
 
