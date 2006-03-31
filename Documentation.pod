@@ -69,6 +69,26 @@ are typically handled by PDOM extensions, described later on.
     of which are not.  In particular, for some purposes a node should
     be able to be both code and documentation.
 
+=for historical_explanation
+    much of the early design on Perldoc came from a few principles;
+       1. incorporating information from Code into the Documentation
+           (a la OODoc) should happen through a plug-in for sanity
+       2. the PDOM tree can have arbitrary weird stuff as inserted by
+           the parser modules, and it just knows how to transform
+           itself to a standard tree (via interfering with events
+           during the processing stage), so that people postprocessing
+           actual documents can just deal with a set of B<standard
+           node types>
+       3. the structure should be able to be "flattened" in a sane way
+            without losing information, for instance output to XML,
+            both in the unprocessed (where special nodes may exist)
+            and processed (where they may not exist) stages.  This
+            must be possible from the unprocessed stage; it started
+            out as "flat" text.  This is why, for instance, you see
+            modules referred to as "Parser" modules.  They parse only,
+            and all the rest of their actions must wait until the
+            processing stage.
+
 =item Ignorable Nodes
 
 Nodes corresponding to text in the syntax presentation that has no
@@ -83,6 +103,13 @@ includes non-significant whitespace and throwaway comments.
     We need to make sure that any chunk of text can be annotated with
     multiple roles, or we at least need a fast way to declare that
     a particular kind of chunk fills a particular set of roles.
+
+=for historical_explanation
+    These were only ever for putting chunks that were discarded in the
+    input stream, specifically for the purpose of writing syntax
+    highlighting editors, that are only interested in the first
+    parsing phase but not the processing phase.  If you wanted
+    something that is "don't ignore", then use a different node type.
 
 =back
 
@@ -119,6 +146,11 @@ PDOM model:
     fixed class-based heirarchy in Perldoc just about the time we're
     escaping it with the Perl 6 type system...
 
+=for historical_explanation
+    We wanted to make sure that you needed to jump through some pretty
+    big hoops (ie a plugin) before a parse error can break your
+    documentation.
+
      - Block
          - Heading      (a section heading)
 
@@ -126,13 +158,19 @@ PDOM model:
     Hmm, maybe the real block wants to be the section, and the heading
     is its label?  A heading seems to be falling more into the <p>
     separator mold rather than <p></p> container mold.  Maybe that's
-    okay, but we should talk about it.  (I guess I'm sensitive to
-    this because Perl 5 has statement separator opcodes when the
-    doc model wants statement containers, and that turned out to
-    be painful for p5-to-p5.)  I guess there's a sense in which a
-    heading is a block within a block, but you'd sometimes like to
-    treat everything this heading controls as a single object, and
-    the separator model doesn't provide that.
+    okay, but we should talk about it.  (I guess I'm sensitive to this
+    because Perl 5 has statement separator opcodes when the doc model
+    wants statement containers, and that turned out to be painful for
+    p5-to-p5.)  I guess there's a sense in which a heading is a block
+    within a block, but you'd sometimes like to treat everything this
+    heading controls as a single object, and the separator model
+    doesn't provide that.
+
+=for reference
+    This was covered in S26Draft-mugwump.pod
+    (http://search.cpan.org/src/AUTRIJUS/Perl6-Pugs-6.2.11/docs/AES/S26draft-mugwump.pod),
+    along with other information which may give some context.  for the
+    warts but I didn't get any feedback at the time.
 
          - Paragraph    (regular text to be formatted)
          - Verbatim     (preformatted regular text)
@@ -178,12 +216,20 @@ PDOM model:
 =for discussion
     What if we want to apply some filtering role before the program sees it.
 
+=for historical_explanation
+    As explained above, programs interested in standard form output
+    without these things get transformed first by a processing stage.
+
          - External     (unknown Perldoc block to be handled externally)
 
 =for discussion
     This strikes me as a figure/ground violation.  I don't really
     believe in "miscellanous" except by process of elimination,
     which implies some process has already happened.
+
+=for historical_explanation
+    This is the single node type used by parsers that want to do
+    something special with the document at processing time.
 
          - Item         (a list item)
 
@@ -214,6 +260,11 @@ phrases.
     prohibits blocks?  I don't think XML forces a distinction like
     this, though I believe it allows you to define your tags to force
     the distinction...)
+
+=for discussion
+    This should not be precluded by the PDOM itself, but the standard
+    POD doctype (called PodDT in the S26draft-mugwump.pod) should not
+    allow this in conformant documents.
 
 =head1 PDOM API
 
@@ -265,6 +316,11 @@ an XML/DOM API.
     directly, we need to be clear on why and/or where it's bogus or
     suboptimal.
 
+=for an_explanation
+    The DOM API contains lots of CamelCase methods, is not very
+    flexible, is awkward to create new nodes, etc.  SAX also contains
+    a large number of methods that just seemed like backwards
+    compatibility cruft.
 
 The documentation of a program will be available through the global
 variable C<%*DOC>. It has not yet been determined how all the parts of
@@ -293,6 +349,10 @@ C<$*DOC> could hold a reference to the program's PDOM object.
     $*DOC anyway.  %*DOC.lookatme is going to introspect that hash
     rather than the document object.
 
+=for historical_explanation
+    I think I used $*DOC because I saw $*POD in early design
+    documents.  Perhaps it should be $?POD a la $?FILE
+
 =head1 SYNTAX CONTAINMENT
 
 =for discussion
@@ -318,6 +378,13 @@ indicates the start of a section of Perldoc.
 
 =for discussion
     I'd like to kill =cut as dead as possible, but no deader.
+
+=for historical_explanation
+    A lot of this section was based around the notion that you really
+    don't wanted to have to parse the documentation POD to tell where
+    it starts and ends, you see.  So that the actual conversion from
+    source to a $?DOC style object can be lazy and not hold up parsing
+    of a source file
 
 
 Each section of Perldoc ends at either:
@@ -539,7 +606,6 @@ included in an internal representation). They are simply containment markers.
 
 =for discussion
     This seems like a relatively useless feature to me
-
 
 =head2 File Containment
 
