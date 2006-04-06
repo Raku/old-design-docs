@@ -1,0 +1,475 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 3: Summary of Perl 6 Operators
+
+=head1 AUTHOR
+
+Luke Palmer <luke@luqui.org>
+
+=head1 VERSION
+
+  Maintainer: Larry Wall <larry@wall.org>
+  Date: 8 Mar 2004
+  Last Modified: 1 Apr 2006
+  Number: 3
+  Version: 14
+
+=head1 Operator renaming
+
+Several operators have been given new names to increase clarity and better
+Huffman-code the language:
+
+=over
+
+=item * C<< -> >> becomes C<.>, like the rest of the world uses.
+
+=item * The string concatenation C<.> becomes C<~>.  Think of it as
+"stitching" the two ends of its arguments together.
+
+=item * Unary C<~> now imposes a string context on its argument,
+and C<+> imposes a numeric context (as opposed to being a no-op
+in Perl 5).  Along the same lines, C<?> imposes a boolean context,
+and C<*> imposes a list context.
+
+=item * Bitwise operators get a data type prefix: C<+>, C<~>, or C<?>.
+For example, C<|> becomes either C<+|> or C<~|> or C<?|>, depending on
+whether the operands are to be treated as numbers, strings, or boolean
+values.  Left shift C< << > becomes C< +< >, and correspondingly with
+right shift. Unary C<~> becomes either C<+^> or C<~^> or C<?^>, since a
+bitwise NOT is like an exclusive-or against solid ones.  Note that C<?^>
+is functionally identical to C<!>.  C<?|> differs from C<||> in that
+C<?|> always returns a standard boolean value (either 1 or 0), whereas
+C<||> return the actual value of the first of its arguments that is
+true.
+
+=item * C<x> splits into two operators: C<x> (which concatenates repetitions 
+of a string to produce a single string), and C<xx> (which creates a list of 
+repetitions of a list or scalar).
+
+=item * Trinary C<? :> becomes C<?? !!>.
+
+=item * C<qw{ ... }> gets a synonym: C< < ... > >, and an interpolating
+variant, C<«...»>.
+For those still living without the blessings of Unicode, that can also be
+written: C<<< << ... >> >>>.
+
+=item * The scalar comma C<,> now constructs a List reference of its
+operands.  You have to use a C<[-1]> subscript to get the last one.
+
+=item * The backslash operator still produces a reference, but when
+applied to a parenthesized list, produces a List object (an arglist)
+instead of a list of refs.  (According to the previous item, in scalar
+context the backslash is redundant, but is good documentation anyway.)
+
+=item * The old scalar C<..> flipflop operator is now done with
+C<ff> operator.  (C<..> now always produces a Range object
+even in scalar context.)  The C<ff> operator may take a caret on
+either end to exclude either the beginning or ending.  There is
+also a corresponding C<fff> operator with Perl 5's C<...> semantics.
+
+=back
+
+=head1 New operators
+
+=over
+
+=item * Binary C<//> is just like C<||>, except that it tests its left
+side for definedness instead of truth. There is a low-precedence form,
+too: C<err>.
+
+=item * Binary C<===> tests type and value correspondence: for two value types,
+tests whether they are the same value (eg. C<1 === 1>); for two reference
+types, checks whether they have the same identity value.  For reference
+types that do not define an identity, the reference itself is used (eg. it
+is not true that C<[1,2] === [1,2]>, but it is true that C<\@a === \@a>).
+
+Any reference type may pretend to be a value type by defining a C<.id> method
+which returns a built-in value, i.e. an immutable object or a native value,
+as specified in S06.
+
+Because Perl 6 uses a false C<.id> to signify a non-instantiated prototype,
+all instances should arrange to return a C<.id> that boolifies to true.
+
+A class may also overload C<< infix:<===> >> for more efficient comparison of
+any two objects of that type, but it must return the same result as if
+the two identity values had been generated and compared.
+
+Two values are never equivalent unless they are of exactly the same type.  By
+contrast, C<eq> always coerces to string, while C<==> always coerces to
+numeric.  In fact, C<$a eq $b> really means "C<~$a === ~$b>" and C<$a == $b>
+means "C<+$a === +$b>.
+
+Note also that, while string hashes use C<eq> semantics by default,
+object hashes use C<===> semantics.
+
+=item * Binary C<< => >> is no longer just a "fancy comma."  It now
+constructs a C<Pair> object that can, among other things, be used to
+pass named arguments to functions.  It provides scalar context to both sides.
+Its precedence is now equivalent to assignment, and it is right associative.
+
+=item * C<^^> is the high-precedence version of C<xor>.
+
+=item * C<=~> becomes the "smart match" operator C<~~>, with a whole new set
+of semantics.  Anywhere you used C<=~> before you now use C<~~>, but C<~~> is
+much more general now.  See L<Synopsis 4> for details.  (To catch "brainos",
+the Perl 6 parser defines an C<< infix:<=~> >> macro which always fails at
+compile time with a message directing the user either to use C<~~> or C<~=> instead,
+or to put a space between if they really wanted to assign a stringified value.)
+
+=item * Unary C<.> calls its single argument (which must be a method, or a
+dereferencer for a hash or array) on C<$_>.
+
+=item * The C<..> range operator has variants with C<^> on either
+end to indicate exclusion of that endpoint from the range.  It always
+produces a Range object.  Range objects are lazy iterators, and can
+be interrogated for their current C<.min> and C<.max> values (which
+change as they are iterated).  Ranges are not autoreversing: C<2..1>
+is always a null range, as is C<1^..^2>.  To reverse a range use:
+
+    2..1:by(-1)
+    reverse 1..2
+
+(The C<reverse> is preferred because it works for alphabetic ranges
+as well.)
+
+Because C<Range> objects are lazy, they do not automatically generate
+a list.  So smart matching against a Range object smartmatches the
+endpoints in the domain of the object being matched, so C<< 1.5 ~~
+1^..^2 >> is true.  (But C<< 2.1 ~~ 1..2 >> is false.)
+
+=item * The unary C<^> operator generates a range from C<0> up to
+one less than its argument.  so C<^4> is short for C<0..^4> or C<0..3>.
+
+    for ^4 { say $_ } # 0, 1, 2, 3
+
+=item * C<...> is a unary postfix operator that constructs a semi-infinite
+(and lazily evaluated) list, starting at the value of its single argument.
+
+=item * However, C<...> as a term is the "yada, yada, yada" operator,
+which is used as the body in function prototypes.  It complains
+bitterly (by calling C<fail>) if it is ever executed.  Variant
+C<???> calls C<warn>, and C<!!!> calls C<die>.
+
+=item * In addition, to the ordinary C<.> method invocation, there are
+variants C<.*>, C<.?>, and C<.+> to control how multiple parent methods
+of the same name are handled.  The C<.=> operator does inplace modification
+of the object on the left.  The C<.^> operator calls a class metamethod.
+
+=item * Unary C<=> reads lines from a filehandle or filename, or in general
+iterates an iterator.
+
+=back
+
+=head1 Hyper operators
+
+The Unicode characters C<»> (C<\x[BB]>) and C<«> (C<\x[AB]>) and
+their ASCII digraphs C<<< >> >>> and C<<< << >>> are used to denote
+"list operations", which operate on each element of two lists (or
+arrays) and return a list (or array) of the results.  Spaces are not
+allowed on the "pointy" end of each "hyper", but are allowed on the
+blunt end. For example:
+
+     (1,1,2,3,5) »+« (1,2,3,5,8);  # (2,3,5,8,13)
+
+If one argument is insufficiently dimensioned, Perl "upgrades" it:
+
+     (3,8,2,9,3,8) >>-<< 1;          # (2,7,1,8,2,7)
+
+When using a unary operator, only put it on the operand's side:
+
+     @negatives = -« @positives;
+
+     @positions »++;            # Increment all positions
+
+     @objects ».run();
+     ("f","oo","bar")».chars;   # (1,2,3)
+
+Note that method calls are really postfix operators, not infix, so you
+shouldn't put a C<«> after the dot.
+
+Hyper operators are defined recursively on array references, so:
+
+    -« [[1, 2], 3]               #    [-«[1, 2], -«3]
+                                 # == [[-1, -2], -3]
+    [[1, 2], 3] »+« [4, [5, 6]]  #    [[1,2] »+« 4, 3 »+« [5, 6]]
+                                 # == [[5, 6], [8, 9]]
+
+=head1 Reduction operators
+
+The other metaoperator in Perl 6 is the reduction operator.  Any binary
+operator can be surrounded by square brackets in term position to create
+a list operator that reduces using that operation:
+
+    [+] 1, 2, 3;      # 1 + 2 + 3 = 6
+    my @a = (5,6);
+    [*] @a;           # 5 * 6 = 30
+
+The reduction associates the same way as the operator used:
+
+    [-] 4, 3, 2;      # 4-3-2 = (4-3)-2 = -1
+    [**] 4, 3, 2;     # 4**3**2 = 4**(3**2) = 262144
+
+For list-associating operators (like C<< < >>), all arguments are taken
+together, just as if you had written it out explicitly:
+
+    [<] 1, 3, 5;      # 1 < 3 < 5
+
+If no arguments are given, the operator calls C<fail> (returning
+C<undef>, or throwing an exception if C<use fatal> is in effect).  If
+exactly one argument is given, it is returned by default.  However, this
+default doesn't make sense for an operator like C<< < >> that doesn't
+return the same type as it takes, so these kinds of operators overload
+the single-argument case to return something more meaningful.  All the
+comparison operators return truth in this case.
+
+This metaoperator can also be used on the semicolon second-dimension
+separator:
+
+    [[;] 1,2,3]   # equivalent to [1;2;3]
+
+=head1 Junctive operators
+
+C<|>, C<&>, and C<^> are no longer bitwise operators (see L</Operator
+Renaming>) but now serve a much higher cause: they are now the
+junction constructors.
+
+A junction is a single value that is equivalent to multiple values. They
+thread through operations, returning another junction representing the
+result:
+
+     (1|2|3) + 4;                            # 5|6|7
+     (1|2) + (3&4);                          # (4|5) & (5|6)
+
+Note how when two junctions are applied through an operator, the result
+is a junction representing the operator applied to each combination of
+values.
+
+Junctions come with the functional variants C<any>, C<all>, C<one>, and C<none>.
+
+This opens doors for constructions like:
+
+     unless $roll == any(1..6) { print "Invalid roll" }
+
+     if $roll == 1|2|3 { print "Low roll" }
+
+Junctions work through subscripting:
+
+    print if @foo[any(1,2,3)]
+
+Junctions are specifically unordered.  So if you say
+
+    for all(@foo) {...}
+
+it indicates to the compiler that there is no coupling between loop
+iterations and they can be run in any order or even in parallel.
+
+=head1 Chained comparisons
+
+Perl 6 supports the natural extension to the comparison operators,
+allowing multiple operands.
+
+     if 3 < $roll <= 6              { print "High roll" }
+
+     if 1 <= $roll1 == $roll2 <= 6  { print "Doubles!" }
+
+Note: any operator beginning with C<< < >> must have whitespace
+in front of it, or it will be interpreted as a hash subscript instead.
+
+=head1 Binding
+
+A new form of assignment is present in Perl 6, called "binding," used in
+place of typeglob assignment.  It is performed with the C<:=> operator.
+Instead of replacing the value in a container like normal assignment, it
+replaces the container itself.  For instance:
+
+    my $x = 'Just Another';
+    my $y := $x;
+    $y = 'Perl Hacker';
+
+After this, both C<$x> and C<$y> contain the string "Perl Hacker," since
+they are really just two different names for the same variable.
+
+There is another variant, spelled C<::=>, that does the same thing at
+compile time.
+
+There is also an identity test, C<=:=>, which tests whether two names
+are bound to the same underlying variable.  C<$x =:= $y> would return
+true in the above example.
+
+=head1 List flattening
+
+Since typeglobs are being removed, unary C<*> may now serve as a
+lazy list flattening operator.  It is used to "flatten" an Array
+(or List) into the List being constructed for the current call,
+usually to allow the array's contents to be used as the arguments of
+a subroutine call.  Note that those arguments still must comply with
+the subroutine's signature, but the presence of C<*> defers that test
+until run time for that argument (and for any subsequent arguments):
+
+    my @args = (\@foo, @bar);
+    push *@args;
+
+is equivalent to:
+
+    push @foo, @bar;
+
+as is this:
+
+    my $args = \(@foo, @bar);	 # construct List object
+    push *$args;
+
+In list context, a scalar reference to an array does not flatten.  Hence
+
+    $bar = @bar;
+    push @foo, $bar;
+
+merely pushes a single scalar reference onto C<@foo>.  You can
+explicitly flatten it in any of these ways:
+
+    push @foo, *$bar;
+    push @foo, @$bar;
+    push @foo, $bar[];
+
+(The C<*> in list context doesn't change the call semantics as it
+does in scalar context.)  Note that these three forms also allow you
+to specify list context on assignment:
+
+    *$bar = (1,2,3);
+    @$bar = (1,2,3);
+    $bar[] = (1,2,3);
+
+The last is particularly useful at the end of a long name naming an
+array attribute:
+
+    $foo.bar.baz.bletch.whatever.attr[] = (1,2,3)
+
+The empty C<[]> and C<.[]> postfix operators are interpreted as
+zero-dimensional slices returning the entire array, not null slices
+returning no elements.  Likewise for C<{}> and C<.{}> on hashes,
+not to mention the C<< <> >>, C<< .<> >>, C<«»>, and C<.«»>
+constant and interpolating slice subscripting forms.
+
+The C<*> operator flattens lazily.  To get an immediate flattening like
+Perl 5 does, use unary C<**> instead.  You may use either of them on
+a scalar iterator to force it to iterate.
+
+=head1 Piping operators
+
+The new operators C<< ==> >> and C<< <== >> are akin to UNIX pipes, but
+work with functions that accept and return lists.  For example,
+
+     @result = map { floor($^x / 2) }
+                 grep { /^ \d+ $/ }
+                   @data;
+
+Can also now be written:
+
+     @data ==> grep { /^ \d+ $/ }
+           ==> map { floor($^x / 2) }
+           ==> @result;
+
+or:
+
+     @result <== map { floor($^x / 2) }
+             <== grep { /^ \d+ $/ }
+             <== @data;
+
+Either form more clearly indicates the flow of data.  See L<Synopsis 6> for 
+more of the (less-than-obvious) details on these two operators.
+
+=head1 Invocant marker
+
+An appended C<:> marks the invocant when using the indirect-object
+syntax for Perl 6 method calls.  The following two statements are
+equivalent:
+
+    $hacker.feed('Pizza and cola');
+    feed $hacker: 'Pizza and cola';
+
+A colon may also be used on an ordinary method call to indicate that
+it should be parsed as a list operator:
+
+    $hacker.feed: 'Pizza and cola';
+
+=head1 C<zip>
+
+In order to support parallel iteration over multiple arrays, Perl 6 has
+a C<zip> function that builds tuples of the elements of two or more arrays.
+
+    for zip(@names; @codes) -> [$name, $zip] {
+        print "Name: $name;   Zip code: $zip\n";
+    }
+
+C<zip> has an infix synonym, the Unicode operator C<¥>.
+
+To read arrays in parallel like C<zip> but just sequence the values
+rather than generating tuples, use C<each> instead of C<zip>.
+
+    for each(@names; @codes) -> $name, $zip {
+        print "Name: $name;   Zip code: $zip\n";
+    }
+
+The C<each> function reads to the end of the longest list, not counting
+lists that are known to be infinite such as C<0..Inf>.  Missing values
+are replaced with C<undef>.  In contrast, use C<roundrobin> if you just
+wish to skip missing entries:
+
+    for roundrobin(@queue1; @queue2; @queue3) -> $next {
+        ...
+    }
+
+To read arrays serially rather than in parallel, use C<cat(@x;@y)>.
+
+=head1 Minimal whitespace DWIMmery
+
+Whitespace is no longer allowed before the opening bracket of an array
+or hash accessor.  That is:
+
+    %monsters{'cookie'} = Monster.new;  # Valid Perl 6
+    %people  {'john'}   = Person.new;   # Not valid Perl 6
+
+One of the several useful side-effects of this restriction is that
+parentheses are no longer required around the condition of control
+constructs:
+
+    if $value eq $target {
+        print "Bullseye!";
+    }
+    while 0 < $i { $i++ }
+
+It is, however, still possible to align accessors by explicitly using the C<.>
+operator:
+
+     %monsters.{'cookie'} = Monster.new;
+     %people  .{'john'}   = Person .new;
+     %cats    .{'fluffy'} = Cat    .new;
+
+=head1 Precedence
+
+Perl 6 has 22 precedence levels (which is fewer than Perl 5):
+
+    terms		42 "eek" $x /abc/ (1+2) a(1) :by(2) .meth listop
+    method postfix	. .+ .? .* .() .[] .{} .«» .=
+    autoincrement	++ --
+    exponentiation	**
+    symbolic unary	! + - ~ ? * ** +^ ~^ ?^ \ ^
+    multiplicative	* / % x xx +& +< +> ~& ~< ~>
+    additive		+ - ~ +| +^ ~| ~^
+    junctive and (all)	&
+    junctive or (any)	| ^
+    named unary		rand sleep abs etc.
+    nonchaining binary	but does cmp <=> .. ^.. ..^ ^..^ ff ^ff ff^ ^ff^ fff ^fff etc.
+    chaining binary	!= == < <= > >= ~~ !~ eq ne lt le gt ge =:= ===
+    tight and		&&
+    tight or		|| ^^ //
+    ternary		?? !!
+    assignment		= := ::= += -= **= xx= etc. (and also =>)
+    list item separator	, ¥
+    list op (rightward)	<== print push any all true not etc.
+    pipe forward	==>
+    loose and		and
+    loose or		or xor err
+    expr terminator	; {} as control block, statement modifiers
+

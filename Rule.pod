@@ -1,0 +1,2520 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 5: Rules
+
+=head1 AUTHORS
+
+Damian Conway <damian@conway.org> and
+Allison Randal <al@shadowed.net>
+
+=head1 VERSION
+
+   Maintainer: Patrick Michaud <pmichaud@pobox.com>
+   Date: 24 Jun 2002
+   Last Modified: 3 Apr 2006
+   Number: 5
+   Version: 14
+
+This document summarizes Apocalypse 5, which is about the new regex
+syntax.  We now try to call them "rules" because they haven't been
+regular expressions for a long time.  (The term "regex" is still
+acceptable.)
+
+=head1 New match state and capture variables
+
+The underlying match state object is now available as the C<$/>
+variable, which is implicitly lexically scoped.  All access to the
+current (or most recent) match is through this variable, even when
+it doesn't look like it.  The individual capture variables (such as C<$0>,
+C<$1>, etc.) are just elements of C<$/>.
+
+By the way, the numbered capture variables now start at C<$0>, C<$1>,
+C<$2>, etc. See below.
+
+=head1 Unchanged syntactic features
+
+The following regex features use the same syntax as in Perl 5:
+
+=over
+
+=item *
+
+Capturing: (...)
+
+=item *
+
+Repetition quantifiers: *, +, and ?
+
+=item *
+
+Alternatives:  |
+
+=item *
+
+Backslash escape:  \
+
+=item *
+
+Minimal matching suffix:   ??,  *?,  +?
+
+=back
+
+=head1 Modifiers
+
+=over
+
+=item *
+
+The extended syntax (C</x>) is no longer required...it's the default.
+
+=item *
+
+There are no C</s> or C</m> modifiers (changes to the meta-characters
+replace them - see below).
+
+=item *
+
+There is no C</e> evaluation modifier on substitutions; instead use:
+
+     s/pattern/{ code() }/
+
+=item *
+
+Modifiers are now placed as adverbs at the I<start> of a match/substitution:
+
+     m:g:i/\s* (\w*) \s* ,?/;
+
+Every modifier must start with its own colon.  The delimiter must be
+separated from the final modifier by a colon or whitespace if it would
+be taken as an argument to the preceding modifier.
+
+=item *
+
+The single-character modifiers also have longer versions:
+
+         :i        :ignorecase
+         :g        :global
+
+=item *
+
+The C<:c> (or C<:continue>) modifier causes the pattern to continue
+scanning from the string's current C<.pos>:
+
+     m:c/ pattern /        # start at end of
+                           # previous match on $_
+
+Note that this does not automatically anchor the pattern to the starting
+location.  (Use C<:p> for that.)  The pattern you supply to C<split>
+has an implicit C<:c> modifier.
+
+=item *
+
+The C<:p> (or C<:pos>) modifier causes the pattern to try to match only at
+the string's current C<.pos>:
+
+     m:p/ pattern /        # match at end of
+                           # previous match on $_
+
+Since this is implicitly anchored to the position, it's suitable for
+building parsers and lexers.  The pattern you supply to a Perl macro's
+"is parsed" trait has an implicit C<:p> modifier.
+
+Note that
+
+     m:c/pattern/
+
+is roughly equivalent to
+
+     m:p/.*? pattern/
+
+=item *
+
+The new C<:once> modifier replaces the Perl 5 C<?...?> syntax:
+
+     m:once/ pattern /    # only matches first time
+
+=item *
+
+[Note: We're still not sure if :w is ultimately going to work exactly 
+as described below.  But this is how it works for now.]
+
+The new C<:w> (C<:words>) modifier causes whitespace sequences to be
+replaced by C<\s*> or C<\s+> subpattern as defined by the C<< <?ws> >> rule.
+
+     m:w/ next cmd =   <condition>/
+
+Same as:
+
+     m/ <?ws> next <?ws> cmd <?ws> = <?ws> <condition>/
+
+which is effectively the same as:
+
+     m/ \s* next \s+ cmd \s* = \s* <condition>/
+
+But in the case of
+
+     m:w { (a|\*) (b|\+) }
+
+or equivalently,
+
+     m { (a|\*) <?ws> (b|\+) }
+
+C<< <?ws> >> can't decide what to do until it sees the data.  It still does
+the right thing.  If not, define your own C<< <?ws> >> and C<:w> will use that.
+
+=item *
+
+New modifiers specify Unicode level:
+
+     m:bytes / .**{2} /       # match two bytes
+     m:codes / .**{2} /       # match two codepoints
+     m:graphs/ .**{2} /       # match two graphemes
+     m:langs / .**{2} /       # match two language dependent chars
+
+There are corresponding pragmas to default to these levels.
+
+=item *
+
+The new C<:perl5> modifier allows Perl 5 regex syntax to be used instead:
+
+     m:perl5/(?mi)^[a-z]{1,2}(?=\s)/
+
+(It does not go so far as to allow you to put your modifiers at
+the end.)
+
+=item *
+
+Any integer modifier specifies a count. What kind of count is
+determined by the character that follows.
+
+=item *
+
+If followed by an C<x>, it means repetition.  Use C<:x(4)> for the
+general form.  So
+
+     s:4x { (<?ident>) = (\N+) $$}{$0 => $1};
+
+is the same as:
+
+     s:x(4) { (<?ident>) = (\N+) $$}{$0 => $1};
+
+which is almost the same as:
+
+     $_.pos = 0;
+     s:c{ (<?ident>) = (\N+) $$}{$0 => $1} for 1..4;
+
+except that the string is unchanged unless all four matches are found.
+However, ranges are allowed, so you can say C<:x(1..4)> to change anywhere
+from one to four matches.
+
+=item *
+
+If the number is followed by an C<st>, C<nd>, C<rd>, or C<th>, it means
+find the I<N>th occurrence.  Use C<:nth(3)> for the general form.  So
+
+     s:3rd/(\d+)/@data[$0]/;
+
+is the same as
+
+     s:nth(3)/(\d+)/@data[$0]/;
+
+which is the same as:
+
+     m/(\d+)/ && m:c/(\d+)/ && s:c/(\d+)/@data[$0]/;
+
+Lists and junctions are allowed: C<:nth(1|2|3|5|8|13|21|34|55|89)>.
+
+So are closures: C<:nth{.is_fibonacci}>
+
+=item *
+
+With the new C<:ov> (C<:overlap>) modifier, the current rule will
+match at all possible character positions (including overlapping)
+and return all matches in a list context, or a disjunction of matches
+in a scalar context.  The first match at any position is returned.
+
+     $str = "abracadabra";
+
+     if $str ~~ m:overlap/ a (.*) a / {
+         @substrings = $/.matches();    # bracadabr cadabr dabr br
+     }
+
+=item *
+
+With the new C<:ex> (C<:exhaustive>) modifier, the current rule will match
+every possible way (including overlapping) and return all matches in a list
+context, or a disjunction of matches in a scalar context.
+
+     $str = "abracadabra";
+
+     if $str ~~ m:exhaustive/ a (.*) a / {
+         @substrings = $/.matches();    # br brac bracad bracadabr
+                                        # c cad cadabr d dabr br
+     }
+
+
+=item *
+
+The new C<:rw> modifier causes this rule to "claim" the current
+string for modification rather than assuming copy-on-write semantics.
+All the bindings in C<$/> become lvalues into the string, such
+that if you modify, say, C<$1>, the original string is modified in
+that location, and the positions of all the other fields modified
+accordingly (whatever that means).  In the absence of this modifier
+(especially if it isn't implemented yet, or is never implemented),
+all pieces of C<$/> are considered copy-on-write, if not read-only.
+
+=item *
+
+The new C<:keepall> modifier causes this rule and all invoked subrules
+to remember everything, even if the rules themselves don't ask for
+their subrules to be remembered.  This is for forcing a grammar that
+throws away whitespace and comments to keep them instead.
+
+=item *
+
+The C<:i>, C<:w>, C<:perl5>, and Unicode-level modifiers can be
+placed inside the rule (and are lexically scoped):
+
+     m/:w alignment = [:i left|right|cent[er|re]] /
+
+=item *
+
+User-defined modifiers will be possible:
+
+         m:fuzzy/pattern/;
+
+=item *
+
+User-defined modifiers can also take arguments:
+
+         m:fuzzy('bare')/pattern/;
+
+=item *
+
+To use parens or brackets for your delimiters you have to separate:
+
+         m:fuzzy (pattern);
+         m:fuzzy:(pattern);
+
+or you'll end up with:
+
+         m:fuzzy(fuzzyargs); pattern ;
+
+=back
+
+=head1 Changed metacharacters
+
+=over
+
+=item *
+
+A dot C<.> now matches I<any> character including newline. (The C</s>
+modifier is gone.)
+
+=item *
+
+C<^> and C<$> now always match the start/end of a string, like the
+old C<\A> and C<\z>. (The C</m> modifier is gone.)
+
+=item *
+
+A C<$> no longer matches an optional preceding C<\n> so it's necessary
+to say C<\n?$> if that's what you mean.
+
+=item *
+
+C<\n> now matches a logical (platform independent) newline not just C<\x0a>.
+
+=item *
+
+The C<\A>, C<\Z>, and C<\z> metacharacters are gone.
+
+=back
+
+=head1 New metacharacters
+
+=over
+
+=item *
+
+Because C</x> is default:
+
+=over
+
+=item *
+
+An unescaped C<#> now always introduces a comment.
+
+=item *
+
+Whitespace is now always metasyntactic, i.e. used only for layout
+and not matched literally (but see the C<:w> modifier described above).
+
+=back
+
+=item *
+
+C<^^> and C<$$> match line beginnings and endings. (The C</m>
+modifier is gone.)  They are both zero-width assertions.  C<$$>
+matches before any C<\n> (logical newline), and also at the end of
+the string if the final character was I<not> a C<\n>.  C<^^> always
+matches the beginning of the string and after any C<\n> that is not
+the final character in the string.
+
+=item *
+
+C<.> matches an "anything", while C<\N> matches an "anything except
+newline". (The C</s> modifier is gone.)  In particular, C<\N> matches
+neither carriage return nor line feed.
+
+=item *
+
+The new C<&> metacharacter separates conjunctive terms.  The patterns on
+either side must match with the same beginning and end point.  The
+operator is list associative like C<|>, has higher precedence than C<|>,
+and backtracking makes the right argument vary faster than the left.   
+
+=back
+
+=head1 Bracket rationalization
+
+=over
+
+=item *
+
+C<(...)> still delimits a capturing group. However the ordering of these
+groups is hierarchical, rather than linear. See L<Nested subpattern captures>.
+
+=item *
+
+C<[...]> is no longer a character class.
+It now delimits a non-capturing group.
+
+=item *
+
+C<{...}> is no longer a repetition quantifier.
+It now delimits an embedded closure.
+
+=item *
+
+You can call Perl code as part of a rule match by using a closure.
+Embedded code does not usually affect the match--it is only used
+for side-effects:
+
+     / (\S+) { print "string not blank\n"; $text = $0; }
+        \s+  { print "but does contain whitespace\n" }
+     /
+
+=item *
+
+It can affect the match if it calls C<fail>:
+
+     / (\d+) { $0 < 256 or fail } /
+
+Closures are guaranteed to be called at the canonical time even if
+the optimizer could prove that something after them can't match.
+(Anything before is fair game, however.)
+
+=item *
+
+The repetition specifier is now C<**{...}> for maximal matching,
+with a corresponding C<**{...}?> for minimal matching.  Space is
+allowed on either side of the asterisks.  The curlies are taken to
+be a closure returning a number or a range.
+
+     / value was (\d ** {1..6}?) with ([\w]**{$m..$n}) /
+
+It is illegal to return a list, so this easy mistake fails:
+
+     / [foo]**{1,3} /
+
+(At least, it fails in the absence of "C<use rx :listquantifier>",
+which is likely to be unimplemented in Perl 6.0.0 anyway).
+
+The optimizer will likely optimize away things like C<**{1...}>
+so that the closure is never actually run in that case.  But it's
+a closure that must be run in the general case, so you can use
+it to generate a range on the fly based on the earlier matching.
+(Of course, bear in mind the closure is run I<before> attempting to
+match whatever it quantifies.)
+
+=item *
+
+C<< <...> >> are now extensible metasyntax delimiters or "assertions"
+(i.e. they replace Perl 5's crufty C<(?...)> syntax).
+
+=back
+
+=head1 Variable (non-)interpolation
+
+=over
+
+=item *
+
+In Perl 6 rules, variables don't interpolate.
+
+=item *
+
+Instead they're passed "raw" to the rule engine, which can then decide
+how to handle them (more on that below).
+
+=item *
+
+The default way in which the engine handles a scalar is to match it
+as a C<< <'...'> >> literal (i.e. it does not treat the interpolated string
+as a subpattern).  In other words, a Perl 6:
+
+     / $var /
+
+is like a Perl 5:
+
+     / \Q$var\E /
+
+(To get rule interpolation use an assertion - see below)
+
+=item *
+
+An interpolated array:
+
+     / @cmds /
+
+is matched as if it were an alternation of its elements:
+
+     / [ @cmds[0] | @cmds[1] | @cmds[2] | ... ] /
+
+
+As with a scalar variable, each element is matched as a literal.
+
+=item *
+
+An interpolated hash matches the longest possible key of the hash
+as a literal, or fails if no key matches.  (A C<""> key
+will match anywhere, provided no longer key matches.)
+
+=over 4
+
+=item *
+
+If the corresponding value of the hash element is a closure, it
+is executed.
+
+=item *
+
+If it is a string or rule object, it is executed as a subrule.
+
+=item *
+
+If it has the value 1, nothing special happens beyond the match.
+
+=item *
+
+Any other value causes the match to fail.
+
+=back
+
+=back
+
+=head1 Extensible metasyntax (C<< <...> >>)
+
+=over
+
+=item *
+
+The first character after C<< < >> determines the behaviour of the assertion.
+
+=item *
+
+A leading alphabetic character means it's a capturing grammatical 
+assertion (i.e. a subrule or a named character class - see below):
+
+     / <sign>? <mantissa> <exponent>? /
+
+=item *
+
+The special named assertions include:
+
+     / <before pattern> /    # was /(?=pattern)/
+     / <after pattern> /     # was /(?<pattern)/
+
+     / <ws> /                # match whitespace by :w rules
+
+     / <sp> /                # match a space char
+
+The C<after> assertion implements lookbehind by reversing the syntax
+tree and looking for things in the opposite order going to the left.
+It is illegal to do lookbehind on a pattern that cannot be reversed.
+
+=item *
+
+A leading C<?> causes the assertion not to capture what it matches (see
+L<Subrule captures>. For example:
+
+     / <ident>  <ws>  /      # $/<ident> and $/<ws> both captured
+     / <?ident> <ws>  /      # only $/<ws> captured
+     / <?ident> <?ws> /      # nothing captured
+
+=item *
+
+A leading C<$> indicates an indirect rule.  The variable must contain
+either a hard reference to a rule, or a string containing the rule.
+
+=item *
+
+A leading C<::> indicates a symbolic indirect rule:
+
+     / <::($somename)>
+
+The variable must contain the name of a rule.
+
+=item *
+
+A leading C<@> matches like a bare array except that each element
+is treated as a rule (string or hard ref) rather than as a literal.
+
+=item *
+
+A leading C<%> matches like a bare hash except that each key
+is treated as a rule (string or hard ref) rather than as a literal.
+
+=item *
+
+A leading C<{> indicates code that produces a rule to be interpolated
+into the pattern at that point:
+
+     / (<?ident>)  <{ %cache{$0} //= get_body($0) }> /
+
+The closure is guaranteed to be run at the canonical time.
+
+As with an ordinary embedded closure, an B<explicit> return from a
+rule closure binds the I<result object> for this match, ignores the
+rest of the current rule, and reports success:
+
+	/ (\d) <{ return $0.sqrt }> NotReached /;
+
+This has the effect of capturing the square root of the numified string,
+instead of the string.  The C<NotReached> part is not reached.
+
+These closures are invoked as anonymous methods on the C<Match> object.
+See L</Match objects> below for more about result objects.
+
+=item *
+
+A leading C<&> interpolates the return value of a subroutine call as
+a rule.  Hence
+
+     <&foo()>
+
+is short for
+
+     <{ foo() }>
+
+=item *
+
+In any case of rule interpolation, if the value already happens to be
+a rule object, it is not recompiled.  If it is a string, the compiled
+form is cached with the string so that it is not recompiled next
+time you use it unless the string changes.  (Any external lexical
+variable names must be rebound each time though.)  Rules may not be
+interpolated with unbalanced bracketing.  An interpolated subrule
+keeps its own inner C<$/>, so its parentheses never count toward the
+outer rules groupings.  (In other words, parenthesis numbering is always
+lexically scoped.)
+
+=item *
+
+A leading C<?{> or C<!{>indicates a code assertion:
+
+     / (\d**{1..3}) <?{ $0 < 256 }> /
+     / (\d**{1..3}) <!{ $0 < 256 }> /
+
+Similar to:
+
+     / (\d**{1..3}) { $0 < 256 or fail } /
+     / (\d**{1..3}) { $0 < 256 and fail } /
+
+Unlike closures, code assertions are not guaranteed to be run at the
+canonical time if the optimizer can prove something later can't match.
+So you can sneak in a call to a non-canonical closure that way:
+
+     /^foo .* <?{ do { say "Got here!" } or 1 }> .* bar$/
+
+The C<do> block is unlikely to run unless the string ends with "C<bar>".
+
+=item *
+
+A leading C<(> indicates the start of a result capture:
+
+    / foo <( \d+ )> bar /
+
+is equivalent to:
+
+    / <after foo> \d+ <before bar> /
+
+except that the scan for "foo" can be done in the forward direction,
+while a lookbehind assertion would presumably scan for \d+ and then
+match "foo" backwards.  The use of C<< <(...)> >> affects only the
+meaning of the "result object" and the positions of the beginning and
+ending of the match.  That is, after the match above, C<$()> contains
+only the digits matched, and C<.pos> is pointing to after the digits.
+Other captures (named or numbered) are unaffected and may be accessed
+through C<$/>.
+
+=item *
+
+A leading C<[> or C<+> indicates an enumerated character class.  Ranges
+in enumerated character classes are indicated with C<..>.
+
+     / <[a..z_]>* /
+     / <+[a..z_]>* /
+
+=item *
+
+A leading C<-> indicates a complemented character class:
+
+     / <-[a..z_]> <-alpha> /
+
+=item *
+
+Character classes can be combined (additively or subtractively) within
+a single set of angle brackets. For example:
+
+     / <[a..z]-[aeiou]+xdigit> /      # consonant or hex digit
+
+If such a combination starts with a named character class, a leading
+C<+> is required:
+
+     / <+alpha-[Jj]> /               # J-less alpha
+
+=item *
+
+A leading C<'> indicates a literal match (including whitespace):
+
+     / <'match this exactly (whitespace matters)'> /
+
+=item *
+
+A leading C<"> indicates a literal match after interpolation:
+
+     / <"match $THIS exactly (whitespace still matters)"> /
+
+=item *
+
+The special assertion C<< <.> >> matches any logical grapheme
+(including a Unicode combining character sequences):
+
+     / seekto = <.> /  # Maybe a combined char
+
+Same as:
+
+     / seekto = [:graphs .] /
+
+=item *
+
+A leading C<!> indicates a negated meaning (always a zero-width assertion):
+
+     / <!before _ > /    # We aren't before an _
+
+=back
+
+=head1 Backslash reform
+
+=over
+
+=item *
+
+The C<\p> and C<\P> properties become intrinsic grammar rules
+(C<< <prop ...> >> and C<< <!prop ...> >>).
+
+=item *
+
+The C<\L...\E>, C<\U...\E>, and C<\Q...\E> sequences are gone.  In the
+rare cases that need them you can use C<< <{ lc $rule }> >> etc.
+
+=item *
+
+The C<\G> sequence is gone.  Use C<:p> instead.  (Note, however, that
+it makes no sense to use C<:p> within a pattern, since every internal
+pattern is implicitly anchored to the current position.  You'll have
+to explicitly compare C<< <( .pos == $oldpos )> >> in that case.)
+
+=item *
+
+Backreferences (e.g. C<\1>, C<\2>, etc.) are gone; C<$0>, C<$1>, etc. can be
+used instead, because variables are no longer interpolated.
+
+=item *
+
+New backslash sequences, C<\h> and C<\v>, match horizontal and vertical
+whitespace respectively, including Unicode.
+
+=item *
+
+C<\s> now matches any Unicode whitespace character.
+
+=item *
+
+The new backslash sequence C<\N> matches anything except a logical
+newline; it is the negation of C<\n>.
+
+=item *
+
+A series of other new capital backslash sequences are also the negation
+of their lower-case counterparts:
+
+=over
+
+=item *
+
+C<\H> matches anything but horizontal whitespace.
+
+=item *
+
+C<\V> matches anything but vertical whitespace.
+
+=item *
+
+C<\T> matches anything but a tab.
+
+=item *
+
+C<\R> matches anything but a return.
+
+=item *
+
+C<\F> matches anything but a formfeed.
+
+=item *
+
+C<\E> matches anything but an escape.
+
+=item *
+
+C<\X...> matches anything but the specified character (specified in
+hexadecimal).
+
+=back
+
+=back
+
+=head1 Regexes are rules
+
+=over
+
+=item *
+
+The Perl 5  C<qr/pattern/> regex constructor is gone.
+
+=item *
+
+The Perl 6 equivalents are:
+
+     rule { pattern }    # always takes {...} as delimiters
+       rx / pattern /    # can take (almost any) chars as delimiters
+
+You may not use whitespace or alphanumerics for delimiters.  Space is
+optional unless needed to distinguish from modifier arguments or
+function parens.  So you may use parens as your C<rx> delimiters,
+but only if you interpose a colon or whitespace:
+
+     rx:( pattern )      # okay
+     rx ( pattern )      # okay
+     rx( 1,2,3 )         # tries to call rx function
+
+=item *
+
+If either form needs modifiers, they go before the opening delimiter:
+
+     $rule = rule :g:w:i { my name is (.*) };
+     $rule = rx:g:w:i / my name is (.*) /;
+
+Space or colon is necessary after the final modifer if you use any
+bracketing character for the delimiter.  (Otherwise it would be taken as
+an argument to the modifier.)
+
+=item *
+
+You may not use colons for the delimiter.  Space is allowed between
+modifiers:
+
+     $rule = rx :g :w :i / my name is (.*) /;
+
+=item *
+
+The name of the constructor was changed from C<qr> because it's no
+longer an interpolating quote-like operator.  C<rx> stands for "rule
+expression", or occasionally "regex".  C<:-)>
+
+=item *
+
+As the syntax indicates, it is now more closely analogous to a C<sub {...}>
+constructor.  In fact, that analogy will run I<very> deep in Perl 6.
+
+=item *
+
+Just as a raw C<{...}> is now always a closure (which may still
+execute immediately in certain contexts and be passed as a reference
+in others), so too a raw C</.../> is now always a rule (which may still
+match immediately in certain contexts and be passed as a reference
+in others).
+
+=item *
+
+Specifically, a C</.../> matches immediately in a value context (void,
+Boolean, string, or numeric), or when it is an explicit argument of
+a C<~~>.  Otherwise it's a rule constructor.  So this:
+
+     $var = /pattern/;
+
+no longer does the match and sets C<$var> to the result.
+Instead it assigns a rule reference to C<$var>.
+
+=item *
+
+The two cases can always be distinguished using C<m{...}> or C<rx{...}>:
+
+     $var = m{pattern};    # Match rule immediately, assign result
+     $var = rx{pattern};   # Assign rule expression itself
+
+=item *
+
+Note that this means that former magically lazy usages like:
+
+     @list = split /pattern/, $str;
+
+are now just consequences of the normal semantics.
+
+=item *
+
+It's now also possible to set up a user-defined subroutine that acts
+like C<grep>:
+
+     sub my_grep($selector, *@list) {
+         given $selector {
+             when Rule  { ... }
+             when Code  { ... }
+             when Hash  { ... }
+             # etc.
+         }
+     }
+
+Using C<{...}> or C</.../> in the scalar context of the first argument
+causes it to produce a C<Code> or C<Rule> reference, which the switch
+statement then selects upon.
+
+=back
+
+=head1 Backtracking control
+
+=over
+
+=item *
+
+Backtracking over a single colon causes the rule engine not to retry
+the preceding atom:
+
+     m:w/ \( <expr> [ , <expr> ]* : \) /
+
+(i.e. there's no point trying fewer C<< <expr> >> matches, if there's
+no closing parenthesis on the horizon)
+
+=item *
+
+Backtracking over a double colon causes the surrounding group of
+alternations to immediately fail:
+
+     m:w/ [ if :: <expr> <block>
+          | for :: <list> <block>
+          | loop :: <loop_controls>? <block>
+          ]
+     /
+
+(i.e. there's no point trying to match a different keyword if one
+was already found but failed).
+
+=item *
+
+Backtracking over a triple colon causes the current rule to fail
+outright (no matter where in the rule it occurs):
+
+     rule ident {
+           ( [<alpha>|_] \w* ) ::: { fail if %reserved{$0} }
+         | " [<alpha>|_] \w* "
+     }
+
+     m:w/ get <ident>? /
+
+(i.e. using an unquoted reserved word as an identifier is not permitted)
+
+=item *
+
+Backtracking over a C<< <commit> >> assertion causes the entire match
+to fail outright, no matter how many subrules down it happens:
+
+     rule subname {
+         ([<alpha>|_] \w*) <commit> { fail if %reserved{$0} }
+     }
+     m:w/ sub <subname>? <block> /
+
+(i.e. using a reserved word as a subroutine name is instantly fatal
+to the "surrounding" match as well)
+
+=item *
+
+A C<< <cut> >> assertion always matches successfully, and has the
+side effect of deleting the parts of the string already matched.
+
+=item *
+
+Attempting to backtrack past a C<< <cut> >> causes the complete match
+to fail (like backtracking past a C<< <commit> >>. This is because there's
+now no preceding text to backtrack into.
+
+=item *
+
+This is useful for throwing away successfully processed input when
+matching from an input stream or an iterator of arbitrary length.
+
+=back
+
+=head1 Named Regexes
+
+=over
+
+=item *
+
+The analogy between C<sub> and C<rule> extends much further.
+
+=item *
+
+Just as you can have anonymous subs and named subs...
+
+=item *
+
+...so too you can have anonymous rules and I<named> rules:
+
+     rule ident { [<alpha>|_] \w* }
+
+     # and later...
+
+     @ids = grep /<ident>/, @strings;
+
+=item *
+
+As the above example indicates, it's possible to refer to named rules,
+such as:
+
+     rule serial_number { <[A..Z]> \d**{8} }
+     rule type { alpha | beta | production | deprecated | legacy }
+
+in other rules as named assertions:
+
+     rule identification { [soft|hard]ware <type> <serial_number> }
+
+=back
+
+=head1 Nothing is illegal
+
+=over
+
+=item *
+
+The null pattern is now illegal.
+
+=item *
+
+To match whatever the prior successful rule matched, use:
+
+     /<prior>/
+
+=item *
+
+To match the zero-width string, use:
+
+     /<null>/
+
+For example:
+
+     split /<?null>/, $string
+
+splits between characters.
+
+=item *
+
+To match a null alternative, use:
+
+     /a|b|c|<?null>/
+
+This makes it easier to catch errors like this:
+
+     m:w/ [
+          | if :: <expr> <block>
+          | for :: <list> <block>
+          | loop :: <loop_controls>? <block>
+          ]
+     /
+
+=item *
+
+However, it's okay for a non-null syntactic construct to have a degenerate
+case matching the null string:
+
+     $something = "";
+     /a|b|c|$something/;
+
+=back
+
+=head1 Return values from matches
+
+=head2 Match objects
+
+=over
+
+=item *
+
+A match always returns a "match object", which is also available
+as C<$/>, which is an environmental lexical declared in the outer
+subroutine that is calling the rule.  (A closure lexically embedded
+in a rule does not redeclare C<$/>, so C<$/> always refers to the
+current match, not any prior submatch done within the closure).
+
+=item *
+
+Notionally, a match object contains (among other things) a boolean
+success value, a scalar "result object", an array of ordered submatch
+objects, and a hash of named submatch objects.  To provide convenient
+access to these various values, the match object evaluates differently
+in different contexts:
+
+=over
+
+=item *
+
+In boolean context it evaluates as true or false (i.e. did the match
+succeed?):
+
+     if /pattern/ {...}
+     # or:
+     /pattern/; if $/ {...}
+
+=item *
+
+In string context it evaluates to the stringified value of its
+I<result object>, which is usually the entire matched string:
+
+     print %hash{ "{$text ~~ /<?ident>/}" };
+     # or equivalently:
+     $text ~~ /<?ident>/  &&  print %hash{~$/};
+
+But generally you should say C<~$/> if you mean C<~$/>.
+
+=item *
+
+In numeric context it evaluates to the numeric value of its
+I<result object>, which is usually the entire matched string:
+
+     $sum += /\d+/;
+     # or equivalently:
+     /\d+/; $sum = $sum + $/;
+
+=item *
+
+When used as a scalar, a Match object evaluates to its underlying
+result object.  Usually this is just the entire match string, but
+you can override that by calling C<return> inside a rule:
+
+    my $moose = $(m:{
+        <antler> <body>
+        { return Moose.new( body => $<body>().attach($<antler>) ) }
+        # match succeeds -- ignore the rest of the rule
+    });
+
+C<$()> is a shorthand for C<$($/)>.  The result object may be of any type,
+not just a string.
+
+You may also capture a subset of the match as the result object using
+the C<< <(...)> >> construct:
+
+    "foo123bar" ~~ / foo <( \d+ )> bar /
+    say $();    # says 123
+
+In this case the result object is always a string when doing string
+matching, and a list of one or more elements when doing array matching.
+
+Additionally, the C<Match> object delegates its C<coerce> calls
+(such as C<+$match> and C<~$match>) to its underlying result object.
+The only exception is that C<Match> handles boolean coercion itself,
+which returns whether the match had succeeded.
+
+This means that these two work the same:
+
+    / <moose> { return $$<moose> as Moose } /
+    / <moose> { return $<moose>  as Moose } /
+
+=item *
+
+When used as an array, a Match object pretends to be an array of all
+its positional captures.  Hence
+
+     ($key, $val) = m:w/ (\S+) => (\S+)/;
+
+can also be written:
+
+     $result = m:w/ (\S+) => (\S+)/;
+     ($key, $val) = @$result;
+
+To get a single capture into a string, use a subscript:
+
+     $mystring = "{ m:w/ (\S+) => (\S+)/[0] }";
+
+To get all the captures into a string, use a "zen" slice:
+
+     $mystring = "{ m:w/ (\S+) => (\S+)/[] }";
+
+Or cast it into an array:
+
+     $mystring = "@( m:w/ (\S+) => (\S+)/ )";
+
+Note that, as a scalar variable, C<$/> doesn't automatically flatten
+in list context.  Use C<@()> as a shorthand for C<@($/)> to flatten
+the positional captures under list context.
+
+=item *
+
+When used as a hash, a Match object pretends to be a hash of all its named
+captures.  The keys do not include any sigils, so if you capture to
+variable C<< @<foo> >> its real name is C<$/{'foo'}> or C<< $/<foo> >>.
+However, you may still refer to it as C<< @<foo> >> anywhere C<$/>
+is visible.  (But it is erroneous to use the same name for two different
+capture datatypes.)
+
+Note that, as a scalar variable, C<$/> doesn't automatically flatten
+in list context.  Use C<%()> as a shorthand for C<%($/)> to flatten as a
+hash, or bind it to a variable of the appropriate type.
+
+=item *
+
+The numbered captures may be treated as named, so C<< $<0 1 2> >>
+is equivalent to C<$/[0,1,2]>.  This allows you to write slices of
+intermixed named and numbered captures.
+
+=item *
+
+In ordinary code, variables C<$0>, C<$1>, etc. are just aliases into
+C<$/[0]>, C<$/[1]>, etc.  Hence they will all be undefined if the
+last match failed (unless they were explicitly bound in a closure without
+using the C<let> keyword).
+
+=back
+
+=item *
+
+C<Match> objects have methods that provide additional information about
+the match. For example:
+
+     if m/ def <ident> <codeblock> / {
+         say "Found sub def from index $/.from() to index $/.to()";
+     }
+
+=item *
+
+All match attempts--successful or not--against any rule, subrule, or
+subpattern (see below) return an object of class C<Match>. That is:
+
+     $match_obj = $str ~~ /pattern/;
+     say "Matched" if $match_obj;
+
+=item *
+
+This returned object is also automatically assigned to the lexical
+C<$/> variable, unless the match statement is inside another rule. That is:
+
+     $str ~~ /pattern/;
+     say "Matched" if $/;
+
+=item *
+
+Inside a rule, the C<$/> variable holds the current rule's
+incomplete C<Match> object (which can be modified via the internal C<$/>.
+For example:
+
+    $str ~~ / foo                # Match 'foo'
+               { $/ = 'bar' }     # But pretend we matched 'bar'
+             /;
+    say $/;                       # says 'bar'
+
+This is slightly dangerous, insofar as you might return something that
+does not behave like a C<Match> object to some context that requires
+one.  Fortunately, you normally just want to return a result object instead:
+
+    $str ~~ / foo                 # Match 'foo'
+               { return 'bar' }   # But pretend we matched 'bar'
+             /;
+    say $();                      # says 'bar'
+
+=back
+
+=head2 Subpattern captures
+
+=over
+
+=item *
+
+Any part of a rule that is enclosed in capturing parentheses is called a
+I<subpattern>. For example:
+
+        #               subpattern
+        #  _________________/\____________________
+        # |                                       |
+        # |       subpattern  subpattern          |
+        # |          __/\__    __/\__             |
+        # |         |      |  |      |            |
+     m:w/ (I am the (walrus), ( khoo )**{2} kachoo) /;
+
+
+=item *
+
+Each subpattern in a rule produces a C<Match> object if it is
+successfully matched.
+
+=item *
+
+Each subpattern's C<Match> object is pushed onto the array inside
+the outer C<Match> object belonging to the surrounding scope (known as
+its I<parent C<Match> object>). The surrounding scope may be either the
+innermost surrounding subpattern (if the subpattern is nested) or else
+the entire rule itself.
+
+=item *
+
+Like all captures, these assignments to the array are hypothetical, and
+are undone if the subpattern is backtracked.
+
+=item *
+
+For example, if the following pattern matched successfully:
+
+        #                subpat-A
+        #  _________________/\____________________
+        # |                                       |
+        # |         subpat-B  subpat-C            |
+        # |          __/\__    __/\__             |
+        # |         |      |  |      |            |
+     m:w/ (I am the (walrus), ( khoo )**{2} kachoo) /;
+
+then the C<Match> objects representing the matches made by I<subpat-B>
+and I<subpat-C> would be successively pushed onto the array inside I<subpat-
+A>'s C<Match> object. Then I<subpat-A>'s C<Match> object would itself be
+pushed onto the array inside the C<Match> object for the entire rule
+(i.e. onto C<$/>'s array).
+
+=item *
+
+As a result of these semantics, capturing parentheses in Perl 6 are
+hierarchical, not linear (see L<Nested subpattern captures>).
+
+=back
+
+=head2 Accessing captured subpatterns
+
+=over
+
+=item *
+
+The array elements of a C<Match> object are referred to using either the
+standard array access notation (e.g. C<$/[0]>, C<$/[1]>, C<$/[2]>, etc.)
+or else via the corresponding lexically scoped numeric aliases (i.e.
+C<$0>, C<$1>, C<$2>, etc.) So:
+
+     say "$/[1] was found between $/[0] and $/[2]";
+
+is the same as:
+
+     say "$1 was found between $0 and $2";
+
+=item *
+
+Note that, in Perl 6, the numeric capture variables start from $0, not
+$1, with the numbers corresponding to the element's index inside C<$/>.
+
+=item *
+
+The array elements of the rule's C<Match> object (i.e. C<$/>)
+store individual C<Match> objects representing the substrings that where
+matched and captured by the first, second, third, etc. I<outermost>
+(i.e. unnested) subpatterns. So these elements can be treated like fully
+fledged match results. For example:
+
+     if m/ (\d\d\d\d)-(\d\d)-(\d\d) (BCE?|AD|CE)?/ {
+           ($yr, $mon, $day) = $/[0..2]
+           $era = "$3" if $3;                    # stringify/boolify
+           @datepos = ( $0.from() .. $2.to() );  # Call Match methods
+     }
+
+
+=back
+
+=head2 Nested subpattern captures
+
+=over
+
+=item *
+
+Substrings matched by I<nested> subpatterns (i.e. nested capturing
+parens) are assigned to the array inside the subpattern's parent C<Match>
+surrounding subpattern, not to the array of C<$/>.
+
+=item *
+
+This behaviour is quite different to Perl 5 semantics:
+
+      # Perl 5...
+      #
+      # $1---------------------  $4---------  $5------------------
+      # |   $2---------------  | |          | | $6----  $7------  |
+      # |   |         $3--   | | |          | | |     | |       | |
+      # |   |         |   |  | | |          | | |     | |       | |
+     m/ ( A (guy|gal|g(\S+)  ) ) (sees|calls) ( (the|a) (gal|guy) ) /x;
+
+=item *
+
+In Perl 6, nested parens produce properly nested captures:
+
+      # Perl 6...
+      #
+      # $0---------------------  $1---------  $2------------------
+      # |   $0[0]------------  | |          | | $2[0]-  $2[1]---  |
+      # |   |       $0[0][0] | | |          | | |     | |       | |
+      # |   |         |   |  | | |          | | |     | |       | |
+     m/ ( A (guy|gal|g(\S+)  ) ) (sees|calls) ( (the|a) (gal|guy) ) /;
+
+
+=back
+
+=head2 Quantified subpattern captures
+
+=over
+
+=item *
+
+If a subpattern is directly quantified (using I<any> quantifier), it no
+longer produces a single C<Match> object. Instead, it produces a list
+of C<Match> objects corresponding to the sequence of individual matches
+made by the repeated subpattern.
+
+=item *
+
+Because a quantified subpattern returns a list of C<Match> objects, the
+corresponding array element for the quantified capture will store a
+reference to a (nested) array, rather than a single C<Match> object.
+For example:
+
+     if m/ (\w+) \: (\w+ \s+)* / {
+         say "Key:    $0";         # Unquantified --> single Match
+         say "Values: { @{$1} }";  # Quantified   --> array of Match
+     }
+
+
+=back
+
+=head2 Indirectly quantified subpattern captures
+
+=over
+
+=item *
+
+A subpattern may sometimes be nested inside a quantified non-capturing
+structure:
+
+      #       non-capturing       quantifier
+      #  __________/\____________  __/\__
+      # |                        ||      |
+      # |   $0         $1        ||      |
+      # |  _^_      ___^___      ||      |
+      # | |   |    |       |     ||      |
+     m/ [ (\w+) \: (\w+ \h*)* \n ]**{2...} /
+
+Non-capturing brackets I<don't> create a separate nested lexical scope,
+so the two subpatterns inside them are actually still in the rule's
+top-level scope. Hence their top-level designations: C<$0> and C<$1>.
+
+=item *
+
+However, because the two subpatterns are inside a quantified
+structure, C<$0> and C<$1> will each contain a reference to an array.
+The elements of that array will be the submatches returned by the
+corresponding subpattern on each iteration of the non-capturing
+parentheses. For example:
+
+     my $text = "foo:food fool\nbar:bard barb";
+
+               #   $0--     $1------
+               #   |   |    |       |
+     $text ~~ m/ [ (\w+) \: (\w+ \h*)* \n ]**{2...} /;
+
+     # Because they're in a quantified non-capturing block...
+     # $0 contains the equivalent of:
+     #
+     #       [ Match.new(str=>'foo'), Match.new(str=>'bar') ]
+     #
+     # and $1 contains the equivalent of:
+     #
+     #       [ Match.new(str=>'food '),
+     #         Match.new(str=>'fool' ),
+     #         Match.new(str=>'bard '),
+     #         Match.new(str=>'barb' ),
+     #       ]
+
+
+=item *
+
+In contrast, if the outer quantified structure is a I<capturing>
+structure (i.e. a subpattern) then it I<will> introduce a nested
+lexical scope. That outer quantified structure will then
+return an array of C<Match> objects representing the captures
+of the inner parens for I<every> iteration (as described above). That is:
+
+     my $text = "foo:food fool\nbar:bard barb";
+
+               # $0-----------------------
+               # |                        |
+               # | $0[0]    $0[1]---      |
+               # | |   |    |       |     |
+     $text ~~ m/ ( (\w+) \: (\w+ \h*)* \n )**{2...} /;
+
+     # Because it's in a quantified capturing block,
+     # $0 contains the equivalent of:
+     #
+     #       [ Match.new( str=>"foo:food fool\n",
+     #                    arr=>[ Match.new(str=>'foo'),
+     #                           [
+     #                               Match.new(str=>'food '),
+     #                               Match.new(str=>'fool'),
+     #                           ]
+     #                         ],
+     #                  ),
+     #         Match.new( str=>'bar:bard barb',
+     #                    arr=>[ Match.new(str=>'bar'),
+     #                           [
+     #                               Match.new(str=>'bard '),
+     #                               Match.new(str=>'barb'),
+     #                           ]
+     #                         ],
+     #                  ),
+     #       ]
+     #
+     # and there is no $1
+
+=item *
+
+In other words, quantified non-capturing parens collect their components
+into handy flattened lists, whereas quantified capturing parens collect
+their components in a handy hierarchical structure.
+
+=back
+
+=head2 Subpattern numbering
+
+=over
+
+=item *
+
+The index of a given subpattern can always be statically determined, but
+is not necessarily unique nor always monotonic. The numbering of subpatterns
+restarts in each lexical scope (either a rule, a subpattern, or the
+branch of an alternation).
+
+=item *
+
+In particular, the index of capturing parentheses restarts after each
+C<|>. Hence:
+
+                  # $0      $1    $2   $3    $4           $5
+     $tune_up = rx/ (don't) (ray) (me) (for) (solar tea), (d'oh!)
+                  # $0      $1      $2    $3        $4
+                  | (every) (green) (BEM) (devours) (faces)
+                  /;
+
+This means that if the second alternation matches, the C<@$/> array will
+contain C<('every', 'green', 'BEM', 'devours', 'faces')>, rather than
+C<(undef, undef, undef, undef, undef, undef, 'every', 'green', 'BEM',
+'devours', 'faces')> (as the same regex would in Perl 5).
+
+=item *
+
+Note that it is still possible to mimic the monotonic Perl 5 capture
+indexing semantics.  See L<Numbered scalar aliasing> below for details.
+
+
+=back
+
+=head2 Subrule captures
+
+=over
+
+=item *
+
+Any call to a named C<< <rule> >> within a pattern is known as a I<subrule>.
+
+=item *
+
+Any bracketed construct that is aliased (see L<Aliasing> below) to a
+named variable is also a subrule.
+
+=item *
+
+For example, this rule contains three subrules:
+
+      # subrule       subrule      subrule
+      #  __^__    _______^______    __^__
+      # |     |  |              |  |     |
+     m/ <ident>  $<spaces>:=(\s*)  <digit>+ /
+
+=item *
+
+Just like subpatterns, each successfully matched subrule within a rule
+produces a C<Match> object. But, unlike subpatterns, that C<Match>
+object is not assigned to the array inside its parent C<Match> object.
+Instead, it is assigned to an entry of the hash inside its parent C<Match>
+object. For example:
+
+      #  .... $/ .....................................
+      # :                                             :
+      # :              .... $/[0] ..................  :
+      # :             :                             : :
+      # : $/<ident>   :        $/[0]<ident>         : :
+      # :   __^__     :           __^__             : :
+      # :  |     |    :          |     |            : :
+     m:w/  <ident> \: ( known as <ident> previously ) /
+
+
+=back
+
+=head2 Accessing captured subrules
+
+=over
+
+=item *
+
+The hash entries of a C<Match> object can be referred to using any of the
+standard hash access notations (C<$/{'foo'}>, C<< $/<bar> >>, C<$/«baz»>,
+etc.), or else via corresponding lexically scoped aliases (C<< $<foo> >>,
+C<$«bar»>, C<< $<baz> >>, etc.)  So the previous example also implies:
+
+      #    $<ident>             $0<ident>
+      #     __^__                 __^__
+      #    |     |               |     |
+     m:w/  <ident> \: ( known as <ident> previously ) /
+
+=item *
+
+Note that it makes no difference whether a subrule is angle-bracketted (C<<
+<ident> >>) or aliased (C<< $<ident> := (<alpha>\w*) >>. The name's the thing.
+
+
+=back
+
+=head2 Repeated captures of the same subrule
+
+=over
+
+=item *
+
+If a subrule appears two (or more) times in any branch of a lexical
+scope (i.e. twice within the same subpattern and alternation), or if the
+subrule is quantified anywhere within a given scope, then its
+corresponding hash entry is always assigned a reference to an array of
+C<Match> objects, rather than a single C<Match> object.
+
+=item *
+
+Successive matches of the same subrule (whether from separate calls, or
+from a single quantified repetition) append their individual C<Match>
+objects to this array. For example:
+
+     if m:w/ mv <file> <file> / {
+         $from = $<file>[0];
+         $to   = $<file>[1];
+     }
+
+Likewise, with a quantified subrule:
+
+     if m:w/ mv <file>**{2} / {
+         $from = $<file>[0];
+         $to   = $<file>[1];
+     }
+
+Likewise, with a mixture of both:
+
+     if m:w/ mv <file>+ <file> / {
+         $to   = pop @{$<file>};
+         @from = @{$<file>};
+     }
+
+=item *
+
+However, if a subrule is explicitly renamed (or aliased -- see L<Aliasing>),
+then only the "final" name counts when deciding whether it is or isn't
+repeated. For example:
+
+     if m:w/ mv <file> $<dir>:=<file> / {
+         $from = $<file>;  # Only one subrule named <file>, so scalar
+         $to   = $<dir>;   # The Capture Formerly Known As <file>
+     }
+
+
+Likewise, neither of the following constructions causes C<< <file> >> to
+produce an array of C<Match> objects, since none of them has two or more
+C<< <file> >> subrules in the same lexical scope:
+
+     if m:w/ (keep) <file> | (toss) <file> / {
+         # Each <file> is in a separate alternation, therefore <file>
+         # is not repeated in any one scope, hence $<file> is
+         # not an array ref...
+         $action = $0;
+         $target = $<file>;
+     }
+
+     if m:w/ <file> \: (<file>|none) / {
+         # Second <file> nested in subpattern which confers a
+         # different scope...
+         $actual  = $/<file>;
+         $virtual = $/[0]<file> if $/[0]<file>;
+     }
+
+=item *
+
+On the other hand, unaliased square brackets don't confer a separate
+scope (because they don't have an associated C<Match> object). So:
+
+     if m:w/ <file> \: [<file>|none] / { # Two <file>s in same scope
+         $actual  = $/<file>[0];
+         $virtual = $/<file>[1] if $/<file>[1];
+     }
+
+
+=back
+
+=head2 Aliasing
+
+Aliases can be named or numbered. They can be scalar-, array-, or hash-like.
+And they can be applied to either capturing or non-capturing constructs. The
+following sections highlight special features of the semantics of some
+of those combinations.
+
+
+=head3 Named scalar aliasing to subpatterns
+
+=over
+
+=item *
+
+If a named scalar alias is applied to a set of I<capturing> parens:
+
+        #          ______/capturing parens\_____
+        #         |                             |
+        #         |                             |
+     m:w/ $<key>:=( (<[A..E]>) (\d**{3..6}) (X?) ) /;
+
+then the outer capturing parens no longer capture into the array of
+C<$/> (like unaliased parens would). Instead the aliased parens capture
+into the hash of C<$/>; specifically into the hash element
+whose key is the alias name.
+
+=item *
+
+So, in the above example, a successful match sets
+C<< $<key> >> (i.e. C<< $/<key> >>), but I<not> C<$0> (i.e. not C<< $/[0] >>).
+
+=item *
+
+More specifically:
+
+=over
+
+=item *
+
+C<< $/<key> >> will contain the C<Match> object that would previously have
+been placed in C<< $/[0] >>.
+
+=item *
+
+C<< $/<key>[0] >> will contain the A-E letter,
+
+=item *
+
+C<< $/<key>[1] >> will contain the digits,
+
+=item *
+
+C<< $/<key>[2] >> will contain the optional X.
+
+=back
+
+=item *
+
+Another way to think about this behaviour is that aliased parens create
+a kind of lexically scoped named subrule; that the contents of the
+brackets are treated as if they were part of a separate subrule whose
+name is the alias.
+
+
+=back
+
+=head3 Named scalar aliases applied to non-capturing brackets
+
+=over
+
+=item *
+
+If an named scalar alias is applied to a set of I<non-capturing> brackets:
+
+        #          ___/non-capturing brackets\__
+        #         |                             |
+        #         |                             |
+     m:w/ $<key>:=[ (<[A..E]>) (\d**{3..6}) (X?) ] /;
+
+then the corresponding C<< $/<key> >> object contains only the string
+matched by the non-capturing brackets.
+
+=item *
+
+In particular, the array of the C<< $/<key> >> entry is empty. That's
+because square brackets do not create a nested lexical scope, so the
+subpatterns are unnested and hence correspond to $0, $1, and $2, and
+I<not> to C<< $/<key>[0] >>, C<< $/<key>[1] >>, and C<< $/<key>[2] >>.
+
+=item *
+
+In other words:
+
+=over
+
+=item *
+
+C<< $/<key> >> will contain the complete substring matched by the square
+brackets (in a C<Match> object, as described above),
+
+=item *
+
+C<< $0 >> will contain the A-E letter,
+
+=item *
+
+C<< $1 >> will contain the digits,
+
+=item *
+
+C<< $2 >> will contain the optional X.
+
+=back
+
+
+=back
+
+=head3 Named scalar aliasing to subrules
+
+=over
+
+=item *
+
+If a subrule is aliased, it assigns its C<Match> object to the hash
+entry whose key is the name of the alias. And it I<no longer> assigns
+anything to the hash entry whose key is the subrule name. That is:
+
+     if m:/ ID\: $<id>:=<ident> / {
+         say "Identified as $/<id>";    # $/<ident> is undefined
+     }
+
+=item *
+
+Hence aliasing a subrule I<changes> the destination of the subrule's C<Match>
+object. This is particularly useful for differentiating two or more calls to
+the same subrule in the same scope. For example:
+
+     if m:w/ mv <file>+ $<dir>:=<file> / {
+         @from = @{$<file>};
+         $to   = $<dir>;
+     }
+
+=back
+
+=head3 Numbered scalar aliasing
+
+=over
+
+=item *
+
+If a numbered alias is used instead of a named alias:
+
+     m/ $1:=(<-[:]>*) \:  $0:=<ident> /
+
+the behaviour is exactly the same as for a named alias (i.e the various
+cases described above), except that the resulting C<Match> object is
+assigned to the corresponding element of the appropriate array, rather
+than to an element of the hash.
+
+=item *
+
+If any numbered alias is used, the numbering of subsequent unaliased
+subpatterns in the same scope automatically increments from that
+alias number (much like enum values increment from the last explicit
+value). That is:
+
+      #  ---$1---    -$2-    ---$6---    -$7-
+      # |        |  |    |  |        |  |    |
+     m/ $1:=(food)  (bard)  $6:=(bazd)  (quxd) /;
+
+=item *
+
+This "follow-on" behaviour is particularly useful for reinstituting
+Perl5 semantics for consecutive subpattern numbering in alternations:
+
+     $tune_up = rx/ (don't) (ray) (me) (for) (solar tea), (d'oh!)
+                  | $6:=(every) (green) (BEM) (devours) (faces)
+                  #             $7      $8    $9        $10
+                  /;
+
+=item *
+
+It also provides an easy way in Perl 6 to reinstitute the unnested
+numbering semantics of nested Perl 5 subpatterns:
+
+      # Perl 5...
+      #               $1
+      #  _____________/\______________
+      # |    $2          $3       $4  |
+      # |  __/\___   ____/\____   /\  |
+      # | |       | |          | |  | |
+     m/ ( (<[A..E]>) (\d**{3..6}) (X?) ) /;
+
+
+      # Perl 6...
+      #               $0
+      #  _____________/\______________
+      # |  $0[0]       $0[1]    $0[2] |
+      # |  __/\___   ____/\____   /\  |
+      # | |       | |          | |  | |
+     m/ ( (<[A..E]>) (\d**{3..6}) (X?) ) /;
+
+
+      # Perl 6 simulating Perl 5...
+      #                 $1
+      #  _______________/\________________
+      # |        $2          $3       $4  |
+      # |      __/\___   ____/\____   /\  |
+      # |     |       | |          | |  | |
+     m/ $1:=[ (<[A..E]>) (\d**{3..6}) (X?) ] /;
+
+The non-capturing brackets don't introduce a scope, so the subpatterns within
+them are at rule scope, and hence numbered at the top level. Aliasing the
+square brackets to C<$1> means that the next subpattern at the same level
+(i.e. the C<< (<[A..E]>) >>) is numbered sequentially (i.e. C<$2>), etc.
+
+
+=back
+
+=head3 Scalar aliases applied to quantified constructs
+
+=over
+
+=item *
+
+All of the above semantics apply equally to aliases which are bound to
+quantified structures.
+
+=item *
+
+The only difference is that, if the aliased construct is a subrule or
+subpattern, that quantified subrule or subpattern will have returned a
+list of C<Match> objects (as described in L<Quantified subpattern
+captures> and L<Repeated captures of the same subrule>).
+So the corresponding array element or hash entry for the alias will
+contain a reference to an array, instead of a single C<Match> object.
+
+=item *
+
+In other words, aliasing and quantification are completely orthogonal.
+For example:
+
+     if m/ mv $0:=<file>+ / {
+         # <file>+ returns a list of Match objects,
+         # so $0 contains a reference to an array of Match objects,
+         # one for each successful call to <file>
+
+         # $/<file> does not exist (it's pre-empted by the alias)
+     }
+
+
+     if m/ mv $<from>:=(\S+ \s+)* / {
+         # Quantified subpattern returns a list of Match objects,
+         # so $/<from> contains a reference to an array of Match
+         # objects, one for each successful match of the subpattern
+
+         # $0 does not exist (it's pre-empted by the alias)
+     }
+
+=item *
+
+Note, however, that a set of quantified I<non-capturing> brackets always
+returns a single C<Match> object which contains only the complete
+substring that was matched by the full set of repetitions of the
+brackets (as described in L<Named scalar aliases applied to 
+non-capturing brackets>). For example:
+
+     "coffee fifo fumble" ~~ m/ $<effs>:=[f <-[f]>**{1..2} \s*]+ /;
+
+     say $<effs>;    # prints "fee fifo fum"
+
+
+=back
+
+=head3 Array aliasing
+
+=over
+
+=item *
+
+An alias can also be specified using an array as the alias instead of scalar.
+For example:
+
+     m/ mv @<from>:=[(\S+) \s+]* <dir> /;
+
+=item *
+
+Using the C<< @<alias>:= >> notation instead of a C<< $<alias>:= >>
+mandates that the corresponding hash entry or array element I<always>
+receives a reference to an array of C<Match> objects, even if the
+construct being aliased would normally return a single C<Match> object.
+This is useful for creating consistent capture semantics across
+structurally different alternations (by enforcing array captures in all
+branches):
+
+     m:w/ Mr?s? @<names>:=<ident> W\. @<names>:=<ident>
+        | Mr?s? @<names>:=<ident>
+        /;
+
+     # Aliasing to @<names> means $/<names> is always
+     # an array reference, so...
+
+     say @{$/<names>};
+
+=item *
+
+For convenience and consistency, C<< @<key> >> can also be used outside a
+regex, as a shorthand for C<< @{ $/<key> } >>. That is:
+
+     m:w/ Mr?s? @<names>:=<ident> W\. @<names>:=<ident>
+        | Mr?s? @<names>:=<ident>
+        /;
+
+     say @<names>;
+
+=item *
+
+If an array alias is applied to a quantified pair of non-capturing
+brackets, it captures the substrings matched by each repetition of the
+brackets into separate elements of the corresponding array. That is:
+
+     m/ mv $<files>:=[ f.. \s* ]* /; # $/<files> assigned a single
+                                     # Match object containing the
+                                     # complete substring matched by
+                                     # the full set of repetitions
+                                     # of the non-capturing brackets
+
+     m/ mv @<files>:=[ f.. \s* ]* /; # $/<files> assigned an array,
+                                     # each element of which is a
+                                     # C<Match> object containing
+                                     # the substring matched by Nth
+                                     # repetition of the non-
+                                     # capturing bracket match
+
+=item *
+
+If an array alias is applied to a quantified pair of capturing parens
+(i.e. to a subpattern), then the corresponding hash or array element is
+assigned a list constructed by concatenating the array values of each
+C<Match> object returned by one repetition of the subpattern. That is,
+an array alias on a subpattern flattens and collects all nested
+subpattern captures within the aliased subpattern. For example:
+
+     if m:w/ $<pairs>:=( (\w+) \: (\N+) )+ / {
+         # Scalar alias, so $/<pairs> is assigned an array
+         # of Match objects, each of which has its own array
+         # of two subcaptures...
+
+         for @{$<pairs>} -> $pair {
+             say "Key: $pair[0]";
+             say "Val: $pair[1]";
+         }
+     }
+
+
+     if m:w/ @<pairs>:=( (\w+) \: (\N+) )+ / {
+         # Array alias, so $/<pairs> is assigned an array
+         # of Match objects, each of which is flattened out of
+         # the two subcaptures within the subpattern
+
+         for @{$<pairs>} -> $key, $val {
+             say "Key: $key";
+             say "Val: $val";
+         }
+     }
+
+=item *
+
+Likewise, if an array alias is applied to a quantified subrule, then the
+hash or array element corresponding to the alias is assigned a list
+containing the array values of each C<Match> object returned by each
+repetition of the subrule, all flattened into a single array:
+
+     rule pair :w { (\w+) \: (\N+) \n }
+
+     if m:w/ $<pairs>:=<pair>+ / {
+         # Scalar alias, so $/<pairs> contains an array of
+         # Match objects, each of which is the result of the
+         # <pair> subrule call...
+
+         for @{$<pairs>} -> $pair {
+             say "Key: $pair[0]";
+             say "Val: $pair[1]";
+         }
+     }
+
+
+     if m:w/ mv @<pairs>:=<pair>+ / {
+         # Array alias, so $/<pairs> contains an array of
+         # Match objects, all flattened down from the
+         # nested arrays inside the Match objects returned
+         # by each match of the <pair> subrule...
+
+         for @{$<pairs>} -> $key, $val {
+             say "Key: $key";
+             say "Val: $val";
+         }
+     }
+
+=item *
+
+In other words, an array alias is useful to flatten into a single array
+any nested captures that might occur within a quantified subpattern or subrule.
+Whereas a scalar alias is useful to preserve within a top-level array
+the internal structure of each repetition.
+
+=item *
+
+It is also possible to use a numbered variable as an array alias.
+The semantics are exactly as described above, with the sole difference
+being that the resulting array of C<Match> objects is assigned into the
+appropriate element of the rule's match array, rather than to a key of
+its match hash. For example:
+
+     if m/ mv  \s+  @0:=((\w+) \s+)+  $1:=((\W+) (\s*))* / {
+         #          |                 |
+         #          |                 |
+         #          |                  \_ Scalar alias, so $1 gets an
+         #          |                     array, with each element
+         #          |                     a Match object containing
+         #          |                     the two nested captures
+         #          |
+         #           \___ Array alias, so $0 gets a flattened array of
+         #                just the (\w+) captures from each repetition
+
+         @from     = @{$0};      # Flattened list
+
+         $to_str   = $1[0][0];   # Nested elems of
+         $to_gap   = $1[0][1];   #    unflattened list
+     }
+
+=item *
+
+Note again that, outside a rule, C<@0> is simply a shorthand for
+C<@{$0}>, so the first assignment above could also have been written:
+
+         @from = @0;
+
+
+=back
+
+=head3 Hash aliasing
+
+=over
+
+=item *
+
+An alias can also be specified using a hash as the alias variable,
+instead of a scalar or an array. For example:
+
+     m/ mv %<location>:=( (<ident>) \: (\N+) )+ /;
+
+=item *
+
+A hash alias causes the correponding hash or array element in the
+current scope's C<Match> object to be assigned a (nested) hash reference
+(rather than an array reference or a single C<Match> object).
+
+=item *
+
+If a hash alias is applied to a subrule or subpattern then the first nested
+numeric capture becomes the key of each hash entry and any remaining numeric
+captures become the values (in an array if there is more than one),
+
+=item *
+
+As with array aliases it is also possible to use a numbered variable as
+a hash alias. Once again, the only difference is where the resulting
+C<Match> object is stored:
+
+     rule one_to_many {  (\w+) \: (\S+) (\S+) (\S+) }
+
+     if m:w/ %0:=<one_to_many>+ / {
+         # $/[0] contains a hash, in which each key is provided by
+         # the first subcapture within C<one_to_many>, and each
+         # value is a reference to an  array containing the
+         # subrule's second, third, and fourth, etc. subcaptures...
+
+         for %{$/[0]} -> $pair {
+             say "One:  $pair.key";
+             say "Many: { @{$pair.value} }";
+         }
+     }
+
+=item *
+
+Outside the rule, C<%0> is a shortcut for C<%{$0}>:
+
+         for %0 -> $pair {
+             say "One:  $pair.key";
+             say "Many: { @{$pair.value} }";
+         }
+
+
+=back
+
+=head3 External aliasing
+
+=over
+
+=item *
+
+Instead of using internal aliases like:
+
+     m/ mv  @<files>:=<ident>+  $<dir>:=<ident> /
+
+the name of an ordinary variable can be used as an "external alias", like so:
+
+     m/ mv  @files:=<ident>+  $dir:=<ident> /
+
+=item *
+
+In this case, the behaviour of each alias is exactly as described in the
+previous sections, except that the resulting capture(s) are bound
+directly (but still hypothetically) to the variables of the specified
+name that exist in the scope in which the rule declared.
+
+
+=back
+
+=head2 Capturing from repeated matches
+
+=over
+
+=item *
+
+When an entire rule is successfully matched with repetitions
+(specified via the C<:x> or C<:g> flag) or overlaps (specified via the
+C<:ov> or C<:ex> flag), it will usually produce a series
+of distinct matches.
+
+=item *
+
+A successful match under any of these flags still returns a single
+C<Match> object in C<$/>. However, the values of this match object are
+slightly different from those provided by a non-repeated match:
+
+=over
+
+=item *
+
+The boolean value of C<$/> after such matches is true or false, depending on
+whether the pattern matched.
+
+=item *
+
+The string value is the substring from the start of the first match to
+the end of the last match (I<including> any intervening parts of the
+string that the rule skipped over in order to find later matches).
+
+=item *
+
+There are no array contents or hash entries.
+
+=back
+
+For example:
+
+     if $text ~~ m:w:g/ (\S+:) <rocks> / {
+         say 'Full match context is: [$/]';
+     }
+
+=item *
+
+The list of individual match objects corresponding to each separate
+match is also available, via the C<.matches> method. For example:
+
+     if $text ~~ m:w:g/ (\S+:) <rocks> / {
+         say "Matched { +$/.matches } times";
+
+         for $/.matches -> $m {
+             say "Match between $m.from() and $m.to()";
+             say 'Right on, dude!' if $m[0] eq 'Perl';
+             say "Rocks like $m<rocks>";
+         }
+     }
+
+=back
+
+=head2 C<:keepall>
+
+=over
+
+=item *
+
+All rules remember everything if C<:keepall> is in effect
+anywhere in the outer dynamic scope.  In this case everything inside
+the angles is used as part of the key.  Suppose the earlier example
+parsed whitespace:
+
+     / <key> <?ws> <'=>'> <?ws> <value> { %hash{$<key>} = $<value> } /
+
+The two instances of C<< <?ws> >> above would store an array of two
+values accessible as C<< @<?ws> >>.  It would also store the literal
+match into C<< $<'=\>'> >>.  Just to make sure nothing is forgotten,
+under C<:keepall> any text or whitespace not otherwise remembered is
+attached as an extra property on the subsequent node. (The name of
+that property is "C<pretext>".)
+
+=back
+
+=head1 Grammars
+
+=over
+
+=item *
+
+Your private C<ident> rule shouldn't clobber someone else's
+C<ident> rule.  So some mechanism is needed to confine rules to a namespace.
+
+=item *
+
+If subs are the model for rules, then modules/classes are the obvious
+model for aggregating them.  Such collections of rules are generally
+known as "grammars".
+
+=item *
+
+Just as a class can collect named actions together:
+
+     class Identity {
+         method name { "Name = $.name" }
+         method age  { "Age  = $.age"  }
+         method addr { "Addr = $.addr" }
+
+         method desc {
+             print &.name(), "\n",
+                   &.age(),  "\n",
+                   &.addr(), "\n";
+         }
+
+         # etc.
+     }
+
+so too a grammar can collect a set of named rules together:
+
+     grammar Identity {
+         rule name :w { Name = (\N+) }
+         rule age  :w { Age  = (\d+) }
+         rule addr :w { Addr = (\N+) }
+         rule desc {
+             <name> \n
+             <age>  \n
+             <addr> \n
+         }
+
+         # etc.
+     }
+
+=item *
+
+Like classes, grammars can inherit:
+
+     grammar Letter {
+         rule text     { <greet> <body> <close> }
+
+         rule greet :w { [Hi|Hey|Yo] $<to>:=(\S+?) , $$}
+
+         rule body     { <line>+ }
+
+         rule close :w { Later dude, $<from>:=(.+) }
+
+         # etc.
+     }
+
+     grammar FormalLetter is Letter {
+
+         rule greet :w { Dear $<to>:=(\S+?) , $$}
+
+         rule close :w { Yours sincerely, $<from>:=(.+) }
+
+     }
+
+=item *
+
+Just like the methods of a class, the rule definitions of a grammar are
+inherited (and polymorphic!). So there's no need to respecify C<body>,
+C<line>, etc.
+
+=item *
+
+Perl 6 will come with at least one grammar predefined:
+
+     grammar Perl {    # Perl's own grammar
+
+         rule prog { <statement>* }
+
+         rule statement { <decl>
+                   | <loop>
+                   | <label> [<cond>|<sideff>|;]
+         }
+
+         rule decl { <sub> | <class> | <use> }
+
+         # etc. etc. etc.
+     }
+
+=item *
+
+Hence:
+
+     given $source_code {
+         $parsetree = m:keepall/<Perl.prog>/;
+     }
+
+=back
+
+=head1 Syntactic categories
+
+For writing your own backslash and assertion rules or macros, you may
+use the following syntactic categories:
+
+     rule rxbackslash:<w> { ... }    # define your own \w and \W
+     rule rxassertion:<*> { ... }    # define your own <*stuff>
+     macro rxmetachar:<,> { ... }    # define a new metacharacter
+     macro rxmodinternal:<x> { ... } # define your own /:x() stuff/
+     macro rxmodexternal:<x> { ... } # define your own m:x()/stuff/
+
+As with any such syntactic shenanigans, the declaration must be visible in
+the lexical scope to have any effect.  It's possible the internal/external
+distinction is just a trait, and that some of those things are subs
+or methods rather than rules or macros.  (The numeric rxmods are recognized
+by fallback macros defined with an empty operator name.)
+
+=head1 Pragmas
+
+The C<rx> pragma may be used to control various aspects of regex
+compilation and usage not otherwise provided for.
+
+=head1 Transliteration
+
+=over
+
+=item *
+
+The C<tr///> quote-like operator now also has a method form called
+C<trans()>.  Its argument is a list of pairs.  You can use anything that
+produces a pair list:
+
+     $str.trans( %mapping.pairs.sort );
+
+Use the .= form to do a translation in place:
+
+     $str.=trans( %mapping.pairs.sort );
+
+=item *
+
+The two sides of the any pair can be strings interpreted as C<tr///> would:
+
+     $str.=trans( 'A..C' => 'a..c', 'XYZ' => 'xyz' );
+
+As a degenerate case, each side can be individual characters:
+
+     $str.=trans( 'A'=>'a', 'B'=>'b', 'C'=>'c' );
+
+=item *
+
+The two sides of each pair may also be array references:
+
+     $str.=trans( ['A'..'C'] => ['a'..'c'], <X Y Z> => <x y z> );
+
+=item *
+
+The array version can map one-or-more characters to one-or-more
+characters:
+
+     $str.=trans( [' ',      '<',    '>',    '&'    ] =>
+                  ['&nbsp;', '&lt;', '&gt;', '&amp;' ]);
+
+
+In the case that more than one sequence of input characters matches,
+the longest one wins.  In the case of two identical sequences the
+first in order wins.
+
+There are also method forms of C<m//> and C<s///>:
+
+     $str.match(//);
+     $str.subst(//, "replacement")
+     $str.subst(//, {"replacement"})
+     $str.=subst(//, "replacement")
+     $str.=subst(//, {"replacement"})
+
+=back
+
+=head1 Matching against non-strings
+
+=over
+
+=item *
+
+Anything that can be tied to a string can be matched against a
+rule. This feature is particularly useful with input streams:
+
+     my $stream is from($fh);       # tie scalar to filehandle
+
+     # and later...
+
+     $stream ~~ m/pattern/;         # match from stream
+
+An array can be matched against a rule.  The special C<< <,> >>
+rule matches the boundary between elements.  If the array elements
+are strings, they are concatenated virtually into a single logical
+string.  If the array elements are tokens or other such objects, the
+objects must provide appropriate methods for the kinds of rules to
+match against.  It is an assertion error to match a string-matching
+assertion against an object that doesn't provide a string view.
+However, pure token objects can be parsed as long as the match rule
+restricts itself to assertions like:
+
+     <.isa(Dog)>
+     <.does(Bark)>
+     <.can('scratch')>
+
+It is permissible to mix tokens and strings in an array as long as they're
+in different elements.  You may not embed objects in strings, however.
+
+To match against each element of an array, use a hyper operator:
+
+     @arrayÂ».match($rule)
+
+=back

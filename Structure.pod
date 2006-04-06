@@ -1,0 +1,705 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 9: Data Structures
+
+=head1 AUTHOR
+
+Larry Wall <larry@wall.org>
+
+=head1 VERSION
+
+  Maintainer: Larry Wall <larry@wall.org>
+  Date: 13 Sep 2004
+  Last Modified: 1 Apr 2006
+  Number: 9
+  Version: 6
+
+=head1 Overview
+
+This synopsis summarizes the non-existent Apocalypse 9, which
+discussed in detail the design of Perl 6 data structures.  It was
+primarily a discussion of how the existing features of Perl 6 combine
+to make it easier for the PDL folks to write numeric Perl.
+
+=head1 Lazy lists
+
+All list contexts are lazy by default.  They still flatten eventually,
+but only when forced to.  You have to use unary C<**> to get a non-lazy
+flattening list context (that is, to flatten immediately like Perl 5).
+
+=head1 Sized types
+
+Sized low-level types are named most generally by appending the number
+of bits to a generic low-level type name:
+
+    int1
+    int2
+    int4
+    int8
+    int16
+    int32	(aka int on 32-bit machines)
+    int64	(aka int on 64-bit machines)
+
+    uint1	(aka bit)
+    uint2
+    uint4
+    uint8	(aka byte)
+    uint16
+    uint32
+    uint64
+
+    num32
+    num64	(aka num on most architectures)
+    num128
+
+    complex32
+    complex64	(aka complex on most architectures)
+    complex128
+
+Complex sizes indicate the size of each C<num> component rather than
+the total.  This would extend to tensor typenames as well if they're
+built-in types.  Of course, the typical tensor structure is just
+reflected in the dimensions of the array--but the principle still holds
+that the name is based on the number of bits of the simple base type.
+
+The unsized types C<int> and C<num> are based on the architecture's
+normal size for C<int> and C<double> in whatever version of C the
+run-time system (presumably Parrot) is compiled in.  So C<int>
+typically means C<int32> or C<int64>, while C<num> usually means
+C<num64>, and C<complex> means two of whatever C<num> turns out to be.
+
+You are, of course, free to use macros or type declarations to
+associate additional names, such as "short" or "single".  These are
+not provided by default.  An implementation of Perl is not required
+to support 64-bit integer types or 128-bit floating-point types unless
+the underlying architecture supports them.
+
+And yes, an C<int1> can store only -1 or 0.  I'm sure someone'll think of
+a use for it...
+
+=head1 Compact structs
+
+A class whose attributes are all low-level types can behave as
+a struct.  (Access from outside the class is still only through
+accessors, though.)  Whether such a class is actually stored compactly
+is up to the implementation, but it ought to behave that way,
+at least to the extent that it's trivially easy (from the user's
+perspective) to read and write to the equivalent C structure.
+That is, when byte-stringified, it should look like the C struct,
+even if that's not how it's actually represented inside the class.
+(This is to be construed as a substitute for at least some of the
+current uses of C<pack>/C<unpack>.)
+
+=head1 Compact arrays
+
+In declarations of the form:
+
+    my bit @bits;
+    my int @ints;
+    my num @nums;
+    my int4 @nybbles;
+    my buf @buffers;
+    my complex128 @longdoublecomplex;
+    my Array @ragged2d;
+
+the presence of a low-level type tells Perl that it is free to
+implement the array with "compact storage", that is, with a chunk
+of memory containing contiguous (or as contiguous as practical)
+elements of the specified type without any fancy object boxing that
+typically applies to undifferentiated scalars.  (Perl tries really
+hard to make these elements look like objects when you treat them
+like objects--this is called autoboxing.)
+
+The declarations above declare one-dimensional arrays of indeterminate
+length.  Such arrays are autoextending just like ordinary Perl
+arrays (at the price of occasionally copying the block of data to
+another memory location).  For many purposes, though, it's useful to
+define array types of a particular size and shape that, instead of
+autoextending, throw an exception if you try to access outside their
+declared dimensionality.  Such arrays tend to be faster to allocate and
+access as well.
+
+A multidimensional array is indexed by a semicolon list, which is really
+a list of pipes in disguise.  Each sublist is a slice/pipe of one particular
+dimension.  So
+
+    @array[0..10; 42; @x]
+
+is really short for
+
+    @array.postcircumfix:<[ ]>( <== 0..10 <== 42 <== @x );
+
+The compiler is free to optimize to something faster when it is known
+that lazy multidimensional subscripts are not necessary.
+
+Note that
+
+    @array[@x,@y]
+
+is always interpreted as a one-dimensional slice in the outermost
+dimension, which is the same as:
+
+    @array[@x,@y;]
+
+or more verbosely:
+
+    @array.postcircumfix:<[ ]>( <== @x,@y );
+
+To interpolate an array at the semicolon level rather than the comma level,
+use the C<[;]> reduce operator:
+
+    @array[[;] @x]
+
+which is equivalent to
+
+    @array.postcircumfix:<[ ]>( <== @x[0] <== @x[1] <== @x[2]...);
+
+Alternately, use a multislice array, indicated by a C<;> twigil:
+
+    @array[@;x]
+
+Multislice arrays have the advantage of being able to collect individual
+pipes and keep them distinct:
+
+    my @;x;
+    @;x <==  %hash.keys.grep: {/^X/};
+    @;x <== =<>;
+    @;x <== 1...;
+    @;x <== gather { loop { take rand 100 } };
+
+    %hash{@;x}
+
+To declare a multidimensional array, you may declare it with a signature as
+if it were a function returning one of its entries:
+
+    my num @nums (Int);   # one dimension, @nums[Int]
+
+or alternately:
+
+    my @nums (Int --> num);   # one dimension, @nums[Int]
+
+You can use ranges as types:
+
+    my @nums (0..2 --> num);   # one dimension, @nums[0..2]
+    my @ints (0..3, 0..1 --> int);   # one dimension, @ints[0..3; 0..1]
+
+That includes the "upto" range type:
+
+    my @ints (^4, ^2 --> int);   # one dimension, @ints[0..3; 0..1]
+
+You can pretend you're programming in Fortran, or awk:
+
+    my int @ints (1..4, 1..2); # two dimensions, @ints[1..4; 1..2]
+
+Note that this only influences your view of the array, not the actual
+shape of the array.  If you pass this array to another module, it
+will see it as have a shape of C<(0..3, 0..1)> unless it also declares
+a variable to view it differently.
+
+Alternately, you may declare it using a prototype subscript,
+but then you must remember to use semicolons instead of commas to
+separate dimensions, because each slice represents an enumeration of
+the possible values, so the following are all equivalent:
+
+    my @ints (0..3, 0..1 --> int);
+    my int @ints (0..3, 0..1);
+    my int @ints[^4;^2];
+    my int @ints[0..3; 0..1];
+    my int @ints[0,1,2,3; 0,1];
+
+You can pass a multislice for the shape as well:
+
+    my int @ints[[;]@fooshape];
+    my int @ints[@;fooshape];	# same thing
+
+Again, the C<[;]> list operator interpolates a list into a semicolon
+list, which we do for consistency with subscript notation, not because
+it makes a great deal of sense to allow slices for dimensional specs
+(apart from ranges).  So while the following is okay:
+
+    my int @ints[0,1,2,3,4];	# same as 0..4
+
+the following is a semantic error that the compiler should catch:
+
+    my int @ints[^3,^3,^3];	# oops, comma instead of semicolon
+
+The shape may be supplied entirely by the object at run-time:
+
+    my num @nums = Array of num.new(:shape(^3;^3;^3));
+    my num @nums .=new():shape(^3;^3;^3); # same thing 
+
+Any dimension of the array may be specified as "C<Int>", in which case
+that dimension will autoextend.  Typically this would be used in the
+final dimension to make a ragged array functionally equivalent to an
+array of arrays:
+
+    my int @ints[^42; Int];
+    push(@ints[41], getsomeints());
+
+The shape may also be specified by types rather than sizes:
+
+    my int @ints[Even; Odd];
+
+or by both:
+
+    my int @ints[0..100 where Even; 1..99 where Odd];
+
+(presuming C<Even> and C<Odd> are types already constrained to be even or odd).
+
+=head1 PDL support
+
+An array C<@array> can be tied to a piddle at declaration time:
+
+    my num @array[@;mytensorshape] is Piddle;
+    my @array is Piddle(:shape(^2;^2;^2;^2)) of int8;
+
+Piddles are allowed to assume a type of C<num> by default rather than
+the usual simple scalar.  (And in general, the type info is merely
+made available to the "tie" implementation to do with what it will.
+Some data structures may ignore the "of" type and just store everything
+as general scalars.  Too bad...)
+
+Arrays by default are one dimensional, but may be declared to have any
+dimensionality supported by the implementation.  You may use arrays
+just like scalar references--the main caveat is that you have to use
+binding rather than assignment to set one without copying:
+
+    @b := @a[0...:by(2)]
+
+With piddles in particular, this might alias each of the individual
+elements rather than the array as a whole.  So modifications to @b
+are likely to be reflected back into @a.  (But maybe the PDLers will
+prefer a different notation for that.)
+
+The dimensionality of an array may be declared on the variable, but
+the actual dimensionality of the array depends on how it was created.
+Reconciling these views is a job for the particular array implementation.
+It's not necessarily the case that the declared dimensionality must match
+the actual dimensionality.  It's quite possible that the array variable
+is deliberately declared with a different dimensionality to provide a
+different "view" on the actual value:
+
+    my int @array[^2;^2] is Puddle .= new(:shape(^4) <== 0,1,2,3);
+
+Again, reconciling those ideas is up to the implementation, C<Puddle>
+in this case.  The traits system is flexible enough to pass any
+metadata required, including ideas about sparseness, raggedness,
+and various forms of non-rectangleness such as triangleness.
+The implementation should probably carp about any metadata it doesn't
+recognize though.  The implementation is certainly free to reject
+any object that doesn't conform to the variable's shape requirements.
+
+=head1 Subscript and slice notation
+
+A subscript indicates a "slice" of an array.  Each dimension
+of an array is sliced separately, so we say a subscript is a
+semicolon-separated list of slice specifiers, also known as a multislice.
+A three-dimensional slice might look like this:
+
+    @x[0..10; 1,0; 1...:by(2)]
+
+It is up to the implementation of C<@x> to decide how aggressively
+or lazily this subscript is evaluated, and whether the slice entails
+copying.  (The PDL folks will generally want it to merely produce a
+virtual piddle where the new array aliases its values back into the
+old one.)
+
+Of course, a single element can be selected merely by providing a single
+index value to each slice list:
+
+    @x[0;1;42]
+
+=head1 The semicolon operator
+
+At the statement level, a semicolon terminates the current expression.
+Within any kind of bracketing construct, semicolon notionally
+separates slices, the interpretation of which depends on
+the context.  Such a semicolon list always provides list context to
+each of its sublists.  The storage of these sublists is hidden in
+the inner workings of the list.  It does not produce a list of lists. 
+
+Single dimensional arrays expect simple slice subscripts, meaning
+they will treat a list subscript as a slice in the single dimension of
+the array.  Multi-dimensional arrays, on the other hand, know how to
+handle multiple slices, one for each dimension.  You need not specify
+all the dimensions; if you don't, the unspecified dimensions are
+"wildcarded".  Supposing you have:
+
+    my num @nums[^3;^3;^3];
+
+Then
+
+    @nums[0..2]
+
+is the same as
+
+    @nums[0..2;]
+
+which is the same as
+
+    @nums[0,1,2;*;*]
+
+But you should maybe write the last form anyway just for good
+documentation, unless you don't actually know how many more dimensions
+there are.
+
+If you wanted that C<0..2> range to mean
+
+    @nums[0;1;2]
+
+instead, then you need to use the C<[;]> reduction operator:
+
+    @nums[[;] 0..2]
+
+The zero-dimensional slice:
+
+    @x[]
+
+is assumed to want everything, not nothing.  It's particularly handy
+because Perl 6 (unlike Perl 5) won't interpolate a bare array without brackets:
+
+    @x = (1,2,3);
+    say "@x = @x[]";	# prints @x = 1 2 3
+
+Lists are lazy in Perl 6, and the slice lists are no exception.
+In particular, things like range objects are not flattened until they
+need to be, if ever.  So a PDL implementation is free to steal the
+values from these ranges and "piddle" around with them:
+
+    @nums[$min..$max:by(3)]
+    @nums[$min..$max]
+    @nums[$min...:by(3)]
+    @nums[1...:by(2)]		# the odds
+    @nums[0...:by(2)]		# the evens
+
+That's all just the standard Perl 6 notation for ranges.  Additional
+syntactic relief is always available as long as it's predeclared
+somehow.  It's possible the range operator could be taught that C<:2>
+means C<:by(2)>, for instance.  (But I rather dislike the RFC-proposed
+C<0:10:2> notation that makes colon mean two different things so close
+together, plus it conflicts with Perl 6's general adverb notation if
+the next thing is alphabetic.  On top of which, we're using C<:2> as
+a general radix notation.)
+
+Another thing that's not going to fly easily is simply dropping out
+terms.  Perl depends rather heavily on knowing when it's expecting
+a term or an operator, and simply leaving out terms before or after
+a binary operator really screws that up.  For instance,
+
+    0..:by(2)
+
+parses as
+
+    0 .. (by => 2)
+
+rather than
+
+    0 .. Inf :by(2)
+
+That why we have postfix C<...> to mean C<..Inf>.  But then if you
+leave out the first argument:
+
+    ...:by(2)
+
+you've written the yada-yada-yada operator, which is actually a term
+that will not produce an infinite range for you.  Don't do that.
+
+Maybe you should just find some nice Unicode characters for your operators...
+
+=head1 PDL signatures
+
+To rewrite a Perl 5 PDL definition like this:
+
+       pp_def(
+            'inner',
+            Pars => 'a(n); b(n); [o]c(); ', # the signature, see above
+            Code => 'double tmp = 0;
+                     loop(n) %{ tmp += $a() * $b(); %}
+                     $c() = tmp;' );
+
+you might want to write a macro that parses something vaguely
+resembling this:
+
+    role PDL_stuff[::TYPE] {
+	PDLsub inner (@a[$n], @b[$n] --> @c[]) {
+	    my TYPE $tmp = 0;
+	    for ^$n {
+		$tmp += @a[$_] * @b[$_];
+	    }
+	    @c[] = tmp;
+	}
+    }
+
+where that turns into something like this:
+
+    role PDL_stuff[::TYPE] {
+	multi sub inner (TYPE @a, TYPE @b --> TYPE) {
+	    my $n = @a.shape[0];	# or maybe $n is just a parameter
+	    assert($n == @b.shape[0]);	#  and this is already checked by PDL
+	    my TYPE $tmp = 0;
+	    for ^$n {
+		$tmp += @a[$_] * @b[$_];
+	    }
+	    return $tmp;
+	}
+    }
+
+Then any class that C<does PDL_stuff[num]> has an C<inner()> function that
+can (hopefully) be compiled down to a form useful to the PDL threading
+engine.  Presumably the macro also stores away the PDL signature
+somewhere safe, since the translated code hides that information
+down in procedural code.  Possibly some of the C<[n]> information can
+come back into the signature via C<where> constraints on the types.
+This would presumably make multimethod dispatch possible on similarly
+typed arrays with differing constraints.
+
+(The special destruction problems of Perl 5's PDL should go away with
+Perl 6's GC approach, as long as PDL's objects are registered with Parrot
+correctly.)
+
+=head1 Junctions
+
+A junction is a superposition of data values pretending to be a single
+data value.  Junctions come in four varieties:
+
+    list op	infix op
+    =======	========
+    any()	|
+    all()	&
+    one()	^
+    none()	(no "nor" op defined)
+
+Note that the infix ops are "list-associative", insofar as
+
+    $a | $b | $c
+    $a & $b & $c
+    $a ^ $b ^ $c
+
+mean
+
+    any($a,$b,$c)
+    all($a,$b,$c)
+    one($a,$b,$c)
+
+rather than
+
+    any(any($a,$b),$c)
+    all(all($a,$b),$c)
+    one(one($a,$b),$c)
+
+Some contexts, such as boolean contexts, have special rules for dealing
+with junctions.  In any scalar context not expecting a junction of
+values, a junction produces automatic parallelization of the algorithm.
+In particular, if a junction is used as an argument to any routine
+(operator, closure, method, etc.), and the scalar parameter you
+are attempting to bind the argument to is inconsistent with the
+Junction type, that routine is "autothreaded", meaning the routine
+will be called automatically as many times as necessary to process
+the individual scalar elements of the junction in parallel.
+
+The results of these separate calls are then recombined into a
+single junction of the same species as the junctive argument.
+If two or more arguments are junctive, then the argument that is
+chosen to be "autothreaded" is:
+
+=over
+
+=item *
+
+the left-most conjunction or injunction (if any), or else
+
+=item *
+
+the left-most abjunction or disjunction
+
+=back
+
+with the tests applied in that order.
+
+Each of the resulting set of calls is then recursively autothreaded
+until no more junctive arguments remain. That is:
+
+       substr("camel", 0|1, 2&3)
+
+    -> all( substr("camel", 0|1, 2),      # autothread the conjunctive arg
+	    substr("camel", 0|1, 3)
+	  )
+
+    -> all( any( substr("camel", 0, 2),   # autothread the disjunctive arg
+		 substr("camel", 1, 2),
+	       ),
+	    any( substr("camel", 0, 3),   # autothread the disjunctive arg
+		 substr("camel", 1, 3),
+	       )
+	  )
+
+    -> all( any( "ca",                    # evaluate
+		 "am",
+	       ),
+	    any( "cam",
+		 "ame",
+	       )
+
+    -> ("ca"|"am") & ("cam"|"ame")        # recombine results in junctions
+
+Junctions passed as part of a container do not cause autothreading
+unless individually pulled out and used as a scalar.  It follows that
+junctions passed as members of a "slurpy" array or hash do not cause
+autothreading on that parameter.  Only individually declared parameters
+may autothread.  (Note that positional array and hash parameters are
+in fact scalar parameters, though, so you could pass a junction of
+array or hash references.)
+
+=head1 Parallelized parameters and autothreading
+
+Within the scope of a C<use autoindex> pragma (or equivalent, such as
+C<use PDL> (maybe)), any closure that uses parameters as subscripts
+is also a candidate for autothreading.  For each such parameter, the
+compiler supplies a default value that is a range of all possible
+values that subscript can take on (where "possible" is taken to
+mean the declared shape of a shaped array, or the actual shape of an
+autoextending array).  That is, if you have a closure of the form:
+
+    -> $x, $y { @foo[$x;$y] }
+
+then the compiler adds defaults for you, something like:
+
+    -> $x = @foo.shape[0].range,
+       $y = @foo.shape[1].range { @foo[$x;$y] }
+
+where each such range is autoiterated for you.
+
+In the abstract (and often in the concrete), this puts an implicit
+loop around the block of the closure that visits all the possible
+subscript values for that dimension (unless the parameter is actually
+supplied to the closure, in which case that is what is used as the
+slice subscript).
+
+So to write a typical tensor multiplication:
+
+    Cijkl = Aij * Bkl
+
+you can just write this:
+
+    use autoindex;
+    do { @c[$^i, $^j, $^k, $^l] = @a[$^i, $^j] * @b[$^k, $^l] };
+
+or equivalently:
+
+    -> $i, $j, $k, $l { @c[$i, $j, $k, $l] = @a[$i, $j] * @b[$k, $l] }();
+
+or even:
+
+    do -> $i, $j, $k, $l {
+	@c[$i, $j, $k, $l] = @a[$i, $j] * @b[$k, $l]
+    }
+
+That's almost pretty.
+
+It is erroneous for an unbound parameter to match multiple existing array
+subscripts differently.  (Arrays being created don't count.)
+
+Note that you could pass any of $i, $j, $k or $l explicitly, or prebind
+them with a C<.assuming> method, in which only the unbound parameters
+autothread.
+
+If you use an unbound array parameter as a semicolon-list interpolator
+(via the C<[;]> reduction operator), it functions as a wildcard list of
+subscripts that must match the same everywhere that parameter is used.
+For example,
+
+    do -> @wild { @b[[;] reverse @wild] = @a[[;] @wild]; };
+
+produces an array with the dimensions reversed regardless of the
+dimensionality of C<@a>.
+
+The optimizer is, of course, free to optimize away any implicit loops
+that it can figure out how to do more efficiently without changing
+the semantics.
+
+See RFC 207 for more ideas on how to use autothreading (though the syntax
+proposed there is rather different).
+
+=head1 Hashes
+
+Everything we've said for arrays applies to hashes as well, except that
+if you're going to limit the keys of one dimension of a hash, you have
+to provide an explicit list of keys to that dimension of the shape,
+or an equivalent range:
+
+    my num %hash{<a b c d e f>; Str};
+    my num %hash{'a'..'f'; Str};		# same thing
+
+To declare a hash that can take any object as a key rather than
+just a string, say something like:
+
+    my %hash{Any};
+
+Likewise, you can limit the keys to objects of particular types:
+
+    my Fight %hash{Dog;Cat};
+
+The standard Hash is just
+
+    my Any %hash{Str};
+
+Note that any type used as a key must be intrinsically immutable,
+or it has to be able to make a copy that functions as an immutable key,
+or it has to have copy-on-write semantics.  It is erroneous to change
+a key object's value within the hash except by deleting it and reinserting
+it.
+
+=head1 Autosorted hashes
+
+The default hash iterator is a property called C<.iterator> that can be
+user replaced.  When the hash itself needs an iterator for C<.pairs>,
+C<.keys>, C<.values>, or C<.kv>, it calls C<%hash.iterator()> to
+start one.  In scalar context, C<.iterator> returns an iterator object.
+In list context, it returns a lazy list fed by the iterator.  It must
+be possible for a hash to be in more than one iterator at at time,
+as long as the iterator state is stored in a lazy list.
+However, there is only one implicit iterator (the C<each> iterator)
+that works in scalar context to return the next pair.  [Or maybe not.]
+
+The downside to making a hash autosort via the iterator is that you'd
+have to store all the keys in sorted order, and resort it when the
+hash changes.  Alternately, the entire hash could be tied to an ISAM
+implementation (not included (XXX or should it be?)).
+
+For multidimensional hashes, the key returned by any hash iterator is
+a list of keys, the size of which is the number of declared dimensions
+of the hash.  [XXX but this seems to imply another lookup to find the
+value.  Perhaps the associated value can also be bundled in somehow.]
+
+=head1 Autovivification
+
+Autovivification will only happen if the vivifiable path is used as a
+container, by binding, assigning, or taking a reference. On the other hand,
+value extraction does not autovivify.
+
+This is as opposed to Perl 5, where autovivification could happen
+unintentionally, even when the code looks like a non-destructive test:
+
+    my %hash;
+    exists $hash{foo}{bar}; # creates $hash{foo} as an empty hash reference
+
+In Perl 6 these read-only operations are indeed non-destructive:
+
+    my %hash;
+    exists %hash<foo><bar>; # %hash is still empty
+
+But these ones I<do> autovivify:
+
+    my %hash;
+    my $val := %hash<foo><bar>;
+
+    my @array;
+    my $ref = \@array[0][0]; # $ref is an Arguments object - see S02
+
+    my %hash;
+    %hash<foo><bar> = "foo"; # duh
+
+This rule applies to C<Array>, C<Hash>, and C<Scalar> container objects.
+

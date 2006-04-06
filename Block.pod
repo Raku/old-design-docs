@@ -1,0 +1,845 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 4: Blocks and Statements
+
+=head1 AUTHOR
+
+Larry Wall <larry@wall.org>
+
+=head1 VERSION
+
+  Maintainer: Larry Wall <larry@wall.org>
+  Date: 19 Aug 2004
+  Last Modified: 1 Apr 2006
+  Number: 4
+  Version: 12
+
+This document summarizes Apocalypse 4, which covers the block and
+statement syntax of Perl.
+
+=head1 The Relationship of Blocks and Declarations
+
+Every block is a closure.  (That is, in the abstract, they're all
+anonymous subroutines that take a snapshot of their lexical scope.)
+How any block is invoked and how its results are used is a matter of
+context, but closures all work the same on the inside.
+
+Blocks are delimited by curlies, or by the beginning and end of the
+current compilation unit (either the current file or the current
+C<eval> string).  Unlike in Perl 5, there are (by policy) no implicit
+blocks around standard control structures.  (You could write a macro
+that violates this, but resist the urge.)  Variables that mediate
+between an outer statement and an inner block (such as loop variables)
+should generally be declared as formal parameters to that block.  There
+are three ways to declare formal parameters to a closure.
+
+    $func = sub ($a, $b) { print if $a eq $b };  # standard sub declaration
+    $func = -> $a, $b { print if $a eq $b };     # a "pointy" sub
+    $func = { print if $^a eq $^b }              # placeholder arguments
+
+A bare closure without placeholder arguments that uses C<$_>
+(either explicitly or implicitly) is treated as though C<$_> were a
+a formal parameter:
+
+    $func = { print if $_ };   # Same as: $func = -> $_ { print if $_ };
+    $func("printme");
+
+In any case, all formal parameters are the equivalent of C<my> variables
+within the block.  See S06 for more on function parameters.
+
+Except for such formal parameter declarations, all lexically scoped
+declarations are visible from the point of declaration to the end of
+the enclosing block.  Period.  Lexicals may not "leak" from a block to any
+other external scope (at least, not without some explicit aliasing
+action on the part of the block, such as exportation of a symbol
+from a module).  The "point of declaration" is the moment the compiler
+sees "C<my $foo>", not the end of the statement as in Perl 5, so
+
+    my $x = $x;
+
+will no longer see the value of the outer C<$x>; you'll need to say
+
+    my $x = $OUTER::x;
+
+instead.  (It's illegal to declare C<$x> twice in the same scope.)
+
+As in Perl 5, "C<our $foo>" introduces a lexically scoped alias for
+a variable in the current package.
+
+The new C<constant> declarator introduces a lexically scoped name
+for a compile-time constant, either a variable or a 0-ary sub, which
+may be initialized with either a pseudo-assignment or a block:
+
+    constant Num $pi = 3;
+    constant Num PI { 3 }
+    constant Num π  = atan(2,2) * 4;
+
+In any case the initializing value is evaluated at BEGIN time.
+
+There is a new C<state> declarator that introduces a lexically scoped
+variable like C<my> does, but with a lifetime that persists for the
+life of the closure, so that it keeps its value from the end of one
+call to the beginning of the next.  Separate clones of the closure
+get separate state variables.
+
+Perl 5's "C<local>" function has been renamed to C<temp> to better
+reflect what it does.  There is also a C<let> function that sets a
+hypothetical value.  It works exactly like C<temp>, except that the
+value will be restored only if the current block exits unsuccessfully.
+(See Definition of Success below for more.)  C<temp> and C<let> temporize
+or hypotheticalize the value or the variable depending on whether you
+do assignment or binding.  One other difference from Perl 5 is that
+the default is not to undefine a variable.  So
+
+    temp $x;
+
+causes C<$x> to start with its current value.  Use
+
+    temp undefine $x;
+
+to get the Perl 5 behavior.
+
+=head1 Statement-ending blocks
+
+A line ending with a closing brace "C<}>", followed by nothing but
+whitespace or comments, will terminates statement if an end of statement
+can occur there.  That is, these two statements are equivalent:
+
+    my $x = sub { 3 }
+    my $x = sub { 3 };
+
+End-of-statement cannot occur within a bracketed expression, so
+this still works:
+
+    my $x = [
+        sub { 3 },  # this comma is not optional
+        sub { 3 }   # the statement won't terminate here 
+    ];
+
+Because subroutine declarations are expressions, not statements,
+this is now invalid:
+
+    sub f { 3 } sub g { 3 }     # two terms occur in a row
+
+But these two are valid:
+
+    sub f { 3 }; sub g { 3 };
+    sub f { 3 }; sub g { 3 }    # the trailing semicolon is optional
+
+=head1 Conditional statements
+
+The C<if> and C<unless> statements work almost exactly as they do in
+Perl 5, except that you may omit the parentheses on the conditional:
+
+    if $foo == 123 {
+	...
+    }
+    elsif $foo == 321 {
+	...
+    }
+    else {
+	...
+    }
+
+Conditional statement modifiers also work as in Perl 5.  So do the
+implicit conditionals implied by short-circuit operators.  And there's
+a new C<elsunless> in Perl 6--except that you have to spell it C<elsif not>.
+C<:-)>
+
+=head1 Loop statements
+
+The C<while> and C<until> statements work as in Perl 5, except that you
+may leave out the parentheses around the conditional:
+
+    while $bar < 100 {
+	...
+    }
+
+Looping statement modifiers are the same as in Perl 5, except that
+to avoid confusion applying one to a C<do> block is specifically
+disallowed.  Instead of
+
+    do {
+	...
+    } while $x;
+
+you should write
+
+    loop {
+	...
+    } while $x;
+
+Loop modifiers C<next>, C<last>, and C<redo> work as in Perl 5.
+
+There is no longer a C<continue> block.  Instead, use a C<NEXT> block
+within the loop.  See below.
+
+=head1 The general loop statement
+
+The C<loop> statement is the C-style C<for> loop in disguise:
+
+    loop ($i = 0; $i < 10; $i++) {
+	...
+    }
+
+As seen in the previous section, the 3-part loop spec may be entirely
+omitted to write an infinite loop.  If you omit the 3-part loop spec
+you may add a C<while> or C<until> statement modifier at the end
+to make it a "repeat at least once" loop.  Unlike C<do> in Perl 5,
+it's a real loop block, so you may use loop modifiers.
+
+=head1 The C<for> statement
+
+There is no C<foreach> statement any more. It's always spelled C<for>
+in Perl 6, so it always takes a list as an argument:
+
+    for @foo { print }
+
+As mentioned earlier, the loop variable is named by passing a parameter
+to the closure:
+
+    for @foo -> $item { print $item }
+
+Multiple parameters may be passed, in which case the list is traversed
+more than one element at a time:
+
+    for %hash.kv -> $key, $value { print "$key => $value\n" }
+
+To process two arrays in parallel, use the C<each> function:
+
+    for each(@a;@b) -> $a, $b { print "[$a, $b]\n" }
+
+or use the C<zip> function to generate a list of tuples that each can be bound
+to multiple arguments enclosed in square brackets:
+
+    for zip(@a;@b) -> [$a, $b] { print "[$a, $b]\n" }
+
+The list is evaluated lazily by default, so instead of using a C<while>
+to read a file a line at a time as you would in Perl 5:
+
+    while (my $line = <STDIN>) {...}
+
+in Perl 6 you should use a C<for> (plus a unary C<=> "iterate the
+iterator" operator) instead:
+
+    for =$*IN -> $line {...}
+
+This has the added benefit of limiting the scope of the C<$line>
+parameter to the block it's bound to.  (The C<while>'s declaration of
+C<$line> continues to be visible past the end of the block.  Remember,
+no implicit block scopes.)  It is also possible to write
+
+    while =$*IN -> $line {...}
+
+Note also that Perl 5's special rule causing
+
+    while (<>) {...}
+
+to automatically assign to C<$_> is not carried over to Perl 6.  That
+should now be written:
+
+    for =<> {...}
+
+which is short for
+
+    for =$*ARGS {...}
+
+Parameters are by default readonly within the block.  You can
+declare a parameter read/write by including the "C<is rw>" trait.
+If you rely on C<$_> as the implicit parameter to a block,
+then C<$_> is considered read/write by default.  That is,
+the construct:
+
+    for @foo {...}
+
+is actually short for:
+
+    for @foo -> $_ is rw {...}
+
+so you can modify the current list element in that case.  However,
+any time you specify the arguments, they default to read only.
+
+When used as statement modifers, C<for> and C<given> use a private
+instance of C<$_> for the left side of the statement.  The outer C<$_>
+can be referred to as C<$OUTER::_>.  (And yes, this implies that the
+compiler may have to retroactively change the binding of <$_> on the
+left side.  But it's what people expect of a pronoun like "it".)
+
+=head1 The do-once loop
+
+In Perl 5, a bare block is deemed to be a do-once loop.  In Perl 6,
+the bare block is not a do-once.  Instead C<do {...}> is the do-once
+loop (which is another reason you can't put a C<while> or C<until>
+modifier on it).
+
+For any statement, prefixing with a C<do> allows you to 
+return the value of that statement and use it in an expression:
+
+    $x = do if $a { $b } else { $c };
+
+This construct only allows you to prefix a statement.  If you want to
+continue the expression after the statement you must use the curly form.
+
+Since C<do> is defined as going in front of a statement, it follows
+that it can always be followed by a statement label.  This is particularly
+useful for the do-once block, since it is offically a loop and can take
+therefore loop control statements.
+
+=head1 Switch statements
+
+A switch statement is a means of topicalizing, so the switch keyword
+is the English topicalizer, C<given>.  The keyword for individual
+cases is C<when>:
+
+    given EXPR {
+        when EXPR { ... }
+        when EXPR { ... }
+        default { ... }
+    }
+
+The current topic is always aliased to the special variable C<$_>.
+The C<given> block is just one way to set the current topic, but a
+switch statement can be any block that sets C<$_>, including a C<for>
+loop (in which the first loop parameter is the topic) or the body
+of a method (if you have declared the invocant as C<$_>).  So switching
+behavior is actually caused by the C<when> statements in the block,
+not by the nature of the block itself.  A C<when> statement implicitly
+does a "smart match" between the current topic (C<$_>) and the argument
+of the C<when>.  If the smart match succeeds, the associated closure
+is executed, and the surrounding block is automatically broken out
+of.  If the smart match fails, control passes to the next statement
+normally, which may or may not be a C<when> statement.  Since C<when>
+statements are presumed to be executed in order like normal statements,
+it's not required that all the statements in a switch block be C<when>
+statements (though it helps the optimizer to have a sequence of
+contiguous C<when> statements, because then it can arrange to jump
+directly to the first appropriate test that might possibly match.)
+
+The default case:
+
+    default {...}
+
+is exactly equivalent to
+
+    when true {...}
+
+Because C<when> statements are executed in order, the default must
+come last.  You don't have to use an explicit default--you can just
+fall off the last C<when> into ordinary code.  But use of a C<default>
+block is good documentation.
+
+If you use a C<for> loop with a named parameter, the parameter is
+also aliased to C<$_> so that it can function as the topic of any
+C<when> statements within the loop.  If you use a C<for> statement
+with multiple parameters, only the first parameter is aliased to C<$_>
+as the topic.
+
+You can explicitly break out of a C<when> block (and its surrounding
+switch) early using the C<break> verb.  You can explicitly break out
+of a C<when> block and go to the next statement by using C<continue>.
+(Note that, unlike C's idea of falling through, subsequent C<when>
+conditions are evaluated.  To jump into the next C<when> block you
+must use a C<goto>.)
+
+If you have a switch that is the main block of a C<for> loop, and
+you break out of the switch either implicitly or explicitly, it merely
+goes to the next iteration of the loop.  You must use C<last> to break
+out of the entire loop early.  Of course, an explicit C<next> would
+be clearer than a C<break> if you really want to go to the next iteration.
+Possibly we'll outlaw C<break> in a loop topicalizer.
+
+=head1 Exception handlers
+
+Unlike many other languages, Perl 6 specifies exception handlers by
+placing a C<CATCH> block I<within> that block that is having its exceptions
+handled.
+
+The Perl 6 equivalent to Perl 5's C<eval {...}> is C<try {...}>.
+(Perl 6's C<eval> function only evaluates strings, not blocks.)
+A C<try> block by default has a C<CATCH> block that handles all
+exceptions by ignoring them.  If you define a C<CATCH> block within
+the C<try>, it replaces the default C<CATCH>.  It also makes the C<try>
+keyword redundant, because any block can function as a C<try> block
+if you put a C<CATCH> block within it.
+
+An exception handler is just a switch statement on an implicit topic
+supplied within the C<CATCH> block.  That implicit topic is the current
+exception object, also known as C<$!>.  Inside the C<CATCH> block, it's
+also bound to C<$_>, since it's the topic.  Because of smart matching,
+ordinary C<when> statements are sufficiently powerful to pattern
+match the current exception against classes or patterns or numbers
+without any special syntax for exception handlers.  If none of the
+cases in the C<CATCH> handles the exception, the exception is rethrown.
+To ignore all unhandled exceptions, use an empty C<default> case.
+(In other words, there is an implicit C<die $!> just inside the end
+of the C<CATCH> block.  Handled exceptions break out past this implicit
+rethrow.)
+
+=head1 Control Exceptions
+
+All abnormal control flow is, in the general case, handled by the
+exception mechanism (which is likely to be optimized away in specific
+cases.)  Here "abnormal" means any transfer of control outward that
+is not just falling off the end of a block.  A C<return>,
+for example, is considered a form of abnormal control flow, since it
+can jump out of multiple levels of closure to the end of the scope
+of the current subroutine definition.  Loop commands like C<next>
+are abnormal, but looping because you hit the end of the block is not.
+The implicit break of a C<when> block is abnormal.
+
+A C<CATCH> block handles only "bad" exceptions, and lets control
+exceptions pass unhindered.  Control exceptions may be caught with a
+C<CONTROL> block.  Generally you don't need to worry about this unless
+you're defining a control construct.  You may have one C<CATCH> block
+and one C<CONTROL> block, since some user-defined constructs may wish to
+supply an implicit C<CONTROL> block to your closure, but let you define
+your own C<CATCH> block.
+
+A C<return> always exits from the lexically surrounding sub
+or method definition (that is, from a function officially declared
+with the C<sub>, C<method>, or C<submethod> keywords).  Pointy subs
+and bare closures are transparent to C<return>.  If you pass a reference
+to a closure outside of its official "sub" scope, it is illegal to
+return from it.  You may only leave the closure block itself with C<leave>
+or by falling off the end of it.
+
+To return a value from a pointy sub or bare closure, you either
+just let the block return the value of its final expression, or you can
+use C<leave>.  A C<leave> by default exits from the innermost block.
+But you may change the behavior of C<leave> with selector adverbs:
+
+    leave :from(Loop) :label<LINE> <== 1,2,3;	# XXX "with"?
+
+The innermost block matching the selection criteria will be exited.
+The return value, if any, must be passed as a list.  To return pairs
+as part of the value, you can use a pipe:
+
+    leave <== :foo:bar:baz(1) if $leaving;
+
+or going the other way::
+
+    $leaving and :foo:bar:baz(1) ==> leave;
+
+In theory, any user-defined control construct can catch any control
+exception it likes.  However, there have to be some culturally enforced
+standards on which constructs capture which exceptions.  Much like
+C<return> may only return from an "official" subroutine or method,
+a loop exit like C<next> should be caught by the construct the user
+expects it to be caught by.  In particular, if the user labels a loop
+with a specific label, and calls a loop control from within the lexical
+scope of that loop, and if that call mentions the outer loop's label,
+then that outer loop is the one that must be controlled. (This search
+of lexical scopes is limited to the current "official" subroutine.)
+If there is no such lexically scoped outer loop in current subroutine.
+Then a fallback search is made outward through the dynamic scopes in
+the same way Perl 5 does.  (The difference between Perl 5 and Perl 6
+in this respect arises only because Perl 5 didn't have user-defined
+control structures, hence the sub's lexical scope was I<always>
+the innermost dynamic scope, so the preference to the lexical scope
+in the current sub was implicit.  For Perl 6 we have to make this
+preference explicit.)
+
+=head1 The goto statement
+
+In addition to C<next>, C<last>, and C<redo>, Perl 6 also supports
+C<goto>.  As with ordinary loop controls, the label is searched for
+first lexically within the current subroutine, then dynamically outside
+of it.  Unlike with loop controls, however, scanning a scope includes
+a scan of any lexical scopes included within the current candidate
+scope.  As in Perl 5, it is possible to C<goto> into a lexical scope,
+but only for lexical scopes that require no special initialization
+of parameters.  (Initialization of ordinary variables does not
+count--presumably the presence of a label will prevent code-movement
+optimizations past the label.)  So, for instance, it's always possible
+to goto into the next case of a C<when> or into either the "then"
+or "else" branch of a conditional.  You may not go into a C<given>
+or a C<for>, though, because that would bypass a formal parameter
+binding (not to mention list generation in the case of C<for>).
+(Note: the implicit default binding of an outer $_ to an inner $_
+can be emulated for a bare block, so that doesn't fall under the
+prohibition on bypassing formal binding.)
+
+=head1 Exceptions
+
+As in Perl 5, many built-in functions simply return undef when you ask
+for a value out of range, or the function fails somehow.  Perl 6 has
+C<Failure> objects, which refers to an unthrown C<Exception> object in
+C<$!> and knows whether it has been handled or not.
+
+If you test a C<Failure> for C<.id>, C<.defined> or C<.true>, it causes
+C<$!> to mark the exception as I<handled>, and acts as a harmless C<Undef>
+value thereafter.  Any other use of the C<Failure> will throw its associated
+exception immediately.
+
+Because the C<env> variable C<$!> contains all exceptions collected in the
+current lexical scope, saying C<die $!> will throw all exceptions,
+whether they were handled or not.  A bare C<die>/C<fail> takes C<$!> as the
+default argument.
+
+At scope exit, C<$!> discards all handled exceptions from itself, then performs
+a GC check for all remaining (unhandled) exceptions.  If all of them are still
+alive (e.g. by becoming part of the return value), then they are appended to
+C<< CALLER::<$!> >>.  Otherwise, it calls C<die> to throw those exceptions
+as a single new exception, which may then be caught with a C<CATCH> block in
+the current (or caller's) scope.
+
+You can cause built-ins to automatically throw exceptions on failure using
+
+    use fatal;
+
+The C<fail> function responds to the caller's C<use fatal> state.  It
+either returns an unthrown exception, or throws the exception.
+
+=head1 Closure traits
+
+A C<CATCH> block is just a trait of the closure containing it.  Other
+blocks can be installed as traits as well.  These other blocks are
+called at various times, and some of them respond to various control
+exceptions and exit values:
+
+      BEGIN {...}*	at compile time, ASAP
+      CHECK {...}*	at compile time, ALAP
+       INIT {...}*	at run time, ASAP
+        END {...}	at run time, ALAP
+      FIRST {...}*	at first block entry time
+      ENTER {...}*	at every block entry time 
+      LEAVE {...}	at every block exit time 
+       KEEP {...}	at every successful block exit
+       UNDO {...}	at every unsuccessful block exit
+       NEXT {...}	at loop continuation time
+       LAST {...}	at loop termination time
+        PRE {...}	assert precondition at every block entry
+       POST {...}	assert postcondition at every block exit
+      CATCH {...}	catch exceptions
+    CONTROL {...}	catch control exceptions
+
+Those marked with a C<*> can also be used within an expression:
+
+    my $compiletime = BEGIN { localtime };
+    our $temphandle = FIRST { maketemp() };
+
+Code that is generated at run time can still fire off C<CHECK>
+and C<INIT> blocks, though of course those blocks can't do things that
+would require travel back in time.
+
+Some of these also have corresponding traits that can be set on variables.
+These have the advantage of passing the variable in question into
+the closure as its topic:
+
+    my $r will first { .set_random_seed() };
+    our $h will enter { .rememberit() } will undo { .forgetit() };
+
+Apart from C<CATCH> and C<CONTROL>, which can only occur once, most of
+these can occur multiple times within the block.  So they aren't really
+traits, exactly--they add themselves onto a list stored in the
+actual trait.  So if you examine the C<ENTER> trait of a block, you'll
+find that it's really a list of closures rather than a single closure.
+
+The semantics of C<INIT> and C<FIRST> are not equivalent to each
+other in the case of cloned closures.  An C<INIT> only runs once for
+all copies of a cloned closure.  A C<FIRST> runs separately for each
+clone, so separate clones can keep separate state variables:
+
+    our $i = 0;
+    ...
+    $func = { state $x will first{$i++}; dostuff($i) };
+
+But C<state> automatically applies "first" semantics to any initializer,
+so this also works:
+
+    $func = { state $x = $i++; dostuff($i) }
+
+Each subsequent clone gets an initial state that is one higher than the
+previous, and each clone maintains its own state of C<$x>, because that's
+what C<state> variables do.
+
+All of these trait blocks can see any previously declared lexical
+variables, even if those variables have not been elaborated yet when
+the closure is invoked.  (In which case the variables evaluate to an
+undefined value.)
+
+Note: Apocalypse 4 confused the notions of C<PRE>/C<POST> with C<ENTER>/C<LEAVE>.
+These are now separate notions.  C<ENTER> and C<LEAVE> are used only for
+their side effects.  C<PRE> and C<POST> must return boolean values that are
+evaluated according to the usual Design by Contract rules.  (Plus,
+if you use C<ENTER>/C<LEAVE> in a class block, they only execute when the
+class block is executed, but C<PRE>/C<POST> in a class block are evaluated
+around every method in the class.)
+
+C<LEAVE> blocks are evaluated after C<CATCH> and C<CONTROL> blocks, including
+the C<LEAVE> variants, C<KEEP> and C<UNDO>.  C<POST> blocks are evaluated after
+everything else, to guarantee that even C<LEAVE> blocks can't violate DBC.
+Likewise C<PRE> blocks fire off before any C<ENTER> or C<FIRST> (though not
+before C<BEGIN>, C<CHECK>, or C<INIT>, since those are done at compile or
+process initialization time).
+
+=head1 Statement parsing
+
+In this statement:
+
+    given EXPR {
+        when EXPR { ... }
+        when EXPR { ... }
+        ...
+    }
+
+parentheses aren't necessary around C<EXPR> because the whitespace
+between C<EXPR> and the block forces the block to be considered a
+block rather than a subscript.  This works for all control structures,
+not just the new ones in Perl 6.  A bare block where an operator
+is expected is always considered a statement block if there's space
+before it:
+
+    if $foo { ... }
+    elsif $bar { ... }
+    else { ... }
+    while $more { ... }
+    for 1..10 { ... }
+
+(You can still parenthesize the expression argument for old times' sake,
+as long as there's a space between the closing paren and the opening
+brace.)
+
+On the other hand, anywhere a term is expected, a block is taken to
+be a closure definition (an anonymous subroutine).  If the closure
+appears to delimit nothing but a comma-separated list starting with
+a pair (counting a single pair as a list of one element), the closure
+will be immediately executed as a hash composer.
+
+    $hashref = { "a" => 1 };
+    $hashref = { "a" => 1, $b, $c, %stuff, @nonsense };
+
+    $coderef = { "a", 1 };
+    $coderef = { "a" => 1, $b, $c ==> print };
+
+If you wish to be less ambiguous, the C<hash> list operator will
+explicitly evaluate a list and compose a hash of the returned value,
+while C<sub> introduces an anonymous subroutine:
+
+    $coderef = sub { "a" => 1 };
+    $hashref = hash("a" => 1);
+    $hashref = hash("a", 1);
+
+If a closure is the right argument of the dot operator, the closure
+is interpreted as a hash subscript, even if there is space before the dot.
+
+    $ref = {$x};	# closure because term expected
+    if $term{$x}	# subscript because operator expected
+    if $term {$x}	# expression followed by statement block
+    if $term .{$x}	# valid subscript (term expected after dot)
+
+Similar rules apply to array subscripts:
+
+    $ref = [$x];	# array composer because term expected
+    if $term[$x]	# subscript because operator expected
+    if $term [$x]	# syntax error (two terms in a row)
+    if $term .[$x]	# valid subscript (term expected after dot)
+
+And to the parentheses delimiting function arguments:
+
+    $ref = ($x);	# grouping parens because term expected
+    if $term($x)	# function call because operator expected
+    if $term ($x)	# syntax error (two terms in a row)
+    if $term .($x)	# valid function call (term expected after dot)
+
+Outside of any kind of expression brackets, a trailing curly on a
+line by itself (not counting whitespace or comments) always reverts
+to the precedence of semicolon whether or not you put a semicolon
+after it.  (In the absence of an explicit semicolon, the current
+statement may continue on a subsequent line, but only with valid
+statement continuators such as C<else>.  A modifier on a C<loop>
+statement must continue on the same line, however.)
+
+Final blocks on statement-level constructs always imply semicolon
+precedence afterwards regardless of the position of the closing curly.
+Statement-level constructs are distinguished in the grammar by being
+declared in the statement syntactic group:
+
+    macro statement_control:<if> ($expr, &ifblock) {...}
+    macro statement_control:<while> ($expr, &whileblock) {...}
+    macro statement_control:<BEGIN> (&beginblock) {...}
+
+Statement-level constructs may start only where the parser is expecting
+the start of a statement.  To embed a statement in an expression you
+must use something like C<do {...}> or C<try {...}>.
+
+    $x =  do { given $foo { when 1 {2} when 3 {4} } + $bar;
+    $x = try { given $foo { when 1 {2} when 3 {4} } + $bar;
+
+Just because there's a C<< statement_control:<BEGIN> >> does not preclude us from
+also defining a C<< prefix:<BEGIN> >> that I<can> be used within an expression:
+
+    macro prefix:<BEGIN> (&beginblock) { beginblock().repr }
+
+Then you can say things like:
+
+    $recompile_by = BEGIN { time } + $expiration_time;
+
+But C<< statement_control:<BEGIN> >> hides C<< prefix:<BEGIN> >> at the start of a statement.
+You could also conceivably define a C<< prefix:<if> >>, but then you would
+get a syntax error when you say:
+
+    print if $foo
+
+since C<< prefix:<if> >> would hide C<< statement_modifier:<if> >>.
+
+=head1 Smart matching
+
+Here is the current table of smart matches (which probably belongs in
+S03).  The list is intended to reflect forms that can be recognized at
+compile time.  If none of these forms is recognized at compile time, it
+falls through to do MMD to C<< infix:<~~>() >>, which presumably
+reflects similar semantics, but can finesse things that aren't exact
+type matches.  Note that all types are scalarized here.  Both C<~~>
+and C<given>/C<when> provide scalar contexts to their arguments.
+(You can always hyperize C<~~> explicitly, though.)  So both C<$_>
+and C<$x> here are potentially references to container objects.
+And since lists promote to arrays in scalar context, there need be no
+separate entries for lists.
+
+    $_      $x        Type of Match Implied    Matching Code
+    ======  =====     =====================    =============
+    Any     Code<$>   scalar sub truth         match if $x($_)
+    Hash    Hash      hash keys identical      match if $_.keys.sort »eq« $x.keys.sort
+    Hash    any(Hash) hash key intersection    match if $_{any(Hash.keys)}
+    Hash    Array     hash value slice truth   match if $_{any(@$x)}
+    Hash    any(list) hash key slice existence match if exists $_{any(list)}
+    Hash    all(list) hash key slice existence match if exists $_{all(list)}
+    Hash    Rule      hash key grep            match if any($_.keys) ~~ /$x/
+    Hash    Any       hash entry existence     match if exists $_{$x}
+    Hash    .{Any}    hash element truth*      match if $_{Any}
+    Hash    .<string> hash element truth*      match if $_<string>
+    Array   Array     arrays are identical     match if $_ »~~« $x
+    Array   any(list) list intersection        match if any(@$_) ~~ any(list)
+    Array   Rule      array grep               match if any(@$_) ~~ /$x/
+    Array   Num       array contains number    match if any($_) == $x
+    Array   Str       array contains string    match if any($_) eq $x
+    Array   .[number] array element truth*     match if $_[number]
+    Num     NumRange  in numeric range         match if $min <= $_ <= $max
+    Str     StrRange  in string range          match if $min le $_ le $max
+    Any     Code<>    simple closure truth*    match if $x() (ignoring $_)
+    Any     Class     class membership         match if $_.does($x)
+    Any     Role      role playing             match if $_.does($x)
+    Any     Num       numeric equality         match if $_ == $x
+    Any     Str       string equality          match if $_ eq $x
+    Any     .method   method truth*            match if $_.method
+    Any     Rule      pattern match            match if $_ ~~ /$x/
+    Any     subst     substitution match*      match if $_ ~~ subst
+    Any     boolean   simple expression truth* match if true given $_
+    Any     undef     undefined                match unless defined $_
+    Any     Any       run-time dispatch        match if infix:<~~>($_, $x)
+
+Matches marked with * are non-reversible, typically because C<~~> takes
+its left side as the topic for the right side, and sets the topic to a
+private instance of C<$_> for its right side, so C<$_> means something
+different on either side.  Such non-reversible constructs can be made
+reversible by putting the leading term into a closure to defer the
+binding of C<$_>.  For example:
+
+    $x ~~ .does(Storeable)	# okay
+    .does(Storeable) ~~ $x	# not okay--gets wrong $_ on left
+    { .does(Storeable) } ~~ $x	# okay--closure binds its $_ to $x
+
+Exactly the same consideration applies to C<given> and C<when>:
+
+    given $x { when .does(Storeable) {...} }      # okay
+    given .does(Storeable) { when $x {...} }      # not okay
+    given { .does(Storeable) } { when $x {...} }  # okay
+
+Boolean expressions are those known to return a boolean value, such
+as comparisons, or the unary C<?> operator.  They may reference C<$_>
+explicitly or implicitly.  If they don't reference C<$_> at all, that's
+okay too--in that case you're just using the switch structure as a more
+readable alternative to a string of elsifs.
+
+The primary use of the C<~~> operator is to return a boolean value in
+a boolean context.  However, for certain operands such as regular
+expressions, use of the operator within scalar or list context transfers
+the context to that operand, so that, for instance, a regular expression
+can return a list of matched substrings, as in Perl 5.  The complete
+list of such operands is TBD.
+
+It has not yet been determined if run-time dispatch of C<~~> will
+attempt to emulate the compile-time precedence table before reverting
+to MMD, or just go directly to MMD.  There are good arguments for
+both sides, and we can decide when we see more examples of how
+it'll work out.
+
+=head1 Definition of Success
+
+Hypothetical variables are somewhat transactional--they keep their
+new values only on successful exit of the current block, and otherwise
+are rolled back to their original value.
+
+It is, of course, a failure to leave the block by propagating an error
+exception, though returning a defined value after catching an exception
+is okay.
+
+In the absence of exception propagation, a successful exit is one that
+returns a defined value in scalar context, or any number of values
+in list context as long as the length is defined.  (A length of +Inf
+is considered a defined length.  A length of 0 is also a defined length,
+which means it's a "successful" return even though the list would evaluate
+to false in a boolean context.)  A list can have a defined length
+even if it contains undefined scalar values.  A list is of undefined
+length only if it contains an undefined generator, which, happily, is
+what is returned by the C<undef> function when used in list context.
+So any Perl 6 function can say
+
+    return undef;
+
+and not care about whether the function is being called in scalar or list
+context.  To return an explicit scalar undef, you can always say
+
+    return scalar(undef);
+
+Then in list context, you're returning a list of length 1, which is
+defined (much like in Perl 5).  But generally you should be using
+C<fail> in such a case to return an exception object.  Exception
+objects also behave like undefined generators in list context.
+In any case, returning an unthrown exception is considered failure
+from the standpoint of C<let>.  Backtracking over a closure in a rule
+is also considered failure of the closure, which is how hypothetical
+variables are managed by rules.  (And on the flip side, use of C<fail>
+within a rule closure initiates backtracking of the rule.)
+
+=head1 When is a closure not a closure
+
+Everything is conceptually a closure in Perl 6, but the optimizer
+is free to turn unreferenced closures into mere blocks of code.
+It is also free to turn referenced closures into mere anonymous
+subroutines if the block does not refer to any external lexicals that
+could themselves be cloned.  In particular, named subroutines in any
+scope do not consider themselves closures unless you take a reference
+to them.  So
+
+    sub foo {
+	my $x = 1;
+	my sub bar { print $x }		# not cloned yet
+	my &baz = { bar(); print $x };	# cloned immediately
+	my $barref = &bar;		# now bar is cloned
+	return &baz;
+    }
+
+When we say "clone", we mean the way the system takes a snapshot of the
+routine's lexical scope and binds it to the current instance of the routine
+so that if you ever use the current reference to the routine, it gets
+the current snapshot of its world, lexically speaking.
+
+Some closures produce references at compile time that cannot be
+cloned, because they're not attached to any runtime code that can
+actively clone them.  C<BEGIN>, C<CHECK>, C<INIT>, and C<END> blocks probably
+fall into this category.  Therefore you can't reliably refer to
+run-time variables from them even if they appear to be in scope.
+(The compile-time closure may, in fact, see a some kind of permanent
+copy of the variable for some storage classes, but the variable is
+likely to be undefined when the closure is run in any case.)  It's
+only safe to refer to package variables and file-scoped lexicals from
+such a routine.
+
+On the other hand, it is required that C<CATCH> and C<LEAVE> blocks be able
+to see transient variables in their current lexical scope, so their
+cloning status depends at least on the cloning status of the block
+they're in.

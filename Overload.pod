@@ -1,0 +1,132 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 13: Overloading
+
+=head1 AUTHOR
+
+Larry Wall <larry@wall.org>
+
+=head1 VERSION
+
+  Maintainer: Larry Wall <larry@wall.org>
+  Date: 2 Nov 2004
+  Last Modified: 1 Apr 2006
+  Number: 13
+  Version: 4
+
+=head1 Overview
+
+This synopsis discusses those portions of Apocalypse 12 that ought to have
+been in Apocalypse 13.
+
+=head1 Multiple dispatch
+
+The overloading mechanism of Perl 5 has been superseded by Perl
+6's multiple dispatch mechanism.  Nearly all internal functions
+are defined as C<multi> subs or C<multi> methods on generic types.
+Built-in operators are merely oddly named functions with an alternate
+call syntax.  All you have to do to overload them is to define your
+own C<multi> subs and methods that operate on arguments with more
+specific types.
+
+For unary operators, this makes little effective difference, but for
+binary operators, multiple dispatch fixes the Perl 5 problem of paying
+attention only to the type of the left argument.  Since both argument
+types are used in deciding which routine to call, there is no longer
+any trickery involving swapping the arguments to use the right argument's
+type instead of the left one.  And there's no longer any need to
+examine a special flag to see if the arguments were reversed.
+
+For much more about multiple dispatch, see S12.
+
+=head1 Syntax
+
+There is no longer any special C<use overload> syntax separate from the
+declarations of the C<multi> routines themselves.  To overload an
+existing built-in sub, say something like:
+
+    multi sub *uc (TurkishStr $s) {...}
+
+Now if you call C<uc()> on any Turkish string, it will call your function
+rather than the built-in one.  Putting the C<multi> into the C<*>
+namespace makes it show up in everyone's packages, but as long as no one
+else defines a version of C<uc> on C<TurkishStr>, there's no collision.
+The types of the invocants are included in the "long name" of any C<multi>
+sub or method.
+
+If you want to overload string concatenation for Arabic strings
+so you can handle various ligatures, you can say:
+
+    multi sub *infix:<~>(ArabicStr $s1, ArabicStr $s2) {...}
+    multi sub *infix:<~>(Str $s1, ArabicStr $s2) {...}
+    multi sub *infix:<~>(ArabicStr $s1, Str $s2) {...}
+
+Binary operators may be declared as commutative:
+
+    multi sub infix:<+> (Us $us, Them $them) is commutative { myadd($us,$them) }
+
+That's equivalent to:
+
+    multi sub infix:<+> (Us $us, Them $them) { myadd($us,$them) }
+    multi sub infix:<+> (Them $them, Us $us) { myadd($us,$them) }
+
+Note the lack of C<*> on those definitions.  That means this definition
+of addition is only in effect within the scope of the package in which
+C<< infix:<+> >> is defined.  Similar constraints apply to lexically scoped
+multi subs.  Generally you want to put your multi subs into the C<*>
+space, however, so that they work everywhere.
+
+The C<use overload> syntax had one benefit over Perl 6's syntax in that
+it was easy to alias several different operators to the same service
+routine.  This can easily be handled with Perl 6's aliasing:
+
+    multi sub unimpl (MyFoo $x, MyFoo $y) { upchuck(); }
+    &infix:<+> ::= &unimpl;
+    &infix:<-> ::= &unimpl;
+    &infix:<*> ::= &unimpl;
+    &infix:</> ::= &unimpl;
+
+=head1 Fallbacks
+
+Dispatch is based on a routine's signature declaration without regard
+to whether the routine is defined yet.  If an attempt is made to
+dispatch to a declared but undefined routine, Perl will redispatch
+to an C<AUTODEF> submethod [conjectural] as appropriate to define the routine.  This provides
+a run-time mechanism for fallbacks.  By default, these declarations
+are taken at face value and do not specify any underlying semantics.
+As such, they're a "shallow" interpretation.
+
+However, sometimes you want to specify a "deep" interpretation of
+your operators.  That is, you're specifying the abstract operation,
+which may be used by various shallow operators.  Any deep multi
+declarations will be "amplified" into all the shallow operators that
+can be logically based on it.  If you say:
+
+    multi sub infix:<%> (Us $us, Them $them) is deep { mymod($us,$them) }
+
+then
+
+    multi sub infix:<%=> (Us $us, Them $them) { $us = $us % $them }
+
+is also generated for you (unless you define it yourself).
+The mappings of magical names to sub definitions is controlled by the
+C<%?DEEPMAGIC> compiler hash.  Pragmas can influence the contents of
+this hash over a lexical scope, so you could have different policies
+on magical autogeneration.  The default mappings correspond to the
+standard fallback mappings of Perl 5 overloading.
+
+=head1 Type Casting
+
+A class can use the C<< *infix:<as> >> submethod to declare that its objects
+can be casted to some other class:
+
+    multi submethod *infix:<as> (IO)  { $*OUT }
+    multi submethod *infix:<as> (Int) { 1 }
+    multi submethod *infix:<as> (Str) { "Hello" }
+
+With the above declaration, C<$obj as "foo"> is equivalent to C<$obj as Str>,
+because the multi dispatch cares only about the class.
+
+=cut
