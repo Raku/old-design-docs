@@ -13,9 +13,9 @@ Allison Randal <al@shadowed.net>
 
    Maintainer: Patrick Michaud <pmichaud@pobox.com>
    Date: 24 Jun 2002
-   Last Modified: 3 Apr 2006
+   Last Modified: 6 Apr 2006
    Number: 5
-   Version: 14
+   Version: 15
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them "rules" because they haven't been
@@ -1672,7 +1672,7 @@ C<< <file> >> subrules in the same lexical scope:
      if m:w/ (keep) <file> | (toss) <file> / {
          # Each <file> is in a separate alternation, therefore <file>
          # is not repeated in any one scope, hence $<file> is
-         # not an array ref...
+         # not an Array object...
          $action = $0;
          $target = $<file>;
      }
@@ -1997,7 +1997,7 @@ branches):
         /;
 
      # Aliasing to @<names> means $/<names> is always
-     # an array reference, so...
+     # an Array object, so...
 
      say @{$/<names>};
 
@@ -2152,8 +2152,8 @@ instead of a scalar or an array. For example:
 =item *
 
 A hash alias causes the correponding hash or array element in the
-current scope's C<Match> object to be assigned a (nested) hash reference
-(rather than an array reference or a single C<Match> object).
+current scope's C<Match> object to be assigned a (nested) Hash object
+(rather than an Array object or a single C<Match> object).
 
 =item *
 
@@ -2409,17 +2409,18 @@ Hence:
 For writing your own backslash and assertion rules or macros, you may
 use the following syntactic categories:
 
-     rule rxbackslash:<w> { ... }    # define your own \w and \W
-     rule rxassertion:<*> { ... }    # define your own <*stuff>
-     macro rxmetachar:<,> { ... }    # define a new metacharacter
-     macro rxmodinternal:<x> { ... } # define your own /:x() stuff/
-     macro rxmodexternal:<x> { ... } # define your own m:x()/stuff/
+     rule rule_backslash:<w> { ... }     # define your own \w and \W
+     rule rule_assertion:<*> { ... }     # define your own <*stuff>
+     macro rule_metachar:<,> { ... }     # define a new metacharacter
+     macro rule_mod_internal:<x> { ... } # define your own /:x() stuff/
+     macro rule_mod_external:<x> { ... } # define your own m:x()/stuff/
 
-As with any such syntactic shenanigans, the declaration must be visible in
-the lexical scope to have any effect.  It's possible the internal/external
-distinction is just a trait, and that some of those things are subs
-or methods rather than rules or macros.  (The numeric rxmods are recognized
-by fallback macros defined with an empty operator name.)
+As with any such syntactic shenanigans, the declaration must be
+visible in the lexical scope to have any effect.  It's possible
+the internal/external distinction is just a trait, and that some
+of those things are subs or methods rather than rules or macros.
+(The numeric rule modifiers are recognized by fallback macros defined
+with an empty operator name.)
 
 =head1 Pragmas
 
@@ -2454,7 +2455,7 @@ As a degenerate case, each side can be individual characters:
 
 =item *
 
-The two sides of each pair may also be array references:
+The two sides of each pair may also be Array objects:
 
      $str.=trans( ['A'..'C'] => ['a'..'c'], <X Y Z> => <x y z> );
 

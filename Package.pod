@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 28 Mar 2006
+  Last Modified: 6 Apr 2006
   Number: 10
-  Version: 5
+  Version: 6
 
 =head1 Overview
 
@@ -112,15 +112,15 @@ identify the desired type of the inner container and the "name" or
 Such a name does not include its container name, unlike Perl 5's magical
 C<$AUTOLOAD> variable.
 
-The C<CANDO> is expected to return a reference to an inner
-container object of the proper sort (i.e. a variable, subroutine,
-or method reference), or to a proxy object that can "autovivify"
-lazily, or undef if that name is not to be considered declared in the
-namespace in question.  The declaration merely defines the interface
-to the new object.  That object need not be completely defined yet,
-though the C<CANDO> routine is certainly I<allowed> to define it
-eagerly, and even install the inner object into the outer container
-(the symbol table) if it wants to cache the declaration.
+The C<CANDO> is expected to return an inner container object of the proper
+sort (i.e. a variable, subroutine, or method object), or to a proxy
+object that can "autovivify" lazily, or C<undef> if that name is not to be
+considered declared in the namespace in question.
+
+The declaration merely defines the interface to the new object.  That object
+need not be completely defined yet, though the C<CANDO> routine is certainly
+I<allowed> to define it eagerly, and even install the inner object into the
+outer container (the symbol table) if it wants to cache the declaration.
 
 At declaration time it might not yet be known whether the inner
 container object will be used in lvalue or rvalue context; the use

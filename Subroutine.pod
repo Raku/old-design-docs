@@ -13,9 +13,9 @@ Allison Randal <al@shadowed.net>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 21 Mar 2003
-  Last Modified: 1 Apr 2006
+  Last Modified: 15 Apr 2006
   Number: 6
-  Version: 22
+  Version: 24
 
 
 This document summarizes Apocalypse 6, which covers subroutines and the
@@ -119,11 +119,11 @@ with the C<is rw> trait:
 
 Raw blocks are also executable code structures in Perl 6.
 
-Every block defines an object of type C<Code>, which may either be executed
-immediately or passed on as a C<Code> reference argument.  A
+Every block defines an object of type C<Code>, which may either be
+executed immediately or passed on as a C<Code> object.  A
 bare block where an operator is expected is bound to the current
 statement level control syntax.  A bare block where a term is expected
-merely produces a reference.  If the term bare block occurs in a list,
+merely produces a C<Code> object.  If the term bare block occurs in a list,
 it is considered the final element of that list unless followed immediately
 by a comma or comma surrogate.
 
@@ -303,7 +303,7 @@ with digits.  Such an operator I<must> supply an C<is parsed> trait.
 The Perl grammar uses a default rule for the C<:1st>, C<:2nd>, C<:3rd>,
 etc. rule modifiers, something like this:
 
-    sub rxmodexternal:<> ($x) is parsed(rx:p/\d+[st|nd|rd|th]/) {...}
+    sub rule_mod_external:<> ($x) is parsed(rx:p/\d+[st|nd|rd|th]/) {...}
 
 Such default rules are attempted in the order declared.  (They always follow
 any rules with a known prefix, by the longest-token-first rule.)
@@ -399,11 +399,11 @@ To pass both key and value out of hash as a positional pair, use C<:p>.
     doit %hash{'b'}:p,1,2,3;
 
 instead..  (The C<:p> stands for "pairs", not "positional"--the
-C<:p> adverb may be placed on any hash reference to make it mean
+C<:p> adverb may be placed on any Hash objects to make it mean
 "pairs" instead of "values".)
 
 Pair constructors are recognized syntactically at the call level and
-put into the named slot of the C<Arguments> structure.  Hence they may be
+put into the named slot of the C<Capture> structure.  Hence they may be
 bound to positionals only by name, not as ordinary positional C<Pair>
 objects.  Leftover named arguments can be slurped into a slurpy hash.
 
@@ -681,13 +681,13 @@ last if you want to force it to come in as the last argument.
 
 =head2 Argument list binding
 
-The underlying C<Arguments> object may be bound to a single scalar
+The underlying C<Capture> object may be bound to a single scalar
 parameter marked with a C<\>.
 
     sub bar ($a,$b,$c,:$mice) { say $mice }
     sub foo (\$args) { say $args.perl; &bar.call($args); }
 
-The C<.call> method of C<Code> objects accepts a single C<Arguments>
+The C<.call> method of C<Code> objects accepts a single C<Capture>
 object, and calls it without introducing a C<CALLER> frame.
 
     foo 1,2,3,:mice<blind>;	# says "\(1,2,3,:mice<blind>)" then "blind"
@@ -705,12 +705,12 @@ attempts at binding.
 
 =head2 Flattening argument lists
 
-The unary prefix operator C<*> casts a value to an C<Arguments>
+The unary prefix operator C<*> casts a value to a C<Capture>
 object, then splices it into the argument list it occurs in.
 
-Casting C<Arguments> to C<Arguments> is a no-op:
+Casting C<Capture> to C<Capture> is a no-op:
 
-    *(\(1, x=>2));    # Arguments, becomes \(1, x=>2)
+    *(\(1, x=>2));    # Capture, becomes \(1, x=>2)
 
 C<Pair> and C<Hash> become named arguments:
 
@@ -744,11 +744,11 @@ operator:
 
 =head2 Multidimensional argument list binding
 
-Some functions take multiple C<Arguments> that they wish not to be flattened
-into one list.  For instance, C<zip()> wants to iterate several lists in
-parallel, while array and hash subscripts want to process multidimensional
-slices.  The set of underlying argument list (List) objects may be bound to a
-single array parameter declared with a C<;> twigil:
+Some functions take more than one C<Capture> as their argument list, that they
+wish not to be flattened into one list.  For instance, C<zip()> wants to
+iterate several lists in parallel, while array and hash subscripts want to
+process multidimensional slices.  The set of underlying argument list (Capture)
+objects may be bound to a single array parameter declared with a C<;> twigil:
 
     sub foo (*@;slices) { ... }
 
@@ -1340,7 +1340,7 @@ if and only if their types and contents are identical.
     Pair        Tuple of two elements that serves as an one-element Mapping
     Mapping     Pairs with no duplicate keys
     Signature   Function parameters (left-hand side of a binding)
-    Arguments   Function call arguments (right-hand side of a binding)
+    Capture   Function call arguments (right-hand side of a binding)
 
 =head2 Mutable types
 
@@ -1739,14 +1739,20 @@ coerced to scalar context explicitly if that is desired.
 
 =head2 The C<return> function
 
-The C<return> function accepts C<Arguments> just like any other function.
-This allows named return values if the caller expects one:
+The C<return> function preserves its argument list as a C<Capture> object, and
+responds to the left-hand C<Signature> in a binding.  This allows named return
+values if the caller expects one:
 
-    sub f { return x => 1 }
+    sub f { return :x<1> }
     sub g ($x) { print $x }
 
     my $x := *f();  # binds 1 to $x, via a named argument
     g(*f());        # prints 1, via a named argument
+
+To return a literal C<Pair> object, always put it in an additional set of
+parentheses:
+
+    return( (:x<1>), (:y<2>) ); # two positional Pair objects
 
 =head2 The C<caller> function
 
@@ -1821,7 +1827,7 @@ variable, subroutine, or other object in a given scope:
     } # Old values of $*foo and &bar reinstated at this point
 
 C<temp> invokes its argument's C<.TEMP> method. The method is expected
-to return a reference to a subroutine that can later restore the current
+to return a C<Code> object that can later restore the current
 value of the object. At the end of the lexical scope in which the
 C<temp> was applied, the subroutine returned by the C<.TEMP> method is
 executed.
@@ -1918,7 +1924,7 @@ It can then be passed to C<call> as C<*$args>:
     &thermo.wrap( -> \$args { call(*$args) * 2 } );
 
 The wrapper is not required to call the original routine; it can call another
-C<Code> object by passing the C<Arguments> to its C<call> method:
+C<Code> object by passing the C<Capture> to its C<call> method:
 
     # Transparently redirect all calls to &thermo to &other_thermo
     &thermo.wrap( -> \$args { &other_thermo.call(*$args) } );
@@ -1979,7 +1985,7 @@ or even:
 
     &textfrom := &substr.assuming:str($text):len(Inf);
 
-It returns a reference to a subroutine that implements the same behaviour
+It returns a C<Code> object that implements the same behaviour
 as the original subroutine, but has the values passed to C<.assuming>
 already bound to the corresponding parameters:
 
@@ -2150,7 +2156,7 @@ the macro call:
 
 C<{...}> is always a block.  However, if it is completely empty or
 consists of a single list, the first element of which is either a hash
-or a pair, it is executed immediately to compose a hash reference.  
+or a pair, it is executed immediately to compose a Hash object.  
 
 The standard C<pair> list operator is equivalent to:
 

@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 13 Sep 2004
-  Last Modified: 1 Apr 2006
+  Last Modified: 6 Apr 2006
   Number: 9
-  Version: 6
+  Version: 7
 
 =head1 Overview
 
@@ -263,7 +263,7 @@ as general scalars.  Too bad...)
 
 Arrays by default are one dimensional, but may be declared to have any
 dimensionality supported by the implementation.  You may use arrays
-just like scalar references--the main caveat is that you have to use
+just like scalars -- the main caveat is that you have to use
 binding rather than assignment to set one without copying:
 
     @b := @a[0...:by(2)]
@@ -550,7 +550,7 @@ junctions passed as members of a "slurpy" array or hash do not cause
 autothreading on that parameter.  Only individually declared parameters
 may autothread.  (Note that positional array and hash parameters are
 in fact scalar parameters, though, so you could pass a junction of
-array or hash references.)
+array or hash objects.)
 
 =head1 Parallelized parameters and autothreading
 
@@ -676,12 +676,13 @@ value.  Perhaps the associated value can also be bundled in somehow.]
 =head1 Autovivification
 
 Autovivification will only happen if the vivifiable path is used as a
-container, by binding, assigning, or taking a reference. On the other hand,
-value extraction does not autovivify.
+container, by binding, assigning, or capturing into an argument list.
+On the other hand, value extraction does not autovivify.
 
 This is as opposed to Perl 5, where autovivification could happen
 unintentionally, even when the code looks like a non-destructive test:
 
+    # This is Perl 5 code
     my %hash;
     exists $hash{foo}{bar}; # creates $hash{foo} as an empty hash reference
 
@@ -696,7 +697,7 @@ But these ones I<do> autovivify:
     my $val := %hash<foo><bar>;
 
     my @array;
-    my $ref = \@array[0][0]; # $ref is an Arguments object - see S02
+    my $ref = \@array[0][0]; # $ref is a Capture object - see S02
 
     my %hash;
     %hash<foo><bar> = "foo"; # duh

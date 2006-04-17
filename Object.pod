@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 1 Apr 2006
+  Last Modified: 6 Apr 2006
   Number: 12
-  Version: 12
+  Version: 13
 
 =head1 Overview
 
@@ -279,19 +279,21 @@ have strange side effects that differ between rvalue and lvalue usage.
 Setter methods that expect the new value as an argument do not fall
 into the well-behaved category, however.)
 
-Method calls on scalars go to the referenced object (autoboxing value
-types as necessary):
+Method calls on mutable scalars always go to the object contained in
+the scalar (autoboxing value types as necessary):
 
     $result = $object.doit();
     $length = "mystring".codes;
 
-But method calls on containers go to the container:
+Method calls on non-scalar variables just calls the C<Array>, C<Hash>
+or C<Code> object bound to the variable:
 
     $elems = @array.elems;
     @keys  = %hash.keys;
     $sig   = &sub.signature;
 
-Use the C<variable> pseudo-function to get at the container of a scalar variable.
+Use the C<variable> pseudo-function on a scalar variable to get at its
+underlying C<Scalar> object:
 
     if variable($scalar).constant {...}
 
@@ -1117,8 +1119,8 @@ with a substitution:
 
     has $.fur handles (s/^furget_/get_/);
 
-Ordinarily delegation is based on an attribute holding an object
-reference, but it can also be based on the return value of a method:
+Ordinarily delegation is based on an attribute holding an object, but it can
+also be based on the return value of a method:
 
     method select_tail handles <wag hang> {...}
 
@@ -1504,7 +1506,7 @@ actually calls:
 which is true if C<$obj> either "does" or "isa" C<Dog> (or "isa"
 something that "does" C<Dog>).
 
-Unlike in Perl 5 where C<.can> returns a single routine reference,
+Unlike in Perl 5 where C<.can> returns a single C<Code> object,
 Perl 6's version of C<.meta.can> returns a "WALK" iterator for a
 set of routines that match the name, including all autoloaded and
 wildcarded possibilities.  In particular, C<.can> interrogates

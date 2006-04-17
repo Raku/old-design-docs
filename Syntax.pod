@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 1 Apr 2006
+  Last Modified: 15 Apr 2006
   Number: 2
-  Version: 19
+  Version: 23
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -44,6 +44,16 @@ Unicode horizontal whitespace is counted as whitespace, but it's better
 not to use thin spaces where they will make adjoining tokens look like
 a single token.  On the other hand, Perl doesn't use indentation as syntax,
 so you are free to use any whitespace anywhere that whitespace makes sense.
+Comments always count as whitespace.
+
+=item *
+
+For some syntactic purposes, Perl distinguishes bracketing characters
+from non-bracketing.  Bracketing characters are defined as any Unicode
+characters with either bidirectional mirrorings or Ps/Pe properties.
+(In practice, though, you're safest using matching characters with
+Ps/Pe properties, though ASCII angle brackets are a notable exception,
+since they're bidirectional but not in the Ps/Pe set.)
 
 =back
 
@@ -53,54 +63,195 @@ so you are free to use any whitespace anywhere that whitespace makes sense.
 
 =item *
 
-In general, whitespace is optional in Perl 6 except where it is
-needed to separate constructs that would be misconstrued as a single
-token or other syntactic unit.  (In other words, Perl 6 follows the
-standard "longest-token" principle, or in the cases of large constructs,
-a "prefer shifting to reducing" principle.)
+Single-line comments work as in Perl 5, starting with a C<#> character
+and ending at the subsequent newline.  They count as whitespace
+equivalent to newline for purposes of separation.  Certain quoting
+tokens may make use of C<#> characters as delimiters without starting
+a comment.
+
+=item *
+
+Multiline comments are provided by extending the syntax of POD
+to nest C<=begin comment>/C<=end comment> correctly without the need
+for C<=cut>.  (Doesn't have to be "comment"--any unrecognized POD
+stream will do to make it a comment.  Bare C<=begin> and C<=end>
+probably aren't good enough though, unless you want all your comments
+to end up in the manpage...)
+
+We have single paragraph comments with C<=for comment> as well.
+That lets C<=for> keep its meaning as the equivalent of a C<=begin>
+and C<=end> combined.  As with C<=begin> and C<=end>, a comment started
+in code reverts to code afterwards.
+
+Since there is a newline before the first C<=>, the POD form of comment
+counts as whitespace equivalent to a newline.
+
+=item *
+
+Embedded comments are supported as a variant on quoting syntax, introduced
+by C<#> plus any user-selected bracket characters (see definition above):
+
+    say #( embedded comment ) "hello, world!";
+
+    $object.#{ embedded comments }.say;
+
+    $object.#「
+	embedded comments
+    」.say;
+
+There must be no space between the # and the opening bracket character.
+(There may be the I<appearance> of space for some double-wide
+characters, however, such as the corner quotes above.)  Brackets may
+be nested following the same policy as ordinary quote brackets.
+
+As a special case to facilitate commenting out sections of code with
+C<s/^/#/>, C<#> on the left margin is always considered a line-end
+comment rather than an embedded comment, even if followed by a
+bracketing character.
+
+=item *
+
+For all quoting constructs that use user-selected brackets, multiple,
+adjacent, identical opening brackets must always be matched by an
+equal number of adjacent closing brackets.  Bracket counting naturally
+applies only to sets of brackets of the same length:
+
+    say #{{
+	Comment contains unmatched } and { { { { plus a counted {{ ... }} pair.
+    }} q<< <<woot>> >>   # says "<<woot>>"
+
+Note however that bare circumfix or postcircumfix C<<< <<...>> >>> is
+not a user-selected bracket, but the ASCII variant of the C<< «...» >>
+interpolating word list.  Only C<#> and the C<q>-style quoters (including
+C<m>, C<s>, C<tr>, and C<rx>) enable subsequent user-selected brackets.
+
+=item *
+
+In addition to the general comment forms above, there is a whitespace-only
+comment form that begins and ends with a single dot, separated by whitespace,
+which is equivalent to a single dot:
+
+    %hash.  .{$key}
+    @array. .{$key}
+
+This is useful for lining up postfixes.  This is known as the "long dot",
+partly because it substitutes for a dot without the need for a third dot:
+
+    $object.  .say();
+
+The whitespace in the middle may include any of the comment forms above.
+Because comments always count as whitespace, the dots in
+
+    $object.#{ foo }.say
+
+reduce to a "long dot" rather than the range operator.  Valid ways to
+insert a line break into a sequence of method calls include:
+
+    $object. # comment
+    .say
+
+    $object.#[ comment
+    ].say
+
+    $object.
+    .say
+
+=item *
+
+In general, whitespace is optional in Perl 6 except where it is needed
+to separate constructs that would be misconstrued as a single token or
+other syntactic unit.  (In other words, Perl 6 follows the standard
+"longest-token" principle, or in the cases of large constructs, a
+"prefer shifting to reducing" principle.  See Grammatical Categories
+below for more on how a Perl program is analyzed into tokens.)
 
 This is an unchanging deep rule, but the surface ramifications of it
 change as various operators and macros are added to or removed from
 the language, which we expect to happen because Perl 6 is designed to
 be a mutable language.  In particular, there is a natural conflict
-between postfix operators and infix operators, either of which may
-occur after a term.  If a given token may be interpreted as either a
-postfix operator or an infix operator, the infix operator requires
-space before it, and the postfix operator requires a lack of space
-before it, unless it begins with a dot.  (Infix operators may not
-start with a dot.)  For instance, if you were to add your own
-C<< infix:<++> >> operator, then it must have space before it, and the
-normal autoincrementing C<< postfix:<++> >> operator may not have
-space before it, or must be written as C<.++> instead.  In standard Perl
-6, however, it doesn't matter if you put a space in front of
-C<< postfix:<++> >>.  To be future proof, though, you should omit
-the space or use dot.
+between postfix operators and infix operators, either of which
+may occur after a term.  If a given token may be interpreted as
+either a postfix operator or an infix operator, the infix operator
+requires space before it.  Postfix operators may never have intervening
+space, though they may have an intervening dot.  If further separation
+is desired, an embedded comment may be used as described above, as long
+as no whitespace occurs outside the embedded comment.
 
-=item *
+For instance, if you were to add your own C<< infix:<++> >> operator,
+then it must have space before it. The normal autoincrementing
+C<< postfix:<++> >> operator may never have space before it, but may
+be written in any of these forms:
 
-Single-line comments work as in Perl 5, starting with a C<#> character
-and ending with the subsequent newline.  They count as whitespace for
-purposes of separation.  Certain quoting tokens may make use of C<#>
-characters as delimiters without starting a comment.
+    $x++
 
-=item *
+    $x.++
 
-Multiline comments will be provided by extending the syntax of POD
-to nest C<=begin COMMENT>/C<=end COMMENT> correctly without the need
-for C<=cut>.  (Doesn't have to be "COMMENT"--any unrecognized POD
-stream will do to make it a comment.  Bare C<=begin> and C<=end>
-probably aren't good enough though, unless you want all your comments
-to end up in the manpage...)
+    $x. .++
 
-We have single paragraph comments with C<=for COMMENT> as well.
-That lets C<=for> keep its meaning as the equivalent of a C<=begin>
-and C<=end> combined.  As with C<=begin> and C<=end>, a comment started
-in code reverts to code afterwards.
+    $x.#( comment ).++
+    $x.#((( comment ))).++
 
-=item *
+    $x.
+    .++
 
-Intra-line comments will not be supported in standard Perl (but it would
-be trivial to declare them as a macro).
+    $x. 	# comment
+    		# more comment
+    .++
+
+    $x.#『	comment
+    		more comment
+    』.++
+
+    $x.#[   comment 1
+    comment 2
+    =begin podstuff
+    whatever (pod comments ignore current parser state)
+    =end podstuff
+    comment 3
+    ].++
+
+A consequence of the postfix rule is that (except when delimiting a
+quote or terminating a "long dot") a dot with whitespace in front
+of it is always considered a method call on C<$_> where a term is
+expected.  If a term is not expected at this point, it is a syntax
+error.  (Unless, of course, there is an infix operator of that name
+beginning with dot.  You could, for instance, define a Fortranly
+C<< infix:<.EQ.> >> if the fit took you.  But you'll have to be sure to
+always put whitespace in front of it, or it would be interpreted as
+a postfix method call instead.)
+
+For example,
+
+    foo .method
+
+and
+
+    foo
+    .method
+
+will always be interpreted as
+
+    foo $_.method
+
+but never as
+
+    foo.method	
+
+Use some variant of
+
+    foo.
+    .method
+
+if you mean the postfix method call.
+
+One consequence of all this is that you may no longer write a Num as
+C<42.> with just a trailing dot.  You must instead say either C<42>
+or C<42.0>.  In other words, a dot following a number can only be a
+decimal point if the following character is a digit.  Otherwise the
+postfix dot will be taken to be the start of some kind of method call
+syntax, whether long-dotty or not.  (The C<.123> form with a leading
+dot is still allowed however when a term is expected, and is equivalent
+to C<0.123>.)
 
 =back
 
@@ -261,11 +412,11 @@ The C<$pkg'var> syntax is dead.  Use C<$pkg::var> instead.
 Perl 6 includes a system of B<sigils> to mark the fundamental
 structural type of a variable:
 
-    $	scalar
-    @	ordered array
-    %	unordered hash (associative array)
-    &	code
-    ::	package/module/class/role/subset/enum/type
+    $   scalar
+    @   ordered array
+    %   unordered hash (associative array)
+    &   code
+    ::  package/module/class/role/subset/enum/type
 
 Within a declaration, the C<&> sigil also declares the visibility of the
 subroutine name without the sigil within the scope of the declaration.
@@ -294,16 +445,16 @@ or package scoped.  Oddly scoped variables include a secondary sigil
 (a B<twigil>) that indicates what kind of strange scoping the variable
 is subject to:
 
-    $foo	ordinary scoping
-    $.foo	object attribute accessor
-    $^foo	self-declared formal parameter
-    $*foo	global variable
-    $+foo	environmental variable
-    $?foo	compiler hint variable
-    $=foo	pod variable
-    $<foo>	match variable, short for $/{'foo'}
-    $!foo	explicitly private attribute (mapped to $foo though)
-    @;foo	multislice
+    $foo        ordinary scoping
+    $.foo       object attribute accessor
+    $^foo       self-declared formal parameter
+    $*foo       global variable
+    $+foo       environmental variable
+    $?foo       compiler hint variable
+    $=foo       pod variable
+    $<foo>      match variable, short for $/{'foo'}
+    $!foo       explicitly private attribute (mapped to $foo though)
+    @;foo       multislice
 
 Most variables with twigils are implicitly declared or assumed to
 be declared in some other scope, and don't need a "my" or "our".
@@ -315,13 +466,13 @@ declarator.
 
 Sigils are now invariant.  C<$> always means a scalar variable, C<@>
 an array variable, and C<%> a hash variable, even when subscripting.
-Array and hash variable names in scalar context automatically produce
-references.
+Variables such as C<@array> and C<%hash> in scalar context simply
+return themselves as C<Array> and C<Hash> objects.
 
 =item *
 
-In string contexts container references automatically dereference
-to appropriate (white-space separated) string values.  In numeric
+In string contexts, container objects automatically stringify to
+appropriate (white-space separated) string values.  In numeric
 contexts, the number of elements in the container is returned.
 In boolean contexts, a true value is returned if and only if there
 are any elements in the container.
@@ -343,13 +494,12 @@ formats for both key and value in the first string: C<< .as('%s: %s', "\n") >>.
 
 =item *
 
-Subscripts now consistently dereference the reference produced by
+Subscripts now consistently dereference the container produced by
 whatever was to their left.  Whitespace is not allowed between a
 variable name and its subscript.  However, there is a corresponding
-B<dot> form of each subscript (C<@foo.[1]> and C<%bar.{'a'}>) which
-allows optional whitespace before the dot (except when interpolating).
-Constant string subscripts may be placed in angles, so C<%bar.{'a'}>
-may also be written as C<< %bar<a> >> or C<< %bar.<a> >>.
+B<dot> form of each subscript (C<@foo.[1]> and C<%bar.{'a'}>).  Constant
+string subscripts may be placed in angles, so C<%bar.{'a'}> may also
+be written as C<< %bar<a> >> or C<< %bar.<a> >>.
 
 =item *
 
@@ -369,41 +519,39 @@ context specifiers such as + for numbers and ~ for strings.
 There is a need to distinguish list assignment from list binding.
 List assignment works exactly as it does in Perl 5, copying the
 values.  There's a new C<:=> binding operator that lets you bind
-names to array and hash references without copying, just as subroutine
-arguments are bound to formal parameters.  See S06 for more about
-parameter binding.
+names to Array and Hash objects without copying, in the same way
+as subroutine arguments are bound to formal parameters.  See S06
+for more about parameter binding.
 
 =item *
 
-An argument list object (C<Arguments>) may be created with backslashed parens:
+An argument list object (C<Capture>) may be created with backslashed parens:
 
     $args = \(1,2,3,:mice<blind>)
 
-Values in C<Arguments> values are parsed as ordinary expressions, marked as
-positional, named, to-be-flattened, and so on.
+Values in C<Capture> are parsed as ordinary expressions, marked as invocant,
+positional, named, and so on.
 
-Like C<List> objects, C<Arguments> are immutable in the abstract, but
-evaluates its arguments lazily.  Before everything inside a C<Arguments> are
+Like C<List> objects, C<Capture> objects are immutable in the abstract, but
+evaluate their arguments lazily.  Before everything inside a C<Capture> is
 fully evaluated (which happens at compile time when all the arguments are
-constants), the eventual value may well be unknown.  All we know is that is
+constants), the eventual value may well be unknown.  All we know is
 that we have the promise to make the bits of it immutable as they become known.
 
-C<Arguments> objects may contain multiple unresolved iterators such as pipes
+C<Capture> objects may contain multiple unresolved iterators such as pipes
 or slices.  How these are resolved depends on what they are eventually
 bound to.  Some bindings are sensitive to multiple dimensions while
 others are not.
 
-You may cast C<Arguments> to other types with a prefix sigil operator:
+You may retrieve parts from a C<Capture> object with a prefix sigil operator:
 
     $args = \3;     # same as "$args = \(3)"
     $$args;         # same as "$args as Scalar" or "Scalar($args)"
     @$args;         # same as '$args as Array"  or "Array($args)"
     %$args;         # same as '$args as Hash"   or "Hash($args)"
-    &$args;         # same as '$args as Code"   or "Code($args)"
 
 When cast into an array, you can access all the positional arguments; into a
-hash, all named arguments; into a scalar, the invocant; into code, its slurpy
-nameless block.
+hash, all named arguments; into a scalar, its invocant.
 
 All prefix sigil operators accept one positional argument, evaluated in
 scalar context as a rvalue.  They can interpolate in strings if called with
@@ -431,12 +579,20 @@ otherwise be untyped:
 
 =item *
 
-Unlike in Perl 5, the notation C<&foo> merely creates a reference
-to function "C<foo>" without calling it.  Any function reference may
-be dereferenced and called using parens (which may, of course,
-contain arguments).  Whitespace is not allowed before the parens,
-but there is a corresponding C<.()> operator, which allows you to
-insert optional whitespace before the dot.
+Unlike in Perl 5, the notation C<&foo> merely stands for the C<foo>
+function as a Code object without calling it.  You may call any Code
+object with parens after it (which may, of course, contain arguments):
+
+    &foo($arg1, $arg2);
+
+Whitespace is not allowed before the parens, but there is a
+corresponding C<.()> operator, plus the "long dot" forms that allow
+you to insert optional whitespace and comments between dots:
+
+    &foo.   .($arg1, $arg2);
+    &foo.#[
+	embedded comment
+    ].($arg1, $arg2);
 
 =item *
 
@@ -446,7 +602,7 @@ signature literal as a postfix operator:
 
     &foo:(Int,Num)
 
-It still just returns a function reference.  A call may also be partially
+It still just returns a C<Code> object.  A call may also be partially
 applied by using an argument list literal as a postfix operator:
 
     &foo\(1,2,3,:mice<blind>)
@@ -468,29 +624,29 @@ To make a slice subscript return something other than values, append an
 appropriate adverb to the subscript.
 
     @array = <A B>;
-    @array[0,1,2];	# returns 'A', 'B', undef
-    @array[0,1,2]:p;	# returns 0 => 'A', 1 => 'B'
-    @array[0,1,2]:kv;	# returns 0, 'A', 1, 'B'
-    @array[0,1,2]:k;	# returns 0, 1
-    @array[0,1,2]:v;	# returns 'A', 'B'
+    @array[0,1,2];      # returns 'A', 'B', undef
+    @array[0,1,2]:p;    # returns 0 => 'A', 1 => 'B'
+    @array[0,1,2]:kv;   # returns 0, 'A', 1, 'B'
+    @array[0,1,2]:k;    # returns 0, 1
+    @array[0,1,2]:v;    # returns 'A', 'B'
 
     %hash = (:a<A>, :b<B>);
-    %hash<a b c>;	# returns 'A', 'B', undef
-    %hash<a b c>:p;	# returns a => 'A', b => 'B'
-    %hash<a b c>:kv;	# returns 'a', 'A', 'b', 'B'
-    %hash<a b c>:k;	# returns 'a', 'b'
-    %hash<a b c>:v;	# returns 'A', 'B'
+    %hash<a b c>;       # returns 'A', 'B', undef
+    %hash<a b c>:p;     # returns a => 'A', b => 'B'
+    %hash<a b c>:kv;    # returns 'a', 'A', 'b', 'B'
+    %hash<a b c>:k;     # returns 'a', 'b'
+    %hash<a b c>:v;     # returns 'A', 'B'
 
 The adverbial forms all weed out non-existing entries.
 
 =item *
 
-A hash reference in numeric context returns the number of pairs
-contained in the hash.  A hash reference in a boolean context returns
-true if there are any pairs in the hash.  In either case, any intrinsic
-iterator would be reset.  (If hashes do carry an intrinsic iterator
-(as they do in Perl 5), there will be a C<.reset> method on the hash
-object to reset the iterator explicitly.)
+In numeric context (i.e. when cast into C<Int> or C<Num>), a Hash object
+becomes the number of pairs contained in the hash.  In a boolean context, a
+Hash object is true if there are any pairs in the hash.  In either case,
+any intrinsic iterator would be reset.  (If hashes do carry an intrinsic
+iterator (as they do in Perl 5), there will be a C<.reset> method on the
+hash object to reset the iterator explicitly.)
 
 =item *
 
@@ -527,7 +683,7 @@ The C<$#foo> notation is dead.  Use C<@foo.end> or C<[-1]> instead.
 
 Ordinary package-qualified names look like in Perl 5:
 
-    $Foo::Bar::baz	# the $baz variable in package Foo::Bar
+    $Foo::Bar::baz      # the $baz variable in package Foo::Bar
 
 Sometimes it's clearer to keep the sigil with the variable name, so an
 alternate way to write this is:
@@ -567,13 +723,13 @@ Most symbolic references are done with this notation:
 
     $foo = "Foo";
     $foobar = "Foo::Bar";
-    $::($foo)		# package-scoped $Foo
-    $::("MY::$foo")	# lexically-scoped $Foo
-    $::("*::$foo")	# global $Foo
-    $::($foobar)	# $Foo::Bar
-    $::($foobar)::baz	# $Foo::Bar::baz
-    $::($foo)::Bar::baz	# $Foo::Bar::baz
-    $::($foobar)baz	# ILLEGAL at compile time (no operator baz)
+    $::($foo)           # package-scoped $Foo
+    $::("MY::$foo")     # lexically-scoped $Foo
+    $::("*::$foo")      # global $Foo
+    $::($foobar)        # $Foo::Bar
+    $::($foobar)::baz   # $Foo::Bar::baz
+    $::($foo)::Bar::baz # $Foo::Bar::baz
+    $::($foobar)baz     # ILLEGAL at compile time (no operator baz)
 
 Note that unlike in Perl 5, initial C<::> doesn't imply global.
 Package names are searched for from inner lexical scopes to outer,
@@ -606,9 +762,9 @@ Or just refer to them as C<$*IN> and C<$*OUT>.
 To do direct lookup in a package's symbol table without scanning, treat
 the package name as a hash:
 
-    Foo::Bar::{'&baz'}	# same as &Foo::Bar::baz
-    GLOBAL::<$IN>	# Same as $*IN
-    Foo::<::Bar><::Baz>	# same as Foo::Bar::Baz
+    Foo::Bar::{'&baz'}  # same as &Foo::Bar::baz
+    GLOBAL::<$IN>       # Same as $*IN
+    Foo::<::Bar><::Baz> # same as Foo::Bar::Baz
 
 Unlike C<::()> symbolic references, this does not parse the argument
 for C<::>, nor does it initiate a namespace scan from that initial
@@ -636,25 +792,25 @@ You can also use the C<< ::<> >> form as long as there are no spaces in the name
 
 =item *
 
-The current lexical symbol table may now be referenced through the
+The current lexical symbol table is now accessible through the
 pseudo-package C<MY>.  The current package symbol table is visible as
 pseudo-package C<OUR>.  The C<OUTER> name refers to the C<MY> symbol table
 immediately surrounding the current C<MY>, and C<OUTER::OUTER> is the one
 surrounding that one.
 
     our $foo = 41;
-    say $::foo;		# prints 41, :: is no-op
+    say $::foo;         # prints 41, :: is no-op
     {
-	my $foo = 42;
-	say MY::<$foo>;		# prints "42"
-	say $MY::foo;		# same thing
-	say $::foo;		# same thing, :: is no-op here
+        my $foo = 42;
+        say MY::<$foo>;         # prints "42"
+        say $MY::foo;           # same thing
+        say $::foo;             # same thing, :: is no-op here
 
-	say OUR::<$foo>;	# prints "41"
-	say $OUR::foo;		# same thing
+        say OUR::<$foo>;        # prints "41"
+        say $OUR::foo;          # same thing
 
-	say OUTER::<$foo>;	# prints "41" (our $foo is also lexical)
-	say $OUTER::foo;	# same thing
+        say OUTER::<$foo>;      # prints "41" (our $foo is also lexical)
+        say $OUTER::foo;        # same thing
     }
 
 You may not use any lexically scoped symbol table, either by name or
@@ -711,8 +867,8 @@ subscript the package object itself as a hash object, the key of which
 is the variable name, including any sigil.  The package object can
 be derived from a type name by use of the C<::> postfix operator:
 
-    MyType .:: .{'$foo'}
-    MyType::<$foo>		# same thing
+    MyType. .::. .{'$foo'}
+    MyType::<$foo>              # same thing
 
 (Directly subscripting the type with either square brackets or curlies
 is reserved for various generic type-theoretic operations.  In most other
@@ -770,7 +926,7 @@ Here are some possibilities:
     @?PACKAGE   Which packages am I in?
     $?MODULE    Which module am I in?
     @?MODULE    Which modules am I in?
-    ::?CLASS	Which class am I in? (as package name)
+    ::?CLASS    Which class am I in? (as package name)
     $?CLASS     Which class am I in? (as variable)
     @?CLASS     Which classes am I in?
     ::?ROLE     Which role am I in? (as package name)
@@ -785,14 +941,14 @@ Here are some possibilities:
     @?SUBNAME   Which sub names am I in?
     &?BLOCK     Which block am I in?
     @?BLOCK     Which blocks am I in?
-    $?LABEL	Which block label am I in?
-    @?LABEL	Which block labels am I in?
+    $?LABEL     Which block label am I in?
+    @?LABEL     Which block labels am I in?
 
 Note that some of these things have parallels in the C<*> space at run time:
 
-    $*OS	Which OS I'm running under
-    $*OSVER	Which OS version I'm running under
-    $*PERLVER	Which Perl version I'm running under
+    $*OS        Which OS I'm running under
+    $*OSVER     Which OS version I'm running under
+    $*PERLVER   Which Perl version I'm running under
 
 You should not assume that these will have the same value as their
 compile-time cousins.
@@ -811,20 +967,20 @@ variable sets or temporizes the incipient C<$?> variable in the
 surrounding lexical context that is being compiled.  If nothing in
 the context is being compiled, an exception is thrown.
 
-    $?FOO // say "undefined";	# probably says undefined
+    $?FOO // say "undefined";   # probably says undefined
     BEGIN { COMPILING::<$?FOO> = 42 }
-    say $?FOO;			# prints 42
+    say $?FOO;                  # prints 42
     {
-	say $?FOO;		# prints 42
-	BEGIN { temp COMPILING::<$?FOO> = 43 } # temporizes to *compiling* block
-	say $?FOO;		# prints 43
-	BEGIN { COMPILING::<$?FOO> = 44 }
-	say $?FOO;		# prints 44
-	BEGIN { say COMPILING::<$?FOO> }	# prints 44, but $?FOO probably undefined
+        say $?FOO;              # prints 42
+        BEGIN { temp COMPILING::<$?FOO> = 43 } # temporizes to *compiling* block
+        say $?FOO;              # prints 43
+        BEGIN { COMPILING::<$?FOO> = 44 }
+        say $?FOO;              # prints 44
+        BEGIN { say COMPILING::<$?FOO> }        # prints 44, but $?FOO probably undefined
     }
-    say $?FOO;			# prints 42 (left scope of temp above)
-    $?FOO = 45;			# always an error
-    COMPILING::<$?FOO> = 45;	# an error unless we are compiling something
+    say $?FOO;                  # prints 42 (left scope of temp above)
+    $?FOO = 45;                 # always an error
+    COMPILING::<$?FOO> = 45;    # an error unless we are compiling something
 
 Note that C<< CALLER::<$?FOO> >> might discover the same variable
 as C<COMPILING::<$?FOO>>, but only if the compiling context is the
@@ -876,33 +1032,33 @@ or end.
 Initial C<0> no longer indicates octal numbers by itself.  You must use
 an explicit radix marker for that.  Pre-defined radix prefixes include:
 
-    0b		base 2, digits 0..1
-    0o		base 8, digits 0..7
-    0d		base 10, digits 0..9
-    0x		base 16, digits 0..9,a..f (case insensitive)
+    0b          base 2, digits 0..1
+    0o          base 8, digits 0..7
+    0d          base 10, digits 0..9
+    0x          base 16, digits 0..9,a..f (case insensitive)
 
 =item *
 
 The general radix form of a number involves prefixing with the radix
 in adverbial form:
 
-    :10<42>		same as 0d42 or 42
-    :16<dead_beef>	same as 0xdeadbeef
-    :8<177777>		same as 0o177777 (65535)
-    :2<1.1>		same as 0b1.1 (0d1.5)
+    :10<42>             same as 0d42 or 42
+    :16<dead_beef>      same as 0xdeadbeef
+    :8<177777>          same as 0o177777 (65535)
+    :2<1.1>             same as 0b1.1 (0d1.5)
 
 Extra digits are assumed to be represented by 'a'..'z', so you can go up
 to base 36.  (Use 'a' and 'b' for base twelve, not 't' and 'e'.)  Alternately
 you can use a list of digits in decimal:
 
-    :60[12,34,56]	# 12 * 3600 + 34 * 60 + 56
-    :100[3,'.',14,16]	# pi
+    :60[12,34,56]       # 12 * 3600 + 34 * 60 + 56
+    :100[3,'.',14,16]   # pi
 
 Any radix may include a fractional part.  A dot is never ambiguous
 because you have to tell it where the number ends:
 
-    :16<dead_beef.face>	# fraction
-    :16<dead_beef>.face	# method call
+    :16<dead_beef.face> # fraction
+    :16<dead_beef>.face # method call
 
 =item *
 
@@ -919,17 +1075,17 @@ It's true that only radixes that define C<e> as a digit are ambiguous that
 way, but with any radix it's not clear whether the exponentiator should
 be 10 or the radix, and this makes it explicit:
 
-    0b1.1e10			illegal, could be read as any of:
+    0b1.1e10                    illegal, could be read as any of:
 
-    :2<1.1> * 2 ** 10		1536
-    :2<1.1> * 10 ** 10		15,000,000,000
-    :2<1.1> * :2<10> ** :2<10>	6
+    :2<1.1> * 2 ** 10           1536
+    :2<1.1> * 10 ** 10          15,000,000,000
+    :2<1.1> * :2<10> ** :2<10>  6
 
 So we write those as
 
-    :2<1.1*2**10>		1536
-    :2<1.1*10**10>		15,000,000,000
-    :2«1.1*:2<10>**:2<10>»	6
+    :2<1.1*2**10>               1536
+    :2<1.1*10**10>              15,000,000,000
+    :2«1.1*:2<10>**:2<10>»      6
 
 The generic string-to-number converter will recognize all of these
 forms (including the * form, since constant folding is not available
@@ -940,10 +1096,10 @@ I<never> implies octal in Perl 6.
 
 Any of the adverbial forms may be used as a function:
 
-    :2($x)	# "bin2num"
-    :8($x)	# "oct2num"
-    :10($x)	# "dec2num"
-    :16($x)	# "hex2num"
+    :2($x)      # "bin2num"
+    :8($x)      # "oct2num"
+    :10($x)     # "dec2num"
+    :16($x)     # "hex2num"
 
 Think of these as setting the default radix, not forcing it.  Like Perl
 5's old C<oct()> function, any of these will recognize a number starting
@@ -977,31 +1133,31 @@ returned as C<Pair> objects.
 
 Generalized quotes may now take adverbs:
 
-    Short	Long		Meaning
-    =====	====		=======
-    :x		:exec		Execute as command and return results
-    :w		:words		Split result on words (no quote protection)
-    :ww		:quotewords	Split result on words (with quote protection)
-    :t		:to		Interpret result as heredoc terminator
-    :n		:none		No escapes at all (unless otherwise adverbed)
-    :q		:single		Interpolate \\, \q and \' (or whatever)
-    :qq		:double		Interpolate all the following
-    :s		:scalar		Interpolate $ vars
-    :a		:array		Interpolate @ vars
-    :h		:hash		Interpolate % vars
-    :f		:function	Interpolate & calls
-    :c		:closure	Interpolate {...} expressions
-    :b		:backslash	Interpolate \n, \t, etc. (implies :q at least)
+    Short       Long            Meaning
+    =====       ====            =======
+    :x          :exec           Execute as command and return results
+    :w          :words          Split result on words (no quote protection)
+    :ww         :quotewords     Split result on words (with quote protection)
+    :t          :to             Interpret result as heredoc terminator
+    :n          :none           No escapes at all (unless otherwise adverbed)
+    :q          :single         Interpolate \\, \q and \' (or whatever)
+    :qq         :double         Interpolate all the following
+    :s          :scalar         Interpolate $ vars
+    :a          :array          Interpolate @ vars
+    :h          :hash           Interpolate % vars
+    :f          :function       Interpolate & calls
+    :c          :closure        Interpolate {...} expressions
+    :b          :backslash      Interpolate \n, \t, etc. (implies :q at least)
 
 [Conjectural: Ordinarily the colon is required on adverbs, but the
 "quote" declarator allows you to combine any of the existing adverbial
 forms above without an intervening colon:
 
-    quote qw;		# declare a P5-esque qw//
-    quote qqx;		# equivalent to P5's qx//
-    quote qn;		# completely raw quote qn//
-    quote qnc;		# interpolate only closures
-    quote qqxwto;	# qq:x:w:to//
+    quote qw;           # declare a P5-esque qw//
+    quote qqx;          # equivalent to P5's qx//
+    quote qn;           # completely raw quote qn//
+    quote qnc;          # interpolate only closures
+    quote qqxwto;       # qq:x:w:to//
 
 ]
 
@@ -1083,15 +1239,18 @@ dereferencers: that is, any of:
 
 =item 6. A sequence of one or more unparenthesized method call, followed by any of 1 through 5
 
+=item 7. An embedded comment that uses bracketing characters, such
+as .#(comment).
+
 =back
 
 In other words, this is legal:
 
-    "Val = $a.ord.as('%x')\n"
+    "Val = $a.ord.#( Yikes! ).as('%x')\n"
 
 and is equivalent to
 
-    "Val = { $a.ord.as('%x') }\n"
+    "Val = { $a.ord.#( Yikes! ).as('%x') }\n"
 
 
 =item *
@@ -1290,28 +1449,29 @@ left (horizontal whitespace allowed but not comments).  The identifier is not
 subject to keyword or even macro interpretation.  If you say
 
     $x = do {
-	call_something();
-	if => 1;
+        call_something();
+        if => 1;
     }
 
 then C<$x> ends up containing the pair C<< ("if" => 1) >>.  Always.
 (Unlike in Perl 5, where version numbers didn't autoquote.)
 
 You can also use the :key($value) form to quote the keys of option
-pairs.  To align values of option pairs, you may not use the
-dot postfix forms:
+pairs.  To align values of option pairs, you may use the
+"long dot" postfix forms:
 
-    :longkey  .($value)
-    :shortkey .<string>
-    :fookey   .{ $^a <=> $^b }
+    :longkey.  .($value)
+    :shortkey. .<string>
+    :fookey.   .{ $^a <=> $^b }
 
 These will be interpreted as
 
-    :longkey(1)  .($value)
-    :shortkey(1) .<string>
-    :fookey(1)   .{ $^a <=> $^b }
+    :longkey($value)
+    :shortkey<string>
+    :fookey{ $^a <=> $^b }
 
-You just have to put spaces inside the parenthesis form to align things.
+But note that C<..> is not a long dot because at least one internal space
+is required to differentiate from the range operator.
 
 =item *
 
@@ -1346,14 +1506,14 @@ Heredocs are no longer written with C<<< << >>>, but with an adverb on
 any other quote construct:
 
     print qq:to/END/
-	Give $amount to the man behind curtain number $curtain.
-	END
+        Give $amount to the man behind curtain number $curtain.
+        END
 
 Other adverbs are also allowed:
 
     print q:c:to/END/
-	Give $100 to the man behind curtain number {$curtain}.
-	END
+        Give $100 to the man behind curtain number {$curtain}.
+        END
 
 =item *
 
@@ -1382,19 +1542,19 @@ Perl still has the three main contexts: void, scalar, and list.
 
 In addition to undifferentiated scalars, we also have these scalar contexts:
 
-    Context	Type	OOtype	Operator
-    -------	----	------	--------
-    boolean	bit	Bit	?
-    integer	int	Int	int
-    numeric	num	Num	+
-    string	str	Str	~
+    Context     Type    OOtype  Operator
+    -------     ----    ------  --------
+    boolean     bit     Bit     ?
+    integer     int     Int     int
+    numeric     num     Num     +
+    string      str     Str     ~
 
-There are also various reference contexts that require particular kinds of
-container references.
+There are also various container contexts that require particular kinds of
+containers.
 
 =item *
 
-Unlike in Perl 5, references are no longer always considered true.
+Unlike in Perl 5, objects are no longer always considered true.
 It depends on the state of their C<.bit> property.  Classes get to decide
 which of their values are true and which are false.  Individual objects
 can override the class definition:
@@ -1421,9 +1581,9 @@ flatten the list on demand, but not before.
 There is a "C<list>" operator which imposes a list context on
 its arguments even if C<list> itself occurs in a scalar context.
 In list context, it flattens lazily.  In a scalar context, it returns
-a reference to the resulting list.  (So the C<list> operator really
-does exactly the same thing as putting a list in parentheses.  But
-it's more readable in some situations.)
+the resulting list as a single C<List> object.  (So the C<list> operator
+really does exactly the same thing as putting a list in parentheses.
+But it's more readable in some situations.)
 
 =item *
 
@@ -1460,9 +1620,11 @@ useful in "dimensional" list contexts.
 Signatures on non-multi subs can be checked at compile time, whereas
 multi sub and method call signatures can only be checked at run time
 (in the absence of special instructions to the optimizer).
+
 This is not a problem for arguments that are arrays or hashes,
 since they don't have to care about their context, but just return
-a reference in any event, which may or may not be lazily flattened.
+themselves in any event, which may or may not be lazily flattened.
+
 However, function calls in the argument list can't know their eventual
 context because the method hasn't been dispatched yet, so we don't
 know which signature to check against.  As in Perl 5, list context
@@ -1509,7 +1671,7 @@ are the same as:
 =item *
 
 In contrast to assignment, binding to a hash requires a C<Hash> (or
-C<Pair>) reference.  Binding to a "splat" hash requires a list of pairs
+C<Pair>) object.  Binding to a "splat" hash requires a list of pairs
 or hashes, and stops processing the argument list when it runs out
 of pairs or hashes.  See S06 for much more about parameter binding.
 
@@ -1572,3 +1734,43 @@ behave in all respects as variables, properties may therefore also
 be temporized with C<temp>, or hypotheticalized with C<let>.
 
 =back
+
+=head1 Grammatical Categories
+
+Lexing in Perl 6 is controlled by a system of grammatical categories.
+At each point in the parse, the lexer knows which subset of the
+grammatical categories are possible at that point, and follows the
+longest-token rule across all the active grammatical categories.
+(Ordering of grammatical categories matters only in case of a "tie",
+in which case the grammatical category that is notionally "first"
+in the grammar wins.  For instance, a statement_control is always going to win out over a prefix operator of the same name.  More specifically, you can't
+call a function named "if" directly because it would be hidden either
+by the statement_control category or the statement_modifier category.)
+
+Here are the current grammatical categories:
+
+    term:<...>                                  $x = {...}
+    quote:<qX>                                  qX/foo/
+    prefix:<+>                                  +$x
+    infix:<+>                                   $x + $y
+    postfix:<++>                                $x++
+    circumfix:<[ ]>                             [ @x ]
+    postcircumfix:<[ ]>                         $x[$y] or $x .[$y]
+    rule_metachar:<,>                           /,/
+    rule_backslash:<w>                          /\w/ and /\W/
+    rule_assertion:<*>                          /<*stuff>/
+    rule_mod_internal:<perl5>                   m:/ ... :perl5 ... /
+    rule_mod_external:<nth>                     m:nth(3)/ ... /
+    trait_verb:<handles>                        has $.tail handles <wag>
+    trait_auxiliary:<shall>                     my $x shall conform<TR123>
+    scope_declarator:<has>                      has $.x;
+    statement_control:<if>                      if $condition {...} else {...}
+    statement_modifier:<if>                     ... if $condition
+    infix_postfix_meta_operator:<=>             $x += 2;
+    postfix_prefix_meta_operator:{'»'}          @array »++
+    prefix_postfix_meta_operator:{'«'}          -« @magnitudes
+    infix_circumfix_meta_operator:{'»','«'}     @a »+« @b
+    prefix_circumfix_meta_operator:{'[',']'}    [*]
+
+Any category containing "circumfix" requires two token arguments, supplied
+in slice notation.

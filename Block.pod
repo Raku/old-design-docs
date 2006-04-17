@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 19 Aug 2004
-  Last Modified: 1 Apr 2006
+  Last Modified: 15 Apr 2006
   Number: 4
-  Version: 12
+  Version: 15
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -60,10 +60,27 @@ sees "C<my $foo>", not the end of the statement as in Perl 5, so
     my $x = $x;
 
 will no longer see the value of the outer C<$x>; you'll need to say
+either
 
     my $x = $OUTER::x;
 
-instead.  (It's illegal to declare C<$x> twice in the same scope.)
+or
+
+    my $x = OUTER::<$x>;
+
+instead.
+
+If you declare a lexical twice in the same scope, it is the same lexical:
+
+    my $x;
+    my $x;
+
+If you've referred to C<$x> prior to the first declaration, and the compiler
+tentatively bound it to C<$OUTER::x>, then it's an error to declare it, and
+the compiler is allowed to complain at that point.  If such use can't
+be detected because it is hidden in an eval, then it is erroneous, since
+the C<eval()> compiler might bind to either C<$OUTER::x> or the subsequently
+declared "C<my $x>".
 
 As in Perl 5, "C<our $foo>" introduces a lexically scoped alias for
 a variable in the current package.
@@ -143,10 +160,8 @@ Perl 5, except that you may omit the parentheses on the conditional:
 	...
     }
 
-Conditional statement modifiers also work as in Perl 5.  So do the
-implicit conditionals implied by short-circuit operators.  And there's
-a new C<elsunless> in Perl 6--except that you have to spell it C<elsif not>.
-C<:-)>
+Conditional statement modifiers work as in Perl 5.  So do the
+implicit conditionals implied by short-circuit operators.
 
 =head1 Loop statements
 
@@ -287,6 +302,13 @@ that it can always be followed by a statement label.  This is particularly
 useful for the do-once block, since it is offically a loop and can take
 therefore loop control statements.
 
+Although a bare block is no longer a do-once loop, it still executes
+immediately as in Perl 5.  If you wish to return a closure from a
+function, you must use an explicit prefix such as C<return> or C<sub>
+or C<< -> >>.  (Use of a placeholder parameter is deemed insufficiently
+explicit because it's not out front where it can be seen.  You can, of
+course, use a placeholder parameter if you also use C<return>.)
+
 =head1 Switch statements
 
 A switch statement is a means of topicalizing, so the switch keyword
@@ -400,8 +422,8 @@ your own C<CATCH> block.
 A C<return> always exits from the lexically surrounding sub
 or method definition (that is, from a function officially declared
 with the C<sub>, C<method>, or C<submethod> keywords).  Pointy subs
-and bare closures are transparent to C<return>.  If you pass a reference
-to a closure outside of its official "sub" scope, it is illegal to
+and bare closures are transparent to C<return>.  If you pass a closure
+object outside of its official "sub" scope, it is illegal to
 return from it.  You may only leave the closure block itself with C<leave>
 or by falling off the end of it.
 
@@ -588,8 +610,8 @@ In this statement:
 parentheses aren't necessary around C<EXPR> because the whitespace
 between C<EXPR> and the block forces the block to be considered a
 block rather than a subscript.  This works for all control structures,
-not just the new ones in Perl 6.  A bare block where an operator
-is expected is always considered a statement block if there's space
+not just the new ones in Perl 6.  A top-level bare block
+is always considered a statement block if there's space
 before it:
 
     if $foo { ... }
@@ -598,11 +620,31 @@ before it:
     while $more { ... }
     for 1..10 { ... }
 
-(You can still parenthesize the expression argument for old times' sake,
-as long as there's a space between the closing paren and the opening
-brace.)
+You can still parenthesize the expression argument for old times'
+sake, as long as there's a space between the closing paren and the
+opening brace.  You I<must> parenthesize the expression if there is
+a bare block that would be misinterpreted as the statement's block.
+This is regardless of whether a term or operator is expected where
+the bare block occurs.  (A block inside brackets, or used as as
+postcircumfix is fine, though.)  Any block with whitespace
+in front of it will be taken as terminating the conditional, even if
+the conditional expression could take another argument.  Therefore
 
-On the other hand, anywhere a term is expected, a block is taken to
+    if -e { say "exists" } { extra() }
+
+is always parsed as
+
+    if (-e) { say "exists" }; { extra() }
+
+rather than
+
+    if (-e { say "exists" }) { extra() }
+
+Apart from that, it is illegal to use a bare closure where an
+operator is expected.  (Remove the whitespace if you wish it to be
+a postcircumfix.)
+
+Anywhere a term is expected, a block is taken to
 be a closure definition (an anonymous subroutine).  If the closure
 appears to delimit nothing but a comma-separated list starting with
 a pair (counting a single pair as a list of one element), the closure
@@ -623,29 +665,32 @@ while C<sub> introduces an anonymous subroutine:
     $hashref = hash("a", 1);
 
 If a closure is the right argument of the dot operator, the closure
-is interpreted as a hash subscript, even if there is space before the dot.
+is interpreted as a hash subscript.
 
     $ref = {$x};	# closure because term expected
-    if $term{$x}	# subscript because operator expected
+    if $term{$x}	# subscript because postfix expected
     if $term {$x}	# expression followed by statement block
-    if $term .{$x}	# valid subscript (term expected after dot)
+    if $term.{$x}	# valid subscript with dot
+    if $term. .{$x}	# valid subscript with "long dot"
 
 Similar rules apply to array subscripts:
 
     $ref = [$x];	# array composer because term expected
-    if $term[$x]	# subscript because operator expected
+    if $term[$x]	# subscript because postfix expected
     if $term [$x]	# syntax error (two terms in a row)
-    if $term .[$x]	# valid subscript (term expected after dot)
+    if $term.[$x]	# valid subscript with dot
+    if $term. .[$x]	# valid subscript with "long dot"
 
 And to the parentheses delimiting function arguments:
 
     $ref = ($x);	# grouping parens because term expected
     if $term($x)	# function call because operator expected
     if $term ($x)	# syntax error (two terms in a row)
-    if $term .($x)	# valid function call (term expected after dot)
+    if $term.($x)	# valid function call with dot
+    if $term. .($x)	# valid function call with "long dot"
 
-Outside of any kind of expression brackets, a trailing curly on a
-line by itself (not counting whitespace or comments) always reverts
+Outside of any kind of expression brackets, a final closing curly
+on a line (not counting whitespace or comments) always reverts
 to the precedence of semicolon whether or not you put a semicolon
 after it.  (In the absence of an explicit semicolon, the current
 statement may continue on a subsequent line, but only with valid
@@ -719,6 +764,7 @@ separate entries for lists.
     Array   .[number] array element truth*     match if $_[number]
     Num     NumRange  in numeric range         match if $min <= $_ <= $max
     Str     StrRange  in string range          match if $min le $_ le $max
+    Capture Signature parameter binding        match if $cap can bind to $sig
     Any     Code<>    simple closure truth*    match if $x() (ignoring $_)
     Any     Class     class membership         match if $_.does($x)
     Any     Role      role playing             match if $_.does($x)
@@ -828,9 +874,9 @@ routine's lexical scope and binds it to the current instance of the routine
 so that if you ever use the current reference to the routine, it gets
 the current snapshot of its world, lexically speaking.
 
-Some closures produce references at compile time that cannot be
+Some closures produce C<Code> objects at compile time that cannot be
 cloned, because they're not attached to any runtime code that can
-actively clone them.  C<BEGIN>, C<CHECK>, C<INIT>, and C<END> blocks probably
+actively clone them.  C<BEGIN>, C<CHECK>, C<INIT>, and C<END> blocks
 fall into this category.  Therefore you can't reliably refer to
 run-time variables from them even if they appear to be in scope.
 (The compile-time closure may, in fact, see a some kind of permanent
