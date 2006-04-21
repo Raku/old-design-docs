@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 15 Apr 2006
+  Last Modified: 18 Apr 2006
   Number: 2
-  Version: 23
+  Version: 24
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -557,6 +557,13 @@ All prefix sigil operators accept one positional argument, evaluated in
 scalar context as a rvalue.  They can interpolate in strings if called with
 parentheses.  The C<$()>, C<@()> and C<%()> forms defaults to C<$/> as the
 implicit argument.
+
+C<Capture> objects fill the ecological niche of references in Perl 6.
+You can think of them as "fat" references, that is, references that
+can capture not only the current identity of a single object, but
+also the relative identities of several related objects.  Conversely,
+you can think of Perl 5 references as a degenerate form of C<Capture>
+when you want to refer only to a single item.
 
 =item *
 
@@ -1429,13 +1436,13 @@ is that there's no longer any "C<use strict 'subs'>".
 
 =item *
 
-There's also no
-"C<use strict 'refs'>" because symbolic dereferences are now syntactically
-distinguished from hard dereferences.  C<@{$arrayref}> must now be a
-hard reference, while C<@::($string)> is explicitly a symbolic reference.
-(Yes, this may give fits to the P5-to-P6 translator, but I think it's
-worth it to separate the concepts.  Perhaps the symbolic ref form will
-admit hard refs in a pinch.)
+There's also no "C<use strict 'refs'>" because symbolic dereferences
+are now syntactically distinguished from hard dereferences.
+C<@($arrayref)> must now provide an actual array object, while
+C<@::($string)> is explicitly a symbolic reference.  (Yes, this may
+give fits to the P5-to-P6 translator, but I think it's worth it to
+separate the concepts.  Perhaps the symbolic ref form will admit real
+objects in a pinch.)
 
 =item *
 

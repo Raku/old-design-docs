@@ -13,9 +13,9 @@ Allison Randal <al@shadowed.net>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 21 Mar 2003
-  Last Modified: 15 Apr 2006
+  Last Modified: 18 Apr 2006
   Number: 6
-  Version: 24
+  Version: 25
 
 
 This document summarizes Apocalypse 6, which covers subroutines and the
@@ -744,11 +744,11 @@ operator:
 
 =head2 Multidimensional argument list binding
 
-Some functions take more than one C<Capture> as their argument list, that they
-wish not to be flattened into one list.  For instance, C<zip()> wants to
-iterate several lists in parallel, while array and hash subscripts want to
-process multidimensional slices.  The set of underlying argument list (Capture)
-objects may be bound to a single array parameter declared with a C<;> twigil:
+Some functions take more than one lists of positional and/or named arguments,
+that they wish not to be flattened into one list.  For instance, C<zip()> wants
+to iterate several lists in parallel, while array and hash subscripts want to
+process multidimensional slices.  The set of underlying argument lists may be
+bound to a single array parameter declared with a C<;> twigil:
 
     sub foo (*@;slices) { ... }
 
@@ -768,13 +768,18 @@ It is allowed to specify a return type:
 
     sub foo (*@;slices --> Num) { ... }
 
+The invocant does not participate in multi-dimensional argument lists,
+so C<self> is not present in any of the C<@;slices> below:
+
+    method foo (*@;slices) { ... }
+
 =head2 Zero-dimensional argument list
 
 If you call a function without parens and supply no arguments, the
 argument list becomes a zero-dimensional slice.  It differs from
 C<\()> in several ways:
 
-    sub foo (@;slices) {...}
+    sub foo (*@;slices) {...}
     foo;        # +@;slices == 0
     foo();      # +@;slices == 1
 
@@ -1183,9 +1188,9 @@ You may omit the top variable if you prefix the parentheses with a colon
 to indicate a signature.  Otherwise you must at least put the sigil of
 the variable, or we can't correctly differentiate:
 
-    my Dog ($fido, $spot) = twodogs();		# list of two dogs
+    my Dog ($fido, $spot)   := twodogs();	# list of two dogs
     my Dog $ ($fido, $spot) := twodogs();	# one twodog object
-    my Dog :($fido, $spot) := twodogs();	# one twodog object
+    my Dog :($fido, $spot)  := twodogs();	# one twodog object
 
 Subsignatures can be matched directly with rules by using C<:(...)>
 notation.
