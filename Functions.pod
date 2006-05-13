@@ -447,19 +447,16 @@ been iterated.
    %result;
  }
 
- multi Lazy|Str Array::reverse ( @values )
- multi Lazy|Str List::reverse ( *@values )
-   given want {
-     when List {
-       gather {
-         1 while take pop @values;
-       }
-     }
-     when Scalar {
-       reverse @values ==> join;
-     }
-   }
+ multi Lazy Array::reverse ( @values )
+ multi Lazy List::reverse ( *@values )
+    gather {
+        1 while take pop @values;
+    }
  }
+
+ multi Str Str::reverse ( $str )
+    split('', $str).reverse.join
+ )
 
 
 =item sort
