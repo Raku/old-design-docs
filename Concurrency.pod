@@ -73,10 +73,10 @@ are actually copies of the variable's value in the "parent" thread.
 With regards to variables, the concurrency model of Perl 6 is closer to the
 "5.005 threads" model than it is to the "ithreads" model.  In fact, all
 variables "visible" to a particular scope in Perl 6 will be accessible and
-modifiable from all of the concurrent processes that start from that scope.
-In that sense, one could consider the "ithreads" model as a historical
-diversion: the Perl 6 concurrency picks up where the "5.005 threads" path
-left off.
+modifiable (if allowed to do so) from all of the concurrent processes that
+start from that scope.  In that sense, one could consider the "ithreads"
+model as a historical diversion: the Perl 6 concurrency picks up where the
+"5.005 threads" path left off.
 
 (EM: maybe point out that the "ithreads" behaviour can be simulated with
 some kind of copy-on-write magic to be automagically added to all variable
@@ -158,6 +158,11 @@ would include reading / writing from file handles that do not support
 C<seek> (such as sockets).  Attempting to do so will cause a fatal error
 to occur.
 
+This will probably need to be expanded to all objects: any object that has
+some interface with data "outside" of the knowledge of the language (e.g. an
+interface with an external XML library) would also need to provide some
+method for freezing a state, and restoring to a previously frozen state.
+
 If you're not interested in revertability, but are interested in
 uninteruptability, you could use the "is critical" trait.
 
@@ -193,19 +198,45 @@ of an Atomic Code block.
 
 =head2 Co-Routines
 
-The execution of co-routine (or "coro" for short) could be considered as a
-short "side-step" from the normal path of execution, much like the normal
-calling of a subroutine.  
+ sub foo {
+    my @list = ( 1, 11, 17 );
+    while (@list) {
+        @list.shift.produce;
+    }
+    return;
+ }
 
-The main difference with a normal subroutine, is that the co-routine supports
-a special type of return, called "yield".
+ say foo; # 1
+ say foo; # 11
+ say foo; # 17
+ say foo; # undef
+ say foo; # 1
 
-(EM: not sure whether the "threads->yield" causes so much mental interference
-that we should use something else for "yield" in the coro context.  And
-whether we should have a seperate "coro" keyword at all: after all, the "yield"
-could be in a normal subroutine called from a coro, so it's not like the
-compiler would be allowed to flag "yield" in a sub as an error).
+There is no real difference between a subroutine (or method) and a so-called
+'co-routine'.  The only difference is how control is relinquished by the
+subroutine.  If this is done with a C<return> statement, the subroutine
+is considered to be "normal" (i.e. the next time the subroutine is called,
+execution will start again at the top of the subroutine.
 
+A different situation occurs when the control is returned by a subroutine
+to its caller by means of a C<produce> statement.  From the caller's point
+of view, there is no difference with the C<return> statement.  However, the
+next time the subroutine is called, execution will continue after the last
+C<produce> statement, B<not> from the beginning of the subroutine.  If there
+are no statements after the last C<produce> statement executed, then execution
+will start from the start of the called subroutine again.
+
+Please note that there is no concurrency involved with the C<produce>
+statement.  Execution in the calling sub will halt until the called subroutine
+returns, regardless of whether this happens by a C<return> or a C<produce>
+statement.
+
+Parameters passed to a subroutine that has previously returned with C<produce>
+will be handled as if if was an initial call to the subroutine.  This means
+that the values of named parameters will be placed in their expected place
+inside the subroutine.  Positional parameters will be available to any code
+looking at them, but will B<not> be handled automatically.  It would seem that
+the use of named parameters is therefore advisable.
 
 #######################################################################
 Below here still the more or less unorganized stuff
