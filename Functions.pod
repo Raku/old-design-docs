@@ -136,7 +136,7 @@ for a rounded version.
 
 =item exp
 
- our Num multi Num::exp         ( Num $exponent: Num :$base = Num::e )
+ our Num multi Num::exp         ( Num $exponent; Num :$base = Num::e )
  our Num multi Math::Basic::exp ( Num $exponent, Num :$base = Num::e )
 
 Performs similar to C<$base ** $exponent>. C<$base> defaults to the
@@ -144,7 +144,7 @@ constant I<e>.
 
 =item log
 
- our Num multi Num::log         ( Num $x: Num :$base )
+ our Num multi Num::log         ( Num $x; Num :$base )
  our Num multi Math::Basic::log ( Num $x, Num :$base )
 
 Logarithm of base C<$base>, default Natural. Calling with C<$x == 0> is an
@@ -229,7 +229,7 @@ C<$x ** 0.5>
 
 =item I<Standard Trig Functions>
 
- our Num multi Num::func ( Num  $x            : :$base = 'radians' )
+ our Num multi Num::func ( Num  $x; :$base = 'radians' )
  our Num multi Math::Trig::func ( Num $x, :$base = 'radians' )
 
 where I<func> is one of:
@@ -258,7 +258,7 @@ This overrides the default of "radians".
 
 =item atan
 
- our Num multi Math::Trig::atan2 ( Num $y, Num $x = 1 : Num :$base )
+ our Num multi Math::Trig::atan2 ( Num $y, Num $x = 1 ; Num :$base )
 
 This second form of C<atan> computes the arctangent of $y/$x, and takes
 the quadrant into account. Otherwise behaves as other trigonometric functions.
@@ -331,7 +331,7 @@ An unary form is expected. See C<Hash::delete>.
 =item splice
 
  multi List Array::splice ( @array is rw 
-                                 : Int $offset = 0,
+                                 ; Int $offset = 0,
                                    Int $length,
                                        *@values ) is rw
 
@@ -343,7 +343,7 @@ dimension, and works with Array References.
 
 =item unshift
 
- our Int multi Array::unshift ( @array is rw : *@values )
+ our Int multi Array::unshift ( @array is rw ; *@values )
    Array::splice(@array, 0, 0, @values);
    @array.elems;
  }
@@ -357,10 +357,10 @@ dimension, and works with Array References.
 
 =item values
 
- multi Int|List Array::keys ( @array : MatchTest *@indextests )
- multi Int|List Array::kv ( @array : MatchTest *@indextests )
- multi Int|(List of Pair) Array::pairs  (@array : MatchTest *@indextests )
- multi Int|List Array::values ( @array : MatchTest *@indextests )
+ multi Int|List Array::keys ( @array ; MatchTest *@indextests )
+ multi Int|List Array::kv ( @array ; MatchTest *@indextests )
+ multi Int|(List of Pair) Array::pairs  (@array ; MatchTest *@indextests )
+ multi Int|List Array::values ( @array ; MatchTest *@indextests )
 
 (XXX these signatures are wrong. -luqui)
 
@@ -373,9 +373,8 @@ What is returned at each element of the iteration varies with function.
 C<values> returns the value of the associated element; C<kv> returns 
 a 2 element list in (index, value) order, C<pairs> a C<Pair(index, value)>.
 
-C<@array> is considered single dimensional. If it is in fact multi-
-dimensional, the values returned will be array references to the sub
-array.
+C<@array> is considered single dimensional. If it is in fact multi-dimensional,
+the values returned will be array references to the sub array.
 
 In Scalar context, they all return the count of elements that would have
 been iterated.
@@ -390,9 +389,9 @@ been iterated.
 
 =item grep
 
- our Lazy multi Array::grep ( @values :      Code *&test )
- our Lazy multi Array::grep ( @values :  MatchTest $test )
- our Lazy multi List::grep ( MatchTest $test :   *@values )
+ our Lazy multi Array::grep ( @values ;      Code *&test )
+ our Lazy multi Array::grep ( @values ;  MatchTest $test )
+ our Lazy multi List::grep ( MatchTest $test ;   *@values )
    gather {
      for @values -> $x {
        take $x if $x ~~ $test;
@@ -403,8 +402,8 @@ been iterated.
 
 =item join
 
- our Str multi Array::join ( @values :  Str $delimiter )
- our Str multi List::join ( Str $delimiter : *@values )
+ our Str multi Array::join ( @values ;  Str $delimiter )
+ our Str multi List::join ( Str $delimiter ; *@values )
    my $str = ~@values[0];
    for 1..@values.end {
      $str ~= $delimiter ~ @values[$_];
@@ -416,8 +415,8 @@ been iterated.
 
 =item map 
 
- our Lazy multi Array::map ( @values : Code *&expression )
- our Lazy multi List::map ( Code $expression : *@values )
+ our Lazy multi Array::map ( @values ; Code *&expression )
+ our Lazy multi List::map ( Code $expression ; *@values )
    gather {
      while @values {
        take $expression
@@ -429,8 +428,8 @@ been iterated.
 
 =item reduce
 
- our Scalar multi Array::reduce ( @values : Code *&expression )
- our Scalar multi List::reduce ( Code $expression : *@values )
+ our Scalar multi Array::reduce ( @values ; Code *&expression )
+ our Scalar multi List::reduce ( Code $expression ; *@values )
    my $res;
    for @values -> $cur {
         FIRST {$res = $cur; next;}
@@ -465,11 +464,11 @@ been iterated.
  subset Comparator   of Code(Any, Any --> Int );
  subset SortCriterion of KeyExtractor | Comparator | Pair(KeyExtractor, Comparator);
 
- our Array multi Array::sort( @values is rw, *&by:                              Bit :$inplace )
- our Array multi Array::sort( @values is rw, SortCriterion @by:                 Bit :$inplace )
- our Array multi Array::sort( @values is rw: SortCriterion :$by = &infix:<cmp>, Bit :$inplace )
+ our Array multi Array::sort( @values is rw, *&by;                              Bit :$inplace )
+ our Array multi Array::sort( @values is rw, SortCriterion @by;                 Bit :$inplace )
+ our Array multi Array::sort( @values is rw; SortCriterion :$by = &infix:<cmp>, Bit :$inplace )
 
- our List multi List::sort( SortCriterion @by:  *@values )
+ our List multi List::sort( SortCriterion @by;  *@values )
  our List multi List::sort( SortCriterion $by = &infix:<cmp>, *@values )
 
 Returns C<@values> sorted, using criteria C<$by> or C<@by> for
@@ -584,10 +583,10 @@ A body of ... counts as undefined.)
 
 =item values
 
- multi Int|List Hash::keys ( %hash : MatchTest *@keytests )
- multi Int|List Hash::kv ( %hash : MatchTest *@keytests )
- multi Int|(List of Pair) Hash::pairs  (%hash : MatchTest *@keytests )
- multi Int|List Hash::values ( %hash : MatchTest *@keytests )
+ multi Int|List Hash::keys ( %hash ; MatchTest *@keytests )
+ multi Int|List Hash::kv ( %hash ; MatchTest *@keytests )
+ multi Int|(List of Pair) Hash::pairs  (%hash ; MatchTest *@keytests )
+ multi Int|List Hash::values ( %hash ; MatchTest *@keytests )
  
 Iterates the elements of C<%hash> in no apparent order, but the order
 will be the same between successive calls to these functions, as long as
@@ -736,8 +735,8 @@ Needs to be in terms of StrPos, not Int.
 
  our List multi Str::split ( Str $delimiter ,  Str $input_, Int $limit = inf )
  our List multi Str::split ( Rule $delimiter = /\s+/,  Str $input, Int $limit = inf )
- our List multi Str::split ( Str $input :  Str $delimiter          , Int $limit = inf )
- our List multi Str::split ( Str $input : Rule $delimiter          , Int $limit = inf )
+ our List multi Str::split ( Str $input ;  Str $delimiter          , Int $limit = inf )
+ our List multi Str::split ( Str $input ; Rule $delimiter          , Int $limit = inf )
 
 String delimiters must not be treated as rules but as constants.  The
 default is no longer S<' '> since that would be interpreted as a constant.
@@ -749,9 +748,9 @@ introduce a trimlist function of some sort.
 
 =item substr
 
- multi substr (Str $s, StrPos $start  : StrPos $end,      $replace)
- multi substr (Str $s, StrPos $start,   StrLen $length  : $replace)
- multi substr (Str $s, StrLen $offset : StrLen $length,   $replace)
+ multi substr (Str $s, StrPos $start  ; StrPos $end,      $replace)
+ multi substr (Str $s, StrPos $start,   StrLen $length  ; $replace)
+ multi substr (Str $s, StrLen $offset ; StrLen $length,   $replace)
 
 
 =item unpack
@@ -763,7 +762,7 @@ Should replace vec with declared arrays of bit, uint2, uint4, etc.
 =item words
 
  our List multi Str::words ( Rule $matcher = /\S+/,  Str $input, Int $limit = inf )
- our List multi Str::words ( Str $input : Rule $matcher = /\S+/, Int $limit = inf )
+ our List multi Str::words ( Str $input ; Rule $matcher = /\S+/, Int $limit = inf )
 
 =back
 
@@ -786,7 +785,7 @@ Returns whatever C<$code> returns, or undef on error.
 
 =item evalfile
 
- multi Control::Basic::evalfile (Str $filename : Grammar :$lang = Perl6)
+ multi Control::Basic::evalfile (Str $filename ; Grammar :$lang = Perl6)
 
 Behaves like, and replaces Perl 5 C<do EXPR>, with optional C<$lang>
 support.
