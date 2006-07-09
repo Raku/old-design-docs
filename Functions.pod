@@ -6,9 +6,10 @@
 
  Author:        Rod Adams <rod@rodadams.net>
  Maintainer:    Larry Wall <larry@wall.org>
+ Contributions:	Aaron Sherman <ajs@ajs.com>
  Date:          12 Mar 2005
- Last Modified: 15 May 2006
- Version:       3
+ Last Modified: 08 Jul 2006
+ Version:       4
 
 This document attempts to document the list of builtin functions in Perl 6.
 It assumes familiarity with Perl 5 and prior synopses.
@@ -39,6 +40,14 @@ security updates allow.
 Where code is given here, it is intended to define semantics, not to
 dictate implementation.
 
+=head2 Operators vs. Functions
+
+There is no particular difference between an operator and a function,
+but for the sake of documentation, only functions declared without
+specifying a grammatical category or with a category of C<term:>
+(see L<Synopsis 2: Bits and Pieces>) will be described as "functions",
+and everything else as "operators" which are outside of the scope
+of this document.
 
 =head1 Type Declarations
 
@@ -93,6 +102,14 @@ Used to supply a test to match against. Assume C<~~> will be used against it.
 
 =head2 Math::Basic
 
+C<Math::Basic> provides a number of constants in addition to the basic
+mathematical functions. To get these constants, you must request
+them:
+
+ use Math::Basic :constants;
+
+or use the full name, e.g. C<Math::Basic::pi>.
+
 =over
 
 =item abs
@@ -126,7 +143,7 @@ Returns the nearest integer to $x.  The algorithm is floor($x + 0.5).
 =item truncate
 
  our Int multi Num::truncate ( Num $x )
- our &Num::int ::= &Num::truncate;
+ our Int multi Num::int ( Num $x )
 
 Returns the closest integer to $x whose absolute value is not greater
 than the absolute value of $x.  (In other words, just chuck any
@@ -155,6 +172,7 @@ error.
 
  &log10 := &log.assuming:base(10);
 
+A base C<10> logarithm.
 
 =item rand
 
@@ -168,18 +186,9 @@ while C<$x> is not.
 
  our Int multi Num::sign ( Num  $x )
  our Int multi Math::Basic::sign ( Num $x )
-   if !defined($x) { return undef };
-   if $x < 0       { return -1    };
-   if $x > 0       { return  1    };
-   if $x == 0      { return  0    };
-   fail;
- }
 
-or more succinctly:
-
- our Int multi Math::Basic::sign ( Num $x )
-   $x <=> 0;
- }
+Returns 1 when C<$x> is greater than 0, -1 when it is less than 0, 0 when it
+is equal to 0, or undefined when the value passed is undefined.
 
 =item srand
 
@@ -199,25 +208,55 @@ you I<must> call C<srand()> yourself if you wish to specify a deterministic seed
  our Complex multi Complex::sqrt ( Complex  $x )
  our Num     multi Math::Basic::sqrt ( Num $x )
 
-C<$x ** 0.5>
+Returns the square root of the parameter.
 
 =item e
 
- constant Num Num::e = exp(1);
+ constant Num Math::Basic::e
 
+The constant C<e>, roughly equal to C<2.71828182845905>.
 
-=item pi
+=item euler_constant
 
- constant Num Num::pi = atan(1,1) * 4;
- constant Int Int::pi = 3;
+ constant Num Math::Basic::γ
+ constant Num Math::Basic::euler_constant
+
+The Euler constant (or Euler-Mascheroni constant or simply γ), roughly
+equal to C<0.57721566490153286>. This constant should not be confused
+with C<e>.
+
+=item golden_ratio
+
+ constant Num Math::Basic::φ
+ constant Num Math::Basic::phi
+ constant Num Math::Basic::golden_ratio
+
+The golden ratio, roughly equal to C<1.6180339887498948>.
 
 =item i
 
- constant Complex Complex::i = Complex::sqrt(-1);
+ constant Complex Math::Basic::i
+
+The constant C<i>, which is defined as the square root of C<-1>.
 
 =item one
 
- constant Int Int::one = round(-e ** (-i * pi));	# :-)
+ constant Complex Math::Basic::one
+
+The constant value C<1>.
+
+=item pi
+
+ constant Num Math::Basic::pi
+ constant Num Math::Basic::π
+
+The constant C<pi>, roughly equal to C<3.14159265358979>.
+
+=item zero
+
+ constant Complex Math::Basic::zero
+
+The constant value C<0>.
 
 =back
 
@@ -229,8 +268,8 @@ C<$x ** 0.5>
 
 =item I<Standard Trig Functions>
 
- our Num multi Num::func ( Num  $x; :$base = 'radians' )
- our Num multi Math::Trig::func ( Num $x, :$base = 'radians' )
+ our Num multi Num::func ( Num  $x, $base = 'radians' )
+ our Num multi Math::Trig::func ( Num $x, $base = 'radians' )
 
 where I<func> is one of:
 sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
@@ -239,7 +278,7 @@ asech, acosech, acotanh.
 
 Performs the various trigonmetric functions. 
 
-Option C<:$base> is used to declare how you measure your angles.
+Option C<$base> is used to declare how you measure your angles.
 Given the value of an arc representing a single full revolution.
 
  $base  	Result
@@ -256,9 +295,9 @@ a consistent base so you don't have to supply it with every call:
 
 This overrides the default of "radians".
 
-=item atan
+=item atan2
 
- our Num multi Math::Trig::atan2 ( Num $y, Num $x = 1 ; Num :$base )
+ our Num multi Math::Trig::atan2 ( Num $y, Num $x = 1, Num $base )
 
 This second form of C<atan> computes the arctangent of $y/$x, and takes
 the quadrant into account. Otherwise behaves as other trigonometric functions.
@@ -267,6 +306,70 @@ the quadrant into account. Otherwise behaves as other trigonometric functions.
 The other alternative would be to remove the default. --law]
 
 =back
+
+=head2 General Utilities
+
+=over 
+
+=item defined
+
+  our Bool multi Scalar::defined ( Any $thing )
+  our Bool multi Scalar::defined ( Any $thing, ::role )
+  our Bool multi method Scalar::defined ( Scalar $thing: )
+  our Bool multi method Scalar::defined ( Scalar $thing: ::role )
+
+C<defined> returns true if the parameter has a value and that value is
+not the undefined value (per C<undef>), otherwise false is returned.
+
+Same as Perl 5, only takes extra optional argument to ask if value is defined
+with respect to a particular role:
+
+    $x.defined(SomeRole);
+
+A value may be defined according to one role and undefined according to another.
+Without the extra argument, defaults to the definition of defined supplied by
+the type of the object.
+
+=item undefine
+
+  our multi Any::undefine( Any $thing )
+  our multi method Any::undefine ( Any $thing: )
+
+Takes any variable as a parameter and attempts to "remove" its
+definition. For simple scalar variables this means assigning
+the undefined value to the variable. For objects, this is equivalent
+to invoking their undefine method. For arrays, hashes and other
+complex data, this might require emptying the structures associated
+with the object.
+
+In all cases, calling C<undefine> on a variable
+should place the object in the same state as if it was just
+declared.
+
+=item undef
+
+  constant Scalar Scalar::undef
+
+Returns the undefined scalar object. C<undef> has no value at
+all, but for historical compatibility, it will numify to C<0>
+and stringify to the empty string, potentially generating a
+warning in doing so. There are two ways to determine if a
+value equal to undef: the C<defined> function (or method) can
+be called or the C<//> (or C<err>) operator can be used.
+
+C<undef> is also considered to be false in a boolean context.
+Such a conversion does not generate a warning.
+
+Perl 5's unary C<undef> function is renamed C<undefine> to avoid
+confusion with the value C<undef> (which is always 0-ary now).
+
+=item want
+
+TODO
+
+=item caller
+
+TODO
 
 =head2 Array
 
@@ -304,38 +407,53 @@ An unary form is expected. See C<Hash::delete>.
 
 =item pop
 
- &Array::pop := &Array::splice.assuming(:offset(-1) :length(1));
+ 
+ our Scalar multi Array::pop ( @array is rw )
+ our Scalar multi method Array::pop ( @array: )
 
- our Scalar multi Array::pop (   )
-   Array::pop @+_;
- }
-
+Remove the last element of C<@array> and return it.
 
 =item push
 
- our Int multi Array::push ( @array is rw : *@values )
-   Array::splice(@array, @array.elems, 0, @values);
-   @array.elems;
- }
+ our Int multi Array::push ( @array is rw, *@values )
+ our Int multi mehtod Array::push ( @array: *@values )
 
+Add to the end of C<@array>, all of the subsequent arguments.
 
 =item shift
 
- &Array::shift := &Array::splice.assuming(:offset(0) :length(1));
+ our Scalar multi Array::shift ( @array is rw  )
+ our Scalar multi method Array::shift ( @array:  )
 
- our Scalar multi Array::shift (   )
-   Array::shift @+_;
- }
-
+Remove the first element from C<@array> and return it.
 
 =item splice
 
- multi List Array::splice ( @array is rw 
-                                 ; Int $offset = 0,
-                                   Int $length,
-                                       *@values ) is rw
+ our List multi Array::splice( @array is rw, Int $offset = 0, Int $size?, *@values )
 
-Behaves similar as Perl 5 C<splice>.
+C<splice> fills many niches in array-management, but its fundamental behavior
+is to remove zero or more elements from an array and replace them with a
+new (and potentially empty) list. This operation can shorten or lengthen
+the target array.
+
+C<$offset> is the index of the array element to start with. It defaults
+to C<0>.
+
+C<$size> is the number of elements to remove from C<@array>. It defaults
+to removing the rest of the array from C<$offset> on.
+
+The slurpy list of values (if any) is then inserted at C<$offset>.
+
+Calling splice with a traditional parameter list, you must define C<$offset>
+and C<$size> if you wish to pass a replacement list of values. To avoid
+having to pass these otherwise optional parameters, use the piping operator(s):
+
+ splice(@array,10) <== 1..*;
+
+which replaces C<@array[10]> and all subsequent elements with an infinite
+series starting at C<1>.
+
+This behaves similarly to Perl 5's C<splice>.
 
 If C<@array> is multidimensional, C<splice> operates only on the first
 dimension, and works with Array References.
@@ -343,11 +461,10 @@ dimension, and works with Array References.
 
 =item unshift
 
- our Int multi Array::unshift ( @array is rw ; *@values )
-   Array::splice(@array, 0, 0, @values);
-   @array.elems;
- }
+ our Int multi Array::unshift ( @array is rw, *@values )
+ our Int multi method Array::unshift ( @array: *@values )
 
+C<unshift> adds the values onto the start of the C<@array>.
 
 =item keys
 
@@ -389,42 +506,55 @@ been iterated.
 
 =item grep
 
- our Lazy multi Array::grep ( @values ;      Code *&test )
- our Lazy multi Array::grep ( @values ;  MatchTest $test )
- our Lazy multi List::grep ( MatchTest $test ;   *@values )
-   gather {
-     for @values -> $x {
-       take $x if $x ~~ $test;
-     }
-   }
- }
+ our Lazy multi Array::grep ( @values, Code *&test )
+ our Lazy multi Array::grep ( @values, MatchTest $test )
+ our Lazy multi List::grep ( MatchTest $test, *@values )
 
+C<grep> takes a list or array of values and returns a lazily evaluated
+list comprised of all of the values from the original list for which
+the C<$test> smart-matches as true.
+
+Here is an example of its use:
+
+ @friends = grep { .is_friend } @coworkers;
+
+This takes the array C<@coworkers>, checks every element to see
+which ones return true for the C<.is_friend> method, and returns
+the resulting list to store into C<@friends>.
 
 =item join
 
- our Str multi Array::join ( @values ;  Str $delimiter )
- our Str multi List::join ( Str $delimiter ; *@values )
-   my $str = ~@values[0];
-   for 1..@values.end {
-     $str ~= $delimiter ~ @values[$_];
-   }
-   $str;
- }
- &join := &join.assuming:delimiter(' ');
+ our Str multi Array::join ( @values, Str $separator? )
+ our Str multi List::join ( Str $separator?, *@values )
 
+C<join> returns a single string comprised of all of the elements
+of C<@values>, separated by C<$separator>. The separator defaults
+to a single space.
+
+Given an empty list, C<join> returns the empty string.
 
 =item map 
 
- our Lazy multi Array::map ( @values ; Code *&expression )
- our Lazy multi List::map ( Code $expression ; *@values )
-   gather {
-     while @values {
-       take $expression
-          .( splice(@values, 0, $expression.arity) );
-     }
-   }
- }
+ our Lazy multi Array::map ( @values, Code *&expression )
+ our Lazy multi List::map ( Code $expression?, *@values )
 
+C<map> returns a lazily evaluated list which is comprised of
+the return value of the expression, evaluated once for every
+one of the C<@values> that are passed in.
+
+Here is an example of its use:
+
+ @addresses = map { %addresses_by_name<$_> } @names;
+
+Here we take an array of names, and look each name up in
+C<%addresses_by_name> in order to build the corresponding
+list of addresses.
+
+If the expression returns no values or multiple values, then the
+resulting list may not be the same length as the number of values
+that were passed. For example:
+
+ @factors = map { prime_factors($_) } @composites;
 
 =item reduce
 
@@ -441,19 +571,19 @@ been iterated.
 
 =item reverse
 
- our Hash multi Hash::reverse ( %hash )
+ our Hash multi Hash::reverse ( %hash ) {
    (my %result){%hash.values} = %hash.keys;
    %result;
  }
 
  multi Lazy Array::reverse ( @values )
- multi Lazy List::reverse ( *@values )
+ multi Lazy List::reverse ( *@values ) {
     gather {
         1 while take pop @values;
     }
  }
 
- multi Str Str::reverse ( $str )
+ multi Str Str::reverse ( $str ) {
     split('', $str).reverse.join
  )
 
@@ -464,11 +594,11 @@ been iterated.
  subset Comparator   of Code(Any, Any --> Int );
  subset SortCriterion of KeyExtractor | Comparator | Pair(KeyExtractor, Comparator);
 
- our Array multi Array::sort( @values is rw, *&by;                              Bit :$inplace )
- our Array multi Array::sort( @values is rw, SortCriterion @by;                 Bit :$inplace )
- our Array multi Array::sort( @values is rw; SortCriterion :$by = &infix:<cmp>, Bit :$inplace )
+ our Array multi Array::sort( @values is rw, *&by, Bit $inplace? )
+ our Array multi Array::sort( @values is rw, SortCriterion @by, Bit $inplace? )
+ our Array multi Array::sort( @values is rw, SortCriterion $by = &infix:<cmp>, Bit $inplace? )
 
- our List multi List::sort( SortCriterion @by;  *@values )
+ our List multi List::sort( SortCriterion @by,  *@values )
  our List multi List::sort( SortCriterion $by = &infix:<cmp>, *@values )
 
 Returns C<@values> sorted, using criteria C<$by> or C<@by> for
@@ -516,23 +646,24 @@ details and examples.
 
 =item zip
 
- our Lazy multi List::zip ( Array *@lists, Bit :$shortest ) {
-   gather {
-     while $shortest ?? all(@lists) !! any(@lists) {
-       for @lists -> @list {
-         take shift @list;
-       }
-     }
-   }
- }
+ our Lazy multi List::zip ( Array *@lists, Bit $shortest? ) {
+
+zip takes any number of arrays and returns a single (lazily evaluated)
+list of their contents, merged by index. In other words,
+
+ @one = 1, 2;
+ @two = 3, 4;
+ @three = 4, 5;
+ @all = zip @one, @two, @three;
+
+will place into C<@all>, the list, C<1,3,4,2,4,5>. The name is meant to be
+mnemonic: the input arrays are "zipped" up like a zipper.
 
 [Note: This should be the definition of each() now.  The zip function needs
 to build tuples of the "across" values.  Also, it maybe probably be
 in terms of longest non-infinite.  -law]
 
 =back
-
-
 
 =head2 Hash
 
@@ -606,6 +737,15 @@ been iterated.
 
 The lvalue form of C<keys> is not longer supported. Use the C<.buckets>
 property instead.
+
+=item each
+
+Unlike Perl 5's each, C<each> is a general method that traverses any
+composite container in a type-specific manner.
+
+For P5-like traversal, see C<Hash::kv> or C<Hash::pairs> instead,
+and put into C<for> instead of C<while>.  Perhaps there is a
+C<Perl5::p5each> emulation.
 
 =back
 
@@ -746,12 +886,96 @@ introduce a trimlist function of some sort.
 
 =item sprintf
 
+ our method Str Str::sprintf ( Str $format: *@args )
+ our multi Str sprintf ( Str $format, *@args )
+
+This function is mostly identical to the C library sprintf function.
+
+The C<$format> is scanned for C<%> characters. Any C<%> introduces a
+format token. Format tokens have the following grammar:
+
+ grammar Str::SprintfFormat {
+  rule format_token { \%: <index>? <precision>? <modifier>? <directive> }
+  rule index { \d+ \$ }
+  rule precision { <flags>? <vector>? <precision_count> }
+  rule flags { <[\ +0\#\-]>+ }
+  rule precision_count { [ <[1-9]>\d* | \* ]? [ \. [ \d* | \* ] ]? }
+  rule vector { \*? v }
+  rule modifier { ll | <[lhVqL]> }
+  rule directive { <[\%csduoxefgXEGbpniDUOF]> }
+ }
+
+Directives guide the use (if any) of the arguments. When a directive
+(other than C<%>) are used, they indicate how the next argument
+passed is to be formatted into the string.
+
+The directives are:
+
+ %   a percent sign
+ c   a character with the given number
+ s   a string
+ d   a signed integer, in decimal
+ u   an unsigned integer, in decimal
+ o   an unsigned integer, in octal
+ x   an unsigned integer, in hexadecimal
+ e   a floating-point number, in scientific notation
+ f   a floating-point number, in fixed decimal notation
+ g   a floating-point number, in %e or %f notation
+ X   like x, but using upper-case letters
+ E   like e, but using an upper-case "E"
+ G   like g, but with an upper-case "E" (if applicable)
+ b   an unsigned integer, in binary
+ C   special: invokes the arg as code, see below
+
+Compatibility:
+
+ i   a synonym for %d
+ D   a synonym for %ld
+ U   a synonym for %lu
+ O   a synonym for %lo
+ F   a synonym for %f
+
+Perl 5 compatibility:
+
+ n   produces a runtime exception (see below)
+ p   produces a runtime exception
+
+The special format directive, C<%C> invokes the target argument as
+code, passing it the result string that has been generated thus
+far and the argument array.
+
+Here's an example of its use:
+
+ sprintf "%d%C is %d digits long",
+	$num,
+	sub($s,@args is rw) {@args[2]=$s.size},
+	0;
+
+The special directive, C<%n> does not work in Perl 6 because of the
+difference in parameter passing conventions, but the example above
+similates its effect using C<%C>.
+
 =item substr
 
- multi substr (Str $s, StrPos $start  ; StrPos $end,      $replace)
- multi substr (Str $s, StrPos $start,   StrLen $length  ; $replace)
- multi substr (Str $s, StrLen $offset ; StrLen $length,   $replace)
+ our Str multi substr (Str $s, StrPos $start, StrLen $length?) is rw
+ our Str multi substr (Str $s, StrPos $start, StrPos $end?) is rw
 
+C<substr> returns part of an existing string. You control what part by
+passing a starting position and optionally either an end position or length.
+If you just pass two numbers, positionally, then they will be used
+as the start and length.
+
+Here is an example of its use:
+
+ $initials = substr($first_name,0,1) ~ substr($last_name,0,1);
+
+Optionally, you can use substr on the left hand side of an assigment
+like so:
+
+ substr($string, 1, 5) = "fred";
+
+If the replacement string is longer or shorter than the matched sub-string,
+then the original string will be dynamically resized.
 
 =item unpack
 
@@ -766,8 +990,6 @@ Should replace vec with declared arrays of bit, uint2, uint4, etc.
 
 =back
 
-
-
 =head2 Control::Basic
 
 =over
@@ -780,8 +1002,6 @@ Execute C<$code> as if it were code written in C<$lang>.  The default
 is the language in effect at the exact location of the eval call.
 
 Returns whatever C<$code> returns, or undef on error.
-
-
 
 =item evalfile
 
@@ -797,7 +1017,6 @@ support.
 
 Stops all program execution, and returns C<$status> to the calling environment.
 
-
 =item nothing
 
  multi Control::Basic::nothing ()
@@ -812,10 +1031,29 @@ No operation. Literally does nothing.
 Attempt to sleep for up to C<$for> seconds. Implementations are obligated
 to support subsecond resolutions if that is at all possible.
 
-[Q: what about multithreading?  do we just sleep this thread?  need
-to coordinate with entire async model.  -law]
+This is exactly the same as:
 
-=item die 
+ $$.sleep($for)
+
+See C<Synopsis 17: Concurrency> for more details.
+
+=item word
+
+C<word> is almost exactly the same as C<macro>, but always defines
+its macros as C<term:> (see L<Synopsis 2: Bits and Pieces>). Its usage
+might appear as:
+
+ word foo { "'foo'.say" }
+ foo;
+
+[ Refs:
+	Message-ID: <20050614164447.GA14958@wall.org> 
+	Date: Tue, 14 Jun 2005 09:44:47 -0700  (12:44 EDT)
+	From: Larry Wall <larry@wall.org>
+	To: perl6-language@perl.org
+]
+
+=item die
 
 =item fail
 
@@ -831,15 +1069,52 @@ B<TODO>: Research the exception handling system.
 
 =item bless 
 
- sub 
+ our Object multi method Class::bless( Object::RepCandidate $candidate )
+ our Object multi method Class::bless( *%args )
+
+C<bless> is only available as a method which can be called on a class
+object like so:
+
+ $object = $class.bless(k1 => $v1, k2 => $v2, ...);
+
+A newly created object, based on either the C<$candidate> representation
+or a newly created representation (initialized with the C<%args> that
+are passed in) when the second form is used.
+
+It automatically calls all appropriate BUILD routines by calling the
+BUILDALL routine for the current class, which initializes the object in
+least-derived to most-derived order. See L<Synopsis 12: Objects>
+for more detailed information on object creation.
 
 =item chr
 
 =item ord
 
-B<Question>: I think these should be strictly Code Point level
-activitities, but I'm not sure. They likely need to be renamed, as well.
+ our Str multi Str::chr( Int $codepoint, Str::CharSet $charset? )
+ our Str multi Str::chr( Str::Codepoint $codepoint )
+ our Str::Codepoint multi Str::ord( Str $character )
 
+These functions are available for purposes of backward compatibility.
+C<chr> takes a codepoint (an integer which can be indexed in the current
+character set) and returns a C<Str> which contains only that codepoint.
+If the entry matching the codepoint in the current character set
+is combining or otherwise not intended for use as a stand-alone
+grapheme, then C<chr>'s behavior will be implementation specific.
+
+An alternate version of C<chr> takes a C<Str::Codepoint> object. See
+below for further detail.
+
+C<ord> behaves in a complementary fashion, taking the first codepoint
+in C<$character> and returning it as a C<Str::Codepoint>. This object
+may then be used as if it were an ordinary integer, but also retains
+information about its originating character set. Thus,
+
+ $s2 = chr(ord($s1));
+
+is guaranteed to return the first character from C<$s1>, as long as that
+"character" is represented by a single codepoint. Otherwise, its behavior
+is implementation specific, and may result in an exception or undefined
+value.
 
 =item list
 
@@ -898,44 +1173,80 @@ Replaces Perl 5 C<hex> and C<oct>.
 
 =back
 
+=head2 Concurrency
 
-=head2 I<TODO>
+There are higher-level models of concurrency management in Perl (see
+L<Synopsis 17: Concurrency>). These functions are simply the lowest level
+tools
 
-=over 4
+=over
 
-=item defined
+=item fork
 
-Same as Perl 5, only takes extra optional argument to ask if value is defined
-with respect to a particular role:
+ our Conc::Proc sub Conc::Processes::fork()
 
-    $x.defined(SomeRole);
+Creates a copy of the current process. Both processes return from
+C<fork>. The original process returns
+the I<child> process as a C<Conc::Proc> object. The newly created process
+returns the I<parent> process as a C<Conc::Proc> object. As with
+any Conc::Proc object, the child process object numifies to the
+process ID (OS dependent integer). However, the parent process object
+numifies to C<0> so that the child and parent can distinguish each other.
 
-A value may be defined according to one role and undefined according to another.
-Without the extra argument, defaults to the definition of defined supplied by
-the type of the object.
+Typical usage would be:
 
-=item undefine
+ if !defined(my $pid = fork) {
+   die "Error calling fork: $!";
+ } elsif $pid == 0 {
+   say "I am the new child!";
+   exit 0;
+ } else {
+   say "I am the parent of {+$pid}";
+   wait();
+ }
 
-Perl 5's unary C<undef> function is renamed C<undefine> to avoid
-confusion with the value C<undef> (which is always 0-ary now).
+=item wait
 
-=item want
+ our Conc::Proc::Status multi method Conc::Processes::wait( Conc::Proc $process: *%options )
 
-=item caller
+ our Conc::Proc::Status multi Conc::Processes::wait ( Conc::Proc $process = -1, *%options )
 
-=item each
+Waits for a child process to terminate and returns the status
+object for the child. Important Conc::Proc::Status mehtods:
 
-Unlike Perl 5's each, C<each> is a general method that traverses any
-composite container in a type-specific manner.
+ .exit - Numeric exit value
+ .pid - Process ID
+ .signal - Signal number if any, otherwise 0
 
-For P5-like traversal, see C<Hash::kv> or C<Hash::pairs> instead,
-and put into C<for> instead of C<while>.  Perhaps there is a
-C<Perl5::p5each> emulation.
+For historical reasons there is a C<.status> method which is equal to:
 
+ ($status.exit +< 8) +| $status.signal
+
+If C<$process> is supplied, then wait will only return when the given process
+has exited. Either a full C<Conc::Proc> object can be passed, or just a
+numeric process ID. A C<-1> explicitly indicates that wait should return
+immediately if any child process exits.
+
+When called in this way, the returned C<Conc::Proc::Status> object
+will have a C<.pid> of C<-1> (which is also what it numifies to) if
+there was no such process to wait for.
+
+The named options include:
+
+=over
+
+=item blocking
+
+Defaults to true. If set to false, this forces wait to return immediately.
+
+=item WNOHANG
+
+Exists for historical compatibility. C<WNOHANG => 1> is identical to
+C<blocking => False>.
 
 =back
 
-
+=back
 
 =head2 Obsolete
 
@@ -945,7 +1256,6 @@ C<Perl5::p5each> emulation.
 =item dbmopen, dbmclose
 
  use DB_File;
-
 
 =item dump
 
@@ -965,6 +1275,11 @@ See Exegesis 7.
 =item local
 
 Replaced by C<temp> which, unlike C<local>, defaults to not changing the value.
+
+=item lock
+
+See L<Synopsis 17: Concurrency>. C<lock> has been replaced by
+C<is atomic>.
 
 =item ref
 
@@ -992,8 +1307,11 @@ Was there a I<good> use for this?
 
 Algorithm was too anglo-centric.  Could be brought back if generalized somehow.
 
-=back
+=item waitpid
 
+C<wait> can now be called with or without an optional process/pid.
+
+=back
 
 =item %
 
@@ -1046,12 +1364,6 @@ for MMD reasons. --law
 Note: exec should also be renamed to something clearer and "final"
 and huffmanly longer.  I'm thinking runinstead().  And maybe the
 function behind qq:x should be rungather() rather than readpipe().  -law
-
-=item A/S17: Threads and Multiprocessing
-
-fork lock wait waitpid
-
-# FIXME audrey drafted synopsis 17
 
 =back
 
