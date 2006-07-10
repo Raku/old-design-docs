@@ -814,6 +814,36 @@ as a property of the string.)  Otherwise a standard newline is removed.
 Note: Most users should just let their I/O handles autochomp instead.
 (Autochomping is the default.)
 
+=item crypt
+
+ our Str multi Str::crypt ( Str $plaintext, Str $salt )
+ our Str multi method Str::crypt ( Str $plaintext: Str $salt )
+
+Encrypts the string using a one-way hash function. This yields a string
+which cannot be "decrypted". This is used for verifying strings such
+as passwords. The C<$plaintext> is the text to be encrypted. The
+C<$salt> is a string which controls how the encryption is done. Typically,
+this is a random string of two characters that matches the following pattern:
+
+ rule Str::CryptBasicSalt { <[./0-9A-Za-z]> ** 2 }
+
+There are other formats of salt as well, though their use is not universal.
+Check your operating system's B<crypt> function for more details. Often
+these other functions are used when strings of length greater than eight
+are to be used (the default crypt mode only recognizes the first eight
+characters of the string as significant).
+
+If you have a previously encrypted string and a plaintext password, you
+can check to see of the password is correct like so:
+
+ sub checkpw ( $encrypted, $plaintext ) {
+   return crypt($plaintext, $encrypted) ~~ $encrypted;
+ }
+
+This works because the first part of the encrypted form of the
+password is the salt, so an encrypted text can be passed in place of
+the salt (everything after the salt is ignored).
+
 =item lc
 
  our Str multi Str::lc ( Str $string )
@@ -1198,13 +1228,57 @@ data is accessed.
 
 =over
 
-=item runinstead
+=item chroot
 
- multi OS::runinstead ( ; Str $path, *@args )
- multi OS::runinstead ( ; Str $command )
+ our Bool multi OS::chroot ( Str $path = CALLER::<$_> )
 
-Identical to C<run> except that it never returns. The executed program
-replaces the currently running program in memory.
+On POSIX systems, changes the context of the current process such
+that the "root" directory becomes C<$path> and all rooted paths
+(those that begin with a leading path separator) are relative to
+that path. For security reasons, many operating systems limit
+this functionality to the superuser. The return value will be
+true on success.
+
+=item getlogin
+
+ our Str multi OS::getlogin ()
+
+Returns the username of the account running the program. This may
+not be as secure as using C<getpwuid> on some platforms.
+
+=item kill
+
+ our Bool multi OS::kill ( OS::Signal $signal, Bool :$group, *@pids )
+ our Bool multi method Conc::Proc::kill ( Conc::Proc $pid: $signal, Bool :$group )
+
+Sends the given C<$signal> to the process(es) given and returns a boolean
+value indicating success (true) if all of the processes existed and were
+sent the signal and failure (false) if any of the processes did not exist
+or the signal could not be delivered to them.
+
+The C<$signal> can be initialized from an integer signal number or a
+string. Common signals are:
+
+ KILL - stop the process, do not allow it to exit gracefully
+ TERM - stop the process, allow it to exit gracefully
+ HUP  - Hangup, often used as a request to re-run from scratch
+ STOP - Pause execution
+ CONT - Continue after a STOP
+
+Consult your operating system documentation for the full list
+of signal names and numbers. For compatibility, a signal name
+may be prefixed with "SIG".
+
+If the C<:group> named parameter is passed, C<kill> will attempt to
+send the signal to a process I<group> rather than a single process.
+This functionality is platform-specific.
+
+The special signal C<0> can be sent which does not actually deliver a
+signal at all, and is used to determine if processess are still running:
+
+  say "Still running" if $proc.kill(0);
+
+[Note: TODO /[get|set][pw|gr].*/ setpgrp setpriority times -ajs ]
 
 =item run
 
@@ -1262,6 +1336,14 @@ Note: exec should also be renamed to something clearer and "final"
 and huffmanly longer.  I'm thinking runinstead().  And maybe the
 function behind qq:x should be rungather() rather than readpipe().  -law
 ]
+
+=item runinstead
+
+ multi OS::runinstead ( ; Str $path, *@args )
+ multi OS::runinstead ( ; Str $command )
+
+Identical to C<run> except that it never returns. The executed program
+replaces the currently running program in memory.
 
 =back
 
@@ -1446,7 +1528,7 @@ unlink utime warn
 
 =item A/S??: OS Interaction
 
-chroot crypt exec getlogin /[get|set][pw|gr].*/ kill setpgrp setpriority
+chroot crypt getlogin /[get|set][pw|gr].*/ kill setpgrp setpriority
 times
 
 ... These are probably going to be part of POSIX, automatically imported to GLOBAL B<iff> the platform is the right one
