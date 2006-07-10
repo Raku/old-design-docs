@@ -1039,9 +1039,8 @@ See C<Synopsis 17: Concurrency> for more details.
 
 =item word
 
-C<word> is almost exactly the same as C<macro>, but always defines
-its macros as C<term:> (see L<Synopsis 2: Bits and Pieces>). Its usage
-might appear as:
+C<word> is almost exactly the same as C<macro>, only defines macros which
+take no arguments. For example:
 
  word foo { "'foo'.say" }
  foo;
@@ -1158,18 +1157,40 @@ Replaces Perl 5 C<hex> and C<oct>.
 =back 
 
 
-=head2 Time::Local
+=head2 Time
 
 =over
 
 =item gmtime 
 
+ our Time multi Time::gmtime ( Time $time? )
+ our Time multi method Time::gmtime ( Time $time: )
+
+Identical to:
+
+ Time::localtime(:$time,:tz<GMT>)
+
 =item localtime 
+
+ our Time multi Time::localtime ( Time $time?, Time::Zone $tz? )
+ our Time multi method Time::localtime ( Time $time: Time::Zone $tz? )
+
+Returns a time object whose default timezone is C<$tz> (or the system's
+default timezone if none is provided).
+
+If used as a function, and no time is provided, the default timezone
+of C<$time> is used (which may or may not be the system default).
 
 =item time
 
+ our Time multi Time::time()
 
+Returns a C<Time> object. There are a number of uses for this
+object, all of which can be found in the documetation for C<Time>.
 
+There is, by default, no timezone associated with this Time object, so
+whatever default the system has will take over if timezone-specifc
+data is accessed.
 
 =back
 
