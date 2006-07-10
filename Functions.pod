@@ -1194,6 +1194,77 @@ data is accessed.
 
 =back
 
+=head2 OS
+
+=over
+
+=item runinstead
+
+ multi OS::runinstead ( ; Str $path, *@args )
+ multi OS::runinstead ( ; Str $command )
+
+Identical to C<run> except that it never returns. The executed program
+replaces the currently running program in memory.
+
+=item run
+
+ our Conc::Proc::Status multi OS::run ( ; Str $command )
+ our Conc::Proc::Status multi OS::run ( ; Str $path, *@args )
+ our Conc::Proc::Status multi OS::run ( Str @path_and_args )
+
+ our Conc::Proc multi OS::run ( ; Str $command, Bool :$bg! )
+ our Conc::Proc multi OS::run ( ; Str $path, Bool :$bg!, *@args )
+ our Conc::Proc multi OS::run ( Str @path_and_args, Bool :$bg! )
+
+C<run> executes an external program, and returns control to the caller
+once the program has exited.
+
+The default form expects a single string argument which contains the
+full command-line. This command-line will be scanned for special
+characters that the operating system's shell might interpret such as
+C<;> or embedded quotes. If any are found, the command will be run
+through a sub-shell in an operating system specific fashion (on
+POSIX systems, this means C<sh -c>).
+
+If called like this:
+
+ run( :path<'/some/path'>, 'arg1', 'arg2', ... )
+
+or with a single array (containing both the path and arguments), then the
+path given is executed directly with no shell interpretation.
+
+The return value is the exit status
+of the program, and can be evaluated in the following contexts:
+
+ Bool - True = success; False = failure
+ Int  - Exit status (per the .exit method)
+
+See C<wait> for more detail on how the C<Conc::Proc::Status> object
+is used.
+
+On failure to execute, an undefined value is returned.
+
+If the C<:bg> named parameter is passed, the program will be executed
+in the background, and the run command will return as soon as the
+child process is created. This means that the object returned is
+actually a C<Conc::Proc>, which represents the created process.
+
+[ Note: should the :bg form take rw filehandles or is that over-overloading
+        the functionality of run? Should run be the new open with
+        respect to executing external code? -ajs ]
+
+[ Note: system() should be renamed to sys() or sh() or run() or
+some such to avoid P5-induced boolean inversion confusion, plus
+huffmanize it a little better.  I'm thinking run() might be best
+for MMD reasons. --law
+
+Note: exec should also be renamed to something clearer and "final"
+and huffmanly longer.  I'm thinking runinstead().  And maybe the
+function behind qq:x should be rungather() rather than readpipe().  -law
+]
+
+=back
+
 =head2 Concurrency
 
 There are higher-level models of concurrency management in Perl (see
@@ -1376,18 +1447,9 @@ unlink utime warn
 =item A/S??: OS Interaction
 
 chroot crypt exec getlogin /[get|set][pw|gr].*/ kill setpgrp setpriority
-system times
+times
 
 ... These are probably going to be part of POSIX, automatically imported to GLOBAL B<iff> the platform is the right one
-
-Note: system() should be renamed to sys() or sh() or run() or
-some such to avoid P5-induced boolean inversion confusion, plus
-huffmanize it a little better.  I'm thinking run() might be best
-for MMD reasons. --law
-
-Note: exec should also be renamed to something clearer and "final"
-and huffmanly longer.  I'm thinking runinstead().  And maybe the
-function behind qq:x should be rungather() rather than readpipe().  -law
 
 =back
 
