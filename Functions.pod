@@ -371,6 +371,60 @@ TODO
 
 TODO
 
+=head2 Container
+
+=item each
+
+ our Lazy multi Container::each( Bool :$shortest, Bool :$finite, Container *@containers )
+
+Unlike Perl 5's each, C<each> is a general method that traverses any
+composite container in a type-specific manner. C<each> is like C<zip>,
+but does not create tuples as return values. An example of its
+use is:
+
+ for each(:parity, =<>; 1..*) -> ($line, $lineno) {
+   say "$lineno: $line";
+ }
+
+The optional C<:shortest> named parameter causes C<each> to stop
+processing its input lists as soon as I<any> of them is exhausted.
+This modifier can also be used on individual containers, causing
+C<each> to stop when I<that> parameter is empty.
+
+The optional C<:finite> named parameter causes C<each> to stop
+processing its input lists as long as only those which are known
+at run-time to represent infinite ranges are left.
+
+For P5-like traversal, see C<Hash::kv> or C<Hash::pairs> instead,
+and put into C<for> instead of C<while>.  Perhaps there is a
+C<Perl5::p5each> emulation.
+
+=item roundrobin
+
+TODO
+
+=item zip
+
+ our Iterator multi Container::zip ( Bool :$shortest, Bool :$finite, Array *@lists ) {
+
+zip takes any number of arrays and returns one tuple for every index.
+This is easier to read in an example:
+
+ for zip(@a;@b;@c) -> [$nth_a,$nth_b,$nth_c] {
+   ...
+ }
+
+mnemonic: the input arrays are "zipped" up like a zipper.
+
+The optional C<:shortest> named parameter causes C<zip> to stop
+processing its input lists as soon as I<any> of them is exhausted.
+This modifier can also be used on individual containers, causing
+C<zip> to stop when I<that> parameter is empty.
+
+The optional C<:finite> named parameter causes C<zip> to stop
+processing its input lists as long as only those which are known
+at run-time to represent infinite ranges are left.
+
 =head2 Array
 
 =over
@@ -644,25 +698,6 @@ details and examples.
 
 
 
-=item zip
-
- our Lazy multi List::zip ( Array *@lists, Bit $shortest? ) {
-
-zip takes any number of arrays and returns a single (lazily evaluated)
-list of their contents, merged by index. In other words,
-
- @one = 1, 2;
- @two = 3, 4;
- @three = 4, 5;
- @all = zip @one, @two, @three;
-
-will place into C<@all>, the list, C<1,3,4,2,4,5>. The name is meant to be
-mnemonic: the input arrays are "zipped" up like a zipper.
-
-[Note: This should be the definition of each() now.  The zip function needs
-to build tuples of the "across" values.  Also, it maybe probably be
-in terms of longest non-infinite.  -law]
-
 =back
 
 =head2 Hash
@@ -737,23 +772,6 @@ been iterated.
 
 The lvalue form of C<keys> is not longer supported. Use the C<.buckets>
 property instead.
-
-=item each
-
- our Iterator multi Container::each(Bool :$parity = False, Container *@containers)
-
-Unlike Perl 5's each, C<each> is a general method that traverses any
-composite container in a type-specific manner. C<each> is like C<zip>,
-but does not create tuples as return values. An example of its
-use is:
-
- for each(:parity, =<>; 1..*) -> ($line, $lineno) {
-   say "$lineno: $line";
- }
-
-For P5-like traversal, see C<Hash::kv> or C<Hash::pairs> instead,
-and put into C<for> instead of C<while>.  Perhaps there is a
-C<Perl5::p5each> emulation.
 
 =back
 
