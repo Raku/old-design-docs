@@ -740,8 +740,16 @@ property instead.
 
 =item each
 
+ our Iterator multi Container::each(Bool :$parity = False, Container *@containers)
+
 Unlike Perl 5's each, C<each> is a general method that traverses any
-composite container in a type-specific manner.
+composite container in a type-specific manner. C<each> is like C<zip>,
+but does not create tuples as return values. An example of its
+use is:
+
+ for each(:parity, =<>; 1..*) -> ($line, $lineno) {
+   say "$lineno: $line";
+ }
 
 For P5-like traversal, see C<Hash::kv> or C<Hash::pairs> instead,
 and put into C<for> instead of C<while>.  Perhaps there is a
