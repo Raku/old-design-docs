@@ -919,6 +919,46 @@ Needs to be in terms of StrPos, not Int.
 
 =item pack
 
+ our Str multi Str::pack( Str::Encoding $encoding,  Pair *@items )
+ our Str multi Str::pack( Str::Encoding $encoding,  Str $template, *@items )
+ our buf8 multi Str::pack( Pair *@items )
+ our buf8 multi Str::pack( Str $template, *@items )
+
+C<pack> takes a list of pairs and formats the values according to
+the specification of the keys. Alternately, it takes a string
+C<$template> and formats the rest of its arguments according to
+the specifications in the template string. The result is a sequence
+of bytes.
+
+An optional C<$encoding> can be used to specify the character
+encoding to use in interpreting the result as a C<Str>, otherwise the return
+value will simply be a C<buf> containing the bytes generated
+by the template(s) and value(s). Note that no guarantee is made
+in terms of the final, internal represenation of the string, only
+that the generated sequence of bytes will be interpreted as a
+string in the given encoding, and a string containing those
+graphemes will be returned. If the sequence of bytes represents
+an invalid string according to C<$encoding>, an exception is generated.
+
+Templates are strings of the form:
+
+  grammar Str::PackTemplate { 
+   rule template  { [ <group> | <specifier> <count>? ]* }
+   rule group     { \( <template> \) }
+   rule specifier { <[aAZbBhHcCsSiIlLnNvVqQjJfdFDpPuUwxX\@]> \!? }
+   rule count     { \* |
+		    \[ [ \d+ | <specifier> ] \] |
+		    \d+ }
+ }
+
+In the pairwise mode, each key must contain a single C<group> or
+C<specifier>, and the values must be either scalar arguments or
+arrays.
+
+[ Note: Need more documentation and need to figure out what Perl 5 things
+        no longer make sense. Does Perl 6 need any extra formatting
+        features? -ajs ]
+
 =item pos
 
 =item quotemeta
@@ -967,8 +1007,8 @@ passed is to be formatted into the string.
 
 The directives are:
 
- %   a percent sign
- c   a character with the given number
+ %   a literal percent sign
+ c   a character with the given codepoint
  s   a string
  d   a signed integer, in decimal
  u   an unsigned integer, in decimal
@@ -1032,6 +1072,9 @@ like so:
 
 If the replacement string is longer or shorter than the matched sub-string,
 then the original string will be dynamically resized.
+
+[ Note: Is the word "length" a problem, here, given Perl 6's
+        general desire to stop using length with respect to strings? -ajs ]
 
 =item unpack
 
