@@ -1001,8 +1001,8 @@ Templates are strings of the form:
 		     \d+ }
  }
 
-In the pairwise mode, each key must contain a single C<group> or
-C<specifier>, and the values must be either scalar arguments or
+In the pairwise mode, each key must contain a single C<< <group> >> or
+C<< <specifier> >>, and the values must be either scalar arguments or
 arrays.
 
 [ Note: Need more documentation and need to figure out what Perl 5 things
@@ -1098,7 +1098,7 @@ Here's an example of its use:
 
  sprintf "%d%C is %d digits long",
 	$num,
-	sub($s,@args is rw) {@args[2]=$s.size},
+	sub($s,@args is rw) {@args[2]=$s.elems},
 	0;
 
 The special directive, C<%n> does not work in Perl 6 because of the
@@ -1242,31 +1242,32 @@ for more detailed information on object creation.
 
 =item ord
 
- our Str multi Str::chr( Int $codepoint, Str::CharSet $charset? )
- our Str multi Str::chr( Str::Codepoint $codepoint )
- our Str::Codepoint multi Str::ord( Str $character )
+ our Uni multi Str::chr( Uni $codepoint )
+ our Uni multi Str::ord( Uni $character )
+ multi Str::ord( Str $string )
 
 These functions are available for purposes of backward compatibility.
-C<chr> takes a codepoint (an integer which can be indexed in the current
-character set) and returns a C<Str> which contains only that codepoint.
-If the entry matching the codepoint in the current character set
-is combining or otherwise not intended for use as a stand-alone
-grapheme, then C<chr>'s behavior will be implementation specific.
+C<chr> takes a C<Uni> and returns the exact same value with no change.
+This is because, in Perl 6, a Uni is both an integer codepoint when
+numified and a single character when stringified. Thus, chr is just:
 
-An alternate version of C<chr> takes a C<Str::Codepoint> object. See
-below for further detail.
+ our Uni multi Str::chr( Uni $codepoint) { $codepoint; }
 
-C<ord> behaves in a complementary fashion, taking the first codepoint
-in C<$character> and returning it as a C<Str::Codepoint>. This object
-may then be used as if it were an ordinary integer, but also retains
-information about its originating character set. Thus,
+C<ord> is almost the same, but it also has a form that takes a string.
+In a scalar context, the return value is the C<Uni> representing
+the first codepoint in the string. In a list context, the return
+value is the list of C<Uni>s representing the entire string.
 
- $s2 = chr(ord($s1));
+An integer can be passed to C<chr>, but it will automatically
+be upgraded to a Uni (by interpreting it as a Unicode codepoint).
 
-is guaranteed to return the first character from C<$s1>, as long as that
-"character" is represented by a single codepoint. Otherwise, its behavior
-is implementation specific, and may result in an exception or undefined
-value.
+Be aware that the stringification of certain C<Uni>s will
+fail because they have no stand-alone stringified interpretation.
+Similarly, the creation of a C<Uni> from an integer might throw
+an exception due to the integer being out of range. If that
+happens, an undefined C<Uni> is always returned. Similarly,
+C<chr(undef)> or C<ord(undef)> will force the reutrn of an
+undefined C<Uni>.
 
 =item list
 
