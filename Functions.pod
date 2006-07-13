@@ -401,7 +401,27 @@ C<Perl5::p5each> emulation.
 
 =item roundrobin
 
-TODO
+ our Lazy multi Container::roundrobin( Bool :$shortest, Bool :$finite, Container *@containers )
+
+C<roundtobin> is very similar to C<each>, and in fact
+
+ roundrobin( :shortest, @a; @b; @c );
+
+and
+
+ each( :shortest, @a; @b; @c );
+
+Are exactly the same. The difference is that, by default C<roundrobin> will
+not return C<undef> as a "spacer" for an array that has been emptied. Thus:
+
+ my @a = 1;
+ my @b = 1..2;
+ my @c = 1..3;
+ for roundrobin( @a; @b; @c ) -> $x { ... }
+
+will get the following values for C<$x>: C<1, 1, 1, 2, 2, 3>
+
+C<each> would get: C<1, 1, 1, 2, 2, undef, 3, undef, undef>
 
 =item zip
 
@@ -1608,7 +1628,6 @@ Was there a I<good> use for this?
 
  &func.meta.signature;
  &func.^signature;
-
 
 =item study
 
