@@ -377,7 +377,7 @@ TODO
 
 =item cat
 
- our Lazy multi Container::cat( Container *@containers );
+ our Lazy multi Container::cat( *@@list );
 
 C<cat> reads arrays serially rather than in parallel as C<each> does. It
 returns all of the elements of the containers that were passed to it
@@ -392,7 +392,7 @@ it's nice to be explicit about that:
 
 =item each
 
- our Lazy multi Container::each( Bool :$shortest, Bool :$finite, Container *@containers )
+ our Lazy multi Container::each( Bool :$shortest, Bool :$finite, *@@list )
 
 Unlike Perl 5's each, C<each> is a general method that traverses any
 composite container in a type-specific manner. C<each> is like C<zip>,
@@ -418,7 +418,7 @@ C<Perl5::p5each> emulation.
 
 =item roundrobin
 
- our Lazy multi Container::roundrobin( Bool :$shortest, Bool :$finite, Container *@containers )
+ our Lazy multi Container::roundrobin( Bool :$shortest, Bool :$finite, *@@list )
 
 C<roundtobin> is very similar to C<each>, and in fact
 
@@ -442,11 +442,9 @@ C<each> would get: C<1, 1, 1, 2, 2, undef, 3, undef, undef>
 
 =item zip
 
- our Iterator multi Container::zip ( Bool :$shortest, Bool :$finite, Array *@lists ) {
- our Iterator multi infix:Container::¥ ( Bool :$shortest, Bool :$finite, Array @a, Array @b ) {
- our Iterator multi infix:Container::Y ( Bool :$shortest, Bool :$finite, Array @a, Array @b) {
- our Iterator multi infix:Container::¥ ( Bool :$shortest, Bool :$finite, Iterator @a, Array @b) {
- our Iterator multi infix:Container::Y ( Bool :$shortest, Bool :$finite, Iterator @a, Array @b) {
+ our Iterator multi Container::zip ( Bool :$shortest, Bool :$finite, *@@list )
+ our Iterator multi infix:Container::¥ ( Bool :$shortest, Bool :$finite, *@@list )
+ our Iterator multi infix:Container::Y ( Bool :$shortest, Bool :$finite, *@@list )
 
 zip takes any number of arrays and returns one tuple for every index.
 This is easier to read in an example:
@@ -469,19 +467,6 @@ at run-time to represent infinite ranges are left.
 C<¥> (and its ASCII equivalent, C<Y>) is an infix equivalent for zip:
 
  for @a ¥ @b ¥ @c -> [$a,$b,$c] {...}
-
-This does what you might expect, but not in an obvious way. It
-becomes:
-
- for infix:<¥>(infix:<¥>(@a;@b);@c) -> [$a,$b,$c] {...}
-
-which zips C<@a> and C<@b>, and then passes the resulting iterator to
-another C<¥> which interleaves C<@c>. This works because, when given an
-C<Iterator> as its first argument, C<¥> will add each of the values
-from its second paramter to the end of each tuple returned by the
-iterator. This is just the mechanism, however. To the user,
-the infix ¥ just does what they almost certainly expect it to do in the
-first place.
 
 =head2 Array
 
