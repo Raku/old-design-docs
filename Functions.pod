@@ -913,9 +913,16 @@ C<s:g/(\w+)/{ucfirst $1}/> on it.
 
 This word is banned in Perl 6.  You must specify units.
 
-=item index 
+=item index
 
-Needs to be in terms of StrPos, not Int.
+ our StrPos multi Str::index( Str $string, Str $substring, StrPos $pos = 0 )
+
+C<index> searches for the first occurance of C<$substring> in C<$string>,
+starting at C<$pos>.
+
+If the substring is found, then the position of the first character of
+the substring is returned. If the substring is not found, then
+undef is returned.
 
 =item pack
 
@@ -965,7 +972,11 @@ arrays.
 
 =item rindex 
 
-Needs to be in terms of StrPos, not Int.
+ our StrPos multi Str::index( Str $string, Str $substring, StrPos $pos? )
+
+Returns the position of the last C<$substring> in C<$string>. If C<$pos>
+is specified, then the search starts at that location in C<$string>, and
+works backwards. See C<index> for more detail.
 
 =item split
 
@@ -1277,8 +1288,10 @@ Identical to:
 Returns a time object whose default timezone is C<$tz> (or the system's
 default timezone if none is provided).
 
-If used as a function, and no time is provided, the default timezone
-of C<$time> is used (which may or may not be the system default).
+If used as a function, and no time is provided, the current time is used.
+
+Note that no matter what, C<$time>'s concept of "its timezone" is discarded
+in favor of something new.
 
 =item time
 
