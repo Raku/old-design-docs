@@ -1,3 +1,5 @@
+=encoding utf8
+
 =head1 Title
 
  Synopsis 29 - Builtin Functions
@@ -373,6 +375,21 @@ TODO
 
 =head2 Container
 
+=item cat
+
+ our Lazy multi Container::cat( Container *@containers );
+
+C<cat> reads arrays serially rather than in parallel as C<each> does. It
+returns all of the elements of the containers that were passed to it
+like so:
+
+ cat(@a;@b;@c);
+
+Typically, you could just write C<(@a,@b,@c)>, but sometimes
+it's nice to be explicit about that:
+
+ @foo := [[1,2,3],[4,5,6]]; say cat([;] @foo); # 1,2,3,4,5,6
+
 =item each
 
  our Lazy multi Container::each( Bool :$shortest, Bool :$finite, Container *@containers )
@@ -426,6 +443,10 @@ C<each> would get: C<1, 1, 1, 2, 2, undef, 3, undef, undef>
 =item zip
 
  our Iterator multi Container::zip ( Bool :$shortest, Bool :$finite, Array *@lists ) {
+ our Iterator multi infix:Container::¥ ( Bool :$shortest, Bool :$finite, Array @a, Array @b ) {
+ our Iterator multi infix:Container::Y ( Bool :$shortest, Bool :$finite, Array @a, Array @b) {
+ our Iterator multi infix:Container::¥ ( Bool :$shortest, Bool :$finite, Iterator @a, Array @b) {
+ our Iterator multi infix:Container::Y ( Bool :$shortest, Bool :$finite, Iterator @a, Array @b) {
 
 zip takes any number of arrays and returns one tuple for every index.
 This is easier to read in an example:
@@ -444,6 +465,23 @@ C<zip> to stop when I<that> parameter is empty.
 The optional C<:finite> named parameter causes C<zip> to stop
 processing its input lists as long as only those which are known
 at run-time to represent infinite ranges are left.
+
+C<¥> (and its ASCII equivalent, C<Y>) is an infix equivalent for zip:
+
+ for @a ¥ @b ¥ @c -> [$a,$b,$c] {...}
+
+This does what you might expect, but not in an obvious way. It
+becomes:
+
+ for infix:<¥>(infix:<¥>(@a;@b);@c) -> [$a,$b,$c] {...}
+
+which zips C<@a> and C<@b>, and then passes the resulting iterator to
+another C<¥> which interleaves C<@c>. This works because, when given an
+C<Iterator> as its first argument, C<¥> will add each of the values
+from its second paramter to the end of each tuple returned by the
+iterator. This is just the mechanism, however. To the user,
+the infix ¥ just does what they almost certainly expect it to do in the
+first place.
 
 =head2 Array
 
