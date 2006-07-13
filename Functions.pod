@@ -894,7 +894,7 @@ as passwords. The C<$plaintext> is the text to be encrypted. The
 C<$salt> is a string which controls how the encryption is done. Typically,
 this is a random string of two characters that matches the following pattern:
 
- rule Str::CryptBasicSalt { <[./0-9A-Za-z]> ** 2 }
+ token Str::CryptBasicSalt { <[./0-9A-Za-z]> **{2} }
 
 There are other formats of salt as well, though their use is not universal.
 Check your operating system's B<crypt> function for more details. Often
@@ -993,12 +993,12 @@ an invalid string according to C<$encoding>, an exception is generated.
 Templates are strings of the form:
 
   grammar Str::PackTemplate { 
-   rule template  { [ <group> | <specifier> <count>? ]* }
-   rule group     { \( <template> \) }
-   rule specifier { <[aAZbBhHcCsSiIlLnNvVqQjJfdFDpPuUwxX\@]> \!? }
-   rule count     { \* |
-		    \[ [ \d+ | <specifier> ] \] |
-		    \d+ }
+   regex template  { [ <group> | <specifier> <count>? ]* }
+   token group     { \( <template> \) }
+   token specifier { <[aAZbBhHcCsSiIlLnNvVqQjJfdFDpPuUwxX\@]> \!? }
+   token count     { \* |
+		     \[ [ \d+ | <specifier> ] \] |
+		     \d+ }
  }
 
 In the pairwise mode, each key must contain a single C<group> or
@@ -1045,14 +1045,14 @@ The C<$format> is scanned for C<%> characters. Any C<%> introduces a
 format token. Format tokens have the following grammar:
 
  grammar Str::SprintfFormat {
-  rule format_token { \%: <index>? <precision>? <modifier>? <directive> }
-  rule index { \d+ \$ }
-  rule precision { <flags>? <vector>? <precision_count> }
-  rule flags { <[\ +0\#\-]>+ }
-  rule precision_count { [ <[1-9]>\d* | \* ]? [ \. [ \d* | \* ] ]? }
-  rule vector { \*? v }
-  rule modifier { ll | <[lhVqL]> }
-  rule directive { <[\%csduoxefgXEGbpniDUOF]> }
+  regex format_token { \%: <index>? <precision>? <modifier>? <directive> }
+  token index { \d+ \$ }
+  token precision { <flags>? <vector>? <precision_count> }
+  token flags { <[\ +0\#\-]>+ }
+  token precision_count { [ <[1-9]>\d* | \* ]? [ \. [ \d* | \* ] ]? }
+  token vector { \*? v }
+  token modifier { ll | <[lhVqL]> }
+  token directive { <[\%csduoxefgXEGbpniDUOF]> }
  }
 
 Directives guide the use (if any) of the arguments. When a directive
