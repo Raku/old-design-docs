@@ -98,8 +98,9 @@ See the section on C< Metadata Spec > for details.
 
 These files are created in step 3 of the C<General Flow>
 
-# XXX - What does C<.jib> stand for?  Why not C<.p6d> or C<.p6z> or something 
-along that line?
+C<JIB> is a simple 3 letter combination that's not yet 'taken' as
+a known extension. It's purposely not perl specific, as there's nothing
+about the C<JIB> specification that's limitin it to perl only.
 
 # XXX - Also C<package> is carrying double meaning in P6 as both namespace
 and source distribution.  Can we remove the former meaning and refer to them
@@ -173,7 +174,10 @@ about that installation.
             /usr/local/bin/X
         # XXX - Question - in platforms without symlinks, do we emulate
         #       using hardlinks and fallback to copying?  
-
+        # Symlinks is just an implementation. A fallback scenario can
+        # be any of the suggestions you made, or another altogether.
+        # Probably best to consult platform experts in this case. --Kane
+        
     * In the case of multiple installs of the same package (where 'same'
         is determined by identical <prefix>-<package-name>), the perl6 
         policy will determine which is the current active package, just
@@ -276,7 +280,7 @@ See README for details on these scripts.
             - unlinks all files listed
             - unlinks all bin/$script files that were linked
                 - relinks them if there's a suitable replacement available
-                - doesn't unlink manpages # XXX - Why?
+                - doesn't unlink manpages yet
                 - all up/downgrades considered 'auto' for now                
         - updates 'available' file (a la dpkg)
         - removes meta data associated with this package
@@ -333,15 +337,25 @@ See README.repo for details on these scripts.
 
 =head2 Supported fields
 
-    - Author        CPAN author id              (KANE)
-    - Name          Perl module name            (Foo::Bar)
+    - Prefix        Package prefix category     (p5)
+    - Name          Perl module name            (Foo-Bar)
     - Version       Perl module version         (1.2.3)
-    - Description   Description of function     (This is what it does)
     - Authority     From S11                    (cpan+KANE)
     - Package       Full package name           (p5-Foo-Bar-1.2.3-cpan+kane)
+    - Description   Description of function     (This is what it does)
+    - Author        CPAN author id              (KANE)
     - Depends       Packages it depends on[1][2](p5-Foo)
     - Provides      Packages this one provides  (p5-Foo-Bar, 
                                                     p5-Foo-Bar-cpan+kane)
+
+As the <Prefix>-<Name>-<Version>-<Authority> combination make up the 
+<Package> name, arguably, we can leave the former out. 
+The upside is to make sure all fields contain unique information. 
+The downside is that 3rd party parsers will need to understand the 
+C<Package> syntax.
+
+Again, arguably, the C<Author> and C<Authority> fields overlap, and
+C<Authority> can be made to hold both cases.
 
     [1] This is packages, *not* modules. If we need a module -> package 
         mapping, this needs to be done when extracting the data from the
