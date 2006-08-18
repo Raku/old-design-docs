@@ -26,6 +26,9 @@ sub refresh_specs {
         11 Module   12 Object       13 Overload
     );
 
+    local $| = 1;
+    print "==> Refreshing specs from $BaseURI...\n";
+
     my $request = HTTP::Request->new(HEAD => $BaseURI);
     my $response = $ua->request($request);
 
@@ -33,9 +36,6 @@ sub refresh_specs {
 
     my $etags = $response->header('ETag') or return;
     ($etags =~ /(\d+)/) or return;
-
-    local $| = 1;
-    print "==> Refreshing specs from $BaseURI...\n";
 
     my $remote_revision = $1;
     my $local_revision = -1;
