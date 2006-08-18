@@ -10,14 +10,13 @@ refresh_specs();
 
 sub refresh_specs {
     # okay, we are at author side - refresh Synopses
-    local $@;
     if (!eval { require LWP; require LWP::Simple; 1 }) {
-        warn "LWP or LWP::Simple not installed.\n";
+        warn "LWP or LWP::Simple not installed: $@\n";
         return;
     }
 
-    use vars '$ua';
-    LWP::Simple->import('mirror', '$ua');
+    our $ua;
+    LWP::Simple->import('$ua');
 
     my $BaseURI = 'http://svn.perl.org/perl6/doc/trunk/design/syn';
     my %Spec = qw(
