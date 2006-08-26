@@ -9,7 +9,7 @@ Synopsis 29: Builtin Functions
 
  Author:        Rod Adams <rod@rodadams.net>
  Maintainer:    Larry Wall <larry@wall.org>
- Contributions:	Aaron Sherman <ajs@ajs.com>
+ Contributions: Aaron Sherman <ajs@ajs.com>
  Date:          12 Mar 2005
  Last Modified: 08 Jul 2006
  Version:       4
@@ -48,7 +48,7 @@ dictate implementation.
 There is no particular difference between an operator and a function,
 but for the sake of documentation, only functions declared without
 specifying a grammatical category or with a category of C<term:>
-(see L<Synopsis 2: Bits and Pieces>) will be described as "functions",
+(see L<S02/"Bits and Pieces">) will be described as "functions",
 and everything else as "operators" which are outside of the scope
 of this document.
 
@@ -223,17 +223,17 @@ sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
 acotan, sinh, cosh, tanh, asinh, acosh, atanh, sech, cosech, cotanh,
 asech, acosech, acotanh.
 
-Performs the various trigonometric functions. 
+Performs the various trigonometric functions.
 
 Option C<$base> is used to declare how you measure your angles.
 Given the value of an arc representing a single full revolution.
 
- $base  	Result
- ----   	-------
- /:i ^r/	Radians  (2*pi)
- /:i ^d/	Degrees  (360)
- /:i ^g/	Gradians (400)
- Num    	Units of 1 revolution. 
+ $base      Result
+ ----       -------
+ /:i ^r/    Radians  (2*pi)
+ /:i ^d/    Degrees  (360)
+ /:i ^g/    Gradians (400)
+ Num        Units of 1 revolution.
 
 Note that module currying can be used within a lexical scope to specify
 a consistent base so you don't have to supply it with every call:
@@ -256,7 +256,7 @@ The other alternative would be to remove the default. --law]
 
 =head2 Scalar
 
-=over 
+=over
 
 =item defined
 
@@ -310,7 +310,11 @@ Such a conversion does not generate a warning.
 Perl 5's unary C<undef> function is renamed C<undefine> to avoid
 confusion with the value C<undef> (which is always 0-ary now).
 
+=back
+
 =head2 Container
+
+=over
 
 =item cat
 
@@ -405,6 +409,8 @@ C<¥> (and its ASCII equivalent, C<Y>) is an infix equivalent for zip:
 
  for @a ¥ @b ¥ @c -> [$a,$b,$c] {...}
 
+=back
+
 =head2 Array
 
 =over
@@ -441,7 +447,7 @@ An unary form is expected. See C<Hash::delete>.
 
 =item pop
 
- 
+
  our Scalar multi Array::pop ( @array is rw )
  our Scalar multi method Array::pop ( @array: )
 
@@ -515,13 +521,13 @@ C<unshift> adds the values onto the start of the C<@array>.
 
 (XXX these signatures are wrong. -luqui)
 
-Iterates the elements of C<@array>, in order. 
+Iterates the elements of C<@array>, in order.
 
 If C<@indextests> are provided, only elements whose indices match
 C<$index ~~ any(@indextests)> are iterated.
 
 What is returned at each element of the iteration varies with function.
-C<values> returns the value of the associated element; C<kv> returns 
+C<values> returns the value of the associated element; C<kv> returns
 a 2 element list in (index, value) order, C<pairs> a C<Pair(index, value)>.
 
 C<@array> is considered single dimensional. If it is in fact multi-dimensional,
@@ -567,7 +573,7 @@ to a single space.
 
 Given an empty list, C<join> returns the empty string.
 
-=item map 
+=item map
 
  our Lazy multi Array::map ( @values, Code *&expression )
  our Lazy multi List::map ( Code $expression?, *@values )
@@ -709,7 +715,7 @@ example translations. This list is I<not> exhaustive.
 
 
 =item exists
- 
+
  our Bool multi method Hash::exists ( $key )
 
 True if invocant has an element whose key matches C<$key>, false
@@ -733,10 +739,10 @@ A body of ... counts as undefined.)
  multi Int|List Hash::kv ( %hash ; MatchTest *@keytests )
  multi Int|(List of Pair) Hash::pairs  (%hash ; MatchTest *@keytests )
  multi Int|List Hash::values ( %hash ; MatchTest *@keytests )
- 
+
 Iterates the elements of C<%hash> in no apparent order, but the order
 will be the same between successive calls to these functions, as long as
-C<%hash> doesn't change. 
+C<%hash> doesn't change.
 
 If C<@keytests> are provided, only elements whose keys evaluate
 C<$key ~~ any(@keytests)> as true are iterated.
@@ -929,13 +935,13 @@ an invalid string according to C<$encoding>, an exception is generated.
 
 Templates are strings of the form:
 
-  grammar Str::PackTemplate { 
+  grammar Str::PackTemplate {
    regex template  { [ <group> | <specifier> <count>? ]* }
    token group     { \( <template> \) }
    token specifier { <[aAZbBhHcCsSiIlLnNvVqQjJfdFDpPuUwxX\@]> \!? }
    token count     { \* |
-		     \[ [ \d+ | <specifier> ] \] |
-		     \d+ }
+             \[ [ \d+ | <specifier> ] \] |
+             \d+ }
  }
 
 In the pairwise mode, each key must contain a single C<< <group> >> or
@@ -956,7 +962,7 @@ Returns the input string with all non-"word" characters back-slashed.
 That is, all characters not matching "/[A-Za-z_0-9]/" will be preceded
 by a backslash in the returned string, regardless of any locale settings.
 
-=item rindex 
+=item rindex
 
  our StrPos multi Str::index( Str $string, Str $substring, StrPos $pos? )
 
@@ -1040,9 +1046,9 @@ far and the argument array.
 Here's an example of its use:
 
  sprintf "%d%C is %d digits long",
-	$num,
-	sub($s,@args is rw) {@args[2]=$s.elems},
-	0;
+    $num,
+    sub($s,@args is rw) {@args[2]=$s.elems},
+    0;
 
 The special directive, C<%n> does not work in Perl 6 because of the
 difference in parameter passing conventions, but the example above
@@ -1094,8 +1100,8 @@ Should replace vec with declared arrays of bit, uint2, uint4, etc.
 
 TODO
 
-=item eval 
- 
+=item eval
+
  multi Control::Basic::eval ( Str $code, Grammar :$lang = CALLER::<$?PARSER>)
 
 Execute C<$code> as if it were code written in C<$lang>.  The default
@@ -1111,7 +1117,7 @@ Behaves like, and replaces Perl 5 C<do EXPR>, with optional C<$lang>
 support.
 
 
-=item exit 
+=item exit
 
  multi Control::Basic::exit ( Int $status = 0)
 
@@ -1150,10 +1156,10 @@ take no arguments. For example:
  foo;
 
 [ Refs:
-	Message-ID: <20050614164447.GA14958@wall.org> 
-	Date: Tue, 14 Jun 2005 09:44:47 -0700  (12:44 EDT)
-	From: Larry Wall <larry@wall.org>
-	To: perl6-language@perl.org
+    Message-ID: <20050614164447.GA14958@wall.org>
+    Date: Tue, 14 Jun 2005 09:44:47 -0700  (12:44 EDT)
+    From: Larry Wall <larry@wall.org>
+    To: perl6-language@perl.org
 ]
 
 =item die
@@ -1170,7 +1176,7 @@ B<TODO>: Research the exception handling system.
 
 =over
 
-=item bless 
+=item bless
 
  our Object multi method Class::bless( Object::RepCandidate $candidate )
  our Object multi method Class::bless( *%args )
@@ -1186,7 +1192,7 @@ are passed in) when the second form is used.
 
 It automatically calls all appropriate BUILD routines by calling the
 BUILDALL routine for the current class, which initializes the object in
-least-derived to most-derived order. See L<Synopsis 12: Objects>
+least-derived to most-derived order. See L<S12/Objects>
 for more detailed information on object creation.
 
 =item chr
@@ -1235,7 +1241,7 @@ Forces generic Item context on its argument, and returns it.
 
 
 =item :16, :8, :2, :10
- 
+
  our Num multi prefix:<:16> ( Str $hexstr )
  our Num multi prefix:<:8> ( Str $octstr )
  our Num multi prefix:<:2> ( Str $binstr )
@@ -1259,14 +1265,14 @@ and such.
 Replaces Perl 5 C<hex> and C<oct>.
 
 
-=back 
+=back
 
 
 =head2 Time
 
 =over
 
-=item gmtime 
+=item gmtime
 
  our Time multi Time::gmtime ( Time $time? )
  our Time multi method Time::gmtime ( Time $time: )
@@ -1275,7 +1281,7 @@ Identical to:
 
  Time::localtime(:$time,:tz<GMT>)
 
-=item localtime 
+=item localtime
 
  our Time multi Time::localtime ( Time $time?, Time::Zone $tz? )
  our Time multi method Time::localtime ( Time $time: Time::Zone $tz? )
@@ -1475,7 +1481,7 @@ replaces the currently running program in memory.
 =head2 Concurrency
 
 There are higher-level models of concurrency management in Perl (see
-L<Synopsis 17: Concurrency>). These functions are simply the lowest level
+L<S17/Concurrency>). These functions are simply the lowest level
 tools
 
 =over
@@ -1580,7 +1586,7 @@ Replaced by C<temp> which, unlike C<local>, defaults to not changing the value.
 
 =item lock
 
-See L<Synopsis 17: Concurrency>. C<lock> has been replaced by
+See L<S17/Concurrency>. C<lock> has been replaced by
 C<is atomic>.
 
 =item ref
@@ -1609,8 +1615,6 @@ Algorithm was too Anglo-centric.  Could be brought back if generalized somehow.
 =item waitpid
 
 C<wait> can now be called with or without an optional process/pid.
-
-=back
 
 =item %
 
@@ -1641,7 +1645,7 @@ Note: P5's tied() is roughly replaced by P6's variable().
 
 -X accept alarm bind binmode chown close closedir connect eof fcntl
 fileno flock getc getpeername
-/[get|set][host|net|proto|serv|sock].*/ glob ioctl link listen 
+/[get|set][host|net|proto|serv|sock].*/ glob ioctl link listen
 lstat mkdir open opendir pipe print printf read readdir readline
 readlink readpipe recv rename rewinddir rmdir seek seekdir select(both)
 send setsockopt shutdown slurp socket socketpair stat symlink
