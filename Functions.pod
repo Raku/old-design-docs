@@ -1058,16 +1058,21 @@ Modifiers change the meaning of format directives. The most important being
 support for complex numbers (a basic type in Perl). Here are all of the
 modifiers and what they modify:
 
- l interpret integer as C type "long" or "unsigned long"
- h interpret integer as C type "short" or "unsigned short"
- q interpret integer as C type "long long"
- L interpret integer as C type "unsigned long long".
- ll interpret integer as C type "quads" (typically 64-bit integers)
+ h interpret integer as native "short" (typically int16)
+ l interpret integer as native "long" (typically int32 or int64)
+ ll interpret integer as native "long long" (typically int64)
+ L interpret integer as native "long long" (typically uint64)
+ q interpret integer as native "quads" (typically int64 or larger)
  m interpret value as a complex number
 
 The C<m> modifier works with C<d,u,o,x,F,E,G,X,E> and C<G> format
 directives, and the directive applies to both the real and imaginary
 parts of the complex number.
+
+Examples:
+
+ sprintf "%ld a big number, %lld a bigger number, %mf complexity\n",
+	4294967295, 4294967296, Complex.new(1,2);
 
 =item substr
 
