@@ -1000,7 +1000,7 @@ format token. Format tokens have the following grammar:
   token flags { <[\ +0\#\-]>+ }
   token precision_count { [ <[1-9]>\d* | \* ]? [ \. [ \d* | \* ] ]? }
   token vector { \*? v }
-  token modifier { ll | <[lhVqL]> }
+  token modifier { ll | <[lhmVqL]> }
   token directive { <[\%csduoxefgXEGbpniDUOF]> }
  }
 
@@ -1053,6 +1053,21 @@ Here's an example of its use:
 The special directive, C<%n> does not work in Perl 6 because of the
 difference in parameter passing conventions, but the example above
 simulates its effect using C<%C>.
+
+Modifiers change the meaning of format directives. The most important being
+support for complex numbers (a basic type in Perl). Here are all of the
+modifiers and what they modify:
+
+ l interpret integer as C type "long" or "unsigned long"
+ h interpret integer as C type "short" or "unsigned short"
+ q interpret integer as C type "long long"
+ L interpret integer as C type "unsigned long long".
+ ll interpret integer as C type "quads" (typically 64-bit integers)
+ m interpret value as a complex number
+
+The C<m> modifier works with C<d,u,o,x,F,E,G,X,E> and C<G> format
+directives, and the directive applies to both the real and imaginary
+parts of the complex number.
 
 =item substr
 
