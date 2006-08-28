@@ -256,14 +256,17 @@ The other alternative would be to remove the default. --law]
 
 =head2 Scalar
 
+B<API document>: L<Scalar>
+
+C<Scalar> provides the basic tools for operating on undifferentiated
+scalar variables. All of the following are exported by default.
+
 =over
 
 =item defined
 
   our Bool multi Scalar::defined ( Any $thing )
   our Bool multi Scalar::defined ( Any $thing, ::role )
-  our Bool multi method Scalar::defined ( Scalar $thing: )
-  our Bool multi method Scalar::defined ( Scalar $thing: ::role )
 
 C<defined> returns true if the parameter has a value and that value is
 not the undefined value (per C<undef>), otherwise false is returned.
@@ -271,7 +274,7 @@ not the undefined value (per C<undef>), otherwise false is returned.
 Same as Perl 5, only takes extra optional argument to ask if value is defined
 with respect to a particular role:
 
-    $x.defined(SomeRole);
+  defined($x, SomeRole);
 
 A value may be defined according to one role and undefined according to another.
 Without the extra argument, defaults to the definition of defined supplied by
@@ -280,7 +283,6 @@ the type of the object.
 =item undefine
 
   our multi Any::undefine( Any $thing )
-  our multi method Any::undefine ( Any $thing: )
 
 Takes any variable as a parameter and attempts to "remove" its
 definition. For simple scalar variables this means assigning
