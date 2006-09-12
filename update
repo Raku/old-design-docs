@@ -27,11 +27,14 @@ sub refresh_specs {
 
     local $| = 1;
     print "==> Refreshing specs from $BaseURI...\n";
+    $ua->timeout(10);
 
     my $request = HTTP::Request->new(HEAD => $BaseURI);
     my $response = $ua->request($request);
 
     $response->is_success or return;
+
+    $ua->timeout(60);
 
     my $etags = $response->header('ETag') or return;
     ($etags =~ /(\d+)/) or return;
