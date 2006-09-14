@@ -11,8 +11,8 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Maintainer:    Larry Wall <larry@wall.org>
  Contributions: 
  Date:          12 Sep 2006
- Last Modified: 12 Sep 2006
- Version:       4
+ Last Modified: 14 Sep 2006
+ Version:       5 
 
 This is a draft document. Many of these functions will work as in Perl 5,
 except we're trying to rationalize everything into packages.  For now you can
@@ -21,39 +21,31 @@ assume most of the important ones will automatically be in the * namespace.
 As a starting point, you can help by finding the official Perl 5 documentation
 for these functions and copying it here. 
 
+=head1 Filehandles, files, or directories
+
 =over 4
 
 =item -X
 
-=item /[get|set][host|net|proto|serv|sock].*/
-
-=item accept
-
-=item alarm
-
-=item bind
-
-=item binmode
-
 =item chown
 
-=item close
+=item chmod LIST
+X<chmod> X<permission> X<mode>
 
-=item closedir
+Changes the permissions of a list of files.  The first element of the
+list must be the numerical mode, which should probably be an octal
+number, and which definitely should I<not> be a string of octal digits:
+C<0644> is okay, C<'0644'> is not.  Returns the number of files
+successfully changed.  See also L</oct>, if all you have is a string.
 
-=item connect
-
-=item eof
+    $cnt = chmod 0755, 'foo', 'bar';
+    chmod 0755, @executables;
+    $mode = '0644'; chmod $mode, 'foo';      # !!! sets mode to
+                                             # --w----r-T
+    $mode = '0644'; chmod oct($mode), 'foo'; # this is better
+    $mode = 0644;   chmod $mode, 'foo';      # this is best
 
 =item fcntl
-
-=item fileno
-
-=item flock
-
-=item getc
-
-=item getpeername
 
 =item glob
 
@@ -71,6 +63,61 @@ for these functions and copying it here.
 
 =item opendir
 
+=item readlink
+
+=item rename
+
+=item rewinddir
+
+=item rmdir
+
+=item stat
+
+=item symlink
+
+=item syscall
+
+=item sysopen
+
+=item umask
+
+=item unlink
+
+=item utime
+
+=back
+
+=head1 Unfiled
+
+=over 4
+
+=item fileno
+
+=item flock
+
+=item getc
+
+=item getpeername
+
+
+=item connect
+
+=item eof
+
+=item close
+
+=item closedir
+
+=item accept
+
+=item /[get|set][host|net|proto|serv|sock].*/
+
+=item alarm
+
+=item bind
+
+=item binmode
+
 =item pipe
 
 =item print
@@ -83,17 +130,9 @@ for these functions and copying it here.
 
 =item readline
 
-=item readlink
-
 =item readpipe
 
 =item recv
-
-=item rename
-
-=item rewinddir
-
-=item rmdir
 
 =item seek
 
@@ -113,14 +152,6 @@ for these functions and copying it here.
 
 =item socketpair
 
-=item stat
-
-=item symlink
-
-=item syscall
-
-=item sysopen
-
 =item sysread
 
 =item sysseek
@@ -133,13 +164,8 @@ for these functions and copying it here.
 
 =item truncate
 
-=item umask
-
-=item unlink
-
-=item utime
-
 =item warn
+
 
 =back
 
