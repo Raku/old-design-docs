@@ -12,7 +12,7 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Contributions: 
  Date:          12 Sep 2006
  Last Modified: 14 Sep 2006
- Version:       9 
+ Version:       10
 
 This is a draft document. Many of these functions will work as in Perl 5,
 except we're trying to rationalize everything into packages.  For now you can
@@ -44,6 +44,26 @@ successfully changed.  See also L</oct>, if all you have is a string.
                                              # --w----r-T
     $mode = '0644'; chmod oct($mode), 'foo'; # this is better
     $mode = 0644;   chmod $mode, 'foo';      # this is best
+
+=item close FILEHANDLE
+
+Closes the file or pipe associated with the file handle, returning
+true only if IO buffers are successfully flushed and closes the system
+file descriptor.  Closes the currently selected filehandle if the
+argument is omitted.
+
+You don't have to close FILEHANDLE if you are immediately going to do
+another C<open> on it, because C<open> will close it for you.  (See
+C<open>.)  However, an explicit C<close> on an input file resets the line
+counter (C<$.>), while the implicit close done by C<open> does not.
+
+If the file handle came from a piped open, C<close> will additionally
+return false if one of the other system calls involved fails, or if the
+program exits with non-zero status.  (If the only problem was that the
+program exited non-zero, C<$!> will be set to C<0>.)  Closing a pipe
+also waits for the process executing on the pipe to complete, in case you
+want to look at the output of the pipe afterwards, and
+implicitly puts the exit status value of that command into C<$!>.
 
 =item closedir
 
@@ -149,7 +169,6 @@ the latter case C<$!> is set).
 
 =item eof
 
-=item close
 
 =item accept
 
