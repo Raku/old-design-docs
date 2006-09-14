@@ -11,8 +11,8 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Maintainer:    Larry Wall <larry@wall.org>
  Contributions: 
  Date:          12 Sep 2006
- Last Modified: 14 Sep 2006
- Version:       11
+ Last Modified: 15 Sep 2006
+ Version:       12
 
 This is a draft document. Many of these functions will work as in Perl 5,
 except we're trying to rationalize everything into packages.  For now you can
@@ -138,6 +138,13 @@ Deletes the directory specified by FILENAME if that directory is
 empty.  If it succeeds it returns true, otherwise it returns false and
 sets C<$!> (errno).  If FILENAME is omitted, uses C<$_>.
 
+=item say
+
+This is a version of print() that auto-appends a newline:
+
+    Was:    print "Hello, world!\n";
+    Now:    say   "Hello, world!";
+
 =item stat
 
 =item symlink
@@ -178,6 +185,51 @@ Returns the next character from the input file attached to FILEHANDLE,
 or the undefined value at end of file, or if there was an error (in
 the latter case C<$!> is set). 
 
+=item print FILEHANDLE LIST
+X<print>
+
+=item print LIST
+
+=item print
+
+Prints a string or a list of strings.  Returns true if successful.
+FILEHANDLE may be a scalar variable name, in which case the variable
+contains the name of or a reference to the filehandle, thus introducing
+one level of indirection.  (NOTE: If FILEHANDLE is a variable and
+the next token is a term, it may be misinterpreted as an operator
+unless you interpose a C<+> or put parentheses around the arguments.)
+If FILEHANDLE is omitted, prints by default to standard output (or
+to the last selected output channel--see L</select>).  If LIST is
+also omitted, prints C<$_> to the currently selected output channel.
+To set the default output channel to something other than STDOUT
+use the select operation.  
+
+=begin comment
+
+[ I don't know what's become of $, and $\. -markstos ] 
+
+The current value of C<$,> (if any) is
+printed between each LIST item.  The current value of C<$\> (if
+any) is printed after the entire LIST has been printed. 
+
+=end comment
+
+Because print takes a LIST, anything in the LIST is evaluated in list context,
+and any subroutine that you call will have one or more of its expressions
+evaluated in list context.  Also be careful not to follow the print keyword
+with a left parenthesis unless you want the corresponding right parenthesis to
+terminate the arguments to the print--interpose a C<+> or put parentheses
+around all the arguments.
+
+Note that if you're storing FILEHANDLEs in an array, or if you're using
+any other expression more complex than a scalar variable to retrieve it,
+you will have to use a block returning the filehandle value instead:
+
+    print { @files[$i] } "stuff\n";
+    print { $OK ?? STDOUT !! STDERR } "stuff\n";
+
+=item printf
+
 =back
 
 =head1 Unfiled
@@ -205,10 +257,6 @@ the latter case C<$!> is set).
 =item binmode
 
 =item pipe
-
-=item print
-
-=item printf
 
 =item read
 
