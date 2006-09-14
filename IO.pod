@@ -12,7 +12,7 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Contributions: 
  Date:          12 Sep 2006
  Last Modified: 14 Sep 2006
- Version:       8 
+ Version:       9 
 
 This is a draft document. Many of these functions will work as in Perl 5,
 except we're trying to rationalize everything into packages.  For now you can
@@ -45,6 +45,14 @@ successfully changed.  See also L</oct>, if all you have is a string.
     $mode = '0644'; chmod oct($mode), 'foo'; # this is better
     $mode = 0644;   chmod $mode, 'foo';      # this is best
 
+=item closedir
+
+ closedir (IO::Dir $dir)  
+ $dir.closedir
+
+Closes a directory opened by C<opendir> and returns the success of that
+system call.
+
 =item fcntl
 
 =item glob
@@ -67,13 +75,39 @@ successfully changed.  See also L</oct>, if all you have is a string.
     # Write
     my $fh = open($filename, :w);
 
-=item opendir
+=item opendir EXPR
+
+  my $dir = opendir('.');
+
+Opens a directory named EXPR for processing by C<readdir>, C<telldir>,
+C<seekdir>, C<rewinddir>, and C<closedir>.  Returns an C<IO::Dir> object if
+successful.
+
+=item readdir
+
+ readdir (IO::Dir $dir)  
+ $dir.readdir
+
+Returns the next directory entry for a directory opened by C<opendir>.
+If used in list context, returns all the rest of the entries in the
+directory.  If there are no more entries, returns an undefined value in
+scalar context or a null list in list context.
+
+If you're planning to filetest the return values out of a C<readdir>, you'd
+better prepend the directory in question.  Otherwise, because we didn't
+C<chdir> there, it would have been testing the wrong file.
 
 =item readlink
 
 =item rename
 
 =item rewinddir
+
+ rewinddir (IO::Dir $dir)  
+ $dir.rewinddir
+
+Sets the current position to the beginning of the directory for the
+C<readdir> routine on DIRHANDLE.
 
 =item rmdir
 
@@ -93,6 +127,14 @@ successfully changed.  See also L</oct>, if all you have is a string.
 
 =back
 
+=head1 Input and Output
+
+=item getc FILEHANDLE
+
+Returns the next character from the input file attached to FILEHANDLE,
+or the undefined value at end of file, or if there was an error (in
+the latter case C<$!> is set). 
+
 =head1 Unfiled
 
 =over 4
@@ -101,12 +143,6 @@ successfully changed.  See also L</oct>, if all you have is a string.
 
 =item flock
 
-=item getc FILEHANDLE
-
-Returns the next character from the input file attached to FILEHANDLE,
-or the undefined value at end of file, or if there was an error (in
-the latter case C<$!> is set). 
-
 =item getpeername
 
 =item connect
@@ -114,8 +150,6 @@ the latter case C<$!> is set).
 =item eof
 
 =item close
-
-=item closedir
 
 =item accept
 
@@ -134,8 +168,6 @@ the latter case C<$!> is set).
 =item printf
 
 =item read
-
-=item readdir
 
 =item readline
 
