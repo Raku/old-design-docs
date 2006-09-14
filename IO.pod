@@ -12,7 +12,7 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Contributions: 
  Date:          12 Sep 2006
  Last Modified: 14 Sep 2006
- Version:       10
+ Version:       11
 
 This is a draft document. Many of these functions will work as in Perl 5,
 except we're trying to rationalize everything into packages.  For now you can
@@ -129,7 +129,14 @@ C<chdir> there, it would have been testing the wrong file.
 Sets the current position to the beginning of the directory for the
 C<readdir> routine on DIRHANDLE.
 
+=item rmdir FILENAME
+X<rmdir> X<rd> X<directory, remove>
+
 =item rmdir
+
+Deletes the directory specified by FILENAME if that directory is
+empty.  If it succeeds it returns true, otherwise it returns false and
+sets C<$!> (errno).  If FILENAME is omitted, uses C<$_>.
 
 =item stat
 
@@ -141,7 +148,21 @@ C<readdir> routine on DIRHANDLE.
 
 =item umask
 
+=item unlink LIST
+X<unlink> X<delete> X<remove> X<rm>
+
 =item unlink
+
+Deletes a list of files.  Returns the number of files successfully
+deleted.
+
+    $cnt = unlink 'a', 'b', 'c';
+
+Be warned that unlinking a directory can inflict damage on your filesystem.
+Finally, using C<unlink> on directories is not supported on many operating
+systems.  Use C<rmdir> instead.
+
+If LIST is omitted, uses C<$_>.
 
 =item utime
 
