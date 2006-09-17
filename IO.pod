@@ -11,8 +11,8 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Maintainer:    Larry Wall <larry@wall.org>
  Contributions: 
  Date:          12 Sep 2006
- Last Modified: 15 Sep 2006
- Version:       12
+ Last Modified: 17 Sep 2006
+ Version:       13
 
 This is a draft document. Many of these functions will work as in Perl 5,
 except we're trying to rationalize everything into packages.  For now you can
@@ -26,6 +26,111 @@ for these functions and copying it here.
 =over 4
 
 =item -X
+
+=over 8
+
+=item -X FILEHANDLE
+X<-r>X<-w>X<-x>X<-o>X<-R>X<-W>X<-X>X<-O>X<-e>X<-z>X<-s>X<-f>X<-d>X<-l>X<-p>
+X<-S>X<-b>X<-c>X<-t>X<-u>X<-g>X<-k>X<-T>X<-B>X<-M>X<-A>X<-C>
+
+=item -X EXPR
+
+=item -X
+
+  -X $file  
+  $file.'-X'
+
+A file test, where X is one of the letters listed below.  This unary
+operator takes one argument, either a filename or a filehandle, and
+tests the associated file to see if something is true about it.  If the
+argument is omitted, tests C<$_>, except for C<-t>, which tests STDIN.
+Unless otherwise documented, it returns C<1> for true and C<''> for false, or
+the undefined value if the file doesn't exist.  Despite the funny
+names, precedence is the same as any other named unary operator, and
+the argument may be parenthesized like any other unary operator.  The
+operator may be any of:
+
+    -r	File is readable by effective uid/gid.
+    -w	File is writable by effective uid/gid.
+    -x	File is executable by effective uid/gid.
+    -o	File is owned by effective uid.
+
+    -R	File is readable by real uid/gid.
+    -W	File is writable by real uid/gid.
+    -X	File is executable by real uid/gid.
+    -O	File is owned by real uid.
+
+    -e	File exists.
+    -z	File has zero size (is empty).
+    -s	File has nonzero size (returns size in bytes).
+
+    -f	File is a plain file.
+    -d	File is a directory.
+    -l	File is a symbolic link.
+    -p	File is a named pipe (FIFO), or Filehandle is a pipe.
+    -S	File is a socket.
+    -b	File is a block special file.
+    -c	File is a character special file.
+    -t	Filehandle is opened to a tty.
+
+    -u	File has setuid bit set.
+    -g	File has setgid bit set.
+    -k	File has sticky bit set.
+
+    -T	File is an ASCII text file (heuristic guess).
+    -B	File is a "binary" file (opposite of -T).
+
+    -M	Script start time minus file modification time, in days.
+    -A	Same for access time.
+    -C	Same for inode change time (Unix, may differ for other platforms)
+
+The interpretation of the file permission operators C<-r>, C<-R>,
+C<-w>, C<-W>, C<-x>, and C<-X> is by default based solely on the mode
+of the file and the uids and gids of the user.  There may be other
+reasons you can't actually read, write, or execute the file.  Such
+reasons may be for example network filesystem access controls, ACLs
+(access control lists), read-only filesystems, and unrecognized
+executable formats.
+
+Also note that, for the superuser on the local filesystems, the C<-r>,
+C<-R>, C<-w>, and C<-W> tests always return 1, and C<-x> and C<-X> return 1
+if any execute bit is set in the mode.  Scripts run by the superuser
+may thus need to do a stat() to determine the actual mode of the file,
+or temporarily set their effective uid to something else.
+
+If you are using ACLs, there is a pragma called C<filetest> that may
+produce more accurate results than the bare stat() mode bits.
+When under the C<use filetest 'access'> the above-mentioned filetests
+will test whether the permission can (not) be granted using the
+access() family of system calls.  Also note that the C<-x> and C<-X> may
+under this pragma return true even if there are no execute permission
+bits set (nor any extra execute permission ACLs).  This strangeness is
+due to the underlying system calls' definitions.  Read the
+documentation for the C<filetest> pragma for more information.
+
+Note that C<-s/a/b/> does not do a negated substitution.  Saying
+C<-exp($foo)> still works as expected, however--only single letters
+following a minus are interpreted as file tests.
+
+The C<-T> and C<-B> switches work as follows.  The first block or so of the
+file is examined for odd characters such as strange control codes or
+characters with the high bit set.  If too many strange characters (>30%)
+are found, it's a C<-B> file; otherwise it's a C<-T> file.  Also, any file
+containing null in the first block is considered a binary file.  If C<-T>
+or C<-B> is used on a filehandle, the current IO buffer is examined
+rather than the first block.  Both C<-T> and C<-B> return true on a null
+file, or a file at EOF when testing a filehandle.  Because you have to
+read a file to do the C<-T> test, on most occasions you want to use a C<-f>
+against the file first, as in C<next unless -f $file && -T $file>.
+
+The return value of a test is both a boolean and a stat buffer. So you can say:
+
+  $x = -e $filename; 
+  if -r $x {...}
+
+Or chain tests together in OO style:
+ 
+  if $filename.'-e'.'-x' {...}
 
 =item chown
 
