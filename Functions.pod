@@ -547,6 +547,30 @@ been iterated.
 
 =over
 
+=item classify
+
+ our Lazy of Pair multi Array::classify ( @values, Code *&test )
+ our Lazy of Pair multi Array::classify ( @values, MatchTest $test )
+ our Lazy of Pair multi List::classify ( MatchTest $test, *@values )
+
+C<classify> takes a list or array of values and returns a lazily evaluated
+list comprised of pairs whose values are arrays of values from the
+input list,
+and whose keys are the return value of the C<$test>, when passed that
+value. For example:
+
+  @list = (1, 2, 3, 4);
+  (:@even, :@odd) := classify { $_ % 2 ?? 'odd' !! 'even' } @list;
+
+In this example, @even will contain all even numbers from C<@list>
+and C<@odd> will contain all odd numbers from C<@list>.
+
+To simply transform a list into a hash of arrays:
+
+  %cars_by_color = classify { .color } @cars;
+  say "The following people own red cars: ",
+	%cars_by_color<red>.map:{.owner}.join ", ";
+
 =item grep
 
  our Lazy multi Array::grep ( @values, Code *&test )
