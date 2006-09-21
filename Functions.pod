@@ -13,7 +13,7 @@ Synopsis 29: Builtin Functions
                 Mark Stosberg <mark@summersault.com>
  Date:          12 Mar 2005
  Last Modified: 20 Sep 2006
- Version:       7
+ Version:       8
 
 This document attempts to document the list of builtin functions in Perl 6.
 It assumes familiarity with Perl 5 and prior synopses.
@@ -26,7 +26,8 @@ space.  -law
 
 =head1 Notes
 
-In Perl 6, all builtin functions belong to a named package. Not all
+In Perl 6, all builtin functions belong to a named package (generally a
+class or role). Not all
 functions are guaranteed to be imported into the global package
 C<::*>. In addition, the list of functions imported into C<::*> will be
 subject to change with each release of Perl. Authors wishing to
@@ -52,6 +53,14 @@ specifying a grammatical category or with a category of C<term:>
 (see L<S02/"Bits and Pieces">) will be described as "functions",
 and everything else as "operators" which are outside of the scope
 of this document.
+
+=head2 Multis vs. Functions
+
+In actual fact, most of the "functions" defined here are multi subs,
+or are multi methods that are also exported as multi subs.  Multi subs
+are all visible in the global namespace (unless declared with a "my
+multi").  The assumption is that with sufficiently specific typing on
+the multis, the user is free to extend a particular name to new types.
 
 =head1 Type Declarations
 
@@ -99,9 +108,9 @@ Instead you have names like C<CharFrench>, C<CharJapanese>,
 C<CharTurkish>, etc. for instantiated C<CharLingua> types.
 (Plus the corresponding C<StrLingua> types, presumably.)
 
-=item MatchTest
+=item Matcher
 
- subset MatchTest of Item | Junction;
+ subset Matcher of Item | Junction;
 
 Used to supply a test to match against. Assume C<~~> will be used against it.
 
@@ -113,50 +122,51 @@ Used to supply a test to match against. Assume C<~~> will be used against it.
 
 =head1 Function Packages
 
-=head2 Math::Basic
+=head2 Num
 
-B<API document>: L<Math::Basic>
+The following are all defined in the C<Num> role:
 
-C<Math::Basic> provides a number of constants in addition to the basic
+B<API document>: L<Num>
+
+C<Num> provides a number of constants in addition to the basic
 mathematical functions. To get these constants, you must request
 them:
 
- use Math::Basic :constants;
+ use Num :constants;
 
-or use the full name, e.g. C<Math::Basic::pi>.
+or use the full name, e.g. C<Num::pi>.
 
 =over
 
 =item abs
 
- our Num multi Math::Basic::abs ( Num $x )
+ our Num multi method abs ( Num $x: ) is export
 
 Absolute Value.
 
 =item floor
 
- our Int multi Math::Basic::floor ( Num $x )
+ our Int multi method floor ( Num $x: ) is export
 
 Returns the highest integer not greater than $x.
 
 =item ceiling
 
- our Int multi Math::Basic::ceiling ( Num $x )
- our Int multi Math::Basic::ceil ( Num $x )
+ our Int multi method ceil ( Num $x: ) is export
 
 Returns the lowest integer not less than $x.
 
 =item round
 
- our Int multi Math::Basic::round ( Num $x )
+ our Int multi method round ( Num $x: ) is export
 
 Returns the nearest integer to $x.  The algorithm is floor($x + 0.5).
 (Other rounding algorithms will be given extended names beginning with "round".)
 
 =item truncate
 
- our Int multi Math::Basic::truncate ( Num $x )
- our Int multi Math::Basic::int ( Num $x )
+ our Int multi method truncate ( Num $x: ) is export
+ our Int multi method int ( Num $x: ) is export
 
 Returns the closest integer to $x whose absolute value is not greater
 than the absolute value of $x.  (In other words, just chuck any
@@ -166,14 +176,14 @@ for a rounded version.
 
 =item exp
 
- our Num multi Math::Basic::exp ( Num $exponent, Num :$base = Num::e )
+ our Num multi method exp ( Num $exponent: Num :$base = Num::e ) is export
 
 Performs similar to C<$base ** $exponent>. C<$base> defaults to the
 constant I<e>.
 
 =item log
 
- our Num multi Math::Basic::log ( Num $x, Num :$base )
+ our Num multi method log ( Num $x: Num :$base = Num::e ) is export
 
 Logarithm of base C<$base>, default Natural. Calling with C<$x == 0> is an
 error.
@@ -181,13 +191,14 @@ error.
 
 =item log10
 
- our Num multi Math::Basic::log10 (Num $x);
+ our Num multi method log10 (Num $x:); is export
 
 A base C<10> logarithm, othewise identical to C<log>.
 
 =item rand
 
- our Num multi Math::Basic::rand ( Num $x = 1 )
+ our Num multi method rand ( Num $x: )
+ our Num multi rand ( Num $x = 1 )
 
 Pseudo random number in range C<< 0 ..^ $x >>.  That is, C<0> is theoretically possible,
 while C<$x> is not.
@@ -195,14 +206,15 @@ while C<$x> is not.
 
 =item sign
 
- our Int multi Math::Basic::sign ( Num $x )
+ our Int multi method sign ( Num $x: ) is export
 
 Returns 1 when C<$x> is greater than 0, -1 when it is less than 0, 0 when it
 is equal to 0, or undefined when the value passed is undefined.
 
 =item srand
 
- multi Math::Basic::srand ( Num $seed = default_seed_algorithm())
+ multi method srand ( Num $seed: )
+ multi srand ( Num $seed = default_seed_algorithm())
 
 Seed the generator C<rand> uses. C<$seed> defaults to some combination
 of various platform dependent characteristics to yield a non-deterministic seed.
@@ -212,7 +224,7 @@ you I<must> call C<srand()> yourself if you wish to specify a deterministic seed
 
 =item sqrt
 
- our Num multi Math::Basic::sqrt ( Num $x )
+ our Num multi method sqrt ( Num $x: ) is export
 
 Returns the square root of the parameter.
 
@@ -229,14 +241,16 @@ much like the set theory operators, perhaps with a :UNI tag or some such.
 =back
 
 
-=head2 Math::Trig
+=head2 The :Trig tag
+
+The following are also defined in C<Num> but not exported without a C<:Trig>
+tag.  (Which installs their names into C<Num::Trig>, as it happens.)
 
 =over 4
 
 =item I<Standard Trig Functions>
 
- our Num multi Num::func ( Num  $x, $base = 'radians' )
- our Num multi Math::Trig::func ( Num $x, $base = 'radians' )
+ Num multi method func ( Num  $x: $base = 'radians' ) is export(:Trig)
 
 where I<func> is one of:
 sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
@@ -258,19 +272,17 @@ Given the value of an arc representing a single full revolution.
 Note that module currying can be used within a lexical scope to specify
 a consistent base so you don't have to supply it with every call:
 
- my module Trig ::= Math::Trig.assuming(:base<degrees>);
+ my module Trig ::= Num::Trig.assuming(:base<degrees>);
 
 This overrides the default of "radians".
 
 =item atan2
 
- our Num multi Math::Trig::atan2 ( Num $y, Num $x = 1, Num $base )
+ our Num multi method atan2 ( Num $y: Num $y = 1 )
+ our Num multi atan2 ( Num $y, Num $x = 1 )
 
 This second form of C<atan> computes the arctangent of $y/$x, and takes
 the quadrant into account. Otherwise behaves as other trigonometric functions.
-
-[Note: changed atan back to atan2, or the default $x = 1 will confuse MMD.
-The other alternative would be to remove the default. --law]
 
 =back
 
@@ -435,11 +447,13 @@ C<¥> (and its ASCII equivalent, C<Y>) is an infix equivalent for zip:
 
 =head2 Array
 
+All these methods are defined in the C<Array> role/class.
+
 =over
 
 =item delete
 
- our List multi method Array::delete (@array : *@indices )
+ our List multi method delete (@array : *@indices ) is export
 
 Sets elements specified by C<@indices> in the invocant to a
 non-existent state, as if they never had a value. Deleted elements at
@@ -456,7 +470,7 @@ An unary form is expected. See C<Hash::delete>.
 
 =item exists
 
- our Bool multi method Array::exists (@array : Int *@indices )
+ our Bool multi method exists (@array : Int *@indices ) is export
 
 True if the specified Array element has been assigned to. This
 is not the same as being defined.
@@ -469,29 +483,25 @@ An unary form is expected. See C<Hash::delete>.
 
 =item pop
 
-
- our Scalar multi Array::pop ( @array is rw )
- our Scalar multi method Array::pop ( @array: )
+ our Scalar multi method pop ( @array: ) is export
 
 Remove the last element of C<@array> and return it.
 
 =item push
 
- our Int multi Array::push ( @array is rw, *@values )
- our Int multi method Array::push ( @array: *@values )
+ our Int multi method push ( @array: *@values ) is export
 
 Add to the end of C<@array>, all of the subsequent arguments.
 
 =item shift
 
- our Scalar multi Array::shift ( @array is rw  )
- our Scalar multi method Array::shift ( @array:  )
+ our Scalar multi method shift ( @array:  ) is export
 
 Remove the first element from C<@array> and return it.
 
 =item splice
 
- our List multi Array::splice( @array is rw, Int $offset = 0, Int $size?, *@values )
+ our List multi method splice( @array is rw, Int $offset = 0, Int $size?, *@values ) is export
 
 C<splice> fills many niches in array-management, but its fundamental behavior
 is to remove zero or more elements from an array and replace them with a
@@ -523,8 +533,7 @@ dimension, and works with Array References.
 
 =item unshift
 
- our Int multi Array::unshift ( @array is rw, *@values )
- our Int multi method Array::unshift ( @array: *@values )
+ our Int multi method unshift ( @array: *@values ) is export
 
 C<unshift> adds the values onto the start of the C<@array>.
 
@@ -536,12 +545,10 @@ C<unshift> adds the values onto the start of the C<@array>.
 
 =item values
 
- multi Int|List Array::keys ( @array ; MatchTest *@indextests )
- multi Int|List Array::kv ( @array ; MatchTest *@indextests )
- multi Int|(List of Pair) Array::pairs  (@array ; MatchTest *@indextests )
- multi Int|List Array::values ( @array ; MatchTest *@indextests )
-
-(XXX these signatures are wrong. -luqui)
+our List multi method keys ( @array: Matcher *@indextests ) is export
+our List multi method kv ( @array: Matcher *@indextests ) is export
+our List multi method pairs  (@array: Matcher *@indextests ) is export
+our List multi method values ( @array: Matcher *@indextests ) is export
 
 Iterates the elements of C<@array>, in order.
 
@@ -564,13 +571,14 @@ been iterated.
 
 =head2 List
 
+The following are defined in the C<List> role/class:
+
 =over
 
 =item classify
 
- our Lazy of Pair multi Array::classify ( @values, Code *&test )
- our Lazy of Pair multi Array::classify ( @values, MatchTest $test )
- our Lazy of Pair multi List::classify ( MatchTest $test, *@values )
+ our Lazy of Pair multi method classify ( @values: Matcher $test )
+ our Lazy of Pair multi classify ( Matcher $test, *@values )
 
 C<classify> takes a list or array of values and returns a lazily evaluated
 list comprised of pairs whose values are arrays of values from the
@@ -592,9 +600,8 @@ To simply transform a list into a hash of arrays:
 
 =item grep
 
- our Lazy multi Array::grep ( @values, Code *&test )
- our Lazy multi Array::grep ( @values, MatchTest $test )
- our Lazy multi List::grep ( MatchTest $test, *@values )
+ our Lazy multi method grep ( @values: Matcher $test )
+ our Lazy multi grep ( Matcher $test, *@values )
 
 C<grep> takes a list or array of values and returns a lazily evaluated
 list comprised of all of the values from the original list for which
@@ -602,16 +609,35 @@ the C<$test> smart-matches as true.
 
 Here is an example of its use:
 
- @friends = grep { .is_friend } @coworkers;
+ @friends = grep { .is_friend }, @coworkers;
 
 This takes the array C<@coworkers>, checks every element to see
 which ones return true for the C<.is_friend> method, and returns
 the resulting list to store into C<@friends>.
 
+Note that, unlike in Perl 5, a comma is required after the C<Matcher>
+in the multi form.
+
+=item pick
+
+ our Lazy multi method pick ( @values: Int $num = 1 )
+ our Lazy multi method pick ( @values: Whatever )
+ our Lazy multi pick ( Int $num, *@values )
+ our Lazy multi pick ( Whatever, *@values )
+
+C<pick> takes a list or array of values and returns a random selection
+of elements from the list (without replacement).  If C<*> is specified
+as the number (or if the number of elements in the list is less than
+the specified number), all the available elements are returned in
+random order:
+
+    @team = @volunteers.pick(5);
+    @shuffled = @deck.pick(*);
+
 =item join
 
- our Str multi Array::join ( @values, Str $separator? )
- our Str multi List::join ( Str $separator?, *@values )
+ our Str multi method join ( @values: Str $separator = ' ' )
+ our Str multi join ( Str $separator = ' ', *@values )
 
 C<join> returns a single string comprised of all of the elements
 of C<@values>, separated by C<$separator>. The separator defaults
@@ -619,10 +645,12 @@ to a single space.
 
 Given an empty list, C<join> returns the empty string.
 
+To join with no separator you can use the C<[~]> reduce operator.
+
 =item map
 
- our Lazy multi Array::map ( @values, Code *&expression )
- our Lazy multi List::map ( Code $expression?, *@values )
+ our Lazy multi method map ( @values: Code *&expression )
+ our Lazy multi map ( Code $expression, *@values )
 
 C<map> returns a lazily evaluated list which is comprised of
 the return value of the expression, evaluated once for every
@@ -630,7 +658,7 @@ one of the C<@values> that are passed in.
 
 Here is an example of its use:
 
- @addresses = map { %addresses_by_name<$_> } @names;
+ @addresses = map { %addresses_by_name<$_> }, @names;
 
 Here we take an array of names, and look each name up in
 C<%addresses_by_name> in order to build the corresponding
@@ -640,12 +668,12 @@ If the expression returns no values or multiple values, then the
 resulting list may not be the same length as the number of values
 that were passed. For example:
 
- @factors = map { prime_factors($_) } @composites;
+ @factors = map { prime_factors($_) }, @composites;
 
 =item reduce
 
- our Scalar multi Array::reduce ( @values ; Code *&expression )
- our Scalar multi List::reduce ( Code $expression ; *@values )
+ our Item multi method reduce ( @values: Code *&expression )
+ our Item multi reduce ( Code $expression ; *@values )
    my $res;
    for @values -> $cur {
      FIRST {$res = $cur; next;}
@@ -657,41 +685,45 @@ that were passed. For example:
 
 =item reverse
 
- our Hash multi Hash::reverse ( %hash ) {
-   (my %result){%hash.values} = %hash.keys;
-   %result;
+ role Hash {
+     our Hash multi method reverse ( %hash: ) is export {
+       (my %result){%hash.values} = %hash.keys;
+       %result;
+     }
  }
 
- multi Lazy Array::reverse ( @values )
- multi Lazy List::reverse ( *@values ) {
+ our Lazy multi method reverse ( @values: ) is export
+ our Lazy multi reverse ( *@values ) {
     gather {
         1 while take pop @values;
     }
  }
 
- multi Str Str::reverse ( $str ) {
-    split('', $str).reverse.join
- )
+ role Str {
+     our Str multi method reverse ( $str: ) is export {
+	split('', $str).reverse.join
+     )
+ }
 
 
 =item sort
 
- subset KeyExtractor of Code(Any --> Any);
- subset Comparator   of Code(Any, Any --> Int );
- subset SortCriterion of KeyExtractor | Comparator | Pair(KeyExtractor, Comparator);
+ subset KeyExtractor of Code where { .sig === :(Any --> Any) };
+ subset Comparator   of Code where { .sig === :(Any, Any --> Int ) };
+ subset SortCriterion of Signature | KeyExtractor | Comparator | Pair(KeyExtractor, Comparator);
 
- our Array multi Array::sort( @values is rw, *&by, Bit $inplace? )
- our Array multi Array::sort( @values is rw, SortCriterion @by, Bit $inplace? )
- our Array multi Array::sort( @values is rw, SortCriterion $by = &infix:<cmp>, Bit $inplace? )
+ our Array multi method sort( @values: *&by )
+ our Array multi method sort( @values: SortCriterion @by )
+ our Array multi method sort( @values: SortCriterion $by = &infix:<cmp> )
 
- our List multi List::sort( SortCriterion @by,  *@values )
- our List multi List::sort( SortCriterion $by = &infix:<cmp>, *@values )
+ our List multi sort( SortCriterion @by,  *@values )
+ our List multi sort( SortCriterion $by = &infix:<cmp>, *@values )
 
 Returns C<@values> sorted, using criteria C<$by> or C<@by> for
-comparisons. C<@by> differs from C<$by> in that each criteria is
+comparisons. C<@by> differs from C<$by> in that each criterion is
 applied, in order, until a non-zero (tie) result is achieved.
 
-Criterion can take a few different forms:
+Criteria can take a few different forms:
 
 =over 8
 
@@ -703,27 +735,38 @@ second in the final ordering of the List. aka "The Perl 5 way"
 
 =item KeyExtractor
 
-A closure with arity of 1, which returns the "key" by which to sort. If
-the closure returns a Num, C<E<lt>=E<gt>> is used for comparison,
-otherwise C<cmp>.
+A closure with arity of 1, which returns the "key" by which to sort.
+Values are compared using C<cmp>, which in Perl 6 does different
+comparisons depending on the types.  (To get a Perl 5 string comparison
+you must use C<leg> instead.)
 
 =item Pair(KeyExtractor, Comparator)
 
 A combination of the two methods above, for when one wishes to take
 advantage of the internal caching of keys that is expected to happen,
-but wishes to compare them with something other than C<E<lt>=E<gt>> or
-C<cmp>.
+but wishes to compare them with something other than C<cmp>, such
+as C<E<lt>=E<gt>> or C<leg>.
+
+=item Signature
+
+If a signature is specified as a criterion, the signature is bound
+to each value and then each parameter does comparisons in positional order
+according to its type, as modified by its traits.  Sort-specific traits
+are allowed in such a signature such as C<is descending> or C<is insensitive>.
+Basically, the system will write the body of the key extraction subroutine
+for you based on the signature.
 
 =back
 
-Any Criterion may receive either or both of the traits C<is descending>
-and C<is insensitive> to reverse the order of sort, or the adjust the
-case sensitivity of C<cmp> as a Comparator.
+Any Criterion may receive either or both of the mixins C<descending>
+and C<insensitive> to reverse the order of sort, or the adjust the
+case sensitivity of C<cmp> as a Comparator.  (Mixins are applied to
+values using C<but>.)
 
 If all criteria are exhausted when comparing two elements, sort should
 return them in the same relative order they had in C<@values>.
 
-If C<$inplace> is specified, the array is sorted in place.
+To sort an array in place use the C<.=sort> mutator form.
 
 See L<http://www.nntp.perl.org/group/perl.perl6.language/16578> for more
 details and examples.
@@ -781,10 +824,10 @@ A body of ... counts as undefined.)
 
 =item values
 
- multi Int|List Hash::keys ( %hash ; MatchTest *@keytests )
- multi Int|List Hash::kv ( %hash ; MatchTest *@keytests )
- multi Int|(List of Pair) Hash::pairs  (%hash ; MatchTest *@keytests )
- multi Int|List Hash::values ( %hash ; MatchTest *@keytests )
+ multi Int|List Hash::keys ( %hash ; Matcher *@keytests )
+ multi Int|List Hash::kv ( %hash ; Matcher *@keytests )
+ multi Int|(List of Pair) Hash::pairs  (%hash ; Matcher *@keytests )
+ multi Int|List Hash::values ( %hash ; Matcher *@keytests )
 
 Iterates the elements of C<%hash> in no apparent order, but the order
 will be the same between successive calls to these functions, as long as
