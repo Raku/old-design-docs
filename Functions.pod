@@ -12,8 +12,8 @@ Synopsis 29: Builtin Functions
  Contributions: Aaron Sherman <ajs@ajs.com>
                 Mark Stosberg <mark@summersault.com>
  Date:          12 Mar 2005
- Last Modified: 15 Sep 2006
- Version:       6
+ Last Modified: 20 Sep 2006
+ Version:       7
 
 This document attempts to document the list of builtin functions in Perl 6.
 It assumes familiarity with Perl 5 and prior synopses.
@@ -76,11 +76,11 @@ Subclasses (things that are C<isa AnyChar>):
 
 =over
 
-=item LinguaChar or Ling (language-defined characters)
+=item CharLingua (language-defined characters)
 
-=item GraphemeChar or Graf (language-independent graphemes)
+=item Grapheme (language-independent graphemes)
 
-=item CodePoint or Uni (Unicode codepoints)
+=item Codepoint or Uni (Unicode codepoints)
 
 =item Byte
 
@@ -88,7 +88,16 @@ Yes, Byte is both a string and a number.
 
 =back
 
+The short name for C<Grapheme> is typically C<Char> since that's the
+default Unicode level.  A grapheme is defined as a base C<Uni> plus
+any subsequent "combining" C<Uni>s that apply to that base C<Uni>.
 
+There is no short name for C<CharLingua> because the type is meaningless
+outside the scope of a particular language declaration.  In fact,
+C<CharLingua> is itself an abstract type that cannot be instantiated.
+Instead you have names like C<CharFrench>, C<CharJapanese>,
+C<CharTurkish>, etc. for instantiated C<CharLingua> types.
+(Plus the corresponding C<StrLingua> types, presumably.)
 
 =item MatchTest
 
@@ -805,19 +814,19 @@ General notes about strings:
 
 A Str can exist at several Unicode levels at once. Which level you
 interact with typically depends on what your current lexical context has
-declared the "working Unicode level to be". Default is GChar.
+declared the "working Unicode level to be". Default is C<Grapheme>.
 
-[Q: Default can't be LChar because we don't go into "language" mode unless there's
+[Q: Default can't be C<CharLingua> because we don't go into "language" mode unless there's
 a specific language declaration saying either exactly what language
 we're going into, or what environmental parameter to pay attention to
-to select our language.  So I believe the default should be GChar. -law]
+to select our language.  So I believe the default should be C<Grapheme>. -law]
 
 Attempting to use a string at a level higher it can support is handled
 without warning. The current highest supported level of the string
 is simply mapped Char for Char to the new higher level. However,
 attempting to stuff something of a higher level a lower-level string
 is an error (for example, attempting to store Kanji in a Byte string).
-And explicit conversion function must be used to tell it how you want it
+An explicit conversion function must be used to tell it how you want it
 encoded.
 
 Attempting to use a string at a level lower than what it supports is not
