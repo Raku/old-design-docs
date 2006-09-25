@@ -12,8 +12,8 @@ Synopsis 29: Builtin Functions
  Contributions: Aaron Sherman <ajs@ajs.com>
                 Mark Stosberg <mark@summersault.com>
  Date:          12 Mar 2005
- Last Modified: 20 Sep 2006
- Version:       8
+ Last Modified: 23 Sep 2006
+ Version:       9
 
 This document attempts to document the list of builtin functions in Perl 6.
 It assumes familiarity with Perl 5 and prior synopses.
@@ -491,7 +491,7 @@ Remove the first element from C<@array> and return it.
 
 =item splice
 
- our List multi method splice( @array is rw, Int $offset = 0, Int $size?, *@values ) is export
+ our List multi method splice( @array is rw: Int $offset = 0, Int $size?, *@values ) is export
 
 C<splice> fills many niches in array-management, but its fundamental behavior
 is to remove zero or more elements from an array and replace them with a
@@ -691,7 +691,7 @@ that were passed. For example:
 
  role Str {
      our Str multi method reverse ( $str: ) is export {
-	split('', $str).reverse.join
+	$str.split('').reverse.join
      )
  }
 
@@ -767,12 +767,14 @@ details and examples.
 
 =head2 Hash
 
+The following are defined in the Hash role.
+
 =over 4
 
 =item delete
 
- our List  multi method Hash::delete ( *@keys )
- our Scalar multi method Hash::delete ( $key ) is default
+ our List  multi method delete ( %hash: *@keys )
+ our Scalar multi method delete ( %hash: $key ) is default
 
 Deletes the elements specified by C<$key> or C<$keys> from the invocant.
 returns the value(s) that were associated to those keys.
@@ -795,7 +797,7 @@ example translations. This list is I<not> exhaustive.
 
 =item exists
 
- our Bool multi method Hash::exists ( $key )
+ our Bool multi method exists ( %hash: $key )
 
 True if invocant has an element whose key matches C<$key>, false
 otherwise.
@@ -868,12 +870,14 @@ allowed.
 If a function takes a C<Str> and returns a C<Str>, the returned C<Str>
 will support the same levels as the input, unless specified otherwise.
 
+The following are all provided by the C<Str> role:
+
 =over
 
 =item p5chop
 
- our Char multi P5emul::Str::p5chop ( Str  $string is rw )
- our Char multi P5emul::Str::p5chop ( Str *@strings = ($+_) is rw )
+ our Char multi method p5chop ( Str  $string is rw: ) is export(:P5)
+ my Char multi p5chop ( Str *@strings is rw ) is export(:P5)
 
 Trims the last character from C<$string>, and returns it. Called with a
 list, it chops each item in turn, and returns the last character
@@ -881,21 +885,21 @@ chopped.
 
 =item chop
 
- our Str method Str::chop ( Str  $string: )
+ our Str method method chop ( Str  $string: ) is export
 
 Returns string with one Char removed from the end.
 
 =item p5chomp
 
- our Int multi P5emul::Str::p5chomp ( Str  $string is rw )
- our Int multi P5emul::Str::p5chomp ( Str *@strings = ($+_) is rw )
+ our Int multi method p5chomp ( Str  $string is rw: ) is export(:P5)
+ my Int multi p5chomp ( Str *@strings is rw ) is export(:P5)
 
 Related to C<p5chop>, only removes trailing chars that match C</\n/>. In
 either case, it returns the number of chars removed.
 
 =item chomp
 
- our Str method Str::chomp ( Str $string: )
+ our Str method method chomp ( Str $string: ) is export
 
 Returns string with newline removed from the end.  An arbitrary
 terminator can be removed if the input filehandle has marked the
@@ -907,8 +911,9 @@ Note: Most users should just let their I/O handles autochomp instead.
 
 =item crypt
 
- our Str multi Str::crypt ( Str $plaintext, Str $salt )
- our Str multi method Str::crypt ( Str $plaintext: Str $salt )
+[I don't think this should be a built-in anymore. -law]
+
+ our Str multi method p5crypt ( Str $plaintext: Str $salt ) is export(:P5)
 
 Encrypts the string using a one-way hash function. This yields a string
 which cannot be "decrypted". This is used for verifying strings such
@@ -937,7 +942,7 @@ the salt (everything after the salt is ignored).
 
 =item lc
 
- our Str multi Str::lc ( Str $string )
+ our Str multi method lc ( Str $string: ) is export
 
 Returns the input string after converting each character to its lowercase
 form, if uppercase.
@@ -945,14 +950,14 @@ form, if uppercase.
 
 =item lcfirst
 
- our Str multi Str::lcfirst ( Str $string )
+ our Str multi method lcfirst ( Str $string: ) is export
 
 Like C<lc>, but only affects the first character.
 
 
 =item uc
 
- our Str multi Str::uc ( Str $string )
+ our Str multi method uc ( Str $string: ) is export
 
 Returns the input string after converting each character to its uppercase
 form, if lowercase. This is not a Unicode "titlecase" operation, but a
@@ -961,14 +966,14 @@ full "uppercase".
 
 =item ucfirst
 
- our Str multi Str::ucfirst ( Str $string )
+ our Str multi method ucfirst ( Str $string: ) is export
 
 Performs a Unicode "titlecase" operation on the first character of the string.
 
 
 =item capitalize
 
- our Str multi Str::capitalize ( Str $string )
+ our Str multi method capitalize ( Str $string: ) is export
 
 Has the effect of first doing an C<lc> on the entire string, then performing a
 C<s:g/(\w+)/{ucfirst $1}/> on it.
@@ -980,7 +985,7 @@ This word is banned in Perl 6.  You must specify units.
 
 =item index
 
- our StrPos multi Str::index( Str $string, Str $substring, StrPos $pos = 0 )
+ our StrPos multi method index( Str $string: Str $substring, StrPos $pos = 0 ) is export
 
 C<index> searches for the first occurrence of C<$substring> in C<$string>,
 starting at C<$pos>.
@@ -991,10 +996,10 @@ undef is returned.
 
 =item pack
 
- our Str multi Str::pack( Str::Encoding $encoding,  Pair *@items )
- our Str multi Str::pack( Str::Encoding $encoding,  Str $template, *@items )
- our buf8 multi Str::pack( Pair *@items )
- our buf8 multi Str::pack( Str $template, *@items )
+ our Str multi pack( Str::Encoding $encoding,  Pair *@items )
+ our Str multi pack( Str::Encoding $encoding,  Str $template, *@items )
+ our buf8 multi pack( Pair *@items )
+ our buf8 multi pack( Str $template, *@items )
 
 C<pack> takes a list of pairs and formats the values according to
 the specification of the keys. Alternately, it takes a string
@@ -1035,7 +1040,7 @@ arrays.
 
 =item quotemeta
 
- our Str multi Str::quotemeta ( Str $string )
+ our Str multi method quotemeta ( Str $string: ) is export
 
 Returns the input string with all non-"word" characters back-slashed.
 That is, all characters not matching "/[A-Za-z_0-9]/" will be preceded
@@ -1043,7 +1048,7 @@ by a backslash in the returned string, regardless of any locale settings.
 
 =item rindex
 
- our StrPos multi Str::index( Str $string, Str $substring, StrPos $pos? )
+ our StrPos multi method rindex( Str $string: Str $substring, StrPos $pos? ) is export
 
 Returns the position of the last C<$substring> in C<$string>. If C<$pos>
 is specified, then the search starts at that location in C<$string>, and
@@ -1051,21 +1056,52 @@ works backwards. See C<index> for more detail.
 
 =item split
 
- our List multi Str::split ( Str $delimiter ,  Str $input_, Int $limit = inf )
- our List multi Str::split ( Rule $delimiter = /\s+/,  Str $input, Int $limit = inf )
- our List multi Str::split ( Str $input ;  Str $delimiter          , Int $limit = inf )
- our List multi Str::split ( Str $input ; Rule $delimiter          , Int $limit = inf )
+ our List multi method split ( Str $input: Str $delimiter, Int $limit = * ) is export
+ our List multi method split ( Str $input: Rule $delimiter , Int $limit = * ) is export
 
 String delimiters must not be treated as rules but as constants.  The
 default is no longer S<' '> since that would be interpreted as a constant.
-P5's C<< split('S< >') >> will translate to C<.words> or some such.  Null trailing fields
-are no longer trimmed by default.  We might add some kind of :trim flag or
-introduce a trimlist function of some sort.
+P5's C<< split('S< >') >> will translate to C<comb>.  Null trailing fields
+are no longer trimmed by default.
+
+The C<split> function no longer has a default delimiter nor a default invocant.
+In general you should use C<comb> to split on whitespace now, or to break
+into individual characters.  See below.
+
+As with Perl 5's C<split>, if there is a capture in the pattern it is
+returned in alternation with the split values.  Unlike with Perl 5,
+multiple such captures are returned in a single Match object.  Also unlike
+Perl 5, the string to be split is always the invocant or first argument.
+A warning should be issued if the string appears to be a short constant
+string and the delimiter does not.
+
+=item comb
+
+ our List multi method comb ( Str $input: Rule $matcher = /\S+/, Int $limit = * ) is export
+
+The C<comb> function looks through a string for the interesting bits,
+ignoring the parts that don't match.  In other words, it's a version
+of split where you specify what you want, not what you don't want.
+By default it pulls out all the words.  Saying
+
+    $string.comb(/pat/, $n)
+
+is equivalent to
+
+    $string.match(rx:global:x(0..$n):c/pat/)
+
+You may also comb lists and filehandles.  C<+$*IN.comb> counts the words on
+standard input, for instance.  C<comb($thing, /./) returns a list of C<Char>
+from anything that can give you a C<Str>.
+
+If there are captures in the pattern, a list of C<Match> objects (one
+per match) is returned instead of strings.  The unmatched portions
+are never returned.  If the function is combing a lazy structure,
+the return values may also be lazy.  (Strings are not lazy, however.)
 
 =item sprintf
 
- our Str multi method Str::sprintf ( Str $format: *@args )
- our Str multi Str::sprintf ( Str $format, *@args )
+ our Str multi method sprintf ( Str $format: *@args ) is export
 
 This function is mostly identical to the C library sprintf function.
 
@@ -1184,11 +1220,6 @@ then the original string will be dynamically resized.
 
 Should replace vec with declared arrays of bit, uint2, uint4, etc.
 
-=item words
-
- our List multi Str::words ( Rule $matcher = /\S+/,  Str $input, Int $limit = inf )
- our List multi Str::words ( Str $input ; Rule $matcher = /\S+/, Int $limit = inf )
-
 =back
 
 =head2 Control::Basic
@@ -1298,16 +1329,18 @@ for more detailed information on object creation.
 
 =item ord
 
- our Uni multi Str::chr( Uni $codepoint )
- our Uni multi Str::ord( Uni $character )
- multi Str::ord( Str $string )
+ role Uni {
+     our Uni multi chr( Uni $codepoint )
+     our Uni multi ord( Uni $character )
+ }
+ multi method ord( Str $string: ) is export
 
 These functions are available for purposes of backward compatibility.
 C<chr> takes a C<Uni> and returns the exact same value with no change.
 This is because, in Perl 6, a Uni is both an integer codepoint when
 numified and a single character when stringified. Thus, chr is just:
 
- our Uni multi Str::chr( Uni $codepoint) { $codepoint; }
+ our Uni multi chr( Uni $codepoint) { $codepoint; }
 
 C<ord> is almost the same, but it also has a form that takes a string.
 In a scalar context, the return value is the C<Uni> representing
@@ -1752,3 +1785,4 @@ times
 
 Please post errors and feedback to perl6-language.  If you are making
 a general laundry list, please separate messages by topic.
+
