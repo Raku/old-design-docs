@@ -11,8 +11,8 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Maintainer:    Larry Wall <larry@wall.org>
  Contributions: Mark Stosberg <mark@summersault.com>
  Date:          12 Sep 2006
- Last Modified: 17 Sep 2006
- Version:       14  
+ Last Modified: 25 Sep 2006
+ Version:       15  
 
 This is a draft document. Many of these functions will work as in Perl 5,
 except we're trying to rationalize everything into packages.  For now you can
@@ -42,10 +42,21 @@ X<-S>X<-b>X<-c>X<-t>X<-u>X<-g>X<-k>X<-T>X<-B>X<-M>X<-A>X<-C>
 
 A file test, where X is one of the letters listed below.  This unary
 operator takes one argument, either a filename or a filehandle, and
-tests the associated file to see if something is true about it.  If the
-argument is omitted, tests C<$_>, except for C<-t>, which tests STDIN.
-Unless otherwise documented, it returns C<1> for true and C<''> for false, or
-the undefined value if the file doesn't exist.  Despite the funny
+tests the associated file to see if something is true about it.
+The argument may not be omitted unless it is C<$_>, in which case you must
+use the C<.'-X'> form.
+
+All file test operators return a stat buffer that also carries a "cumulative
+success" boolean (or file size in the case of C<-s>) so that tests may be stacked:
+
+    -r -w $filename
+
+or applied to existing stat buffers:
+
+    $b = stat($filename);
+    if -r $b {...}
+
+Despite the funny
 names, precedence is the same as any other named unary operator, and
 the argument may be parenthesized like any other unary operator.  The
 operator may be any of:
@@ -139,15 +150,14 @@ X<chmod> X<permission> X<mode>
 Changes the permissions of a list of files.  The first element of the
 list must be the numerical mode, which should probably be an octal
 number, and which definitely should I<not> be a string of octal digits:
-C<0644> is okay, C<'0644'> is not.  Returns the number of files
-successfully changed.  See also L</oct>, if all you have is a string.
+C<0o644> is okay, C<0644> is not.  Returns the number of files
+successfully changed.
 
-    $cnt = chmod 0755, 'foo', 'bar';
-    chmod 0755, @executables;
-    $mode = '0644'; chmod $mode, 'foo';      # !!! sets mode to
-                                             # --w----r-T
-    $mode = '0644'; chmod oct($mode), 'foo'; # this is better
-    $mode = 0644;   chmod $mode, 'foo';      # this is best
+    $cnt = chmod 0o755, 'foo', 'bar';
+    chmod 0o755, @executables;
+    $mode = '0644'; chmod $mode, 'foo';      # !!! sets mode to --w----r-T
+    $mode = '0o644'; chmod $mode, 'foo';     # this is better
+    $mode = 0o644;   chmod $mode, 'foo';     # this is best
 
 =item close FILEHANDLE
 
@@ -195,6 +205,11 @@ The call fails with an exception if it cannot connect.
 =item listen
 
 =item lstat
+
+Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
+to true, and additional file tests may be performed on the value.  If
+the stat fails, all subsequent tests on the stat buffer also evaluate
+to false.
 
 =item mkdir
 
@@ -250,6 +265,11 @@ empty.  If it succeeds it returns true, otherwise it returns false and
 sets C<$!> (errno).  If FILENAME is omitted, uses C<$_>.
 
 =item stat
+
+Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
+to true, and additional file tests may be performed on the value.  If
+the stat fails, all subsequent tests on the stat buffer also evaluate
+to false.
 
 =item symlink
 
@@ -365,6 +385,14 @@ This is a version of print() that auto-appends a newline:
 
 =item binmode
 
+=item lines
+
+    our List multi method lines (IO $handle:) is export;
+    our List multi lines (Str $filename);
+
+Returns all the lines of a file as a (lazy) List regardless of context.
+See also C<slurp>.
+
 =item pipe
 
 =item read
@@ -388,6 +416,13 @@ This is a version of print() that auto-appends a newline:
 =item shutdown
 
 =item slurp
+
+    our Item multi method slurp (IO $handle: *%opts) is export;
+    our Item multi slurp (Str $filename, *%opts);
+
+Slurps the entire file into a Str or Buf regardless of context.
+(See also C<lines>.)  Whether a Str or Buf is returneded depends on
+the options.
 
 =item socket
 
