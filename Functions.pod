@@ -908,37 +908,6 @@ as a property of the string.)  Otherwise a standard newline is removed.
 Note: Most users should just let their I/O handles autochomp instead.
 (Autochomping is the default.)
 
-=item crypt
-
-[I don't think this should be a built-in anymore. -law]
-
- our Str multi method p5crypt ( Str $plaintext: Str $salt ) is export(:P5)
-
-Encrypts the string using a one-way hash function. This yields a string
-which cannot be "decrypted". This is used for verifying strings such
-as passwords. The C<$plaintext> is the text to be encrypted. The
-C<$salt> is a string which controls how the encryption is done. Typically,
-this is a random string of two characters that matches the following pattern:
-
- token Str::CryptBasicSalt { <[./0-9A-Za-z]> **{2} }
-
-There are other formats of salt as well, though their use is not universal.
-Check your operating system's B<crypt> function for more details. Often
-these other functions are used when strings of length greater than eight
-are to be used (the default crypt mode only recognizes the first eight
-characters of the string as significant).
-
-If you have a previously encrypted string and a plaintext password, you
-can check to see of the password is correct like so:
-
- sub checkpw ( $encrypted, $plaintext ) {
-   return crypt($plaintext, $encrypted) ~~ $encrypted;
- }
-
-This works because the first part of the encrypted form of the
-password is the salt, so an encrypted text can be passed in place of
-the salt (everything after the salt is ignored).
-
 =item lc
 
  our Str multi method lc ( Str $string: ) is export
