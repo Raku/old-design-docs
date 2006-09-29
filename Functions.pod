@@ -585,8 +585,7 @@ and C<@odd> will contain all odd numbers from C<@list>.
 To simply transform a list into a hash of arrays:
 
   %cars_by_color = classify { .color } @cars;
-  say "The following people own red cars: ",
-	%cars_by_color<red>.map:{.owner}.join ", ";
+  red_car_owners(%cars_by_color<red>.map:{.owner});
 
 =item grep
 
@@ -1442,6 +1441,43 @@ data is accessed.
 =head2 OS
 
 =over
+
+=item gethost
+
+ our OS::Name multi OS::gethost()
+ our OS::Name multi OS::gethost( Str $name, OS::Addfamily :$type )
+ our OS::Name multi method gethost( OS::Addr $addr: ) is export
+ our OS::Name multi method gethost( URI $uri: ) is export
+
+The C<gethost> function operates on host naming or address information
+and returns an C<OS::Name>. An C<OS::Name> is, minimally:
+
+ class OS::Name {
+   has Str $.name;
+   has OS::Addr $.addr;
+   has Array of Str @.aliases;
+   has Array of OS::Addr @.addrs;
+ }
+
+Such names can apply to anything which has a name that maps
+to an address, however, in this case the name is a hostname
+and the address is some sort of network identifier (e.g.
+an IPV4 address when resolving hosts that have IPV4 addresses).
+
+When stringified, an C<OS::Name> yields its name. When
+stringified, an C<OS::addr> yields its address in an
+appropriate text format (e.g. "10.1.2.3" for an IPV4 address).
+
+The optional C<type> adverb can be passed when resolving a hostname,
+and will filter the result to only those addresses that are of
+the appropriate address family. This feature may be supported by
+the underlying operating system, or Perl may emulate it.
+
+Examples:
+
+  say "Connection from {$socket.peer.gethost}";
+  my $address = gethost("foo.example.com").addr;
+  my $hostname = gethost(:addr<"10.1.2.3">);
 
 =item getpw
 
