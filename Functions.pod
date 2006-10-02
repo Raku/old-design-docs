@@ -114,13 +114,99 @@ C<CharTurkish>, etc. for instantiated C<CharLingua> types.
 
 Used to supply a test to match against. Assume C<~~> will be used against it.
 
+=item Ordering
 
+ subset KeyExtractor of Code where { .sig === :(Any --> Any) };
+ subset Comparator   of Code where { .sig === :(Any, Any --> Int ) };
+ subset OrderingPair of Pair where { .left ~~ KeyExtractor && .right ~~ Comparator };
+
+ subset Ordering where Signature | KeyExtractor | Comparator | OrderingPair;
+
+Used to handle comparisons between things.  Generally this
+ends up in functions like C<cmp()>, C<eqv()>, C<sort()>,
+C<min()>, C<max()>, etc., as a $by parameter which provides
+the information on how two things compare relative to each other.
+
+Note that C<eqv()> and C<cmp()> do almost but not the same thing
+since with C<eqv()> you don't care if two things are ordered
+increasing or decreasing but only if they are the same or not.
+Rather than declare an C<Equiving> type declaration C<Ordering> will
+just do double duty.
+
+=over
+
+=item Comparator
+
+A closure with arity of 2, which for ordering returns
+negative/zero/positive, signaling the first argument should
+be before/tied with/after the second. aka "The Perl 5 way".
+
+For equivalence the closure returns either not 0 or 0 indicating
+if the first argument is equivalent or not to the second.
+
+=item KeyExtractor
+
+A closure with arity of 1, which returns the "key" by which
+to compare.  Values are compared using C<cmp> for orderings
+and C<eqv> for equivalences, which in Perl 6 do different
+comparisons depending on the types.  (To get a Perl 5 string
+ordering you must compare with C<leg> instead.)
+
+Internally the result of the KeyExtractor on a value should
+be cached.
+
+=item OrderingPair
+
+A combination of the two methods above, for when one wishes
+to take advantage of the internal caching of keys that is
+expected to happen, but wishes to compare them with something
+other than C<eqv> or C<cmp>, such as C<E<lt>=E<gt>> or C<leg>.
+
+=item Signature
+
+If a signature is specified as a criterion, the signature is
+bound to each value and then each parameter does comparisons
+in positional order according to its type, as modified by
+its traits.  Basically, the system will write the body of
+the key extraction and comparison subroutine for you based on
+the signature.
+
+For ordering the list of positional parameter comparisons is
+reduced as if using [||] but all comparisons do not need to be
+performed if an early one determines an increasing or decreasing
+order.  For equivalence the list is reduced as if using [&&].
 
 =back
 
-
-
 =head1 Function Packages
+
+=head2 Any
+
+The following are defined in the C<Any> role:
+
+=over
+
+=item eqv
+
+ our Bool multi sub eqv (Ordering @by, $a, $b);
+ our Bool multi sub eqv (Ordering $by = &infix:<eqv>, $a, $b);
+
+Returns a Bool indicating if the parameters are equivalent,
+using criteria C<$by> or C<@by> for comparisons. C<@by> differs
+from C<$by> in that each criterion is applied, in order,
+until a non-zero (equivalent) result is achieved.
+
+=item cmp
+
+ our Order multi sub cmp (Ordering @by, $a, $b);
+ our Order multi sub cmp (Ordering $by = &infix:<cmp>, $a, $b);
+
+Returns Order::Increase, Order::Decrease, or Order::Same
+(which numify to -1, 0, +1) indicating if paramater $a should
+be ordered before/tied with/after parameter $b, using criteria
+C<$by> or C<@by> for comparisons. C<@by> differs from C<$by>
+in that each criterion is applied, in order, until a non-zero
+(tie) result is achieved.
 
 =head2 Num
 
@@ -609,19 +695,27 @@ in the multi form.
 
 =item pick
 
- our Lazy multi method pick ( @values: Int $num = 1 )
- our Lazy multi method pick ( @values: Whatever )
- our Lazy multi pick ( Int $num, *@values )
- our Lazy multi pick ( Whatever, *@values )
+ our Lazy multi method pick ( @values: Int $num = 1, Bool :$repl )
+ our Lazy multi method pick ( @values: Whatever , Bool :$repl )
+ our Lazy multi pick ( Int $num, *@values , Bool :$repl )
+ our Lazy multi pick ( Whatever, *@values , Bool :$repl )
 
-C<pick> takes a list or array of values and returns a random selection
-of elements from the list (without replacement).  If C<*> is specified
-as the number (or if the number of elements in the list is less than
-the specified number), all the available elements are returned in
-random order:
+C<pick> takes a list or array of values and returns a random
+selection of elements from the list (without replacement unless
+:repl is indicated).  When selecting without replacement if C<*>
+is specified as the number (or if the number of elements in
+the list is less than the specified number), all the available
+elements are returned in random order:
 
     @team = @volunteers.pick(5);
     @shuffled = @deck.pick(*);
+
+When selecting with replacement the specified number of picks
+are provided.  In this case C<*> would provide an infinite list
+of random picks from C<@values>:
+
+    @byte = (0,1).pick(8, :repl);
+    for (1..20).pick(*, :repl) -> $die_roll { ... }
 
 =item join
 
@@ -694,73 +788,77 @@ that were passed. For example:
      )
  }
 
-
 =item sort
 
- subset KeyExtractor of Code where { .sig === :(Any --> Any) };
- subset Comparator   of Code where { .sig === :(Any, Any --> Int ) };
- subset SortCriterion of Signature | KeyExtractor | Comparator | Pair(KeyExtractor, Comparator);
-
  our Array multi method sort( @values: *&by )
- our Array multi method sort( @values: SortCriterion @by )
- our Array multi method sort( @values: SortCriterion $by = &infix:<cmp> )
+ our Array multi method sort( @values: Ordering @by )
+ our Array multi method sort( @values: Ordering $by = &infix:<cmp> )
 
- our List multi sort( SortCriterion @by,  *@values )
- our List multi sort( SortCriterion $by = &infix:<cmp>, *@values )
+ our List multi sort( Ordering @by,  *@values )
+ our List multi sort( Ordering $by = &infix:<cmp>, *@values )
 
 Returns C<@values> sorted, using criteria C<$by> or C<@by> for
 comparisons. C<@by> differs from C<$by> in that each criterion is
 applied, in order, until a non-zero (tie) result is achieved.
 
-Criteria can take a few different forms:
-
-=over 8
-
-=item Comparator
-
-A closure with arity of 2, which returns negative/zero/positive,
-signaling the first argument should be before/tied with/after the
-second in the final ordering of the List. aka "The Perl 5 way"
-
-=item KeyExtractor
-
-A closure with arity of 1, which returns the "key" by which to sort.
-Values are compared using C<cmp>, which in Perl 6 does different
-comparisons depending on the types.  (To get a Perl 5 string comparison
-you must use C<leg> instead.)
-
-=item Pair(KeyExtractor, Comparator)
-
-A combination of the two methods above, for when one wishes to take
-advantage of the internal caching of keys that is expected to happen,
-but wishes to compare them with something other than C<cmp>, such
-as C<E<lt>=E<gt>> or C<leg>.
-
-=item Signature
-
-If a signature is specified as a criterion, the signature is bound
-to each value and then each parameter does comparisons in positional order
-according to its type, as modified by its traits.  Sort-specific traits
-are allowed in such a signature such as C<is descending> or C<is insensitive>.
-Basically, the system will write the body of the key extraction subroutine
-for you based on the signature.
-
-=back
-
-Any Criterion may receive either or both of the mixins C<descending>
-and C<insensitive> to reverse the order of sort, or the adjust the
-case sensitivity of C<cmp> as a Comparator.  (Mixins are applied to
-values using C<but>.)
+C<Ordering> is as described in L<"Type Declarations">.  Any
+C<Ordering> may receive either or both of the mixins C<descending>
+and C<canonicalized(Code $how)> to reverse the order of sort, or
+to adjust the case, sign, or other order sensitivity of C<cmp>.
+(Mixins are applied to values using C<but>.)  If a C<Signature>
+is used as an C<Ordering> then sort-specific traits such as C<is
+canonicalized($how)> are allowed on the positional elements.
 
 If all criteria are exhausted when comparing two elements, sort should
 return them in the same relative order they had in C<@values>.
 
 To sort an array in place use the C<.=sort> mutator form.
 
-See L<http://www.nntp.perl.org/group/perl.perl6.language/16578> for more
-details and examples.
+See L<http://www.nntp.perl.org/group/perl.perl6.language/16578>
+for more details and examples (with C<is insensitive> meaning
+C<is canonicalized(&lc)>.)
 
+=item min
 
+ our Array multi method min( @values: *&by )
+ our Array multi method min( @values: Ordering @by )
+ our Array multi method min( @values: Ordering $by = &infix:<cmp> )
+
+ our List multi min( Ordering @by,  *@values )
+ our List multi min( Ordering $by = &infix:<cmp>, *@values )
+
+Returns the earliest (i.e., lowest index) minimum element
+of C<@values> , using criteria C<$by> or C<@by> for
+comparisons. C<@by> differs from C<$by> in that each criterion
+is applied, in order, until a non-zero (tie) result is achieved.
+
+C<Ordering> is as described in L<"Type Declarations">.  Any
+C<Ordering> may receive the mixin C<canonicalized(Code $how)> to
+adjust the case, sign, or other order sensitivity of C<cmp>.
+(Mixins are applied to values using C<but>.)  If a C<Signature>
+is used as an C<Ordering> then sort-specific traits such as C<is
+canonicalized($how)> are allowed on the positional elements.
+
+=item max
+
+ our Array multi method max( @values: *&by )
+ our Array multi method max( @values: Ordering @by )
+ our Array multi method max( @values: Ordering $by = &infix:<cmp> )
+
+ our List multi max( Ordering @by,  *@values )
+ our List multi max( Ordering $by = &infix:<cmp>, *@values )
+
+Returns the earliest (i.e., lowest index) maximum element
+of C<@values> , using criteria C<$by> or C<@by> for
+comparisons. C<@by> differs from C<$by> in that each criterion
+is applied, in order, until a non-zero (tie) result is achieved.
+
+C<Ordering> is as described in L<"Type Declarations">.  Any
+C<Ordering> may receive the mixin C<canonicalized(Code $how)> to
+adjust the case, sign, or other order sensitivity of C<cmp>.
+(Mixins are applied to values using C<but>.)  If a C<Signature>
+is used as an C<Ordering> then sort-specific traits such as C<is
+canonicalized($how)> are allowed on the positional elements.
 
 =back
 
