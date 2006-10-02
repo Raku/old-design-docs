@@ -1036,6 +1036,54 @@ full "uppercase".
 
 Performs a Unicode "titlecase" operation on the first character of the string.
 
+=item uninorm
+
+ our Str multi method uninorm ( Str $string: Bool :$canonical = Bool::True, Bool :$recompose = Bool::False ) is export
+
+Performs a Unicode "normalization" operation on the string. This involves
+decomposing the string into its most basic combining elements, and potentially
+re-composing it. Full detail on the process of decomposing and
+re-composing strings in a normalized form is covered in the Unicode
+specification Sections 3.7, Decomposition and 3.11,
+Canonical Ordering Behavior of the Unicode Standard, 4.0.
+
+Named parameters
+affect the type of normalization. There are aliases that map to the
+I<Unicode Standard Annex #15: Unicode Normalization Forms> document's
+names for the various modes of normalization:
+
+ our Str multi method uninorm_NFD ( Str $string: ) is export {
+   $string.uninorm(:cononical, :!recompose);
+ }
+ our Str multi mehtod uninorm_NFC ( Str $string: ) is export {
+   $string.uninorm(:canonical, :recompose);
+ }
+ our Str multi method uninorm_NFKD ( Str $string: ) is export {
+   $string.uninorm(:!canonical, :!recompose);
+ }
+ our Str multi method uninorm_NFKC ( Str $string: ) is export {
+   $string.uninorm(:!canonical, :recompose);
+ }
+
+Decomposing a string can be used to compare
+Unicode strings in a binary form. Without decomposing first, two
+Unicode strings may contain the same text, but not the same binary
+data. The decomposition of a string is performed according to tables
+in the Unicode standard, and should be compatible with decompositions
+performed by any system.
+
+The C<:canonical> flag controls the use of "compatibility decompositions".
+For example, in canonical mode, "ﬁ" is left unaffected because it is
+not a composition. However, in compatibility mode, it will be replaced
+with "fi". Decomposed sequences will be ordered in a canonical way
+in either mode.
+
+The C<:recompose> flag controls the re-composition of decomposed forms.
+That is, a combining sequence will be re-composed into the canonical
+composite where possible.
+
+These de-compositions and re-compositions are performed recursively,
+until there is no further work to be done.
 
 =item capitalize
 
@@ -1888,4 +1936,5 @@ times
 
 Please post errors and feedback to perl6-language.  If you are making
 a general laundry list, please separate messages by topic.
+
 
