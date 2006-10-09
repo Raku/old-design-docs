@@ -1,616 +1,162 @@
-=encoding UTF-8
+=for comment
+    This file is deliberately specified in Perl 6 Pod format
+    Clearly a Perl 6 -> Perl 5 documentation translator is a high priority ;-)
+
 
 =head1 TITLE
 
 [DRAFT] Synopsis 26 - Documentation
 
-=head1 AUTHORS
 
-Ingy dt Net <ingy@cpan.org>
+=head1 AUTHORS
 
 Damian Conway <damian@conway.org>
 
-=for comment
-    I decided to go ahead and give this doc a cleaning up. I'm pulling
-    out the comments, that have been around for a while, and adding a
-    few of my own where need be. I'm doing my best to make sure the
-    comments are reflected in the new content. --ingy
+Ingy dE<ouml>t Net <ingy@cpan.org>
+
 
 =head1 VERSION
 
-  Maintainer:    Ingy dÖt Net <ingy@cpan.org>
-  Date:          9 Apr 2005
-  Last Modified: 27 Mar 2006
+=for table
+    Maintainer:     Damian Conway <damian@conway.org>
+    Date:           9 Apr 2005
+    Last Modified:  7 Oct 2006
 
-This document describes the documentation capabilities of
-Perl 6. It assumes familiarity with Perl 5 and its POD (Plain Old
-Documentation) format.
 
-Perldoc is a documentation format specification that is completely
-orthogonal to the Perl 6 specification. Still, Perl 6 is the primary
-target of intent for Perldoc, so this specification refers to Perl 6 as
-necessary.
+=head1 Perldoc
 
-=begin comment
+Perldoc is an easy-to-use markup language with a simple, consistent
+underlying document object model. Perldoc can be used for writing the
+documentation for Perl 5 and Perl 6, and for Perl programs and modules,
+as well as for other types of document composition.
 
-    Added this because, imho, it is of utmost importance that Perldoc be
-    able to be processed outside of Perl contexts, and without invoking
-    Perl. For example, a documentation editing tool written in Python
-    should be able to edit 98% of all Perl's documentation. It is not
-    acceptable for Perldoc to be unparsable because some Perl module
-    /needs/ to be loaded for it to be parsable.
-
-    This is not to say that the usage of Perldoc within Perl 6 is not
-    completely jacked up on Koolaid. %^D --ingy
-
-=end comment
-
-Throughout this document, the term "Perldoc" will be used as the generic
-term to describe Perl Documentation. "Pod" now refers to a specific
-I<dialect> of Perldoc. With Perl 6, there's more than one way to
-document it.
-
-See L</SYNTAX DIALECTS> to cut to the chase and read information on
-the many ways in which you can annotate your code with Perldoc.
-
-=head1 THE PERLDOC OBJECT MODEL (PDOM)
-
-Perldoc has a Document Object Model. That is, all Perldoc documentation
-in any dialect is modeled according to a schema. There are also standard
-Perl runtime APIs for accessing, generating, and transforming the
-content of documents.
-
-Perldoc allows multiple documentation dialects, but requires that they
-are parsed down to a single internal representation. This information can
-then be exposed or transformed in a consistent manner, which facilitates
-the creation of powerful Perldoc tools.
-
-While a Perl 6 implementation might implement the PDOM such that it
-exposes elements like Perl code blocks, comments and other parts of the
-Perl AST as accesible through the PDOM, this document only describes
-those elements that are specific to Perldoc model.
-
-The information model (known as the Perldoc Object Model or PDOM) is
-very nearly a superset the one that Perl 5's L<perlpod> implicitly defines.
-
-A PDOM representation can be thought of as a tree of I<nodes>. There are
-3 kinds of nodes:
-
-=over
-
-=item Text Nodes
-
-Leaf nodes containing content text.
-
-=item Collection Nodes
-
-Nodes that contain other nodes.
-
-=for comment
-    Changed "External" to "Opaque" meaning stuff that is recognized as
-    Perldoc, but is of a declared type for which there is no clarity to
-    inspect it any further. This clarity may come later, after which
-    point the node is then no longer opaque. --ingy
-
-=item Opaque Nodes
-
-Leaf nodes that are not recognized by the current state of the PDOM, but
-may be resolved at some other time. This might include I<tables>,
-I<images>, I<diagrams> or I<raw html>. Opaque nodes are typically
-handled by PDOM extensions, described later on.
-
-=for comment
-    Deleted Ignorable Nodes from the PDOM. The intent of ignorable is
-    significant whitespace for full roundtripping by syntax hilighters
-    an Perldoc editors. While this information should be reported by a
-    parser, its place in the PDOM is dubious, especially given that a
-    lot of other syntax level information is lost at this point. --ingy
-
-=back
-
-There are two categories of collection nodes:
-
-=over
-
-=item Block Nodes
-
-These are nodes that correspond HTML C<DIV>s. They represent
-things like I<paragraphs>, I<verbatim blocks>, and I<lists>.
-
-=item Phrase Nodes
-
-These are nodes that correspond to HTML C<SPAN>s. They represent
-things like I<strong> or I<emphatic> text, I<inline code>, and I<links>.
-
-=back
-
-Each node has a I<type> that indicates what kind of data it holds. The
-following is a list of standard nodes types that exist in the
-PDOM model:
-
-    - Document      (the root container node)
-    - Blocks:
-        - Opaque        (some as yet opaque block content)
-        - Heading       (a section heading)
-        - Paragraph     (regular text to be formatted)
-        - Verbatim      (preformatted regular text)
-        - Annotation    (output as a footnote or other elaboration)
-        - Insertion     (documentation included from another file)
-        - Module        (the specification of a Perldoc extension)
-        - Data          (a data section for the surrounding code)
-        - Opaque        (an as yet unknown Perldoc block)
-        - Ulist         (an unordered, "bulleted" list)
-            - UlistItem     (an item in a Ulist)
-        - Olist         (an ordered, "numbered" list)
-            - OlistItem     (an item in a Olist)
-        - Dlist         (a list of term definitions)
-            - DlistItem     (an item in a Dlist)
-    - Phrases:
-        - Opaque        (some as yet opaque phrase content)
-        - Plaintext     (typically set in roman)
-        - Strong        (typically set in bold)
-        - Emphasis      (typically set in italic)
-        - Code          (typically set in fixed-width)
-        - Link          (an internal or external cross-reference)
-        - Nonbreaking   (preserves and doesn't break whitespace)
-        - Entity        (Unicode codepoint or XML entity)
-        - Indexer       (index entry, never shown inline)
-
-=for comment
-    Lists need to be modeled as containers, even if the syntax to
-    specify them can be inferred. I'm modeling the exact 3 lists that
-    are modeled in Pod today. Also make a clear distinction between the
-    3 types of items which are semantically and syntacically different
-    from each other. I don't see the need to artificially conflate these
-    down to one node type. --ingy
-
-Documents contain one or more blocks, which in turn contain one or more
-phrases. Blocks may also contain nested blocks and phrases may contain nested
-phrases. (Phrases do not contain nested blocks.)
-
-=head1 PDOM API
-
-PDOM defines both a serial API and a random access API for accessing
-document content.
-
-=head2 PDOM Serial API
-
-Perldoc allows for SAX-style streamed parsing and emission of documents.
-You can register callbacks on the various subclasses of Perldoc nodes,
-which will be triggered whenever a component of the corresponding type
-is parsed.
-
-=for comment
-    Deleted the implementation specific PD class example, as it seems
-    not to be in scope here. --ingy
-
-=head2 PDOM Random Access API
-
-This API consists of functions that would likely look similar to
-an XML/DOM API.
-
-The various PDOMs will be available to Perl 6 at runtime through the
-global variable C<%*DOC>, where each key of the hash will be a unique
-identifier (likely a package or class name) and each value will be a
-PDOM Document node. Also, the variable C<$*DOC> will contain a reference
-to the current package's PDOM object, if available.
-
-=head1 SYNTAX CONTAINMENT
-
-Having discussed the information model that defines Perldoc, the
-following sections detail the syntactic constraints necessary for using
-Perldoc in various contexts, including Perl programs.
-
-Various interpreters (including the Perl interpreter) need to
-distinguish which characters in a file or stream are actual Perldoc
-and which are irrelevant (typically because they're Perl code).
-
-Regardless of the code or data in which it's embedded, every section of
-Perldoc begins with a line whose first character (in column 1) is C<=>,
-followed immediately by any Unicode identifier sequence, except
-C<'cut'>. In other words, any line that matches the Perl 6 regex:
-
-     /^^ = <ident>/
-
-indicates the start of a section of Perldoc.
-
-Each section of Perldoc ends at either:
-
-=over
-
-=item *
-
-The Perldoc directive matching the directive that opened the section. For
-example: at C<=end verbatim> if the section started with C<=begin verbatim>.
-
-=item *
-
-The first blank line, if the opening directive was not a C<=begin>, C<=doc>,
-C<=pod>, or C<=kwid>. A blank line is a line that is either empty or that
-contains only whitespace characters.
-
-=item *
-
-The special directive C<=cut>
-
-=back
-
-=for discussion
-    For that matter, I don't much like =pod, =doc, or =kwid either...
-
-
-=head2 Explicit documentation regions
-
-Perldoc also provides a directive that explicitly indicates the
-start of an extended piece of documentation:
-
-     =doc <dialect>
-
-=for discussion
-    Don't see the need for a =doc declarator.  Why not unify with =use,
-    and make modules powerful enough to do the general syntactic and
-    role-based switching.
-
-For example:
-
-     =doc pod
-
-     =doc kwid
-
-     =doc markdown
-
-     =doc javadoc
-
-If C<=doc> has no dialect qualifier, it is assumed to be the same dialect as
-the previous C<=doc> region specified (it is an error if the first C<=doc>
-doesn't specify a dialect).
-
-=for discussion
-    I think bare =doc/=cut is just =begin/=end spelled badly.  All we need
-    to do is say that =use scopes to the end of the current =begin/=end block,
-    if any, or the rest of the file if not.
-
-
-Normally a section of Perldoc finishes after the closing delimiter of its
-directive, and the Perl interpreter goes back to parsing code:
-
-     sub foo {
-
-     =begin item *
-     The foo() subroutine has no useful purpose.
-     It's provided for backwards compatibility only.
-     Use the do_foo() sub instead.
-     =end item
-
-         goto &do_foo;
-     }
-
-However, when a documentation region begins with a C<=doc>
-directive, the documentation continues until the next C<=cut> directive
-is encountered. That is, if the previous example had been written:
-
-     sub foo {
-
-     =doc pod
-     =begin item *
-     The foo() subroutine has no useful purpose.
-     It's provided for backwards compatibility only.
-     Use the do_foo() sub instead.
-     =end item
-
-         goto &do_foo;
-     }
-
-then the last two lines would be treated as Pod, not Perl.
-
-
-=for discussion
-    =begin without =end can do that too.
-
-
-=head2 Code-specific regions
-
-Perldoc defines two special directives that relate to the non-Perldoc
-components of a file: C<=DATA> and C<=END>.
-
-=for discussion
-    Why do they have to be special?  Data is not used often enough to
-    warrant short huffman coding.  And what if you want something to
-    be simultaneously data and a Perldoc component?  To me, data is just
-    a Perldoc component with a name or role that only the program is
-    (usually) interested in.
-
-The C<DATA> directive creates a Perl DATA block within your document. Any Perl
-code in the document can access this data via the special C<%=DATA> variable.
-DATA blocks can be labelled (unlabelled DATA blocks have an empty string as
-their implicit label):
-
-    =begin DATA Fibonacci
-    0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987,
-    1597, 2584, 4181, 6765, 10946, 17711, 28657, 46368, 75025, 121393,
-    196418, 317811, 514229, 832040, 1346269, 2178309, 3524578, 5702887,
-    9227465, 14930352, 24157817, 39088169
-    =end DATA
-
-    my $fib_seq = %DATA{Fibonacci};
-
-DATA blocks are included in the internal representation of a Perldoc document.
-They are treated as a specific type of L<opaque block|"Opaque blocks">.
-
-The C<=END> directive indicates the termination of the non-Perldoc component
-of a file. Everything after that line until the end of the file is parsed
-as Perldoc. In a sense, C<=END> is like C<=doc>, except that the Perldoc
-region it introduces is not terminated by a C<=cut> (or anything else except
-end-of-file).
-
-
-=for discussion
-    more like:
-        =begin END
-    suppressing the warning of missing =end END
-
-
-=head2 Standard Perldoc dialects
-
-
-=begin question-for-damian
-
-Why do we need this?
-
-If:
-
-    =doc
-
-means:
-
-    =doc kwid
-
-after a previous `=doc kwid`, then we can just do:
-
-    =doc - Something
-
-    Some interesting point.
-    =cut
-
-and we don't need to /bless/ Pod and Kwid as standard.
-
-
-=end question-for-damian
-
-=begin answer-from-larry
-    In my mental model that's just
-
-    =use  kwid
-    =begin
-    - Something
-    Some interesting point.
-    =end
-
-=end answer-from-larry
-
-The two standard Perldoc dialects (L<Pod|The Pod Dialect>
-and L<Kwid|The Kwid Dialect>) have abbreviated markers:
-
-     =pod
-
-     =kwid
-
-These are exactly equivalent in effect to:
-
-     =doc pod
-
-     =doc kwid
-
-including the requirement for a C<=cut> to terminate their documentation
-region.
-
-However, any text following a C<=pod> or C<=kwid> marker on the same
-line is considered to be the first line of the actual content. This
-allows Kwid to do something like this:
-
-     =kwid - Something
-
-     Some interesting point.
-     =cut
-
-which is semantically equivalent to:
-
-     =doc kwid
-     - Something
-
-     Some interesting point.
-     =cut
-
-Note that the C<=doc>, C<=cut>, C<=pod>, and C<=kwid> lines are not
-considered part of the Perldoc information (they are not seen by the API or
-included in an internal representation). They are simply containment markers.
-
-
-=for discussion
-    This seems like a relatively useless feature to me
-
-=head2 File Containment
-
-The above descriptions explain how how to distinguish the Perl from the
-Doc, which assumes they are intertwingled in a Perl source code file.
-Documentation can also live in a file by itself.
-
-Perldoc considers files ending with C<.pod> to be documentation in the
-Pod dialect and files ending with C<.kwid> to be in the Kwid dialect,
-etc. A perldoc parser can look to the file extension for a dialect hint,
-if no other clue is provided.
-
-=for discussion
-    #!/usr/bin/pod
-    #!/usr/bin/kwid
-        vs
-    =use pod
-    =use kwid
-        as "first thing in file", or even P6-ish file-scoped declarator:
-    =use pod;
-    =use kwid;
-
-This implies that the lines like:
-
-     =doc
-     =pod
-     =kwid
-     =cut
-
-are not necessary in pure Perldoc files. In fact, in a Kwid file, they would
-just be plain text.
-
-
-=for discussion
-    Grumble, I don't think any of those are necessary in Pod files either...
-
-
-=head1 SYNTAX DIALECTS
-
-In the spirit of TMTOWTDI, Perldoc allows an author to choose a
-documentation syntax that best suits them, without needing to worry
-whether downstream processes and tools will be able to use it properly.
-These variations of syntax are referred to as I<Perldoc Dialects>.
-
-"Pod" is the Perldoc dialect that has evolved from Perl 5's "Plain Ol'
-Documentation" markup.
-
-"Kwid" is a Perldoc dialect that has evolved from wiki markup syntaxes.
-
-Other dialects may be created or adapted by people who are fond of
-neither Pod nor Kwid.
-
-An XML dialect would be trivial to define since the PDOM can be thought
-of as being an XML schema. Likewise an HTML dialect might be useful as a
-formal syntax for creating Pod from HTML.
-
-A WYSIWYG Perldoc editor could also be thought of as just another dialect.
+Perldoc allows for multiple syntactic I<dialects>, all of which map onto
+the same set of standard document objects. The standard dialect is named
+L<"Pod"|#The Pod Dialect>.
 
 
 =head1 The Pod Dialect
 
-I<Pod> is an evolution of Perl 5's Plain Ol' Documentation markup.
+I<Pod> is an evolution of Perl 5's Plain Ol' Documentation (POD) markup.
 Compared to Perl 5 POD, Perldoc's Pod dialect is much more uniform,
-somewhat more compact, and slightly more expressive.
-
+somewhat more compact, and considerably more expressive.
 
 =head2 General syntactic structure
 
-Pod blocks are specified using I<directives>. Every Pod block directive
-may be written in any of three equivalent forms: I<delimited>,
-I<paragraph>, and I<unlabelled>.
+Pod blocks are specified using I<directives>, which always start with an
+C<=> in the first column. Every Pod block directive may be written in
+any of three equivalent forms: I<delimited style>, I<paragraph style>,
+or I<abbreviated style>.
 
 
 =head3 Delimited blocks
 
-Delimited block directives are delimited by C<=begin> and C<=end>
-markers, both of which are followed by the typename of the directive.
-Typenames that are entirely upper-case or entirely lower-case are reserved for
-Perldoc. External formatters (including users!) should use only mixed-case
-typenames.
+Delimited blocks are bounded by C<=begin> and C<=end> markers, both of
+which are followed by a valid identifierN<A valid identifier is a
+sequence of alphanumerics and/or underscores, beginning with an
+alphabetic or underscore>, which is the typename of the block. Typenames
+that are entirely lowercase (for example: C<=begin head1>) or entirely
+uppercase (for example: C<=begin SYNOPSIS>) are reserved.
 
-=for discussion
-    oops
+After the typename, the rest of the C<=begin> marker line is treated as
+configuration information for the block. This information is used in
+different ways by different types of blocks, and is specified using
+Perl6ish C<:key{value}> or C<< key=>value >> pairs (which must, of
+course, be constants since Perldoc is a specification language, not a
+programming language).
+See L<Synposis 2|http://dev.perl.org/perl6/doc/design/syn/S02.html#Literals>
+for a summary of the Perl 6 pair notation.
 
-The C<=begin> marker may also be followed by a multi-word label for the
-block (which is used in different ways by different types of blocks).
-The general syntax is:
+The configuration section may be extended over subsequent lines by
+starting those lines with an C<=> in the first column followed by a
+horizontal whitespace character.
 
-     =begin BLOCK_TYPE  OPTIONAL LABEL TEXT
-     BLOCK CONTENTS
-     =end BLOCK_TYPE
+The lines following the opening delimiter and configuration are the data
+or contents of the block, which continue until the block's C<=end> marker
+line. The general syntax is:
+
+=begin code :allow< R >
+     =begin R<BLOCK_TYPE>  R<OPTIONAL CONFIG INFO>
+     =                  R<OPTIONAL EXTRA CONFIG INFO>
+     R<BLOCK CONTENTS>
+     =end R<BLOCK_TYPE>
+=end code
 
 For example:
 
-     =begin Table  Table of Contents
+     =begin table  :title<Table of Contents>
          Constants           1
          Variables           10
-
          Subroutines         33
-
          Everything else     57
      =end Table
 
-     =begin item Name
+     =begin Name  :required
+     =            :width(50)
      The applicant's full name
-     =end item
+     =end Name
 
-     =begin item Contact
+     =begin Contact  :optional
      The applicant's contact details
-     =end item
+     =end Contact
 
-Note that everything between the C<=begin> line and the C<=end> line is
-considered to be the contents of the block. No blanks lines are
-required around the directives, and blank lines within the contents are
-treated as part of the contents.
+Note that no blank lines are required around the directives, and blank
+lines within the contents are always treated as part of the contents.
 
-=for discussion
-    I think we need to reserve some kind of modifier/adverbial syntax:
-        =begin Table :foo<bar> :title<Table of Contents>
+Note also that in the following specifications, a "blank line" is a line that
+is either empty or that contains only whitespace characters. That is, a blank
+line matches C</^\s*?$/>. Pod uses blank lines, rather than empty lines, as
+delimiters (on the principle of least surprise).
 
 
 =head3 Paragraph blocks
 
-Paragraph block directives are introduced by a C<=for> marker and
-terminated by the next Pod directive or the first blank line (which is
-I<not> considered part of the block data). The C<=for> marker is
-followed by the name of the directive and an optional label. The general
-syntax is:
+Paragraph blocks are introduced by a C<=for> marker and terminated by
+the next Pod directive or the first blank line (which is I<not>
+considered to be part of the block's contents). The C<=for> marker is
+followed by the name of the directive and optional
+configuration information. The general syntax is:
 
-     =for BLOCK_TYPE  OPTIONAL LABEL TEXT
-     BLOCK DATA
+=begin code :allow< R >
+     =for R<BLOCK_TYPE>  R<OPTIONAL CONFIG INFO>
+     =                R<OPTIONAL EXTRA CONFIG INFO>
+     R<BLOCK DATA>
+
+=end code
 
 For example:
 
-     =for Table  Table of Contents
+     =for table  :title<Table of Contents>
          Constants           1
          Variables           10
          Subroutines         33
          Everything else     57
 
-     =for item Name
+     =for Name  :required
+     =          :width(50)
      The applicant's full name
 
-     =for item Contact
+     =for Contact  :optional
      The applicant's contact details
-
-=begin note-to-damian
-
-I'm nervous about the ambiguity of =for.
-
-     =for item Blah Blah Blah Blah Blah
-     Blah Blah Blah Blah Blah Blah Blah
-
-Where does the item element end and the description begin. Might be
-wrap-fragile if you base it on newline.
-
-For example:
-
-    =head1 Surely this extra long wrapped line is really just one long
-    header line and:
-
-    This next paragraph doesn't start until here.
-
-=end note-to-damian
 
 Once again, blank lines are not required around the directive (this is a
 universal feature of Pod).
 
 
-=for discussion
-    Unified handling of adverbials might help with this.
+=head3 Abbreviated blocks
 
+Abbreviated blocks are introduced by an C<'='> sign in the
+first column, which is followed immediately by the typename of the
+block. The rest of the line is treated as block data, rather than as
+configuration. The content terminates at the next Pod directive or the
+first blank line (which is not part of the block data). The general
+syntax is:
 
-=head3 Unlabelled blocks
+=begin code :allow< R >
+     =R<BLOCK_TYPE>  R<BLOCK DATA>
+     R<MORE BLOCK DATA>
 
-Unlabelled block directives are introduced by an C<'='> sign followed
-immediately by the typename of the directive. The rest of the line is
-treated as block data, rather than a block label. The content terminates at
-the next Pod directive or the first blank line (which is not part of the
-block data). The general syntax is:
-
-     =BLOCK_TYPE  BLOCK DATA
-     MORE BLOCK DATA
+=end code
 
 For example:
 
@@ -620,55 +166,24 @@ For example:
          Subroutines         33
          Everything else     57
 
-     =item Name:    The applicant's full name
-     =item Contact: The applicant's contact details
-
-Note that C<=begin>, C<=end>, C<=for>, and C<=cut> markers are
-always considered to be intrinsic keywords, not unlabelled block
-markers. Hence, you cannot specify unlabelled blocks of a type named
-C<begin>, C<end>, or C<for>. Instead you have to write:
-
-     =begin cut
-     This is a C<cut> type block (whatever I<that> is!)
-     =end cut
-
-
-=for discussion
-    So basically,
-        =foo bar
-    is simply sugar for
-        =for foo bar
-
-The C<=pod> and C<=doc> markers are not labelled forms either (because
-they are not terminated at the next blank line, but rather by a
-C<=cut> directive). Nevertheless they I<do> each have fully delimited
-forms as well:
-
-     =begin pod
-     ...
-     =end pod
-
-
-     =begin doc pod
-     ...
-     =end doc
-
-These forms may be nested (see L<EMBEDDING DIALECTS>).
+     =Name     The applicant's full name
+     =Contact  The applicant's contact details
 
 
 =head3 Block equivalence
 
 The three equivalent block specifications (delimited, paragraph, and
-unlabelled) are treated identically by the documentation model, so you
-can use whichever form is most convenient for a particular documentation
-task. In the descriptions that follow, the unlabelled form will generally be
-used, but should be read as standing for all three forms equally.
+abbreviated) are treated identically by the underlying documentation
+model, so you can use whichever form is most convenient for a particular
+documentation task. In the descriptions that follow, the abbreviated form
+will generally be used, but should be read as standing for all three
+forms equally.
 
-For example, although L<"Headings"> shows only:
+For example, although L<#Headings> shows only:
 
      =head1 TOP LEVEL HEADING
 
-this automatically implies that you could also write that directive as:
+this automatically implies that you could also write that block as:
 
      =for head1
      TOP LEVEL HEADING
@@ -679,145 +194,247 @@ or:
      TOP LEVEL HEADING
      =end head1
 
-if you prefer.
 
+=head3 Standard configuration options
 
-=head2 Encoding
+Pod predefines a small number of standard configuration options that can be
+applied uniformly to built-in block types. These include:
 
-=begin question-for-damian
+=begin item  :term<C<:indented>>
 
-Do we really want to go there? I would like say that all Perldoc
-documents are encoded in utf8 (or utf16 with a BOM). And further,
-that you cannot switch mid-document, yagni concatenation arguments to
-the contrary.
+This option specifies that the block is to be indented by a particular
+amount. If the indentation amount includes a sign (i.e. C<+> or C<->) then
+the indentation is relative to the indentation of the surrounding construct;
+unsigned indentations are absolute offsets from the first column.
 
-As a meta point, I would like to take the chance to simplify things where
-possible, with a few good hardcoded rules. Rules are easier to relax than
-stiffen later on. This also makes tools easy to implement. If the YAML project
-taught me one hard lesson, this one is crucial.
+If a simple number is used (e.g. C<:indent(4)>) it indicates "columns" (for
+fixed-width renderers) or "ems" for variable-width renderers. You can also
+specify a unit after the number. For example:
 
-=end question-for-damian
+    =for para :indented<1 tab>
 
-You can specify the encoding used in a particular document (or portion thereof)
-using the C<encoding> directive:
+    =for para :indented<1 em>
 
-     =encoding ShiftJIS
+    =for para :indented<1 col>
 
-     =encoding ISO-8859-5
+    =for para :indented<1 lvl>
 
-     =encoding EBCDIC
+    =for para :indented<4 sp>
 
-The specified encoding is used from the start of the next line in the
-document. If a second C<encoding> directive is encountered, the
-current encoding changes again after that point. Note, however, that
-the second encoding directive must itself be encoded using the first
-encoding scheme.
+=end item
 
-=for discussion
-    I'm inclined to agree with ingy.
+=begin item  :term<C<:numbered>>
+
+This option specifies that the block is to be numbered. The most common
+use of this option is to create L<numbered headings|#Numbered headings> and
+L<ordered lists|#Ordered lists> but it can be applied to any block.
+
+It is up to individual renderers to decide how to display any numbering
+associated with other types of blocks.
+
+=end item
+
+=for item  :term<C<:bulleted>>
+This option specifies that a list item has a bullet. See L<#Unordered lists>.
+
+=for item  :term<C<:term>>
+This option specifies that a list item is the definition of a term.
+See L<#Definition lists>.
+
+=begin item  :term<C<:formatted>>
+
+This option specifies that the contents of the block should be treated as if
+they had one or more L<formatting codes|#Formatting codes> placed around them.
+
+For example, instead of:
+
+    =comment The next para is important, so emphasize it...
+    =begin para
+    B<I<
+    Warning: Do not immerse in water. Do not expose to bright light.
+    Do not feed after midnight.
+    >>
+    =end para
+
+you can just write:
+
+    =comment The next para is important, so emphasize it...
+    =begin para :formatted<B I>
+    Warning: Do not immerse in water. Do not expose to bright light.
+    Do not feed after midnight.
+    =end para
+
+Like all formatting codes, these are inherently cumulative. For example,
+if the block itself is already inside a formatting code, that formatting
+code will still apply, in addition to the extra bold and italic
+formatting specified by C<:formatted<B I>>. It is also possible to
+I<remove> formatting using a C<:formatted> option, by specifying the
+formatting code(s) with a minus sign before them:
+
+    =comment The next para is less important, so de-emphasize it...
+    =begin para :formatted<-B>
+    Fire. The Untamed Element. Oldest of Man's Mysteries. Giver of
+    warmth. Destroyer of forests. Right now I<this> building is on fire.
+    Yes! The building is on fire! Leave the building! Enact the age-old
+    drama of self-preservation!
+    =end para
+
+=end item
+
+=for item :term<C<:like<R<typename>>>>
+This option specifies that a block or config has the same formatting
+properties as the type named by its value. This is useful for creating
+related L<configurations|#Block pre-configuration>.
+
+=for item  :term<C<:allow>>
+This option expects a list of formatting codes that are to be recognized
+within any C<V<>> codes nested inside the current block. The option is
+most often used on C<=code> blocks to allow mark-up within those
+(otherwise verbatim) blocks, though it can be used in I<any> block that
+contains verbatim text. See L<#Formatting within code blocks>.
+
 
 
 =head2 Blocks
 
-Pod provides notations for specifying all the standard block types in the
-PDOM...
-
+Pod offers notations for specifying a range of standard block types...
 
 =head3 Headings
 
-Pod provides an unlimited number of levels of heading:
+Pod provides an unlimited number of levels of heading, specifed by the
+T<=headR<N>> directive. For example:
 
-     =head1 A TOP LEVEL HEADING
+    =head1 A TOP LEVEL HEADING
 
-     =head2 A Second Level Heading
+    =head2 A Second Level Heading
 
-     =head3 A third level heading
+    =head3 A third level heading
 
-     =head86 A "Missed it by I<that> much!" heading
+    =head86 A "Missed it by I<that> much!" heading
 
-Pod formatters are only required to provide distinct renderings for
-the first four levels of heading. Headings at levels without
-distinct renderings are typically rendered like the lowest
-distinctly rendered level.
-
+While Pod parsers are required to recognize and distinguish all levels
+of heading, Pod formatters are only required to provide distinct
+I<renderings> of the first four levels of heading (though they may, of
+course, provide more than that). Headings at levels without distinct
+renderings would typically be rendered like the lowest distinctly
+rendered level.
 
 =head4 Numbered headings
 
+You can specify that a heading is numbered using the C<:numbered> option. The
+value of this option should be a sequence of characters containing a C<#>. If
+the value is omitted (i.e. C<:numbered>), then it defaults to C<'#.'>.
 
-=for discussion
-    This is ugly, and fails to factor policy.  Need something like:
-        =use head1 N.
-        =use head2 N.
-        =use head3 (N)
+The C<#> is replaced by the ordinal number of the heading block (within
+its particular heading level):
 
-To create hierarchical numbered headings, use the C<< NZ<><> >>
-formatting code (see L<Hierarchical ordinals>). For example:
+    =for head1 :numbered
+    The Problem
 
-     =head1 N<>. The Problem
+    =for head1 :numbered
+    The Solution
 
-     =head1 N<>. The Solution
+    =for head2 :numbered<#:>
+    Analysis
 
-     =head2 N<>. Analysis
+    =for head3 :numbered<(#)>
+    Overview
 
-     =head3 (N<>) Overview
+    =for head3 :numbered<(#)>
+    Details
 
-     =head3 (N<>) Details
+    =for head2 :numbered<#:>
+    Design
 
-     =head2 N<>. Design
+    =for head1 :numbered
+    The Implementation
 
-     =head1 N<>. The Implementation
+which would produce:
 
-produces:
+=begin indent :formatted<B>
+1. The Problem
 
-=over
+2. The Solution
 
-B<1. The Problem>
+=begin indent
+2.1: Analysis
 
-B<2. The Solution>
+=begin indent
+(2.1.1) Overview
 
-=over
+(2.1.2) Details
+=end indent
 
-B<2.1. Analysis>
+2.2: Design
+=end indent
 
-=over
+3: The Implementation
+=end indent
 
-B<(2.1.1) Overview>
+It is usually better to preset a numbering scheme for each heading
+level, in a series of L<configuration blocks|#Block pre-configuration>:
 
-B<(2.1.2) Details>
+    =config head1 :numbered
+    =config head2 :numbered<#:>
+    =config head3 :numbered<(#)>
 
-=back
+    =head1 The Problem
+    =head1 The Solution
+    =head2   Analysis
+    =head3     Overview
+    =head3     Details
+    =head2   Design
+    =head1 The Implementation
 
-B<2.2. Design>
+Alternatively, as a short-hand, if the first whitespace-delimited word
+in a heading consists of a single literal C<#> character, the C<#> is
+removed and the heading is treated as if it had a C<:numbered> option:
 
-=back
+    =head1 # The Problem
+    =head1 # The Solution
+    =head2   # Analysis
+    =head3     # Overview
+    =head3     # Details
+    =head2   # Design
+    =head1 # The Implementation
 
-B<3. The Implementation>
+Note that, even though renderers are not required to distinctly render
+more than the first four levels of heading, they I<are> required to
+correctly honour arbitrarily nested numberings. That is:
 
-=back
+    =head6 # The Rescue of the Kobayashi Maru
+
+should produce something like:
+
+=para :indented
+B<2.3.8.6.1.9. The Rescue of the Kobayashi Maru>
 
 
 =head3 Ordinary paragraph blocks
 
-Ordinary paragraph blocks consist of text that is to be formatted
-into your document at the currently level of nesting, with
-whitespace squeezed, lines filled, and any special inline mark-up
-(see L<Formatting codes>) applied.
+Ordinary paragraph blocks consist of text that is to be formatted into
+a document at the currently level of nesting, with whitespace
+squeezed, lines filled, and any special inline mark-up (see
+L<#Formatting codes>) applied.
 
 Ordinary paragraphs consist of one or more lines of text, each of which
 starts with a non-whitespace character at column 1. The paragraph is
-terminated by the first blank line. For example:
+terminated by the first blank line or opening block directive. For example:
 
      This is an ordinary paragraph.
      Its text  will   be     squeezed     and
-     short lines filled.
+     short lines filled. It is terminated by
+     the first blank line
 
      This is another ordinary paragraph.
      Its     text    will  also be squeezed and
-     short lines filled.
+     short lines filled. It is terminated by
+     the trailing directive on the next line
+     =head2 This is a heading block, not associated with the previous para
 
-Ordinary paragraphs do not require an explicit marker or
-delimiters, but there I<is> an explicit C<para> marker available if you
-wish to use it:
+Within a C<=begin pod>/C<=end pod> block, ordinary paragraphs do not
+require an explicit marker or delimiters, but there I<is> an explicit
+C<para> marker available:
 
      =para
      This is an ordinary paragraph.
@@ -832,57 +449,97 @@ and likewise the longer C<=for> and C<=begin>/C<=end> forms. For example:
          short lines filled.
      =end para
 
-Note that, when any form of explicit C<para> directive is used, the
-text no longer has to begin at column 1 because leading whitespace is
-automatically removed.
+As the previous example implies, when any form of explicit C<para>
+directive is used all whitespace at the start of each line is removed.
+Hence the ordinary paragraph text no longer has to begin at column 1.
 
 
-=for discussion
-    =use para :indent(4n)
+=head3 Code blocks
 
+Code blocks are used to specify pre-formatted text, which should
+be rendered without rejustification, without whitespace-squeezing, and without
+recognizing any inline formatting codes. Typically these blocks are used
+to show examples of code, data, or I/O, and are set using a fixed-width font.
 
-=head3 Verbatim blocks
-
-Verbatim blocks are used to specify pre-formatted text, which should
-be rendered without rejustification, without squeezing, and without
-applying any inline formatting codes. Typically these blocks are used
-to show examples of code, data, or I/O, and are set using a fixed-width
-font.
-
-A verbatim block is specified as one or more lines of text, each of which
+A code block is specified as one or more lines of text, each of which
 starts with a whitespace character. The block is terminated by a blank line.
 For example:
 
      This I<ordinary> paragraph introduces a following
-     B<verbatim> block:
+     B<code> block:
 
-           hi    la    re    ly    ow    e
-          T  s  l  p  a  x  t  a  h  n  r
-              wi    pe    ac    ss    he
+        $this = 1 * code('block');
+        $that.is_specified(:by<indenting>);
 
-There is also an explicit C<verbatim> directive, which allows verbatim text to
-start at the first column and to contain blank lines:
+There is also an explicit C<code> directive, which allows the contents
+of code blocks to start at the first column, to start with whitespace
+characters that are preserved exactly, and to contain blank lines:
 
      The C<loud_update()> subroutine adds feedback:
 
-     =begin verbatim
+     =begin code
 
      sub loud_update ($who, $status) {
          say "$who -> $status.";
 
-         silent_update($who, $what);
+         silent_update($who, $status);
      }
 
-     =end verbatim
+     =end code
 
-=for discussion
-    =use verbatim :escape{'<<<','>>>'}
+The only limitation on the contents of a C<code> block is that they cannot
+begin with an C<=> in the first column. If this is required, the leading C<=>
+must be made C<verbatim|#Verbatim text>:
+
+    =begin code :allow<V>
+
+    V<=> in the first column is always a Perldoc directive
+
+    =end code
+
+Renderers would normally indent the contents of any C<code> block (whether
+it was implicitly or explicitly specified), but this can be overridden using
+the C<:indented> option:
+
+    =comment
+        Indent this code block to the same column
+        as the surrounding text
+
+    =begin code :indented(+0)
+    sub demo {
+        say "Hello World";
+    }
+    =end code
+
+
+=head4 Formatting within code blocks
+
+Although C<=code> blocks automatically disregard all L<formatting
+codes|#Formatting codes>, occasionally you may still need to use a
+specific formatting code within a code block. For example, you may
+wish to highlight a particular keyword in an example, by making it
+bold. Or you might need to insert a non-ASCII character using the
+C<E<>> entity code.
+
+To do so, you can specify those formatting codes that should still be
+recognized within any verbatim formatting inside a block, using
+the C<:allow> option. The value of the C<:allow> option must be a
+list of the names of one or more formatting codes. Those codes will
+then remain active inside any implicit or explicit C<V<>> ("verbatim") code
+within the block:
+
+    =begin code :allow< B I >
+    sub demo {
+        B<say> "Hello I<World>";
+    }
+    =end code
+
 
 =head3 Lists
 
-Lists in Pod are specified as a series of C<item> directives.
-No special list directives or other delimiters are required to enclose
-the entire list. For example:
+Lists in Pod are specified as a series of C<item> directives. No special
+"container" directives or other delimiters are required to enclose the
+entire list. For example:
 
      The seven suspects are:
 
@@ -892,97 +549,57 @@ the entire list. For example:
      =item * Bashful
      =item * Sneezy
      =item * Grumpy
-     =item * Doc
+     =item * Keyser Soze
 
 Lists may be nested, using the C<=item1>, C<=item2>, C<=item3>, etc.
 directives. Note that C<=item> is just an abbreviation for C<=item1>:
 
      =item1 * Animal
-     =item2 - Vertebrate
-     =item2 - Invertebrate
+     =item2     * Vertebrate
+     =item2     * Invertebrate
 
      =item1 * Mineral
-     =item2 - Solid
-     =item2 - Liquid
-     =item2 - Gas
+     =item2     * Solid
+     =item2     * Liquid
+     =item2     * Gas
 
 which produces:
 
-=over
+=begin indent
+=item1 * Animal
+=item2 - Vertebrate
+=item2 - Invertebrate
 
-=over
+=item1 * Mineral
+=item2 - Solid
+=item2 - Liquid
+=item2 - Gas
+=end indent
 
-=item * Animal
+It is an error for a "level-N+1" C<item> directive (e.g. an C<=item2>,
+C<=item3>, etc.) to appear anywhere except where there is a preceding
+"level-N" C<item> directive. That is, an C<=item3> can only be specified if an
+C<=item2> appears somewhere before it, and that C<=item2> can only appear if
+there is a preceding C<=item1>.
 
-=over
+Note that item blocks are not physically nested. That is, lower-level
+items should I<not> be specified inside higher-level items:
 
-=item - Vertebrate
+    =comment Wrong...
+    =begin item1
+    The choices are:
+    =item2 Liberty
+    =item2 Death
+    =item2 Beer
+    =end item1
 
-=item - Invertebrate
-
-=back
-
-=item * Mineral
-
-=over
-
-=item - Solid
-
-=item - Liquid
-
-=item - Gas
-
-=back
-
-=back
-
-=back
-
-It is I<not> an error for nested C<=item2>, C<=item3>, etc. directives to
-appear without a preceding higher level C<item> directive. Any missing
-"outer" directives are implied, and treated as being empty. This is useful to
-create lists that are indented with respect to the current text:
-
-     There are four commonly encountered forms of matter:
-
-     =item2 * Solids
-     =item2 * Liquids
-     =item2 * Gases
-     =item2 * Plasmas
-
-which would be rendered as:
-
-=over
-
-There are four commonly encountered forms of matter:
-
-=over
-
-=over
-
-=item * Solids
-
-=item * Liquids
-
-=item * Gases
-
-=item * Plasmas
-
-=back
-
-=back
-
-=back
-
-This also provides a convenient way of creating block quotes:
-
-     We will now consider Shakespeare's most famous soliloquy:
-
-     =begin item2
-     To be, or not to be--that is the question:
-     Whether 'tis nobler in the mind to suffer
-     The slings and arrows of outrageous fortune...
-     =end item2
+    =comment Correct...
+    =begin item1
+    The choices are:
+    =end item1
+    =item2 Liberty
+    =item2 Death
+    =item2 Beer
 
 
 =head4 Multi-paragraph list items
@@ -992,280 +609,354 @@ contain multiple paragraphs. For example:
 
      Let's consider some common proverbs:
 
-     =begin item *
+     =begin item :bulleted
      The rain in Spain falls mainly on the plain.
 
      This is a common myth and an unconscionable slur on the Spanish
      people, the majority of whom are extremely attractive.
      =end item
 
-     =begin item *
+     =begin item :bulleted
      The early bird gets the worm.
 
-     In deciding whether to become an early riser, it is worth considering
-     whether you would actually enjoy annelids for breakfast.
+     In deciding whether to become an early riser, it is worth
+     considering whether you would actually enjoy annelids
+     for breakfast.
      =end item
 
      As you can see, folk wisdom is often of dubious value.
 
 which produces:
 
-=over
-
+=begin indent
 Let's consider some common proverbs:
 
-=over
-
-=item *
-
+=begin item :bulleted
 The rain in Spain falls mainly on the plain.
 
-This is a common myth and an unconscionable slur
-on the Spanish people, the majority of whom are
-extremely attractive.
+This is a common myth and an unconscionable slur on the Spanish
+people, the majority of whom are extremely attractive.
+=end item
 
-=item *
-
+=begin item :bulleted
 The early bird gets the worm.
 
-In deciding whether to become an early riser, it
-is worth considering whether you would actually
-enjoy annelids for breakfast.
-
-=back
+In deciding whether to become an early riser, it is worth
+considering whether you would actually enjoy annelids
+for breakfast.
+=end item
 
 As you can see, folk wisdom is often of dubious value.
-
-=back
+=end indent
 
 
 =head4 Ordered lists
 
-=for discussion
-    Also ugly.  Should be unified with =head numeration.  A leading
-        =use item N.
-    could imply =over and =back much like =item
-    Alternately we might be talking about some kind of macro definition
-    of headings and list items.
+An item is part of an ordered list if the item has a C<:numbered>
+configuration option:
 
-Ordered lists can be created using the C<< NZ<><> >> formatting code (see
-L<Hierarchical ordinals>):
+     =for item1 :numbered
+     Visito
 
-     =item # Visito
-     =item ## Veni
-     =item ## Vidi
-     =item ## Vici
+     =for item2 :numbered<[#]>
+     Veni
 
-to produce:
+     =for item2 :numbered<[#]>
+     Vidi
 
-=over
+     =for item2 :numbered<[#]>
+     Vici
 
-=over
+This would produce:
 
+=begin indent
 1. Visito
 
-1.1. Veni
+=begin indent
+[1.1] Veni
 
-1.2. Vidi
+[1.2] Vidi
 
-1.3. Vici
+[1.3] Vici
+=end indent
+=end indent
 
-=back
+Alternatively, if the first word of the item consists of a single C<#>
+character, the item is treated as having a C<:bulleted<#.>> option:
 
-=back
+     =item1  # Visito
+     =item2     # Veni
+     =item2     # Vidi
+     =item2     # Vici
+
+To specify an I<unnumbered> list item that starts with a literal C<#>, either
+make it verbatim:
+
+    =item V<#> introduces a comment
+
+or explicitly mark the item itself as being unnumbered:
+
+    =for item :!numbered
+    # introduces a comment
+
+The numbering of successive C<=item1> list items increments
+automatically, but is reset to 1 whenever any other kind of Perldoc block
+appears between to C<=item1> blocks. For example:
+
+    The options are:
+
+    =item1 # Liberty
+    =item1 # Death
+    =item1 # Beer
+
+    The tools are:
+
+    =item1 # Revolution
+    =item1 # Deep-fried peanut butter sandwich
+    =item1 # Keg
+
+would produce:
+
+=begin indent
+The options are:
+
+=item1 1. Liberty
+=item1 2. Death
+=item1 3. Beer
+
+The tools are:
+
+=item1 1. Revolution
+=item1 2. Deep-fried peanut butter sandwich
+=item1 3. Keg
+
+=end indent
+
+The numbering of nested items (C<=item2>, C<=item3>, etc.) only resets
+(to 1) when the higher-level item's numbering either resets or increments.
+
+To prevent an C<=item1> from resetting after a non-item block, you can
+specify the C<:continued> option:
+
+    =item1
+    Start social networking website
+
+    =item1
+    Attract tens of thousands of naE<iuml>ve users
+
+    I<???>
+
+    =for item1 :continued
+    Profit!!!
 
 
 =head4 Definition lists
 
-To create term/definition lists, specify the term as the label of the
-item and the definition as its contents.
+To create term/definition lists, specify the term as a configuration value
+of the item, and the definition as the item's contents:
 
-     =for item  MAD, I<adj.>
+     =for item  :term<MAD>
      Affected with a high degree of intellectual independence.
 
-     =for item  MEEKNESS, I<n.>
+     =for item  :term<MEEKNESS>
      Uncommon patience in planning a revenge that is worth while.
 
-     =for item  MORAL, I<adj.>
+     =for item  :term<MORAL>
      Conforming to a local and mutable standard of right.
      Having the quality of general expediency.
+
+An item that's specified as a term can still be numbered or bulleted:
+
+    =for item :numbered :term<SELFISH>
+    Devoid of consideration for the selfishness of others.
+
+    =for item :numbered :term<SUCCESS>
+    The one unpardonable sin against one's fellows.
 
 
 =head4 Unordered lists
 
-To create unordered lists, use any non-alphanumeric character(s) as the label
-of an item (or first word of an unlabelled item):
+To create unordered lists, specify a C<:bulleted> configuration option:
 
-     =item * Reading
+     =for item1 :bulleted<*>
+     Reading
 
-     =for item *
+     =for item2 :bulleted<->
      Writing
 
-     =begin item *
-     'Rithmatic
-     =end item
+     =for item3 :bulleted<(+)>
+     'Rithmetic
 
-=for discussion
-    =over
-    =use item *
-    =item
-        ...
-    =for item
-        ...
-    =begin item
-        ...
-    =end item
-    =back
+A valueless C<:bulleted> defaults to C<< :bulleted<*> >>.
 
+As a short-cut, you can just start the contents with a lone C<*> as the
+first whitespace-delimited word of the item's contents:
 
-=head3 Inserted Perldoc
+     =item1 * Reading
+     =item2     * Writing
+     =item2     * 'Rithmetic
 
-You can incorporate sections of documentation drawn from other files
-using the C<=insert> directive.
+Pod renderers are free to choose how they render short-cut bullets,
+either as asterisks on every level:
 
-This directive takes one or more URLs or shellish file globs as its
-block data, parses the resulting file(s) for Perldoc, and then adds the
-resulting internal representation(s) of the file contents to the current
-internal Perldoc representation that's being built.
+=item1 V<*> Reading
+=item2 V<*> Writing
+=item3 V<*> 'Rithmetic
 
-C<=insert> directives are handy for breaking out standard components of your
-documentation set into reusable "modules":
+or with distinct bullets for each level:
 
-     =head1 COPYRIGHT
+=item1 V<*> Reading
+=item2 - Writing
+=item3 + 'Rithmetic
 
-     =insert file:/shared/docs/std_copyright.pod
+Once again, you can use a L<C<config> directive|#Block pre-configuration>
+to ensure that your lists conform to consistent bulleting conventions:
 
-     =head1 DISCLAIMER
+    =config item1 :bulleted
+    =config item2 :bulleted<->
+    =config item3 :bulleted<+>
 
-     =insert file:/shared/docs/std_disclaimer.pod
+    =item1 Reading
+    =item2 Writing
+    =item3 'Rithmetic
 
-or for incorporating documentation from helper modules:
+To specify an I<unbulleted> list item that starts with an asterisk,
+either specify the starting character(s) verbatim:
 
-     =head1 EXTENSIONS
+    =item V<*> is a Perl 5 sigil
 
-     The following extensions are currently available:
+or explicitly mark the item itself as being unbulleted:
 
-     =begin insert
-         glob:lib/perl6/MyModule/Plugins/*.pm
-         glob:/usr/local/lib/perl6/MyModule/Plugins/*.pm
-     =end insert
+    =for item :!bulleted
+    * is a Perl 5 sigil
 
 
-=for discussion
-    Possibly these should just be "eager" links, and unified syntactically.
-    It bothers me that this mechanism seems to preclude inclusion of anything
-    below the paragraph level.
+=head3 Indented blocks
 
-=head3 Opaque blocks
+Any block can be indented by specifying an C<:indented> option on it:
 
-Directives whose names are not recognized as Pod built-ins are assumed to be
-destined for external formatters or parser plug-ins. For example:
+    =begin para :indented<+1 lvl>
+    We are all of us in the gutter,
+    but some of us are looking at the stars!
+    =end para
 
-     =begin Table  The Other Guys
+However, this quickly becomes tedious if there are many such paragraphs
+in a sequence, or if multiple levels of nesting are required:
 
-          Superhero     | Secret Identity | Superpower
-         ---------------|-----------------|------------------------------
-          The Shoveller | Eddie Stevens   | King Arthur's singing shovel
-          Blue Raja     | Geoffrey Smith  | Master of cutlery
-          Mr Furious    | Roy Orson       | Ticking time bomb of fury
-          The Bowler    | Carol Pinnsler  | Haunted bowling ball
+    =begin para :indented<+1 lvl>
+    We are all of us in the gutter,
+    but some of us are looking at the stars!
+    =end para
+    =begin para :indented<+2 lvl>
+    -- Oscar Wilde
+    =end para
 
-     =end Table
+So Pod provides a nestable C<=indent> block that indents all its contents:
 
+    =begin indent
+    We are all of us in the gutter,
+    but some of us are looking at the stars!
+    =begin indent
+    -- Oscar Wilde
+    =end indent
+    =end indent
+
+By default an C<=indent> block indents its contents by one extra "level"
+(i.e. by whatever the formatter considers one extra level of indentation
+to be) relative to the surrounding block. However, this default can be
+changed, by L<preconfiguring|#Block pre-configuration> the block type
+with the C<:indented> option:
+
+    =config indent :indented<+4 ems>
+
+
+=head3 Tables
+
+=for Conjecture
+#   Larry has previously indicated Perldoc shouldn't have a built-in
+#   table type, but there seems to be a considerable amount of general
+#   support and desire for this highly useful feature. This section is
+#   included here in case Larry should decide to invoke Rule 2. ;-)
+
+Tables can be specified in Perldoc using the C<=table> directive.
+The table may be given a name using the C<:title> option.
+
+Columns are separated by whitespace, vertical lines (C<|>), or line
+intersections (C<+>). Rows can be specified in one of two ways: either
+one row per line, with no separators; or multiple lines per row with
+explicit horizontal separators (whitespace, intersections (C<+>), or
+horizontal lines: C<->, C<=>, C<_>) between I<every> row. Either style
+can also have an explicitly separated header row at the top.
+
+Each individual table cell is separately formatted, as if it were a
+nested C<=para>.
+
+This means you can create tables compactly, line-by-line:
+
+    =table
+        The Shoveller   Eddie Stevens     King Arthur's singing shovel
+        Blue Raja       Geoffrey Smith    Master of cutlery
+        Mr Furious      Roy Orson         Ticking time bomb of fury
+        The Bowler      Carol Pinnsler    Haunted bowling ball
+
+or line-by-line with multi-line headers:
+
+    =table
+        Superhero     | Secret          |
+                      | Identity        | Superpower
+        ==============|=================|================================
+        The Shoveller | Eddie Stevens   | King Arthur's singing shovel
+        Blue Raja     | Geoffrey Smith  | Master of cutlery
+        Mr Furious    | Roy Orson       | Ticking time bomb of fury
+        The Bowler    | Carol Pinnsler  | Haunted bowling ball
+
+or with multi-line headers I<and> multi-line data:
+
+    =begin table :title('The Other Guys')
+
+                        Secret
+        Superhero       Identity          Superpower
+        =============   ===============   ===================
+        The Shoveller   Eddie Stevens     King Arthur's
+                                          singing shovel
+
+        Blue Raja       Geoffrey Smith    Master of cutlery
+
+        Mr Furious      Roy Orson         Ticking time bomb
+                                          of fury
+
+        The Bowler      Carol Pinnsler    Haunted bowling ball
+
+    =end table
+
+
+=head3 Named blocks
+
+Blocks whose names are not recognized as Pod built-ins are assumed to be
+destined for specialized formatters or parser plug-ins. For example:
 
      =for Xhtml
      <object type="video/quicktime" data="onion.mov">
 
+or:
 
      =Image http://www.perlfoundation.org/images/perl_logo_32x104.png
 
-Opaque blocks are converted by the Perldoc parser to
-Perldoc::Block::Opaque objects. The resulting object's C<.typename>
-method retrieves the name of the block type: C<'table'>, C<'XHTML'>,
-C<'image'>, etc. The object's C<.contents> method retrieves the block's
-(unformatted) data.
+Named blocks are converted by the Perldoc parser to block objects,
+specifically, to a subclass of the standard C<Block> class. The
+resulting object's C<.typename> method retrieves the name of the block
+type: C<'Xhtml'>, C<'Image'>, etc. The object's C<.contents> method
+retrieves a list of the block's (verbatim, unformatted) contents.
 
-By default, Perldoc formatters ignore opaque blocks that they do not
-recognize.
-
-
-=for discussion
-    Or rather, they don't ignore them--they never see them, because
-    those chunks didn't respond when the PDOM was asking for the
-    string of chunks responding to the particular role.  There is no
-    "External" role, just lack of an appropriate internal role, where
-    the list of "internal" roles is extended dynamically by =use,
-    not precanned.
-
-=head3 Modular blocks
-
-Although opaque blocks are normally ignored, Perldoc provides a mechanism
-whereby you can specify how particular opaque blocks are handled: the
-C<=use> directive.
-
-Specifying a C<=use> causes a Perldoc processor to load the corresponding
-plug-in module at that point. Plug-ins can use L<the PDOM API|"PDOM API">
-to change the way subsequent Perldoc is parsed (even to the extent of
-installing new parsing rules or a new grammar), or they can simply provide
-handlers for specific types of L<opaque blocks|"Opaque blocks">.
-
-For example:
-
-    =comment Install the Table plugin to render the following table...
-
-    =use Table
-
-    =begin Table  The Other Guys
-
-          Superhero     | Secret Identity | Superpower
-         ---------------|-----------------|------------------------------
-          The Shoveller | Eddie Stevens   | King Arthur's singing shovel
-          Blue Raja     | Geoffrey Smith  | Master of cutlery
-          Mr Furious    | Roy Orson       | Ticking time bomb of fury
-          The Bowler    | Carol Pinnsler  | Haunted bowling ball
-
-    =end Table
-
-The C<=use> statement causes the Perldoc processor immediately to look
-for a module named C<Perldoc::Plugin::Table> and to load it. More
-genarally, the first word of any C<=use> block is appended to a standard
-plugin prefix (C<Perldoc::Plugin::>) and passed as the first argument of
-a Perl 6 C<require>.
-
-If the processor is unable to load the requested module, it should (but
-is not required to) issue a warning. However, in all cases it must
-continue processing the remaining Perldoc. The processor may also elect
-to change the way it handles subsequent opaque blocks (for example,
-if a C<=use Table> fails, it may choose to convert subsequent C<=Table>
-blocks to C<=verbatim> blocks so that at least some form of the
-information is presented).
-
-You can use fully and partially specified module names (as in a Perl 6
-C<require> statement):
-
-    =use Table::Html-1.2.1-(Any)
-
-and even pass arguments:
-
-    =use Image :Jpeg prefix=>'http://dev.perl.org'
-
-This last example would result in a C<require> statement something like:
-
-    require $STD_MODULE_PREFIX ~ 'Image',
-            eval q{ :Jpeg prefix=>'http://dev.perl.org' }
-        or warn "Couldn't load Perldoc module 'Image' at $LOCATION\n";
-
-
-=for discussion
-    There needs to be a way to declare a MyTable that does Table|Foo|Bar|Baz.
-    (Or we need at least need to allow | notation for the table itself).
+Note that all block names consisting entirely of lower-case or entirely of
+upper-case letters are reserved.
 
 
 =head3 Comments
 
-Comments are Pod blocks that are completely ignored by any formatter. They
-are included in any internal representation of Pod, and accessible via
-the Perldoc APIs, but should never be rendered in any way.
+Comments are Pod blocks that are never rendered by any formatter. They
+are, of course, still included in any internal Perldoc representation,
+and are accessible via the Perldoc APIs.
 
 Comments are useful for meta-documentation (documenting the documentation):
 
@@ -1275,7 +966,7 @@ and for temporarily removing parts of a document:
 
      =item # Retreat to remote Himalayan monastery
 
-     =item # Learn the ancient mysteries of space and time
+     =item # Learn the hidden mysteries of space and time
 
      =item # Achieve enlightenment
 
@@ -1283,380 +974,410 @@ and for temporarily removing parts of a document:
      =item # Prophet!
      =end comment
 
-Note that, since the Perl interpreter ignores all Perldoc, C<comment>
-blocks can also be used as (nestable!) block comments in Perl 6:
+Note that, since the Perl interpreter never executes embedded Perldoc
+blocks, C<comment> blocks can also be used as (nestable!) block comments
+in Perl 6:
 
      # This is a Perl 5 style
      # code comment
      # spanning multiple lines
 
      =begin comment
-         This is a Perl 6 style
-         delimited code comment
-         spanning multiple lines
+       This is a Perl 6 style
+       delimited code comment
+       spanning multiple lines
      =end comment
 
-Note that, unlike Perl 5, no C<=cut> marker is required after a block
-comment in code (or after any other Pod block directive for that matter)
-unless the comment is also inside an explicit C<=doc> or C<=pod> region.
 
+=head3 Other standard block types
 
-=for discussion
-    Preceding paragraph can just die.
+All uppercase block typenames are reserved for specifying standard
+documentation components. In particular, all the standard components of
+Perl documentation have reserved uppercase typenames:
 
+    =NAME
+    =VERSION
+    =SYNOPSIS
+    =DESCRIPTION
+    =USAGE
+    =INTERFACE
+    =METHOD
+    =SUBROUTINE
+    =OPTION
+    =DIAGNOSTIC
+    =ERROR
+    =WARNING
+    =DEPENDENCY
+    =BUG
+    =SEEALSO
+    =ACKNOWLEDGEMENT
+    =AUTHOR
+    =COPYRIGHT
+    =DISCLAIMER
+    =LICENCE
+    =LICENSE
+    =SECTION
+    =CHAPTER
+    =APPENDIX
 
-=begin idea
+The plural forms of each of these keywords are also reserved, and are
+aliases for the singular forms.
 
-    Comments should have more than one identifier.  I think I'd prefer a rule
-    that standard roles never match /^_/ or some such.  Then you can comment out
-    any =begin/=end block merely by putting _ on its name.  Alternately, you mark
-    the beginning with some special character:
+Most of these blocks would typically be used in their full delimited forms:
 
-        =begin #foo
-            ...
-        =end
+    =begin SYNOPSIS
+        use Perldoc::Parser
 
-    which degenerates to
+        my Perldoc::Parser $parser .= new();
 
-        =begin #
-            ...
-        =end
+        my $tree = $parser.parse($fh);
+    =end SYNOPSIS
 
-=end idea
+The use of these reserved keywords is not required; you can still just write:
+
+    =head1 SYNOPSIS
+    =begin code
+        use Perldoc::Parser
+
+        my Perldoc::Parser $parser .= new();
+
+        my $tree = $parser.parse($fh);
+    =end code
+
+However, using the keywords adds semantic information to the
+documentation, which may assist various formatters, summarizers,
+coverage tools, and other utilities.
 
 
 =head2 Formatting codes
 
 Formatting codes provide a way to add inline mark-up to a piece of text
-within the contents of a (non-verbatim) block.
+within the contents of (most types of) block. They are themselves a type
+of block, and most of them may nest sequences of any other type of block
+(most often, other formatting codes). Specifically, you can nest
+comments blocks in the middle of a formatting code:
 
-All Pod formatting codes consist of a capital letter, followed immediately by
-a set of angle brackets, which contain the text or data to which the
-formatting code is to be applied.
+    B<I shall say this loudly
+    =begin comment
+    and repeatedly
+    =end comment
+    and with emphasis.>
 
-If the contents of the angle brackets includes an unbalanced angle
-bracket, you can use either "French brackets" or multiple angle brackets
-as the delimiters. For example:
+All Pod formatting codes consist of a single capital letter followed
+immediately by a set of angle brackets. The brackets contain the text or
+data to which the formatting code applies. You can use a set of single
+angles (C«<...>»), a set of double angles (C<«...»>), or multiple
+single-angles (C«<<<...>>>»).
 
-     The Perl 5 heredoc syntax was: C <<END_MARKER
+Within the angles, sequences of angles that are the same as the delimiter
+must be balanced. For example:
 
-     The Perl 5 heredoc syntax was: C<<< <<END_MARKER >>>
+    C<$foo<bar>>
+
+    C<< $foo<<bar>> >>
+
+If you need an unbalanced angle, use different delimiters (or more
+consecutive angles than your delimiter contains):
+
+    C«$foo < $bar»
+    C<<$foo < $bar>>
+
+    The Perl 5 heredoc syntax was: C« <<END_MARKER »
+    The Perl 5 heredoc syntax was: C<<< <<END_MARKER >>>
+
+A formatting code ends at the matching closing angle bracket, or at the
+end of the enclosing block or formatting code in which the opening angle
+bracket was specified (whichever comes first). Pod parsers are required
+to issue a warning whenever a formatting code is terminated by the end
+of an outer block rather than by its own delimiter (unless the user
+explicitly disables the warning).
 
 
 =head3 Typesetting specifiers
 
+The C<B<>> formatting code specifies that the contained text is
+to be set in a B<bold style>.
 
-=for discussion
-    I had to read that BZ<><> idiom several times before I understood
-    it.  I think a VB<> would read much better.  V<< B<> >> would
-    be also be nice if it stripped the spaces.  Anyway, I really hate
-    all the empty X<> variants...
+The C<I<>> formatting code specifies that the contained text is
+to be set in an I<italic style>
 
-=for discussion
-    Y'know, what we really need often is a C<> variant that does
-    verbatim, since it's really code most of the time.  If C<> did
-    verbatim by default we could say C<< B<> >>.  Maybe relegate
-    current C<> behavior to T<> or some such.
+The C<T<>> formatting code specifies that the contained text is
+to be set in a T<typewriter style> (typically fixed width).
 
-The C<< BZ<><> >> formatting code specifies that the contained text is
-to be set in a 'strong' style (typically B<bold>).
+The C<C<>> formatting code specifies that the contained text is
+to be set in a C<code style>, typically fixed width. The contents
+of a C<C<>> code are always treated as L<verbatim | #Verbatim text> and
+L<space-preserving | #Space-preserving text>
+Hence, the C<C<...>> code is usually just a short-hand for
+C<T<S<V<...>>>> (though specific formatters are
+always free to chose some other visual representation for code text).
 
-The C<< IZ<><> >> formatting code specifies that the contained text is
-to be set in an 'emphatic' style (typically I<italics>).
+The C<D<>> formatting code specifies that the contained text is
+to be set in a "deleted" or "diff" style (typically strike-through).
 
-The C<< CZ<><> >> formatting code specifies that the contained text is
-to be set in a 'code' style (typically C<fixed width>).
+The C<U<>> formatting code specifies that the contained text is
+to be set in an underlined style.
 
-These three codes may be arbitrarily nested and formatters should endeavour to
-convey that nesting accurately. For example, something like:
+The C<R<>> formatting code specifies that the contained text is a
+replacable item or a placeholder. It is used to indicate a component of a
+syntax or specification that should be replaced by an actual value:
+For example:
 
+    The C<link> command has the syntax:
+    C<link R<source_file> R<target_file>>
 
-=for discussion
-    I always wonder what the difference is between strong and emphatic,
-    *other* than that one is typically rendered bold, and the other
-    italic.  These seem to be metaphors in search of a real meaning...
-    (I always think of bold as "emphatic", and italic as just "strange".)
-    Perhaps their only real meaning is to serve as shibboleths to
-    the markup community. :)
+Typically replacables are set in fixed-width italics.
 
-=over
+These (and most other) formatting codes may be arbitrarily nested.
+Formatters should endeavour to convey that nesting accurately, using
+appropriate typesetting conventions. For example, something like:
 
-C<< IZ<><So>, she thought, IZ<><the IZ<><Marie Celeste> mystery BZ<><is>
-solved at last!> >>
-
-=back
+    I<So>, she thought, I<the I<Marie Celeste> mystery B<is> solved at last!>
 
 should produce:
 
-=over
-
+=indent
 I<So>, she thought, I<the> Marie Celeste I<mystery B<is> solved at last!>
-
-=back
 
 with the nested italics switching back to roman in the traditional manner.
 
 
+=head3 Verbatim text
+
+The C<V<>> formatting code disregards every apparent formatting code within
+it, treating them as being verbatim text. For example:
+
+     The B<V< V<> >> formatting code disarms other codes
+     such as T<V< I<>, B<> and C<> >>.
+
+     The hash entry T<V< %LOAD<full> >> indicates whether the
+     load is full
+
+Note, however that the C<V<>> code only changes the way its
+contents are parsed, I<not> the way they are rendered. That is, the
+contents are still wrapped and formatted like plain text, and the
+effects of any formatting codes surrounding the C<V<>> code
+are still applied to its contents. For example the previous example
+is rendered:
+
+=begin indent
+
+The B<V< V<> >> formatting code disarms other codes
+like T<V< I<>, B<>, E<>, and C<> >>.
+
+The hash entry T<V< %LOAD<full> >> indicates whether the
+load is full
+
+=end indent
+
+=back
+
+You can prespecify formatting codes that remain active within
+a C<V<>> code, using the L<C<:allow>|#Formatting within code blocks>
+option.
+
+
+=head3 Comments
+
+The C<Z<>> formatting code indicates that its contents constitute a
+(zero-width) comment, and should not be rendered by any formatter.
+For example:
+
+    The "exeunt" command Z<Think about renaming this command?> is used
+    to quit all applications.
+
+Previously, the C<Z<>> code was widely used to break up text that would
+otherwise be considered mark-up:
+
+    Previously, the T<ZZ<><>> code was widely used to break up text
+    that would otherwise be considered mark-up.
+
+That still works, but is now better done with a verbatim formatting code:
+
+    Previously, the T<V<Z<>>> code was widely used to break up text
+    that would otherwise be considered mark-up.
+
+Moreover, the C<C<>> code automatically treats its contents as being
+verbatim, which often eliminates the need for the C<V<>> as well:
+
+    Previously, the C<Z<>> code was widely used to break up text
+    that would otherwise be considered mark-up.
+
+The C<Z<>> formatting code is the inline equivalent of a C<=comment>
+block.
+
+
 =head3 Links
 
-All kinds of links, filenames, and cross-references (both internal and
-external) are specified with the C<< LZ<><> >> code. The link specification
-consists of a I<scheme specifier> terminated by a colon, followed by an
-I<external address> (in the scheme's preferred syntax), followed by
-an I<internal address> beginning with a C<#>. All three components
-are optional.
+The C<L<>> code is used to specify all kinds of links, filenames,
+and cross-references (both internal and external).
+
+A link specification consists of a I<scheme specifier> terminated by a
+colon, followed by an I<external address> (in the scheme's preferred
+syntax), followed by an I<internal address> (again, in the scheme's syntax).
+All three components are optional (though at least one must be present in
+any link specification).
+
+Usually, in schemes where an internal address makes sense, it will be
+separated from the preceding external address by a C<#>, unless the
+particular addressing scheme requires some other syntax. When new
+addressing schemes are created specifically for Perldoc it is strongly
+recommended that C<#> be used to mark the start of internal addresses.
 
 Standard schemes include:
 
-=over
-
-=item C<http:> and C<https:>
-
+=begin item  :term('C<http:> and C<https:>')
 A standard URL. For example:
 
      This module needs the LAME library
      (available from L<http://www.mp3dev.org/mp3/>)
 
-=item C<file:>
+=end item
 
-A filename on the local system.
+=begin item :term<C<file:>>
 
-=item C<man:>
+A filename on the local system. For example:
+
+     Next, edit the config file (L<file:~/.configrc>).
+
+=end item
+
+=begin item :term<C<man:>>
 
 A link to the system man pages. For example:
 
      This module implements the standard
-     Unix L<man: find(1)> facilities.
+     Unix L<man:find(1)> facilities.
 
-=item C<doc:>
+=end item
 
-A link to some other Perldoc documentation. For example:
+=begin item :term<C<doc:>>
 
-     You may wish to use L<doc: Data::Dumper> to
-     view the results.  See also: L<doc: perldata>.
+A link to some other Perldoc documentation, typically a module or core
+Perl documentation. For example:
 
-=back
+     You may wish to use L<doc:Data::Dumper> to
+     view the results.  See also: L<doc:perldata>.
 
-If the scheme specifier is omitted, it is assumed to be C<doc:>.
+=end item
+
+C<:doc> is the default link scheme, in that if the scheme specifier is
+omitted in any link, it is assumed to be C<doc:>.
 
 To refer to a specific section within a webpage, manpage, or Perldoc
 document, add the name of that section after the main link, separated by
 a C<#>. For example:
 
-     Also see L<doc: perlsyn # For Loops> and
+     Also see: L<man:bash(1)#Compound Commands>,
+     L<doc:perlsyn#For Loops>, and
      L<http://dev.perl.org/perl6/syn/S04.html#The_for_statement>
 
-To refer to a section of the current document, omit both the scheme and
-the external address:
+To refer to a section of the current document, omit the external address:
+
+     This mechanism is described under L<doc:#Special Features> below.
+
+The scheme may also be omitted in that case:
 
      This mechanism is described under L<#Special Features> below.
 
 Normally a link is presented as some rendered version of the link
 specification itself. However, you can specify an alternate
-presentation by prefixing the link with the required text and a
+presentation by prefixing the link with the desired text and a
 vertical bar. For example:
 
      This module needs the L<LAME library|http://www.mp3dev.org/mp3/>.
 
      You could also write the code
-     L<in Latin| doc: Lingua::Romana::Perligata>
+     L<in Latin|doc:Lingua::Romana::Perligata>
 
 
-=head3 Hierarchical ordinals
+=head3 Placement links
 
-The C<< NZ<><> >> formatting code is converted into the ordinal number
-of the innermost surrounding block (i.e. its ordinal position relative
-to the most recent higher-level block construct of the same type).
+A second kind of link--the C<P<>> or placement link--works in the
+opposite direction. Instead of directing focus out to another document,
+it allows you to draw the contents of another document into your own.
 
-For example:
+In other words, the C<P<>> formatting code takes a URL
+and--if possible--places the contents of that document inline in place
+of the code itself.
 
-     =head1 N<>. The Beginning
-     =head2 N<>. The Very Beginning
+C<P<>> codes are handy for breaking out standard components of
+your documentation set into reusable components that can then be
+incorporated directly into multiple documents. For example:
 
-     =item1 (N<>) The void
-     =item2 [N<>] Formlessness
-     =item2 [N<>] Contentlessness
-     =item1 (N<>) The explosion
-     =item1 (N<>) The expansion
+    =COPYRIGHT
 
-     =head1 N<>. The Middle Bit
+    P<file:/shared/docs/std_copyright.pod>
 
-would be rendered as:
+    =DISCLAIMER
 
-=over
+    P<http://www.megagigatera.com/std/disclaimer.txt>
 
-B<1. The Beginning>
+might produce:
 
-=over
+=begin indent
 
-B<1.1. The Very Beginning>
+B<COPYRIGHT>
 
-=over
+This document is copyright (c) MegaGigaTeraCorp, 2006. All rights reserved.
 
-=item (1) The void
+B<DISCLAIMER>
 
-=over
+ABSOLUTELY NO WARRANTY IS IMPLIED. NOT EVEN OF ANY KIND. WE HAVE SOLD
+YOU THIS SOFTWARE WITH NO HINT OF A SUGGESTION THAT IT IS EITHER USEFUL
+OR USABLE. AS FOR GUARANTEES OF CORRECTNESS...DON'T MAKE US LAUGH! AT
+SOME TIME IN THE FUTURE WE MIGHT DEIGN TO SELL YOU UPGRADES THAT PURPORT
+TO ADDRESS SOME OF THE APPLICATION'S MANY DEFICIENCIES, BUT NO PROMISES
+THERE EITHER. WE HAVE MORE LAWYERS ON STAFF THAN YOU HAVE TOTAL
+EMPLOYEES, SO DON'T EVEN *THINK* ABOUT SUING US. HAVE A NICE DAY.
 
-=item [1.1] Formlessness
+=end indent
 
-=item [1.2] Contentlessness
+If a renderer cannot find or access the external data source for a
+placement link, it must issue a warning and render the URL directly in
+some form. For example:
 
-=back
+=begin indent
 
-=item (2) The explosion
+B<COPYRIGHT>
 
-=item (3) The expansion
+See: /shared/docs/std_copyright.pod
 
-=back
+B<DISCLAIMER>
 
-=back
+See: http://www.megagigatera.com/std/disclaimer.txt
 
-B<2. The Middle Bit>
-
-=back
-
-Every type of block maintains a separate ordinal counter. C<< NZ<><> >>
-codes appearing in blocks that possess hierarchical relationships (such
-as C<head> and C<item> blocks) produce multi-part ordinals, in which
-each component is the current ordinal value for the next level of
-"outer" structure. By default each component is separated by a period,
-but this may be changed by specifying a format for the code within its
-angle brackets. For example:
-
-     =item1 N<N>. By-laws
-     =item2 N<Na>. Statutory by-laws
-     =item3 N<Na(R)> Governance
-     =item3 N<Na(R)> Elections
-     =item3 N<Na(R)> Meetings
-     =item2 N<Na>. Executive by-laws
-     =item2 N<Na>. Elective by-laws
-     =item1 N<N>. Statutes
+=end indent
 
 
-=for discussion
-     Urque.  Much prefer:
-         =use item1 N.
-         =use item2 Na.
-         =use item3 Na(R).
-         =item1 By-laws
-         =item2 Statutory by-laws
-         =item3 Governance
-         =item3 Elections
-         =item3 Meetings
-         =item2 Executive by-laws
-         =item2 Elective by-laws
-         =item1 Statutes
-    or if you don't like to use use for that:
-         =pre item1 N.
-         =pre item2 Na.
-         =pre item3 Na(R).
-    which could be generalized to prefix any named =foo.
-    (Can still have N<> if we need it, but it sure is ugly.  Did I mention it's ugly?)
+=head3 Space-preserving text
 
+Any text enclosed in an C<S<>> code is formatted normally, except that
+every whitespace character in it--including any newline--is preserved.
+These characters are also treated as being non-breaking (except for the
+newlines, of course). For example:
 
-would be rendered as:
-
-=over
-
-1. By-laws
-
-=over
-
-1a. Statutory by-laws
-
-=over
-
-1aZ<>(I) Governance
-
-1aZ<>(II) Elections
-
-1aZ<>(III) Meetings
-
-=back
-
-1b. Executive by-laws
-
-1c. Elective by-laws
-
-=back
-
-2. Statutes
-
-=back
-
-Within the C<< NZ<><> >> formatting code:
-
-=over
-
-=item * Each C<N> is replaced by the next ordinal component as a decimal number
-
-=item * Each C<A> is replaced by the next ordinal component as an uppercase
-alphabetic letter (C<A>, C<B>, C<C>, etc.)
-
-=item * Each C<a> is replaced by the next ordinal component as a lowercase
-alphabetic letter (C<a>, C<b>, C<c>, etc.)
-
-=item * Each C<R> is replaced by the next ordinal component as an uppercase
-Roman numeral (C<I>, C<II>, C<III>, etc.)
-
-=item * Each C<r> is replaced by the next ordinal component as a lowercase
-Roman numeral (C<i>, C<ii>, C<iii>, etc.)
-
-=item * Any non-alphabetic character is reproduced verbatim
-
-=back
-
-If there are fewer specifiers than levels of ordinals, any extra ordinals
-revert to period-separated decimals.
-
-
-=head3 Non-breaking text
-
-Any text enclosed in a C<< SZ<><> >> code is formatted normally, except
-that every whitespace character in it is treated as a non-breaking.
-For example:
-
-     Instead, you should consider using a Perl 6
-     S<C<for @data -> $datum  {...}>> loop.
+     The emergency signal is:
+     S<  dot dot dot   dash dash dash   dot dot dot>.
 
 would be formatted like so:
 
-=over
-
-=over
-
-=item Instead, you should consider using a Perl 6
-
-=item C<<< S<< for @data -> $datum {...} >> >>> loop.
-
-=back
-
-=back
+=indent
+The emergency signal is:
+E<nbsp>E<nbsp>dotE<nbsp>dotE<nbsp>dotE<nbsp>E<nbsp>E<nbsp>dashE<nbsp>dashE<nbsp>dashE<nbsp>E<nbsp>E<nbsp>E<nbsp>dotE<nbsp>dotE<nbsp>dot.>
 
 rather than:
 
-=over
-
-=over
-
-=item Instead, you should consider using a Perl 6 C<<< for @data >>>
-
-=item C<<< -> $datum {...} >>> loop.
-
-=back
-
-=back
-
-Note that excess whitespace in an C<< SZ<><> >> code is still squeezed.
-Use a C<< VZ<><> >> code (see L<Verbatim text>) to preserve it.
+=indent
+The emergency signal is: dot dot dot dash dash dash dot dot dot.
 
 
 =head3 Entities
 
-To include named Unicode or XML entities, use the C<< EZ<><> >> code.
+To include named Unicode or XML entities, use the C<E<>> code.
 
-If the contents are not a number, they are interpreted as a Unicode
-character name, or (failing that) as an XML entity. For example:
+If the contents are not a number, they are interpreted as an upper-case
+Unicode character name, or as a lower-case XML entity. For example:
 
      Perl 6 makes considerable use of E<LEFT DOUBLE ANGLE BRACKET>
      and E<RIGHT DOUBLE ANGLE BRACKET>.
@@ -1665,7 +1386,7 @@ or, equivalently:
 
      Perl 6 makes considerable use of E<laquo> and E<raquo>.
 
-If the contents of the C<< EZ<><> >> are a number, that number is
+If the contents of the C<E<>> are a number, that number is
 treated as the decimal Unicode value for the desired codepoint.
 For example:
 
@@ -1678,33 +1399,78 @@ You can also use explicit binary, octal, decimal, or hexadecimal numbers:
      Perl 6 makes considerable use of E<0d171> and E<0d187>.
      Perl 6 makes considerable use of E<0xAB> and E<0xBB>.
 
-Multiple entities can be specified in a single C<< EZ<><> >> code,
-separated by commas:
+Multiple consecutive entities can be specified in a single C<E<>> code,
+separated by semicolons:
 
-     Perl 6 makes considerable use of E<laquo,hellip,raquo>.
+     Perl 6 makes considerable use of E<laquo;hellip;raquo>.
+
+The C<E<>> formatting code is like any other in that it is disabled
+inside a C<V<>>. In particular, it is not special inside the implicit
+C<V<>> provided by a C<C<>> formatter or C<=code> block. To insert an
+entity in an inlined code fragment, format that code with C<T<...E<>...>>
+instead of C<C<...E<>...>>:
+
+    In Perl 6 the use of T<E<laquo>> and T<E<raquo>> as delimiters
+    implies shell-like interpolation.
+
+To insert an entity in a code block, use the
+L<C<:allow> option|#Formatting within code blocks> on that block:
+
+    =begin code :allow<E>
+
+        In Perl 6 the use of E«laquo» and E«raquo» as delimiters
+        implies shell-like interpolation.
+
+    =end code
 
 
 =head3 Indexing terms
 
-Anything enclosed in a C<< XZ<><> >> code is a index entry, which is
-typically ignored by most Perldoc formatters, unless they are building
-an index for a document. A C<< XZ<><> >> and its contents are never
-actually rendered in a document.
+Anything enclosed in an C<X<>> code is an index entry. The contents
+of the code are both formatted into the document and used as the
+(case-insensitive) index entry:
+
+    An X<array> is an ordered list of scalars indexed by number,
+    starting with 0. A X<hash> is an unordered collection of scalar
+    values indexed by their associated string key.
+
+You can specify an index entry where the indexed text and the index entry are
+different, by separating the two with a vertical bar:
+
+    An X<array|arrays> is an ordered list of scalars indexed by number,
+    starting with 0. A X<hash|hashes> is an unordered collection of
+    scalar values indexed by their associated string key.
+
+In the two-part form, the index entry comes after the bar and is
+case-sensitive.
+
+You can specify hierarchical index entries by separating indexing levels
+with commas:
+
+    An X<array|arrays, definition of> is an ordered list of scalars
+    indexed by number, starting with 0. A X<hash|hashes, definition of>
+    is an unordered collection of scalar values indexed by their
+    associated string key.
+
+You can specify two or more entries for a single indexed text, by separating
+the entries with semicolons:
+
+    A X<hash|hashes, definition of; associative arrays>
+    is an unordered collection of scalar values indexed by their
+    associated string key.
+
+The indexed text can be empty, creating a "zero-width" index entry:
+
+    X<|puns, bad>This is called the "Orcish Manoeuvre"
+    because you "OR" the "cache".
 
 
-=for discussion
-    Sounds like a role to me...what if you also want to autoindex
-    the headings or items?  We need to define the roles that each of
-    these letters fills and allow users to add to or delete from them,
-    much like P6's user-defined quotes.
+=head3 Notes
 
-
-=head3 Annotations
-
-Anything enclosed in an C<< AZ<><> >> code is an inline annotation.
+Anything enclosed in an C<N<>> code is an inline annotation.
 For example:
 
-     Use a C<for> loop instead.A<The Perl 6 C<for> loop is far more
+     Use a C<for> loop instead.N<The Perl 6 C<for> loop is far more
      powerful than its Perl 5 predecessor.>
 
 Different formatters may render such annotations in a variety of
@@ -1712,194 +1478,183 @@ ways: as footnotes, as endnotes, as sidebars, as pop-ups, as
 expandable tags, etc. They are never, however, rendered as
 unmarked in-line text. So the previous example might be rendered as:
 
-=over
-
-Use a C<for> loop instead.*
-
-=back
+=indent
+Use a C<for> loop instead.E<dagger>
 
 and later:
 
-=over
-
+=begin indent
 B<Footnotes>
 
-=over
-
-* The Perl 6 C<for> loop is far more powerful than its Perl 5 predecessor.
-
-=back
-
-=back
+=for item :bulleted<E<dagger>>
+The Perl 6 C<for> loop is far more powerful than its Perl 5 predecessor.
+=end indent
 
 
-=for discussion
-    What if you want to annotate multiple paragraphs?
+=head3 User-defined formatting codes
 
-
-=head3 Opaque formatting codes
-
-Perldoc extensions and plug-ins can create their own formatting codes,
-using the C<< MZ<><> >> code. An C<< MZ<><> >> code must start with a
+Perldoc extensions and plug-ins can define their own formatting codes,
+using the C<M<>> code. An C<M<>> code must start with a
 colon-terminated scheme specifier. The rest of the enclosed text is
 treated as the contents of the formatting code. For example:
 
      =heading1 Overview of the M<Metadata: $?CLASS.name > class
 
-Opaque formatting codes are internally represented by a
-Perldoc::Phrase::Opaque object, whose C<.typename> method returns the
-scheme specifier minus its terminating colon (e.g. C<'Metadata'>),
-and whose C<.contents> method returns the remainder of the raw enclosed
-text (e.g. S<< C<' $?CLASS.name '> >>).
+The C<M<>> formatting code is the inline equivalent of a
+L<named block|#Named blocks>.
+
+If the formatting code is unrecognized, the contents of the code (i.e.
+everything after the first colon) would normally be treated as
+ordinary text.
 
 
-=head3 Verbatim text
+=head2 Encoding
 
-The C<< VZ<><> >> formatting code treats everything inside it as being
-verbatim. Specifically, it treats embedded formatting codes as literal text
-and does not squeeze any whitespace. For example:
+By default, Perldoc assumes that documents are Unicode, encoded in one
+of the three common schemes (UTF-8, UTF-16, or UTF-32). The particular
+scheme a document uses is autodiscovered by examination of the first few
+bytes of the file (where possible). If the autodiscovery fails, UTF-8 is
+assumed, and parsers should treat any non-UTF-8 bytes later in the
+document as fatal errors.
 
-     The B<V<V<  >>> formatting code disarms other codes
-     like C<V<I<>, B<> and C<>>>.
+At any point in a document, you can explicitly set or change the encoding
+of its content using the C<encoding> directive:
 
-     The hash entry C<V<%NAME<full>>> contains
-     the applicant's full name.
+    =encoding ShiftJIS
 
-Note, however that C<< VZ<><> >> code only changes the way its contents are
-parsed, I<not> the way they are rendered. That is, the contents are
-still wrapped and formatted like plain text, and the effects of any
-formatting codes surrounding the C<< VZ<><> >> code are still applied to
-its contents. For example the previous example is rendered:
+    =encoding Macintosh
 
-=over
+    =encoding KOI8-R
 
-The B<<< VZ<><E<nbsp>E<nbsp>> >>> formatting code disarms other codes
-like C<< IZ<><>, BZ<><> and CZ<><> >>.
+The specified encoding is used from the start of the I<next> line in
+the document. If a second C<=encoding> directive is encountered, the
+current encoding changes again after that line. Note, however, that
+the second encoding directive must itself be encoded using the first
+encoding scheme.
 
-The hash entry C<< %NAMEZ<><full> >> contains
-the applicant's full name.
-
-=back
-
-
-=head1 The Kwid Dialect
-
-Kwid is a completely new syntax based on experience from modern
-internet social communication.
-
-=for Ingy
-[Insert summary here. Maybe copy the above Pod summary and adapt?]
+This applies to an C<=encoding> directive at the very beginning of the
+file as well: it must itself be encoded in UTF-8, -16, or -32. However,
+as a special case, the autodiscovery mechanism will (as far as possible)
+also attempt to recognize "self-encoded" C<=encoding> directives that
+begin at the first byte of the file. For example, at the start of a
+ShiftJIS-encoded file you can specify C<=encoding ShiftJIS> in the
+ShiftJIS encoding.
 
 
-=head1 COMPARISON OF POD AND KWID
+=head2 Modules
 
-Here is a side-by-side comparison of some of the major features of Pod and
-Kwid:
+Perldoc provides a mechanism by which you can extend the syntax and semantics
+of your documentation notation: the C<=use> directive.
 
-     =head1 Big Thing                    = Big Thing
+Specifying a C<=use> causes a Perldoc processor to load the corresponding
+Perldoc module at that point, or to throw an exception if it cannot.
+Such modules can register new types of block directives and formatting
+codes.
 
-     =head4 Small Thing                  ==== Small Thing
+Note that a module loaded via a C<=use> statement can affect the
+I<interpretation> of subsequent blocks, but not the initial parsing of
+those blocks. The block directives themselves must still conform to the
+syntax described in this document. Typically, a module will change the
+way that renderers parse the I<contents> of specific blocks.
 
-     A paragraph of                      A paragraph of
-     plain text.                         plain text.
+The general syntax is:
 
-         # verbatim                          # verbatim
-         sub v {                             sub v {
-             shift;                              shift;
-         }                                   }
+=for code :allow< R >
+    =use R<MODULE_NAME>  R<OPTIONAL CONFIG DATA>
+    =                 R<OPTIONAL EXTRA CONFIG DATA>
+
+For example:
+
+    =comment Install the Tree plugin to show pretty trees...
+    =use Perldoc::Plugin::Tree  :autodetect
+
+    =begin Tree
+
+    DEFAULT
+    |-- VOID
+    `-- NONVOID
+        |-- VALUE
+        |   |-- SCALAR
+        |   |   |-- BOOL
+        |   |   |-- NUM
+        |   |   `-- STR
+        |   `-- LIST
+        `-- REF
+
+    =end Tree
+
+The C<=use> statement causes the Perldoc processor immediately to look
+for a module named C<Perldoc::Plugin::Tree> and to load it with the
+specified import option (C<:autodetect>). For example, if the processor
+were written in Perl 6, the C<=use> directive in the previous example
+might cause it to execute:
+
+    require Perldoc::Plugin::Tree :autodetect
+        err die "=use failed ($!) at $LOCATION_IN_DOCUMENT\n";
+
+You can use fully and partially specified module names (as with Perl 6
+modules):
+
+    =use Perldoc::Plugin::XHTML-1.2.1-(*)
+
+and pass any options you wish:
+
+    =use Perldoc::Plugin::Image :Jpeg  prefix=>'http://dev.perl.org'
+
+Note that C<=use> is a fundamental Perldoc directive, like C<=begin> or
+C<=for>; it is not an instance of an L<abbreviated block|#Abbreviated
+blocks>. Hence there is no paragraph or delimited form of the C<=use>
+directive (just as there is no paragraph or delimited form of the
+C<=begin> or C<=for> directives).
 
 
-     =item * foo                         * foo
-     =item * bar                         * bar
-     =item2 N<> barber                   ++ barber
-     =item2 N<> bard                     ++ bard
+=head2 Block pre-configuration
 
+The C<=config> directive allows you to prespecify standard configuration
+information that is applied to every block of a particular type.
 
-     Something B<strong>!                Something *strong*!
+For example, to specify particular formatting for different levels of
+heading, you could preconfigure all the heading directives with
+appropriate formatting schemes:
 
-     Something I<emphatic>!              Something /emphatic/!
+    =config head1              :formatted<B U>  :numbered
+    =config head2 :like<head1> :formatted<I>
+    =config head3              :formatted<U>
+    =config head4 :like<head3> :formatted<I>
 
-     Some code C<E = M * C ^ 2>!         Some code `E = M * C ^ 2`!
+The general syntax for configuration blocks is:
 
-     Some V<B<escaped>> markup           Some \*escaped\* markup
+=for code  :allow< R >
+    =config R<BLOCK_TYPE>  R<CONFIG OPTIONS>
+    =                   R<OPTIONAL EXTRA CONFIG OPTIONS>
 
-     =begin Section_type                 .Section_type
+Like C<=use>, a C<=config> is a directive, not a block. Hence, there is no
+paragraph or delimited form of the C<=config> directive.
 
-     =end Section_type                   !Section_type
+Note that, if a particular block later specifies a configuration option
+with the same key, that option overrides the pre-configured option. For
+example, to specify a non-bold second-level heading:
 
-     =for Section_type                   :Section_type
+    =for head2 :formatted<I U>
+    Details
 
+The C<:like> option is replaced by the complete formatting information
+of the named block type (which must already have been preconfigured).
+Any additional formatting specifications are subsequently added to
+that config.
 
-=head1 EMBEDDING DIALECTS
+C<=config> specifications are lexically scoped to the block in which
+they're specified.
 
-In addition to providing syntactical constructs for all the nodes of the
-PDOM, a Perldoc dialect must provide a mechanism for switching the
-parser to another dialect, and back again.
+You can also preconfigure L<formatting codes|#Formatting codes>, by naming
+them with a pair of angles as a suffix. For example:
 
-To embed another dialect in Pod, just use the delimited form of the C<=doc>
-directive:
+    =comment Always allow E<> codes in any (implicit or explicit) V<> code...
+    =config V<> :allow<E>
 
-     =pod
+    =comment All code to be italicized...
+    =config C<> :formatted<I>
 
-     =head2 Here is a list
-
-     =begin doc kwid
-     * one
-     * two
-     * three
-     =end doc
-
-     That was a B<list>!
-
-     =cut
-
-To embed other dialects in Kwid, do the same thing (in Kwid syntax, of
-course):
-
-     =kwid
-
-     == Here is a list
-
-     .pod
-     =item * one
-     =item * two
-     =item * three
-     ..pod
-
-     That was a *list*!
-
-     =cut
-
-=head1 PDOM EXTENSIONS
-
-All Perldoc dialects and tools are required to support all of the core
-constructs defined in the PDOM schema. It is assumed that data in any
-dialect should be able to round trip semantically when converted to any
-other dialect and back.
-
-It is also intended that there will be extension libraries (a.k.a. "plug-
-ins") to add syntax parsing, schema definition, and
-formatting/conversion capabilities for various constructs that fall
-outside of the core PDOM.
-
-Tables are a prime example. While too unwieldy to impose on every tool,
-tables are useful in many documentation applications. So there will be
-an extension that handle tables.
-
-If tools are not available at a particular stage of processing an
-extension construct, that construct will be reported as an opaque object
-by the PDOM. It is entirely possible that a further stage of processing
-will be able to move the opaque object into some representation dictated
-by the extension's schema.
-
-Pod and Kwid define marker syntax for I<block> level extensions.
-
-     =begin foo          .foo
-       ...                 ...
-     =end foo            ..foo
-
-Both dialects also define syntax for I<phrase> level extensions.
-
-     This Pod was written: M<date: 2005-04-09>
-
-     This Kwid was written: {date: 2005-04-09}
+Note that, even though the code is named using single-angles, the
+preconfiguration applies regardless of the actual delimiters used
+on subsequent instances of the code.
