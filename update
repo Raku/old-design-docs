@@ -9,6 +9,30 @@ use File::Path;
 refresh_specs();
 
 sub refresh_specs {
+    my $BaseURI = 'http://svn.perl.org/perl6/doc/trunk/design/syn';
+    my %Spec = qw(
+        01 Overview 02 Syntax       03 Operator     04 Block
+        05 Rule     06 Subroutine   09 Structure    10 Package
+        11 Module   12 Object       13 Overload
+    );
+    my $naming_rule = sub { "S$_[0].pod" };
+    my $logfile = "$FindBin::Bin/.spec-revision";
+    refresh_specs_from_source($BaseURI, \%Spec, $naming_rule, $logfile);
+
+    my $PugsBaseURI = 'http://svn.openfoundry.org/pugs/docs/Perl6/Spec';
+    my %SpecInPugs = qw(
+        17 Concurrency 22 CPAN      26 Documentation  29 Functions
+    );
+    $naming_rule = sub { "$SpecInPugs{$_[0]}.pod" };
+    $logfile = "$FindBin::Bin/.pugs-spec-revision";
+    refresh_specs_from_source($PugsBaseURI, \%SpecInPugs, $naming_rule,
+                              $logfile);
+}
+
+sub refresh_specs_from_source {
+    my ($BaseURI, $Spec, $naming_rule, $logfile) = @_;
+    my %Spec = %$Spec;
+
     # okay, we are at author side - refresh Synopses
     if (!eval { require LWP; require LWP::Simple; 1 }) {
         warn "LWP or LWP::Simple not installed: $@\n";
@@ -17,14 +41,6 @@ sub refresh_specs {
 
     our $ua;
     LWP::Simple->import('$ua');
-
-    my $BaseURI = 'http://svn.perl.org/perl6/doc/trunk/design/syn';
-    my %Spec = qw(
-        01 Overview 02 Syntax        03 Operator    04 Block
-        05 Rule     06 Subroutine    09 Structure   10 Package
-        11 Module   12 Object        13 Overload    17 Concurrency
-        22 CPAN     26 Documentation 29 Functions
-    );
 
     local $| = 1;
     print "==> Refreshing specs from $BaseURI...\n";
@@ -43,31 +59,32 @@ sub refresh_specs {
     my $remote_revision = $1;
     my $local_revision = -1;
 
-    my $logfile = "$FindBin::Bin/.spec-revision";
-
-    if ( open(my $in, $logfile) ) {
+    if ( defined($logfile) and open(my $in, $logfile) ) {
         chomp($local_revision = <$in>);
         close $in;
     }
 
     if ($local_revision == $remote_revision) {
-        print "==> No changes.\n";
+        print "==> No changes at $BaseURI.\n";
         return;
     }
 
-    print "==> Synchronizing to revision $remote_revision:\n";
+    print "==> Synchronizing to revision $remote_revision of $BaseURI:\n";
 
     for my $num (sort keys %Spec) {
         my $file = $Spec{$num};
         print "  $num --> Spec/$file\n";
         use File::Basename;
         my $dir = (dirname(__FILE__) || '.');
+        my $remote_file = $naming_rule->($num);
         LWP::Simple::mirror(
-            "$BaseURI/S$num.pod" => "$FindBin::Bin/$file.pod"
+            "$BaseURI/$remote_file" => "$FindBin::Bin/$file.pod"
         );
     }
 
-    open my $out, "> $logfile" or return;
-    print $out $remote_revision, "\n";
-    close $out;
+    if(defined($logfile)) {
+        open my $out, "> $logfile" or return;
+        print $out $remote_revision, "\n";
+        close $out;
+    }
 }
