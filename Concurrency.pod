@@ -87,7 +87,7 @@ attribute?)
 
 Differently from any current concurrent process implementation in Perl, there
 are no user accessible locks.  Instead, the concept of Software
-Transactionable Memory is used.  This is in concept similar to the use of
+Transactional Memory is used.  This is in concept similar to the use of
 
  BEGIN TRANSACTION
  ... do your uninterruptible actions
@@ -173,7 +173,7 @@ own C<contend> barrier.
 =head3 limitations
 
 Because Perl 6 must be able to revert its state to the state it had at the
-checkpoint, it is not allowed to perform any non-revertable actions.  These
+checkpoint, it is not allowed to perform any non-revertible actions.  These
 would include reading / writing from file handles that do not support
 C<seek> (such as sockets).  Attempting to do so will cause a fatal error
 to occur.
@@ -184,7 +184,7 @@ interface with an external XML library) would also need to provide some
 method for freezing a state, and restoring to a previously frozen state.
 
 If you're not interested in revertability, but are interested in
-uninteruptability, you could use the "is critical" trait.
+uninterruptability, you could use the "is critical" trait.
 
 =head2 Critical Code blocks
 
@@ -263,7 +263,7 @@ Below here still the more or less unorganized stuff
 
 CORE::GLOBAL::exit; # kills all the threads
 
-# We intententionally do not list cross-machine parallelism Conc:: classes here.
+# We intentionally do not list cross-machine parallelism Conc:: classes here.
 # Consult your local 6PAN mirror with a time machine.
 use Conc::Processes; # fork() or createProcess based implementation
 use Conc::Threads;   # maybe it just exports &async to override the default one, yay
@@ -298,7 +298,7 @@ Conc object # name is still up for grabs!
 - attributes:
     - .started  # time
     - .finished # time
-    - .waiting  # suspened (not diff from block on wakeup signal)
+    - .waiting  # suspended (not diff from block on wakeup signal)
                 # waiting on a handle, a condition, a lock, et cetera
                 # otherwise returns false for running threads
                 # if it's finished then it's undef(?)
@@ -307,13 +307,13 @@ Conc object # name is still up for grabs!
 
 - "is throttled" trait
 
-    method throttled::trait_auxillary:<is> ($limit=1, :$key=gensym()) {
+    method throttled::trait_auxiliary:<is> ($limit=1, :$key=gensym()) {
         # "is throttled" limits max connection to this Code object
         # the throttling is shared among closures with the same key
         # the limit may differ on closures with the same key.
         # if the counter with the "key" equals or exceeds a closure's limit,
         # the closure can't be entered until it's released
-        # (this can be trivially implmented using contend+defer)
+        # (this can be trivially implemented using contend+defer)
     }
 
     class Foo {
@@ -363,7 +363,7 @@ module Blah;
     # We decree that this part forms the static interface
     # it's run once during initial compilation under the
     # Separate Compilation doctrine and the syms sealed off
-    # to form part fo bytecode syms headers
+    # to form part of bytecode syms headers
     %CALLER::<&blah> = { 1 }; # work - adds to export set
     die "Eureka!" if %CALLER::<$sym>; # never dies
 
@@ -445,7 +445,7 @@ We are not sure what C<alarm(0)> would mean.  Probably a deprecation warning?
 
 If you request a repeated alarm using the C<repeated> named argument, it will
 attempt to fire off the alarm that many times.  However, the alarm will be
-supressed when inside a C<CATCH> block that's already handling the exception
+suppressed when inside a C<CATCH> block that's already handling the exception
 raised by I<same> alarm.
 
 To repeat 0 times is to not fire off any alarms at all.  To repeat +Inf times
@@ -502,7 +502,7 @@ coro foo ($x) {
             &?SUB.kill; # seppuku
         }
     }
-} # implicit falloff return + return() means startover without yielding
+} # implicit falloff return + return() means start over without yielding
   # return() means yielding and restart + no implicit falloff (I LIKE THIS)
 
 &foo.finished; # true on return() and false on midway yield()
