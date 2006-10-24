@@ -114,15 +114,20 @@ needing a migration path?)
 =head2 Atomic Code blocks
 
     my ($x, $y);
-    sub c { contend {
-        $x -= 3;
-        $y += 3;
-        if $x < 10 { defer }
-    } };
+    sub c {
+        $x -= 3; $y += 3;
+        $x < 10 or defer;
+    }
+    sub d {
+        $x += 3; $y -= 3;
+        $y < 10 or defer;
+    }
 
-    maybe { c() } maybe { d() };
-
-    if $i { contend { ...}  } else { ...; }
+    contend {
+        # ...
+        maybe { c() } maybe { d() };
+        # ...
+    }
 
 A Code block can be prefixed with C<contend>.  This means that code executed
 inside that scope is guaranteed not to be interrupted in any way.
