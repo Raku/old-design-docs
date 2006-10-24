@@ -102,10 +102,11 @@ rollback:
 This causes the state of the process to be reverted to the state at the moment
 the BEGIN TRANSACTION was executed.
 
-Perl 6 supports this concept through Code blocks which are marked "is atomic".
+Perl 6 supports this concept through C<contend> blocks.
+
 These sections are guaranteed to either be completed totally (when the Code
 block is exited), or have their state reverted to the state at the start of
-the Code block (with the L<retry> statement).
+the Code block (with the L<defer> statement).
 
 (EM: maybe point out if / how old style locks can be "simulated", for those
 needing a migration path?)
@@ -113,42 +114,56 @@ needing a migration path?)
 =head2 Atomic Code blocks
 
     my ($x, $y);
-    sub c is atomic {
+    sub c { contend {
         $x -= 3;
         $y += 3;
-        if $x < 10 { retry }
-    };
+        if $x < 10 { defer }
+    } };
 
-    $e = &c.retry_with( &d ); # 
-    $e();
+    maybe { c() } maybe { d() };
 
-    if $i { is atomic; ...  } else { ...; }
+    if $i { contend { ...}  } else { ...; }
 
-A Code block can be marked as "is atomic".  This means that code executed
+A Code block can be prefixed with C<contend>.  This means that code executed
 inside that scope is guaranteed not to be interrupted in any way.
 
-The start of a block marked "is atomic" also becomes a "checkpoint" to
+The start of a block marked C<contend> also becomes a I<checkpoint> to
 which execution can return (in exactly the same state) if a problem occurs
-(a.k.a. a L<retry> is done) inside the scope of the Code block.
+(a.k.a. a L<defer> is done) inside the scope of the Code block.
 
-=head3 retry
+=head3 defer
 
-The C<retry> function basically restores the state of the thread at the
+The C<defer> function basically restores the state of the thread at the
 last checkpoint and will wait there until an external event allows it to
-potentially run that atomic section of code again without having to retry
-again.
+potentially run that atomic C<contend> section of code again without having
+to defer again.
 
 If there are no external events possible that could restart execution, an
 exception will be raised.
 
-The last checkpoint is either the last atomic / non-atomic boundary, or
-the most immediate caller constructed with C<retry_with>.
+The last checkpoint is either the outermose C<contend> boundary, or
+the most immediate caller constructed with C<maybe>.
 
-=head3 retry_with
+=head3 maybe
 
-The C<retry_with> method on an atomic Code object causes a checkpoint to
-be made for C<retry>, creating an alternate execution path to be followed
-when a C<retry> is done.
+The C<maybe> statement causes a checkpoint to be made for C<defer> for
+each block in the C<maybe> chain, creating an alternate execution path to
+be followed when a C<defer> is done.  For example:
+
+    maybe {
+        ...
+        some_condition() or defer;
+        ...
+    } maybe {
+        ...
+        some_other_condition() or defer;
+        ...
+    } maybe {
+        ...
+    }
+
+If placed outside a C<contend> block, the C<maybe> statement creates its
+own C<contend> barrier.
 
 =head3 limitations
 
@@ -179,7 +194,7 @@ uninteruptability, you could use the "is critical" trait.
 
 A Code block marked "is critical" can not be interrupted in any way.  But
 since it is able to access non-revertible data structures (such as
-non-seekable file handles), it cannot do a C<retry> as it would be impossible
+non-seekable file handles), it cannot do a C<defer> as it would be impossible
 to restore the state to the beginning of the Code block.
 
 =head2 Mixing Atomic and Critical
@@ -293,7 +308,7 @@ Conc object # name is still up for grabs!
         # the limit may differ on closures with the same key.
         # if the counter with the "key" equals or exceeds a closure's limit,
         # the closure can't be entered until it's released
-        # (this can be trivially implmented using atomic+retry)
+        # (this can be trivially implmented using contend+defer)
     }
 
     class Foo {
@@ -327,7 +342,7 @@ Communication abstractions
 module Blah;
 {
 
-    is atomic;   # retry/orelse/whatever other rollback stuff
+    is atomic;   # contend/maybe/whatever other rollback stuff
                  # limitation: no external IO (without lethal warnings anyway)
                  # can't do anything irreversible
 
