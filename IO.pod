@@ -11,8 +11,8 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Maintainer:    Larry Wall <larry@wall.org>
  Contributions: Mark Stosberg <mark@summersault.com>
  Date:          12 Sep 2006
- Last Modified: 25 Sep 2006
- Version:       15  
+ Last Modified: 8 Feb 2007
+ Version:       16
 
 This is a draft document. Many of these functions will work as in Perl 5,
 except we're trying to rationalize everything into packages.  For now you can
@@ -37,7 +37,6 @@ X<:S>X<:b>X<:c>X<:t>X<:u>X<:g>X<:k>X<:T>X<:B>X<:M>X<:A>X<:C>
 
   $file.:X
   $file ~~ :X
-  $file.TEST(:X)
 
 A file test, where X is one of the letters listed below.  This unary
 operator takes one argument, either a filename or a filehandle, and
@@ -161,7 +160,7 @@ implicitly puts the exit status value of that command into C<$!>.
 
 =item closedir
 
- closedir (IO::Dir $dir)  
+ closedir $dir
  $dir.closedir
 
 Closes a directory opened by C<opendir> and returns the success of that
@@ -211,7 +210,7 @@ successful.
 
 =item readdir
 
- readdir (IO::Dir $dir)  
+ readdir $dir
  $dir.readdir
 
 Returns the next directory entry for a directory opened by C<opendir>.
@@ -229,7 +228,7 @@ C<chdir> there, it would have been testing the wrong file.
 
 =item rewinddir
 
- rewinddir (IO::Dir $dir)  
+ rewinddir $dir
  $dir.rewinddir
 
 Sets the current position to the beginning of the directory for the
@@ -273,7 +272,7 @@ Be warned that unlinking a directory can inflict damage on your filesystem.
 Finally, using C<unlink> on directories is not supported on many operating
 systems.  Use C<rmdir> instead.
 
-If LIST is omitted, uses C<$_>.
+It is an error to use bare C<unlink> without arguments.
 
 =item utime
 
@@ -285,52 +284,35 @@ If LIST is omitted, uses C<$_>.
 
 =item getc FILEHANDLE
 
+=item FILEHANDLE.getc
+
 Returns the next character from the input file attached to FILEHANDLE,
 or the undefined value at end of file, or if there was an error (in
 the latter case C<$!> is set). 
 
-=item print FILEHANDLE LIST
-X<print>
+=item print FILEHANDLE: LIST
+
+=item FILEHANDLE.print(LIST)
+
+=item FILEHANDLE.print: LIST
 
 =item print LIST
 
-=item print
+=item .print
+
 
 Prints a string or a list of strings.  Returns true if successful.
-FILEHANDLE may be a scalar variable name, in which case the variable
-contains the name of or a reference to the filehandle, thus introducing
-one level of indirection.  (NOTE: If FILEHANDLE is a variable and
-the next token is a term, it may be misinterpreted as an operator
-unless you interpose a C<+> or put parentheses around the arguments.)
-If FILEHANDLE is omitted, prints by default to standard output (or
-to the last selected output channel--see L</select>).  If LIST is
-also omitted, prints C<$_> to the currently selected output channel.
-To set the default output channel to something other than STDOUT
-use the select operation.  
+FILEHANDLE, if supplied, must be a filehandle object.  Indirect objects
+in Perl 6 must always be followed by a colon, and any indirect object
+more complicated than a variable should be put into parentheses.
 
-=begin comment
+If FILEHANDLE is omitted, prints to standard output.
+The form with leading dot prints C<$_> to standard output.
+(It is a compiler error to use a bare C<print> without arguments.)
 
-[ I don't know what's become of $, and $\. -markstos ] 
-
-The current value of C<$,> (if any) is
-printed between each LIST item.  The current value of C<$\> (if
-any) is printed after the entire LIST has been printed. 
-
-=end comment
-
-Because print takes a LIST, anything in the LIST is evaluated in list context,
-and any subroutine that you call will have one or more of its expressions
-evaluated in list context.  Also be careful not to follow the print keyword
-with a left parenthesis unless you want the corresponding right parenthesis to
-terminate the arguments to the print--interpose a C<+> or put parentheses
-around all the arguments.
-
-Note that if you're storing FILEHANDLEs in an array, or if you're using
-any other expression more complex than a scalar variable to retrieve it,
-you will have to use a block returning the filehandle value instead:
-
-    print { @files[$i] } "stuff\n";
-    print { $OK ?? STDOUT !! STDERR } "stuff\n";
+There is are no variables corresponding to Perl 5's C<$,> and
+C<$\> variables.  Use C<join> to interpose separators; use filehandle
+properties to change line endings.
 
 =item printf
 
@@ -401,7 +383,7 @@ See also C<slurp>.
     our Item multi slurp (Str $filename, *%opts);
 
 Slurps the entire file into a Str or Buf regardless of context.
-(See also C<lines>.)  Whether a Str or Buf is returneded depends on
+(See also C<lines>.)  Whether a Str or Buf is returned depends on
 the options.
 
 =item socket
