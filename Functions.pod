@@ -668,6 +668,24 @@ The following are defined in the C<List> role/class:
 
 =over
 
+=item cat
+
+ our Cat multi cat ( @values )
+
+Returns a concatenated version of the list that does the C<Str>
+interface, but generates the string lazily to the extent permitted
+by the pattern of access to the string.  Its two primary uses are
+matching against an array of strings and doing the equivalent of a
+C<join('')>, except that C<join> is always eager.  However, C<cat>
+in an interpolative context is also effectively eager, since the
+interpolator needs to know the string length.  List context is lazy,
+though, so a C<cat> of a C<cat> is also lazy, and in fact, you just
+get a flat cat because C<cat> in a list context is a no-op.  The C<Cat>
+interface also lets you interrogate the object at a particular string
+position without actually stringifying the element; the regex engine
+can make use of this to match a tree node, for instance, without
+serializing the entire subtree.
+
 =item classify
 
  our Lazy of Pair multi method classify ( @values: Matcher $test )
@@ -752,7 +770,8 @@ of C<@values>, separated by C<$separator>.
 Given an empty list, C<join> returns the empty string.
 
 The separator defaults to a single space.  To join with no separator,
-you can use the C<[~]> reduce operator.
+you can use the C<[~]> reduce operator.  The C<cat> function also
+effectively does a concatenation with no separator.
 
 =item map
 
