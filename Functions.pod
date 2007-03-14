@@ -12,8 +12,8 @@ Synopsis 29: Builtin Functions
  Contributions: Aaron Sherman <ajs@ajs.com>
                 Mark Stosberg <mark@summersault.com>
  Date:          12 Mar 2005
- Last Modified: 7 Mar 2007
- Version:       12
+ Last Modified: 13 Mar 2007
+ Version:       13
 
 This document attempts to document the list of builtin functions in Perl 6.
 It assumes familiarity with Perl 5 and prior synopses.
@@ -672,11 +672,11 @@ The following are defined in the C<List> role/class:
 
  our Cat multi cat ( @values )
 
-Returns a concatenated version of the list that does the C<Str>
+Returns a C<Cat> object, a concatenated version of the list that does the C<Str>
 interface, but generates the string lazily to the extent permitted
 by the pattern of access to the string.  Its two primary uses are
 matching against an array of strings and doing the equivalent of a
-C<join('')>, except that C<join> is always eager.  However, C<cat>
+C<join('')>, except that C<join> is always eager.  However, a C<Cat>
 in an interpolative context is also effectively eager, since the
 interpolator needs to know the string length.  List context is lazy,
 though, so a C<cat> of a C<cat> is also lazy, and in fact, you just
@@ -685,6 +685,11 @@ interface also lets you interrogate the object at a particular string
 position without actually stringifying the element; the regex engine
 can make use of this to match a tree node, for instance, without
 serializing the entire subtree.
+
+Accessing a filehandle as both a filehandle and as a C<Cat> is undefined,
+because lazy objects are not required to be as lazy as possible, but may
+instead choose to precalculate values in semi-eager batches to maximize
+cache hits.
 
 =item classify
 
@@ -1240,6 +1245,12 @@ Perl 5, the string to be split is always the invocant or first argument.
 A warning should be issued if the string appears to be a short constant
 string and the delimiter does not.
 
+You may also split lists and filehandles.  C<$*ARGS.split(/\n[\h*\n]+/)>
+splits on paragraphs, for instance.  Lists and filehandles are automatically
+fed through C<cat> in order to pretend to be string.  The resulting
+C<Cat> is lazy.  Accessing a filehandle as both a filehandle and as
+a C<Cat> is undefined.
+
 =item comb
 
  our List multi method comb ( Str $input: Rule $matcher = /\S+/, Int $limit = * ) is export
@@ -1257,7 +1268,9 @@ is equivalent to
 
 You may also comb lists and filehandles.  C<+$*IN.comb> counts the words on
 standard input, for instance.  C<comb($thing, /./)> returns a list of C<Char>
-from anything that can give you a C<Str>.
+from anything that can give you a C<Str>.  Lists and filehandles are
+automatically fed through C<cat> in order to pretend to be string.
+This C<Cat> is also lazy.
 
 If there are captures in the pattern, a list of C<Match> objects (one
 per match) is returned instead of strings.  The unmatched portions
