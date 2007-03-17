@@ -12,8 +12,8 @@ Synopsis 29: Builtin Functions
  Contributions: Aaron Sherman <ajs@ajs.com>
                 Mark Stosberg <mark@summersault.com>
  Date:          12 Mar 2005
- Last Modified: 13 Mar 2007
- Version:       13
+ Last Modified: 16 Mar 2007
+ Version:       14
 
 This document attempts to document the list of builtin functions in Perl 6.
 It assumes familiarity with Perl 5 and prior synopses.
@@ -207,12 +207,13 @@ until a non-zero (equivalent) result is achieved.
  our Order multi sub cmp (Ordering @by, $a, $b);
  our Order multi sub cmp (Ordering $by = &infix:<cmp>, $a, $b);
 
-Returns Order::Increase, Order::Decrease, or Order::Same
-(which numify to -1, 0, +1) indicating if paramater $a should
-be ordered before/tied with/after parameter $b, using criteria
+Returns C<Order::Increase>, C<Order::Decrease>, or C<Order::Same>
+(which numify to -1, 0, +1) indicating if paramater C<$a> should
+be ordered before/tied with/after parameter C<$b>, using criteria
 C<$by> or C<@by> for comparisons. C<@by> differs from C<$by>
 in that each criterion is applied, in order, until a non-zero
-(tie) result is achieved.
+(tie) result is achieved.  If the values are not comparable,
+returns a proto C<Order> object that is undefined.
 
 =back
 
@@ -242,19 +243,19 @@ Absolute Value.
 
  our Int multi method floor ( Num $x: ) is export
 
-Returns the highest integer not greater than $x.
+Returns the highest integer not greater than C<$x>.
 
 =item ceiling
 
  our Int multi method ceil ( Num $x: ) is export
 
-Returns the lowest integer not less than $x.
+Returns the lowest integer not less than C<$x>.
 
 =item round
 
  our Int multi method round ( Num $x: ) is export
 
-Returns the nearest integer to $x.  The algorithm is floor($x + 0.5).
+Returns the nearest integer to C<$x>.  The algorithm is C<floor($x + 0.5)>.
 (Other rounding algorithms will be given extended names beginning with "round".)
 
 =item truncate
@@ -262,8 +263,8 @@ Returns the nearest integer to $x.  The algorithm is floor($x + 0.5).
  our Int multi method truncate ( Num $x: ) is export
  our Int multi method int ( Num $x: ) is export
 
-Returns the closest integer to $x whose absolute value is not greater
-than the absolute value of $x.  (In other words, just chuck any
+Returns the closest integer to C<$x> whose absolute value is not greater
+than the absolute value of C<$x>.  (In other words, just chuck any
 fractional part.)  This is the default rounding function used by an
 C<int()> cast, for historic reasons.  But see Int constructor above
 for a rounded version.
@@ -294,8 +295,8 @@ A base C<10> logarithm, othewise identical to C<log>.
  our Num multi method rand ( Num $x: )
  our Num multi rand ( Num $x = 1 )
 
-Pseudo random number in range C<< 0 ..^ $x >>.  That is, C<0> is theoretically possible,
-while C<$x> is not.
+Pseudo random number in range C<< 0 ..^ $x >>.  That is, C<0> is
+theoretically possible, while C<$x> is not.
 
 
 =item sign
@@ -372,7 +373,7 @@ This overrides the default of "radians".
  our Num multi method atan2 ( Num $y: Num $y = 1 )
  our Num multi atan2 ( Num $y, Num $x = 1 )
 
-This second form of C<atan> computes the arctangent of $y/$x, and takes
+This second form of C<atan> computes the arctangent of C<$y/$x>, and takes
 the quadrant into account. Otherwise behaves as other trigonometric functions.
 
 =back
@@ -388,8 +389,8 @@ scalar variables. All of the following are exported by default.
 
 =item defined
 
-  our Bool multi Scalar::defined ( Any $thing )
-  our Bool multi Scalar::defined ( Any $thing, ::role )
+  our Bool multi defined ( Any $thing )
+  our Bool multi defined ( Any $thing, ::role )
 
 C<defined> returns true if the parameter has a value and that value is
 not the undefined value (per C<undef>), otherwise false is returned.
@@ -405,7 +406,7 @@ the type of the object.
 
 =item undefine
 
-  our multi Any::undefine( Any $thing )
+  our multi undefine( Any $thing )
 
 Takes any variable as a parameter and attempts to "remove" its
 definition. For simple scalar variables this means assigning
@@ -443,9 +444,9 @@ confusion with the value C<undef> (which is always 0-ary now).
 
 =item cat
 
- our Lazy multi Container::cat( *@@list );
+ our Cat multi cat( *@@list );
 
-C<cat> reads arrays serially rather than in parallel as C<each> does. It
+C<cat> reads arrays serially rather than in parallel as C<zip> does. It
 returns all of the elements of the containers that were passed to it
 like so:
 
@@ -456,46 +457,15 @@ it's nice to be explicit about that:
 
  @foo := [[1,2,3],[4,5,6]]; say cat([;] @foo); # 1,2,3,4,5,6
 
-=item each
-
- our Lazy multi Container::each( Bool :$shortest, Bool :$finite, *@@list )
-
-Unlike Perl 5's each, C<each> is a general method that traverses any
-composite container in a type-specific manner. C<each> is like L<S29/"zip">,
-but does not create tuples as return values. An example of its
-use is:
-
- for each(:parity, =<>; 1..*) -> ($line, $lineno) {
-   say "$lineno: $line";
- }
-
-The optional C<:shortest> named parameter causes C<each> to stop
-processing its input lists as soon as I<any> of them is exhausted.
-This modifier can also be used on individual containers, causing
-C<each> to stop when I<that> parameter is empty.
-
-The optional C<:finite> named parameter causes C<each> to stop
-processing its input lists as long as only those which are known
-at run-time to represent infinite ranges are left.
-
-For P5-like traversal, see C<Hash::kv> or C<Hash::pairs> instead,
-and put into C<for> instead of C<while>.  Perhaps there is a
-C<Perl5::p5each> emulation.
+In addition, a C<Cat> in item context emulates the C<Str> interface lazily.
 
 =item roundrobin
 
- our Lazy multi Container::roundrobin( Bool :$shortest, Bool :$finite, *@@list )
+ our List multi roundrobin( *@@list )
 
-C<roundrobin> is very similar to C<each>, and in fact
-
- roundrobin( :shortest, @a; @b; @c );
-
-and
-
- each( :shortest, @a; @b; @c );
-
-Are exactly the same. The difference is that, by default C<roundrobin> will
-not return C<undef> as a "spacer" for an array that has been emptied. Thus:
+C<roundrobin> is very similar to C<zip>.  The difference is that
+C<roundrobin> will not stop on lists that run out of elements but
+simply skip any undefined value:
 
  my @a = 1;
  my @b = 1..2;
@@ -504,12 +474,10 @@ not return C<undef> as a "spacer" for an array that has been emptied. Thus:
 
 will get the following values for C<$x>: C<1, 1, 1, 2, 2, 3>
 
-C<each> would get: C<1, 1, 1, 2, 2, undef, 3, undef, undef>
-
 =item zip
 
- our Iterator multi Container::zip ( Bool :$shortest, Bool :$finite, *@@list )
- our Iterator multi infix:Container::Z ( Bool :$shortest, Bool :$finite, *@@list )
+ our List of Capture multi zip ( *@@list )
+ our List of Capture multi infix:<Z> ( *@@list )
 
 zip takes any number of arrays and returns one tuple for every index.
 This is easier to read in an example:
@@ -518,20 +486,23 @@ This is easier to read in an example:
    ...
  }
 
-mnemonic: the input arrays are "zipped" up like a zipper.
+Mnemonic: the input arrays are "zipped" up like a zipper.
 
-The optional C<:shortest> named parameter causes C<zip> to stop
-processing its input lists as soon as I<any> of them is exhausted.
-This modifier can also be used on individual containers, causing
-C<zip> to stop when I<that> parameter is empty.
+The C<zip> function defaults to stopping as soon as any of its lists
+is exhausted.  This behavior may be modified by conceptually extending
+any short list using C<*>, which replicates the final element.
 
-The optional C<:finite> named parameter causes C<zip> to stop
-processing its input lists as long as only those which are known
-at run-time to represent infinite ranges are left.
+If all lists are potentially infinite, an evaluation in C<eager>
+context will automatically fail as soon as it can be known that all
+sublists in the control of iterators of infinite extent, such as
+indefinite ranges or arbitrary replication.  If it can be known at
+compile time, a compile-time error results.
 
 C<Z> is an infix equivalent for zip:
 
  for @a Z @b Z @c -> $a, $b, $c {...}
+
+In C<@@> context a List of Array is returned instead of flat list.
 
 =back
 
@@ -693,8 +664,8 @@ cache hits.
 
 =item classify
 
- our Lazy of Pair multi method classify ( @values: Matcher $test )
- our Lazy of Pair multi classify ( Matcher $test, *@values )
+ our List of Pair multi method classify ( @values: Matcher $test )
+ our List of Pair multi classify ( Matcher $test, *@values )
 
 C<classify> takes a list or array of values and returns a lazily evaluated
 list comprised of pairs whose values are arrays of values from the
@@ -715,8 +686,8 @@ To simply transform a list into a hash of arrays:
 
 =item grep
 
- our Lazy multi method grep ( @values: Matcher $test )
- our Lazy multi grep ( Matcher $test, *@values )
+ our List multi method grep ( @values: Matcher $test )
+ our List multi grep ( Matcher $test, *@values )
 
 C<grep> takes a list or array of values and returns a lazily evaluated
 list comprised of all of the values from the original list for which
@@ -742,14 +713,14 @@ C<first> works exactly like C<grep> but returns only the first matching value.
 
 =item pick
 
- our Lazy multi method pick ( @values: Int $num = 1, Bool :$repl )
- our Lazy multi method pick ( @values: Whatever, Bool :$repl )
- our Lazy multi pick ( Int $num, Bool :$repl, *@values )
- our Lazy multi pick ( Whatever, Bool :$repl, *@values )
+ our List multi method pick ( @values: Int $num = 1, Bool :$repl )
+ our List multi method pick ( @values: Whatever, Bool :$repl )
+ our List multi pick ( Int $num, Bool :$repl, *@values )
+ our List multi pick ( Whatever, Bool :$repl, *@values )
 
 C<pick> takes a list or array of values and returns a random
 selection of elements from the list (without replacement unless
-:repl is indicated).  When selecting without replacement if C<*>
+C<:repl> is indicated).  When selecting without replacement if C<*>
 is specified as the number (or if the number of elements in
 the list is less than the specified number), all the available
 elements are returned in random order:
@@ -780,8 +751,8 @@ effectively does a concatenation with no separator.
 
 =item map
 
- our Lazy multi method map ( @values: Code *&expression )
- our Lazy multi map ( Code $expression, *@values )
+ our List of Capture multi method map ( @values: Code *&expression )
+ our List of Capture multi map ( Code $expression, *@values )
 
 C<map> returns a lazily evaluated list which is comprised of
 the return value of the expression, evaluated once for every
@@ -827,8 +798,8 @@ single list.
      }
  }
 
- our Lazy multi method reverse ( @values: ) is export
- our Lazy multi reverse ( *@values ) {
+ our List multi method reverse ( @values: ) is export
+ our List multi reverse ( *@values ) {
     gather {
         1 while take pop @values;
     }
@@ -855,11 +826,11 @@ applied, in order, until a non-zero (tie) result is achieved.
 
 C<Ordering> is as described in L<"Type Declarations">.  Any
 C<Ordering> may receive either or both of the mixins C<descending>
-and C<canonicalized(Code $how)> to reverse the order of sort, or
+and C<canon(Code $how)> to reverse the order of sort, or
 to adjust the case, sign, or other order sensitivity of C<cmp>.
 (Mixins are applied to values using C<but>.)  If a C<Signature>
 is used as an C<Ordering> then sort-specific traits such as C<is
-canonicalized($how)> are allowed on the positional elements.
+canon($how)> are allowed on the positional elements.
 
 If all criteria are exhausted when comparing two elements, sort should
 return them in the same relative order they had in C<@values>.
@@ -916,42 +887,27 @@ canonicalized($how)> are allowed on the positional elements.
 
 =head2 Hash
 
-The following are defined in the Hash role.
+The following are defined in the C<Hash> role.
 
 =over 4
 
-=item delete
+=item :delete
 
- our List  multi method delete ( %hash: *@keys )
- our Scalar multi method delete ( %hash: $key ) is default
+ our List  method :delete ( %hash: *@keys )
+ our Scalar method :delete ( %hash: $key ) is default
 
 Deletes the elements specified by C<$key> or C<$keys> from the invocant.
-returns the value(s) that were associated to those keys.
+returns the value(s) that were associated to those keys:
 
-=over
-
-=item Unary Form
-
-Implementations should create a suitable macro, or otherwise support the
-unary form C<delete %hash{$key}> in all its forms. Below are some
-example translations. This list is I<not> exhaustive.
-
- delete %hash{$key}                %hash.delete{$key}
- delete %hash<key>                 %hash.delete{'key'}
- delete %hash<key1>{@keys}         %hash<key1>.delete{@keys}
-
-
-=back
+    @deleted = %foo.:delete{ @keys }
 
 
 =item exists
 
- our Bool multi method exists ( %hash: $key )
+ our Bool method :exists ( %hash: $key )
 
 True if invocant has an element whose key matches C<$key>, false
 otherwise.
-
-A unary form is expected. See Hash::delete.
 
 See also Code::exists to determine if a function has been declared.
 (Use defined() to determine whether the function body is defined.
@@ -965,10 +921,10 @@ A body of ... counts as undefined.)
 
 =item values
 
- multi Int|List Hash::keys ( %hash ; Matcher *@keytests )
- multi Int|List Hash::kv ( %hash ; Matcher *@keytests )
- multi Int|(List of Pair) Hash::pairs  (%hash ; Matcher *@keytests )
- multi Int|List Hash::values ( %hash ; Matcher *@keytests )
+ multi Int|List keys ( %hash ; Matcher *@keytests )
+ multi Int|List kv ( %hash ; Matcher *@keytests )
+ multi Int|(List of Pair) pairs  (%hash ; Matcher *@keytests )
+ multi Int|List values ( %hash ; Matcher *@keytests )
 
 Iterates the elements of C<%hash> in no apparent order, but the order
 will be the same between successive calls to these functions, as long as
@@ -999,11 +955,9 @@ General notes about strings:
 A Str can exist at several Unicode levels at once. Which level you
 interact with typically depends on what your current lexical context has
 declared the "working Unicode level to be". Default is C<Grapheme>.
-
-[Q: Default can't be C<CharLingua> because we don't go into "language" mode unless there's
-a specific language declaration saying either exactly what language
-we're going into, or what environmental parameter to pay attention to
-to select our language.  So I believe the default should be C<Grapheme>. -law]
+[Default can't be C<CharLingua> because we don't go into "language"
+mode unless there's a specific language declaration saying either
+exactly what language we're going into.]
 
 Attempting to use a string at a level higher it can support is handled
 without warning. The current highest supported level of the string
@@ -1088,9 +1042,9 @@ full "uppercase".
 
 Performs a Unicode "titlecase" operation on the first character of the string.
 
-=item uninorm
+=item normalize
 
- our Str multi method uninorm ( Str $string: Bool :$canonical = Bool::True, Bool :$recompose = Bool::False ) is export
+ our Str multi method normalize ( Str $string: Bool :$canonical = Bool::True, Bool :$recompose = Bool::False ) is export
 
 Performs a Unicode "normalization" operation on the string. This involves
 decomposing the string into its most basic combining elements, and potentially
@@ -1098,23 +1052,23 @@ re-composing it. Full detail on the process of decomposing and
 re-composing strings in a normalized form is covered in the Unicode
 specification Sections 3.7, Decomposition and 3.11,
 Canonical Ordering Behavior of the Unicode Standard, 4.0.
+Additional named parameters are reserved for future Unicode expansion.
 
-Named parameters
-affect the type of normalization. There are aliases that map to the
+For everyday use there are aliases that map to the
 I<Unicode Standard Annex #15: Unicode Normalization Forms> document's
 names for the various modes of normalization:
 
- our Str multi method uninorm_NFD ( Str $string: ) is export {
-   $string.uninorm(:cononical, :!recompose);
+ our Str multi method nfd ( Str $string: ) is export {
+   $string.normalize(:cononical, :!recompose);
  }
- our Str multi mehtod uninorm_NFC ( Str $string: ) is export {
-   $string.uninorm(:canonical, :recompose);
+ our Str multi method nfc ( Str $string: ) is export {
+   $string.normalize(:canonical, :recompose);
  }
- our Str multi method uninorm_NFKD ( Str $string: ) is export {
-   $string.uninorm(:!canonical, :!recompose);
+ our Str multi method nfkd ( Str $string: ) is export {
+   $string.normalize(:!canonical, :!recompose);
  }
- our Str multi method uninorm_NFKC ( Str $string: ) is export {
-   $string.uninorm(:!canonical, :recompose);
+ our Str multi method nfkc ( Str $string: ) is export {
+   $string.normalize(:!canonical, :recompose);
  }
 
 Decomposing a string can be used to compare
@@ -1153,16 +1107,19 @@ This word is banned in Perl 6.  You must specify units.
 
 =item index
 
- our StrPos multi method index( Str $string: Str $substring, StrPos $pos = 0 ) is export
+ our StrPos multi method index( Str $string: Str $substring, StrPos $pos = StrPos(0) ) is export
 
 C<index> searches for the first occurrence of C<$substring> in C<$string>,
 starting at C<$pos>.
 
-The value returned is always a StrPos object.  If the substring
-is found, then the StrPos represents the position of the first
+The value returned is always a C<StrPos> object.  If the substring
+is found, then the C<StrPos> represents the position of the first
 character of the substring. If the substring is not found, a bare
-StrPos containing no position is returned.  This prototype StrPos
-evaluates to false.
+C<StrPos> containing no position is returned.  This prototype C<StrPos>
+evaluates to false because it's really a kind of undef.  Do not evaluate
+as a number, because instead of returning -1 it will return 0 and issue
+a warning.
+
 
 =item pack
 
@@ -1205,6 +1162,11 @@ arrays.
 [ Note: Need more documentation and need to figure out what Perl 5 things
         no longer make sense. Does Perl 6 need any extra formatting
         features? -ajs ]
+
+[I think pack formats should be human readable but compiled to an
+internal form for efficiency.  I also think that compact classes
+should be able to express their serialization in pack form if
+asked for it with .packformat or some such.  -law]
 
 =item pos
 
@@ -1374,8 +1336,9 @@ Examples:
 
 C<substr> returns part of an existing string. You control what part by
 passing a starting position and optionally either an end position or length.
-If you just pass two numbers, positionally, then they will be used
-as the start and length.
+If you pass a number as either the position or length, then it will be used
+as the start or length with the assumtion that you mean "chars" in the
+current Unicode abstraction level, which defaults to graphemes.
 
 Here is an example of its use:
 
@@ -1384,44 +1347,41 @@ Here is an example of its use:
 Optionally, you can use substr on the left hand side of an assignment
 like so:
 
- substr($string, 1, 5) = "fred";
+ $string ~~ /(barney)/;
+ substr($string, $0.from, $0.to) = "fred";
 
 If the replacement string is longer or shorter than the matched sub-string,
 then the original string will be dynamically resized.
-
-[ Note: Is the word "length" a problem, here, given Perl 6's
-        general desire to stop using length with respect to strings? -ajs ]
 
 =item unpack
 
 =item vec
 
-Should replace vec with declared arrays of bit, uint2, uint4, etc.
+Should replace C<vec> with declared buffer/array of C<bit>, C<uint2>,
+C<uint4>, etc.
 
 =back
 
-=head2 Control::Basic
+=head2 Context
 
 =over
 
 =item caller
 
-See L<S06/"The caller function">.
-
-TODO
+See L<S06/"The C<context> and C<caller> functions">.
 
 =item eval
 
- multi Control::Basic::eval ( Str $code, Grammar :$lang = CALLER::<$?PARSER>)
+ multi eval ( Str $code, Grammar :$lang = CALLER::<$?PARSER>)
 
 Execute C<$code> as if it were code written in C<$lang>.  The default
 is the language in effect at the exact location of the eval call.
 
-Returns whatever C<$code> returns, or undef on error.
+Returns whatever C<$code> returns, or fails.
 
 =item evalfile
 
- multi Control::Basic::evalfile (Str $filename ; Grammar :$lang = Perl6)
+ multi evalfile (Str $filename ; Grammar :$lang = Perl6)
 
 Behaves like, and replaces Perl 5 C<do EXPR>, with optional C<$lang>
 support.
@@ -1429,48 +1389,29 @@ support.
 
 =item exit
 
- multi Control::Basic::exit ( Int $status = 0)
+ multi exit (Int $status = 0)
 
 Stops all program execution, and returns C<$status> to the calling environment.
 
 =item nothing
 
- multi Control::Basic::nothing ()
+ multi nothing ()
 
 No operation. Literally does nothing.
 
 
 =item sleep
 
- our Num multi Control::Basic::sleep ( Num $for = Inf )
+ our Num multi sleep ( Num $for = Inf )
 
 Attempt to sleep for up to C<$for> seconds. Implementations are obligated
 to support sub-second resolutions if that is at all possible.
-
-This is exactly the same as:
-
- $$.sleep($for)
 
 See C<Synopsis 17: Concurrency> for more details.
 
 =item want
 
-TODO
-
-=item word
-
-C<word> is almost exactly the same as C<macro>, only defines macros which
-take no arguments. For example:
-
- word foo { "'foo'.say" }
- foo;
-
-[ Refs:
-    Message-ID: <20050614164447.GA14958@wall.org>
-    Date: Tue, 14 Jun 2005 09:44:47 -0700  (12:44 EDT)
-    From: Larry Wall <larry@wall.org>
-    To: perl6-language@perl.org
-]
+See L<S06/The C<want> function>.
 
 =item die
 
@@ -1488,20 +1429,20 @@ B<TODO>: Research the exception handling system.
 
 =item bless
 
- our Object multi method Class::bless( Object::RepCandidate $candidate )
- our Object multi method Class::bless( *%args )
+ our Object multi method bless( Object::RepCandidate $candidate )
+ our Object multi method bless( *%args )
 
-C<bless> is only available as a method which can be called on a class
+C<bless> is only available as a method which can be called on a prototype
 object like so:
 
- $object = $class.bless(k1 => $v1, k2 => $v2, ...);
+ $object = $proto.bless(k1 => $v1, k2 => $v2, ...);
 
 A newly created object, based on either the C<$candidate> representation
 or a newly created representation (initialized with the C<%args> that
 are passed in) when the second form is used.
 
-It automatically calls all appropriate BUILD routines by calling the
-BUILDALL routine for the current class, which initializes the object in
+It automatically calls all appropriate C<BUILD> routines by calling the
+C<BUILDALL> routine for the current class, which initializes the object in
 least-derived to most-derived order. See L<S12/Objects>
 for more detailed information on object creation.
 
@@ -1517,8 +1458,8 @@ for more detailed information on object creation.
 
 These functions are available for purposes of backward compatibility.
 C<chr> takes a C<Uni> and returns the exact same value with no change.
-This is because, in Perl 6, a Uni is both an integer codepoint when
-numified and a single character when stringified. Thus, chr is just:
+This is because, in Perl 6, a C<Uni> is both an integer codepoint when
+numified and a single character when stringified. Thus, C<chr> is just:
 
  our Uni multi chr( Uni $codepoint) { $codepoint; }
 
@@ -1528,7 +1469,7 @@ the first codepoint in the string. In a list context, the return
 value is the list of C<Uni>s representing the entire string.
 
 An integer can be passed to C<chr>, but it will automatically
-be upgraded to a Uni (by interpreting it as a Unicode codepoint).
+be upgraded to a C<Uni> (by interpreting it as a Unicode codepoint).
 
 Be aware that the stringification of certain C<Uni>s will
 fail because they have no stand-alone stringified interpretation.
@@ -1540,14 +1481,14 @@ undefined C<Uni>.
 
 =item list
 
- our List multi Conversions::List::list ( *@list )
+ our List multi list ( *@list )
 
 Forces List Context on it's arguments, and returns them.
 
 
 =item item
 
- our Item multi Conversions::Item::item ( $item )
+ our Item multi item ( $item )
 
 Forces generic Item context on its argument, and returns it.
 
@@ -1586,8 +1527,8 @@ Replaces Perl 5 C<hex> and C<oct>.
 
 =item gmtime
 
- our Time multi Time::gmtime ( Time $time? )
- our Time multi method Time::gmtime ( Time $time: )
+ our Time multi gmtime ( Time $time? )
+ our Time multi method gmtime ( Time $time: )
 
 Identical to:
 
@@ -1595,8 +1536,8 @@ Identical to:
 
 =item localtime
 
- our Time multi Time::localtime ( Time $time?, Time::Zone $tz? )
- our Time multi method Time::localtime ( Time $time: Time::Zone $tz? )
+ our Time multi localtime ( Time $time?, Time::Zone $tz? )
+ our Time multi method localtime ( Time $time: Time::Zone $tz? )
 
 Returns a time object whose default timezone is C<$tz> (or the system's
 default timezone if none is provided).
@@ -1608,7 +1549,7 @@ in favor of something new.
 
 =item time
 
- our Time multi Time::time()
+ our Time multi time()
 
 Returns a C<Time> object. There are a number of uses for this
 object, all of which can be found in the documentation for C<Time>.
@@ -1625,8 +1566,8 @@ data is accessed.
 
 =item gethost
 
- our OS::Name multi OS::gethost()
- our OS::Name multi OS::gethost( Str $name, OS::Addfamily :$type )
+ our OS::Name multi gethost()
+ our OS::Name multi gethost( Str $name, OS::Addfamily :$type )
  our OS::Name multi method gethost( OS::Addr $addr: ) is export
  our OS::Name multi method gethost( URI $uri: ) is export
 
@@ -1662,9 +1603,9 @@ Examples:
 
 =item getpw
 
- our OS::PW multi OS::getpw()
- our OS::PW multi OS::getpw( Int $uid )
- our OS::PW multi OS::getpw( Str $name )
+ our OS::PW multi getpw()
+ our OS::PW multi getpw( Int $uid )
+ our OS::PW multi getpw( Str $name )
 
  our OS::PW multi method OS::PWEnt::getpw( OS::PWEnt $pw: )
  our OS::PW multi method OS::PWEnt::getpw( OS::PWEnt $pw: Int $uid )
@@ -1709,7 +1650,7 @@ of these routines.
 
 =item chroot
 
- our Bool multi OS::chroot ( Str $path = CALLER::<$_> )
+ our Bool multi chroot ( Str $path = CALLER::<$_> )
 
 On POSIX systems, changes the context of the current process such
 that the "root" directory becomes C<$path> and all rooted paths
@@ -1720,15 +1661,15 @@ true on success.
 
 =item getlogin
 
- our Str multi OS::getlogin ()
+ our Str multi getlogin ()
 
 Returns the username of the account running the program. This may
 not be as secure as using C<getpwuid> on some platforms.
 
 =item kill
 
- our Bool multi OS::kill ( OS::Signal $signal, Bool :$group, *@pids )
- our Bool multi method Conc::Proc::kill ( Conc::Proc $pid: OS::Signal $signal?, Bool :$group )
+ our Bool multi kill ( OS::Signal $signal, Bool :$group, *@pids )
+ our Bool multi method kill ( Proc::PID $pid: OS::Signal $signal?, Bool :$group )
 
 Sends the given C<$signal> to the process(es) given and returns a boolean
 value indicating success (true) if all of the processes existed and were
@@ -1762,13 +1703,13 @@ signal at all, and is used to determine if processes are still running:
 
 =item run
 
- our Conc::Proc::Status multi OS::run ( ; Str $command )
- our Conc::Proc::Status multi OS::run ( ; Str $path, *@args )
- our Conc::Proc::Status multi OS::run ( Str @path_and_args )
+ our Proc::Status multi run ( ; Str $command )
+ our Proc::Status multi run ( ; Str $path, *@args )
+ our Proc::Status multi run ( Str @path_and_args )
 
- our Conc::Proc multi OS::run ( ; Str $command, Bool :$bg! )
- our Conc::Proc multi OS::run ( ; Str $path, Bool :$bg!, *@args )
- our Conc::Proc multi OS::run ( Str @path_and_args, Bool :$bg! )
+ our Proc multi run ( ; Str $command, Bool :$bg! )
+ our Proc multi run ( ; Str $path, Bool :$bg!, *@args )
+ our Proc multi run ( Str @path_and_args, Bool :$bg! )
 
 C<run> executes an external program, and returns control to the caller
 once the program has exited.
@@ -1793,7 +1734,7 @@ of the program, and can be evaluated in the following contexts:
  Bool - True = success; False = failure
  Int  - Exit status (per the .exit method)
 
-See C<wait> for more detail on how the C<Conc::Proc::Status> object
+See C<wait> for more detail on how the C<Proc::Status> object
 is used.
 
 On failure to execute, an undefined value is returned.
@@ -1801,7 +1742,7 @@ On failure to execute, an undefined value is returned.
 If the C<:bg> named parameter is passed, the program will be executed
 in the background, and the run command will return as soon as the
 child process is created. This means that the object returned is
-actually a C<Conc::Proc>, which represents the created process.
+actually a C<Proc>, which represents the created process.
 
 [ Note: should the :bg form take rw filehandles or is that over-overloading
         the functionality of run? Should run be the new open with
@@ -1819,8 +1760,8 @@ function behind qq:x should be rungather() rather than readpipe().  -law
 
 =item runinstead
 
- multi OS::runinstead ( ; Str $path, *@args )
- multi OS::runinstead ( ; Str $command )
+ multi runinstead ( ; Str $path, *@args )
+ multi runinstead ( ; Str $command )
 
 Identical to C<run> except that it never returns. The executed program
 replaces the currently running program in memory.
@@ -1837,13 +1778,13 @@ tools
 
 =item fork
 
- our Conc::Proc sub Conc::Processes::fork()
+ our Proc sub Processes::fork()
 
 Creates a copy of the current process. Both processes return from
 C<fork>. The original process returns
-the I<child> process as a C<Conc::Proc> object. The newly created process
-returns the I<parent> process as a C<Conc::Proc> object. As with
-any Conc::Proc object, the child process object numifies to the
+the I<child> process as a C<Proc> object. The newly created process
+returns the I<parent> process as a C<Proc> object. As with
+any Proc object, the child process object numifies to the
 process ID (OS dependent integer). However, the parent process object
 numifies to C<0> so that the child and parent can distinguish each other.
 
@@ -1861,15 +1802,15 @@ Typical usage would be:
 
 =item wait
 
- our Conc::Proc::Status multi method Conc::Processes::wait( Conc::Proc $process: *%options )
+ our Proc::Status multi method wait( Proc $process: *%options )
 
- our Conc::Proc::Status multi Conc::Processes::wait ( Conc::Proc $process = -1, *%options )
+ our Proc::Status multi wait ( Proc $process = -1, *%options )
 
 Waits for a child process to terminate and returns the status
 object for the child.  This status object will numify to the process
 ID of the child that exited.
 
-Important Conc::Proc::Status methods:
+Important Proc::Status methods:
 
  .exit - Numeric exit value
  .pid - Process ID
@@ -1880,11 +1821,11 @@ For historical reasons there is a C<.status> method which is equal to:
  ($status.exit +< 8) +| $status.signal
 
 If C<$process> is supplied, then wait will only return when the given process
-has exited. Either a full C<Conc::Proc> object can be passed, or just a
+has exited. Either a full C<Proc> object can be passed, or just a
 numeric process ID. A C<-1> explicitly indicates that wait should return
 immediately if any child process exits.
 
-When called in this way, the returned C<Conc::Proc::Status> object
+When called in this way, the returned C<Proc::Status> object
 will have a C<.pid> of C<-1> (which is also what it numifies to) if
 there was no such process to wait for.
 
