@@ -329,9 +329,27 @@ Returns the square root of the parameter.
 
 Returns a list of all C<$n>th (complex) roots of C<$x>
  
+=item cis
+
+    our Complex multi method cis (Num $angle:) is export
+
+Returns 1.unpolar($angle)
+
+=item unpolar
+
+    our Complex multi method unpolar (Num $mag: Num $angle) is export
+
+Returns a complex number specified in polar coordinates.  Angle is in radians.
 
 =back
 
+
+=head2 Complex
+
+    our Seq multi method polar (Complex: $nim) is export
+
+Returns (magnitude, angle) corresponding to the complex number.
+The magnitude is non-negative, and the angle in the range C<-π ..^ π>.
 
 =head2 The :Trig tag
 
@@ -1327,7 +1345,7 @@ parts of the complex number.
 Examples:
 
  sprintf "%ld a big number, %lld a bigger number, %mf complexity\n",
-	4294967295, 4294967296, Complex.new(1,2);
+	4294967295, 4294967296, 1+2i);
 
 =item substr
 
