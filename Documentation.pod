@@ -20,7 +20,7 @@ Damian Conway <L<C<damian@conway.org>|mailto:damian@conway.org>>
 =table
     Maintainer:     Damian Conway
     Date:           9 Apr 2005
-    Last Modified:  22 Nov 2006
+    Last Modified:  14 Feb 2007
 
 
 =head1 Perldoc
@@ -59,7 +59,7 @@ Anything in a document that is neither a Pod directive nor contained
 within a Pod block is treated as "ambient" material. Typically this
 would be the source code of the program that the Pod is documenting. Pod
 parsers still parse this text into the internal representation of the
-file (representing it as an C<Perldoc::Block::Ambient> block), but
+file (representing it as a C<Perldoc::Block::Ambient> block), but
 renderers will usually ignore such blocks.
 
 In Perl 5's POD format, once a POD directive is encountered, the parser
@@ -144,7 +144,7 @@ This is a universal feature of Pod.
 Note also that in the following specifications, a "blank line" is a line
 that is either empty or that contains only whitespace characters. That
 is, a blank line matches the Perl 6 pattern: C</^^ \h* $$/>. Pod uses
-blank lines, rather than empty lines, as delimiters on the principle of
+blank lines as delimiters, rather than empty lines, the principle of
 least surprise.
 
 
@@ -278,7 +278,7 @@ nesting:
     =comment Don't nest this code block in the usual way...
     B<=begin code :nested(0)>
 
-                1          2         3         4         5         6
+                 1         2         3         4         5         6
         123456789012345678901234567890123456789012345678901234567890
         |------|-----------------------|---------------------------|
           line        instruction                comments
@@ -322,7 +322,7 @@ For example, instead of:
     B<I<
     Warning: Do not immerse in water. Do not expose to bright light.
     Do not feed after midnight.
-
+    >>
     =end para
 
 you can just write:
@@ -349,7 +349,7 @@ This option specifies that a block or config has the same formatting
 properties as the type named by its value. This is useful for creating
 related L<configurations|#Block pre-configuration>. For example:
 
-    =config head2  :like<head1> :formatting<I>
+    =config head2  :like<head1> :formatted<I>
 
 =end item
 
@@ -432,7 +432,7 @@ Details
 2.2: Design
 =end nested
 
-3: The Implementation
+3. The Implementation
 =end nested
 
 It is usually better to preset a numbering scheme for each heading
@@ -478,45 +478,46 @@ B<2.3.8.6.1.9. The Rescue of the Kobayashi Maru>
 =head3 Ordinary paragraph blocks
 
 Ordinary paragraph blocks consist of text that is to be formatted into
-a document at the currently level of nesting, with whitespace
+a document at the current level of nesting, with whitespace
 squeezed, lines filled, and any special L<inline mark-up|#Formatting codes>
 applied.
 
 Ordinary paragraphs consist of one or more consecutive lines of text,
 each of which starts with a non-whitespace character at column 1. The
-paragraph is terminated by the first blank line or opening block
-directive. For example:
+paragraph is terminated by the first blank line or block directive.
+For example:
 
     =head1 This is a heading block
 
     This is an ordinary paragraph.
     Its text  will   be     squeezed     and
     short lines filled. It is terminated by
-    the first blank line
+    the first blank line.
 
     This is another ordinary paragraph.
     Its     text    will  also be squeezed and
     short lines filled. It is terminated by
-    the trailing directive on the next line
-
+    the trailing directive on the next line.
     =head2 This is another heading block
 
-Within a C<=pod>, C<=item>, or C<=nested> block, ordinary paragraphs do not
-require an explicit marker or delimiters, but there is also an explicit
-C<para> marker (which may be used anywhere):
+Within a C<=pod>, C<=item>, C<=nested>, or C<=END> block, ordinary
+paragraphs do not require an explicit marker or delimiters, but there is
+also an explicit C<para> marker (which may be used anywhere):
 
-     =para
+=for code :allow<B>
+     B<=para>
      This is an ordinary paragraph.
      Its text  will   be     squeezed     and
      short lines filled.
 
 and likewise the longer C<=for> and C<=begin>/C<=end> forms. For example:
 
-     =begin para
+=for code :allow<B>
+     B<=begin para>
          This is an ordinary paragraph.
          Its text  will   be     squeezed     and
          short lines filled.
-     =end para
+     B<=end para>
 
 As the previous example implies, when any form of explicit C<para> block
 is used, any whitespace at the start of each line is removed, so
@@ -556,7 +557,7 @@ I<any> other block type, not just C<=pod>, C<=item>, etc.):
      B<=begin code>
 
      sub loud_update ($who, $status) {
-         say "$who -> $status.";
+         say "$who -> $status";
 
          silent_update($who, $status);
      }
@@ -644,7 +645,7 @@ Likewise a sample of output may contain the occasional interactive
 component. Pod provides L<special formatting codes|#Example specifiers>
 (C<K<>> and C<T<>>) to indicate embedded input or output, so you can use
 the block type that indicates the overall purpose of the sample (i.e. is
-it demonstrating an input operation or an output sequence) and then use
+it demonstrating an input operation or an output sequence?) and then use
 the "contrasting" formatting code within the block.
 
 For example, to include a small amount of input in a sample of output:
@@ -658,7 +659,7 @@ For example, to include a small amount of input in a sample of output:
         Do you want additional personnel details? B<K<y>>
 
         Height:  180cm/5'11"
-        Weight:  105kg/230lb
+        Weight:  104kg/230lb
         Age:     49
 
         Print? B<K<n>>
@@ -788,8 +789,8 @@ This would produce something like:
 =end nested
 =end nested
 
-although the numbering scheme is at the discretion of the renderer, so it
-might equally well be rendered:
+although the numbering scheme is entirely at the discretion of the
+renderer, so it might equally well be rendered:
 
 =begin nested
 1. Visito
@@ -839,7 +840,7 @@ or explicitly mark the item itself as being unnumbered:
 
 The numbering of successive C<=item1> list items increments
 automatically, but is reset to 1 whenever any other kind of non-ambient
-Perldoc block appears between to C<=item1> blocks. For example:
+Perldoc block appears between two C<=item1> blocks. For example:
 
     The options are:
 
@@ -947,6 +948,9 @@ E<mdash;nbsp;nbsp>Writing
 =for para :nested(3)
 E<curren;nbsp;nbsp>'Rithmetic
 
+As with numbering styles, the bulleting strategy used for different levels
+within a nested list is entirely up to the renderer.
+
 
 =head4 Multi-paragraph list items
 
@@ -1025,10 +1029,10 @@ nested:
 
 =for code :allow<B>
     B<=begin nested>
-        We are all of us in the gutter,E<NL>
-        but some of us are looking at the stars!
+    We are all of us in the gutter,E<NL>
+    but some of us are looking at the stars!
     B<=begin nested>
-            -- Oscar Wilde
+    -- Oscar Wilde
     B<=end nested>
     B<=end nested>
 
@@ -1039,7 +1043,8 @@ paragraph and code blocks.
 =head3 Tables
 
 Simple tables can be specified in Perldoc using a C<=table> block.
-The table may be given a label using the C<:caption> option.
+The table may be given an associated description or title using the
+C<:caption> option.
 
 Columns are separated by whitespace, vertical lines (C<|>), or border
 intersections (C<+>). Rows can be specified in one of two ways: either
@@ -1219,6 +1224,7 @@ Standard semantic blocks include:
     =DISCLAIMER 
     =LICENCE
     =LICENSE
+    =TITLE
     =SECTION
     =CHAPTER
     =APPENDIX
@@ -1248,9 +1254,9 @@ The use of these reserved keywords is not required; you can still just write:
     =head1 SYNOPSIS
     =begin code
         use Perldoc::Parser
-
+        
         my Perldoc::Parser $parser .= new();
-
+        
         my $tree = $parser.parse($fh);
     =end code
 =end code
@@ -1270,9 +1276,9 @@ C<=SYNOPSIS> block of the preceding example might be rendered like so:
 
 =begin code :allow< L >
     use L<Perldoc::Parser|doc:Perldoc::Parser>;
-
+        
     my Perldoc::Parser $parser .= new();
-
+        
     my $tree = $parser.parse($fh);
 =end code
 =end nested
@@ -1296,8 +1302,8 @@ you can nest comment blocks in the middle of a formatting code:
 All Pod formatting codes consist of a single capital letter followed
 immediately by a set of angle brackets. The brackets contain the text or
 data to which the formatting code applies. You can use a set of single
-angles (CÂ´<...>Âª), a set of double angles (C<Â´...Âª>), or multiple
-single-angles (CÂ´<<<...>>>Âª).
+angles (C«<...>»), a set of double angles (C<«...»>), or multiple
+single-angles (C«<<<...>>>»).
 
 Within angle delimiters, you cannot use sequences of the same angle
 characters that are longer than the delimiters:
@@ -1306,8 +1312,8 @@ characters that are longer than the delimiters:
     =comment
         These are errors...
 
-    C< $fooBÂ´<<ÂªbarBÂ´>>Âª >
-    The Perl 5 heredoc syntax was: C< BÂ´<<ÂªEND_MARKER >
+    C< $fooB«<<»barB«>>» >
+    The Perl 5 heredoc syntax was: C< B«<<»END_MARKER >
 =end code
 
 You I<can> use sequences of angles that are the same length as
@@ -1319,14 +1325,14 @@ the delimiters, but they must be balanced. For example:
 If you need an unbalanced angle, either use different delimiters:
 
 =for code :allow<B>
-    CB<Â´>$foo < $barB<Âª>
-    The Perl 5 heredoc syntax was: CB<Â´> <<END_MARKER B<Âª>
+    CB<«>$foo < $barB<»>
+    The Perl 5 heredoc syntax was: CB<«> <<END_MARKER B<»>
 
 or delimiters with more consecutive angles than your text contains:
 
 =for code :allow<B>
-    CBÂ´<<Âª$foo < $barBÂ´>>Âª
-    The Perl 5 heredoc syntax was: CBÂ´<<<Âª <<END_MARKER BÂ´>>>Âª
+    CB«<<»$foo < $barB«>>»
+    The Perl 5 heredoc syntax was: CB«<<<» <<END_MARKER B«>>>»
 
 A formatting code ends at the matching closing angle bracket(s), or at
 the end of the enclosing block or formatting code in which the opening
@@ -1386,30 +1392,33 @@ term (or any of its specified synonyms) within a hypertext.
 Perldoc provides formatting codes for specifying inline examples of input,
 output, code, and metasyntax:
 
-=item
+=begin item
 The C<T<>> formatting code specifies that the contained text is
 B<terminal output>; that is: something that a program might print out.
-Such content would typically be rendered in a T<fixed-width font>. The
-contents of a C<T<>> code are always L<space-preserved |
-#Space-preserving text> (as if they had an implicit C<S<...>> around them).
-The C<T<>> code is the inline equivalent of the C<=output> block.
+Such content would typically be rendered in a T<fixed-width font> or with
+C< <code>...</code> > tags. The contents of a C<T<>> code are always
+L<space-preserved | #Space-preserving text> (as if they had an implicit
+C<S<...>> around them). The C<T<>> code is the inline equivalent of the
+C<=output> block.
+=end item
 
-=item
+=begin item
 The C<K<>> formatting code specifies that the contained text is
 B<keyboard input>; that is: something that a user might type in. Such
-content would typically be rendered in a K<fixed-width font>, preferably a
-different font from that used for the C<T<>> formatting code. The
-contents of a C<K<>> code are always L<space-preserved|
-#Space-preserving text>. The C<K<>> code is the inline equivalent of the
-C<=input> block.
+content would typically be rendered in a K<fixed-width font> (preferably a
+different font from that used for the C<T<>> formatting code) or with
+C< <kbd>...</kbd> > tags. The contents of a C<K<>> code are always
+L<space-preserved| #Space-preserving text>. The C<K<>> code is the
+inline equivalent of the C<=input> block.
+=end item
 
 =begin item
 The C<C<>> formatting code specifies that the contained text is B<code>;
 that is, something that might appear in a program or specification. Such
-content would typically be rendered in a C<fixed-width font>, preferably
+content would typically be rendered in a C<fixed-width font> (preferably
 a different font from that used for the C<T<>> or C<K<>> formatting
-codes. The contents of a C<C<>> code are L<space-preserved|
-#Space-preserving text> and L<verbatim| #Verbatim text>.
+codes) or with C< <samp>...</samp> > tags. The contents of a C<C<>> code
+are L<space-preserved| #Space-preserving text> and L<verbatim| #Verbatim text>.
 The C<C<>> code is the inline equivalent of the C<=code> block.
 
 To include other formatting codes in a C<C<>> code, you can lexically
@@ -1448,11 +1457,11 @@ or:
         Pass: B<R<your 36-letter password>>
 =end code
 
-Typically replaceables would be rendered in fixed-width italics. The
-font used should be the same as that used for the C<C<>> code, unless
-the C<R<>> is inside a C<K<>> or C<T<>> code (or the equivalent
-C<=input> or C<=output> blocks), in which case their respective fonts
-should be used.
+Typically replaceables would be rendered in R<fixed-width italics> or with
+C< <var>...</var> > tags. The font used should be the same as that used for
+the C<C<>> code, unless the C<R<>> is inside a C<K<>> or C<T<>> code (or
+the equivalent C<=input> or C<=output> blocks), in which case their
+respective fonts should be used.
 =end item
 
 
@@ -1501,14 +1510,14 @@ That technique still works, but it's now easier to accomplish the same goal
 using a verbatim formatting code:
 
 =for code :allow<B>
-    In Perl 5 POD, the BÂ´V<ÂªZ<>>BÂ´>Âª code was widely used to break up text
+    In Perl 5 POD, the B«V<»Z<>B«>» code was widely used to break up text
     that would otherwise be considered mark-up.
 
 Moreover, the C<C<>> code automatically treats its contents as being
 verbatim, which often eliminates the need for the C<V<>> as well:
 
 =for code :allow<B>
-    In Perl 5 POD, the BÂ´C<ÂªZ<>BÂ´>Âª code was widely used to break up text
+    In Perl 5 POD, the B«C<»Z<>B«>» code was widely used to break up text
     that would otherwise be considered mark-up.
 
 The C<Z<>> formatting code is the inline equivalent of a
@@ -1573,7 +1582,7 @@ An email address. Typically, activating this type of link invokes a mailer.
 For example:
 
 =for code :allow<B>
-    Please forward bug reports to L<B<mailto:devnull@megagigatera.com>>
+    Please forward bug reports to L<B<mailto:devnull@rt.cpan.org>>
 
 =end item
 
@@ -1596,6 +1605,24 @@ documentation. For example:
     You may wish to use L<B<doc:Data::Dumper>> to
     view the results. See also: L<B<doc:perldata>>.
 
+=end item
+
+=begin item :term<C<defn:>>
+
+A link to the L<definition|#Definitions> of the specified term within
+the current document. For example:
+
+=for code :allow<B>
+    He was highly prone to D<lexiphania>: an unfortunate proclivity for
+    employing sesquipedalian words (such as "proclivity",
+    "sesquipedalian", and indeed "lexiphania").
+    
+and later, to link back to the definition
+
+   To treat his chronic L<defn:lexiphania> the doctor prescribed an
+   immediate glossectomy or, if that proved ineffective, a complete
+   cephalectomy.
+    
 =end item
 
 =begin item :term<C<isbn:> and C<issn:>>
@@ -1644,7 +1671,7 @@ For example:
 
 =head3 Placement links
 
-A second kind of link--the C<P<>> or B<placement link>--works in the
+A second kind of linkE<mdash>the C<P<>> or B<placement link>E<mdash>works in the
 opposite direction. Instead of directing focus out to another document,
 it allows you to draw the contents of another document into your own.
 
@@ -1660,14 +1687,14 @@ incorporated directly into multiple documents. For example:
     P<file:/shared/docs/std_copyright.pod>
 
     =DISCLAIMER
-    P<http://www.megagigatera.com/std/disclaimer.txt>
+    P<http://www.MegaGigaTeraPetaCorp.com/std/disclaimer.txt>
 
 might produce:
 
 =begin nested
 B<Copyright>
 
-This document is copyright (c) MegaGigaTeraCorp, 2006. All rights reserved.
+This document is copyright (c) MegaGigaTeraPetaCorp, 2006. All rights reserved.
 
 B<Disclaimer>
 
@@ -1691,14 +1718,14 @@ See: L<std_copyright.pod|file:/shared/docs/std_copyright.pod>
 
 B<Disclaimer>
 
-See: L<http://www.megagigatera.com/std/disclaimer.txt>
+See: L<http://www.MegaGigaTeraPetaCorp.com/std/disclaimer.txt>
 =end nested
 
 
 =head3 Space-preserving text
 
 Any text enclosed in an C<S<>> code is formatted normally, except that
-every whitespace character in it--including any newline--is preserved.
+every whitespace character in itE<mdash>including any newlineE<mdash>is preserved.
 These characters are also treated as being non-breaking (except for the
 newlines, of course). For example:
 
