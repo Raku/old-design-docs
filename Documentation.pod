@@ -20,7 +20,7 @@ Damian Conway <L<C<damian@conway.org>|mailto:damian@conway.org>>
 =table
     Maintainer:     Damian Conway
     Date:           9 Apr 2005
-    Last Modified:  14 Feb 2007
+    Last Modified:  19 Feb 2007
 
 
 =head1 Perldoc
@@ -731,11 +731,12 @@ E<ndash> Gas
 =for para :nested(2)
 E<ndash> Chocolate
 
-It is an error for a "level-R<N+1>" C<=item> block (e.g. an C<=item2>,
-C<=item3>, etc.) to appear anywhere except where there is a preceding
-"level-R<N>" C<=item>. That is, an C<=item3> can only be specified if an
-C<=item2> appears somewhere before it, and that C<=item2> can only
-appear if there is a preceding C<=item1>.
+Perldoc parsers must issue a warning if a "level-R<N+1>" C<=item> block
+(e.g. an C<=item2>, C<=item3>, etc.) appears anywhere except where there
+is a preceding "level-R<N>" C<=item> in the same surrounding block. That
+is, an C<=item3> should only be specified if an C<=item2> appears
+somewhere before it, and that C<=item2> should itself only appear if
+there is a preceding C<=item1>.
 
 Note that item blocks within the same list are not physically nested.
 That is, lower-level items should I<not> be specified inside
@@ -1248,7 +1249,14 @@ Most of these blocks would typically be used in their full delimited forms:
     =end SYNOPSIS
 =end code
 
-The use of these reserved keywords is not required; you can still just write:
+Semantic blocks can be considered to be variants of the C<=head1> block
+in most respects (and most renderers will treat them as such). The main
+difference is that, in a C<=head1> block, the heading is the contents of
+the block; whereas, in a semantic block, the heading is derived from the
+typename of the block itself and the block contents are instead treated as
+the C<=para> or C<=code> block(s) belonging to the heading.
+
+The use of these special blocks is not required; you can still just write:
 
 =begin code
     =head1 SYNOPSIS
@@ -1262,24 +1270,24 @@ The use of these reserved keywords is not required; you can still just write:
 =end code
 
 However, using the keywords adds semantic information to the
-documentation, which may assist various renderers, summarizers,
-coverage tools, and other utilities.
+documentation, which may assist various renderers, summarizers, coverage
+tools, document refactorers, and other utilities. This is because a
+semantic block I<encloses> the text it controls (unlike a C<=head1>,
+which merely precedes its corresponding text), so using semantic blocks
+produces a more explicitly structured document.
 
-Note that there is no requirement that semantic blocks be rendered in a
-particular way (or at all). Specifically, it is not necessary to
+Note that there is no requirement that semantic blocks be rendered in
+a particular way (or at all). Specifically, it is not necessary to
 preserve the capitalization of the keyword. For example, the
 C<=SYNOPSIS> block of the preceding example might be rendered like so:
 
 =begin nested
-=for head2
-3.E<nbsp;nbsp>I<Synopsis>
+B<3.E<nbsp;nbsp>I<Synopsis>>
 
-=begin code :allow< L >
-    use L<Perldoc::Parser|doc:Perldoc::Parser>;
+=begin code
+    use Perl6::Perldoc::Parser;
         
-    my Perldoc::Parser $parser .= new();
-        
-    my $tree = $parser.parse($fh);
+    my $rep = Perl6::Perldoc::Parser.parse($fh, :all_pod);
 =end code
 =end nested
 
@@ -1292,9 +1300,9 @@ themselves a type of block, and most of them may nest sequences of any
 other type of block (most often, other formatting codes). In particular,
 you can nest comment blocks in the middle of a formatting code:
 
-=for code :allow<I>
-    B<I shall say this loudly
-    I<=begin comment
+=for code :allow<B V>
+    V<B><I shall say this loudly
+    B<=begin comment
     and repeatedly
     =end comment>
     and with emphasis.>
@@ -1613,14 +1621,15 @@ A link to the L<definition|#Definitions> of the specified term within
 the current document. For example:
 
 =for code :allow<B>
-    He was highly prone to D<lexiphania>: an unfortunate proclivity for
-    employing sesquipedalian words (such as "proclivity",
-    "sesquipedalian", and indeed "lexiphania").
+    He was highly prone to B<D<lexiphania>>: an unfortunate proclivity
+    for employing grandiloquisms (for example, words such as "proclivity",
+    "grandiloquism" and indeed "lexiphania").
     
 and later, to link back to the definition
 
-   To treat his chronic L<defn:lexiphania> the doctor prescribed an
-   immediate glossectomy or, if that proved ineffective, a complete
+=for code :allow<B>
+   To treat his chronic L<B<defn:lexiphania>> the doctor prescribed an
+   immediate glossoligation or, if that proved ineffective, a complete
    cephalectomy.
     
 =end item
@@ -1671,9 +1680,10 @@ For example:
 
 =head3 Placement links
 
-A second kind of linkE<mdash>the C<P<>> or B<placement link>E<mdash>works in the
-opposite direction. Instead of directing focus out to another document,
-it allows you to draw the contents of another document into your own.
+A second kind of linkE<mdash>the C<P<>> or B<placement link>E<mdash>works
+in the opposite direction. Instead of directing focus
+out to another document, it allows you to draw the contents of another
+document into your own.
 
 In other words, the C<P<>> formatting code takes a URI and (where possible)
 places the contents of the corresponding document inline in place of the
@@ -1720,6 +1730,35 @@ B<Disclaimer>
 
 See: L<http://www.MegaGigaTeraPetaCorp.com/std/disclaimer.txt>
 =end nested
+
+You can use any of the following URI forms (see L<#Links>) in a
+placement link:
+
+=item C<http:> and C<https:>
+=item C<file:>
+=item C<man:>
+=item C<doc:>
+=item C<toc:>
+
+The C<toc:> form is a special pseudo-scheme that inserts a table of contents
+in place of the C<P<>> code. After the colon, list the block types that you
+wish to include in the table of contents. For example, to place a table of
+contents listing only top- and second-level headings:
+
+    P<toc: head1 head2>
+
+To place a table of contents that lists the top four levels of headings, as
+well as any tables:
+
+    P<toc: head1 head2 head3 head4 table>
+
+To place a table of diagrams (assuming a user-defined C<Diagram> block):
+
+    P<toc: Diagram>
+
+Note also that, for C<P<toc:...>>, all L<semantic blocks|#Semantic
+blocks> are treated as equivalent to C<head1> headings, and the
+C<=item1>/C<=item> equivalence is preserved.
 
 
 =head3 Space-preserving text
@@ -1857,7 +1896,7 @@ predecessor.
 
 =head3 User-defined formatting codes
 
-L<Perldoc modules|Modules> can define their own formatting codes,
+L<Perldoc modules|#Modules> can define their own formatting codes,
 using the C<M<>> code. An C<M<>> code must start with a
 colon-terminated scheme specifier. The rest of the enclosed text is
 treated as the (verbatim) contents of the formatting code. For example:
@@ -2125,7 +2164,7 @@ extension, install a C<.pod> file that contains a nested C<=use> that
 imports the necessary plug-in code. Then load the Pod file as above.
 
 A typical example would be a Perldoc extension that also needs to
-specify some L<preconfiguration|Block pre-configuration>:
+specify some L<preconfiguration|#Block pre-configuration>:
 
 =for code :allow<R>
     =use R<Hybrid::Content::Plus::Extension>
