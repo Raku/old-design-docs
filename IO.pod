@@ -29,7 +29,7 @@ for these functions and copying it here.
 
 =over 8
 
-=item FILEHANDLE ~~ :X
+=item IO ~~ :X
 X<:r>X<:w>X<:x>X<:o>X<:R>X<:W>X<:X>X<:O>X<:e>X<:z>X<:s>X<:f>X<:d>X<:l>X<:p>
 X<:S>X<:b>X<:c>X<:t>X<:u>X<:g>X<:k>X<:T>X<:B>X<:M>X<:A>X<:C>
 
@@ -138,14 +138,16 @@ successfully changed.
     $mode = '0o644'; chmod $mode, 'foo';     # this is better
     $mode = 0o644;   chmod $mode, 'foo';     # this is best
 
-=item close FILEHANDLE
+=item close IO
+
+=item IO.close
 
 Closes the file or pipe associated with the file handle, returning
 true only if IO buffers are successfully flushed and closes the system
 file descriptor.  Closes the currently selected filehandle if the
 argument is omitted.
 
-You don't have to close FILEHANDLE if you are immediately going to do
+You don't have to close IO if you are immediately going to do
 another C<open> on it, because C<open> will close it for you.  (See
 C<open>.)  However, an explicit C<close> on an input file resets the line
 counter (C<$.>), while the implicit close done by C<open> does not.
@@ -158,14 +160,6 @@ also waits for the process executing on the pipe to complete, in case you
 want to look at the output of the pipe afterwards, and
 implicitly puts the exit status value of that command into C<$!>.
 
-=item closedir
-
- closedir $dir
- $dir.closedir
-
-Closes a directory opened by C<opendir> and returns the success of that
-system call.
-
 =item connect
 
  my $fh = connect($hostname, 80);
@@ -173,15 +167,21 @@ system call.
 Attempts to connect to a remote host and returns an IO handle if successful.
 The call fails with an exception if it cannot connect.
 
-=item fcntl
+=item IO.fcntl
+
+Available only as a handle method.
 
 =item glob
 
-=item ioctl
+=item IO.ioctl
+
+Available only as a handle method.
 
 =item link
 
-=item listen
+=item IO.listen
+
+Available only as a handle method.
 
 =item lstat
 
@@ -192,6 +192,12 @@ to false.
 
 =item mkdir
 
+=item IO.name
+
+The C<.name> method returns the name of the file/socket/uri the handle
+was opened with, if known.  Returns undef otherwise.  There is no
+corresponding C<name()> function.
+
 =item open
 
     # Read
@@ -200,39 +206,16 @@ to false.
     # Write
     my $fh = open($filename, :w);
 
-=item opendir EXPR
+=item IO::Dir::open EXPR
 
-  my $dir = opendir('.');
+  my $dir = IO::Dir::open('.');
 
-Opens a directory named EXPR for processing by C<readdir>, C<telldir>,
-C<seekdir>, C<rewinddir>, and C<closedir>.  Returns an C<IO::Dir> object if
-successful.
-
-=item readdir
-
- readdir $dir
- $dir.readdir
-
-Returns the next directory entry for a directory opened by C<opendir>.
-If used in list context, returns all the rest of the entries in the
-directory.  If there are no more entries, returns an undefined value in
-scalar context or a null list in list context.
-
-If you're planning to filetest the return values out of a C<readdir>, you'd
-better prepend the directory in question.  Otherwise, because we didn't
-C<chdir> there, it would have been testing the wrong file.
+Opens a directory named EXPR for processing.  Makes the directory looks like
+a list of autochomped lines, so just use ordinary IO operators after the open.
 
 =item readlink
 
 =item rename
-
-=item rewinddir
-
- rewinddir $dir
- $dir.rewinddir
-
-Sets the current position to the beginning of the directory for the
-C<readdir> routine on DIRHANDLE.
 
 =item rmdir FILENAME
 X<rmdir> X<rd> X<directory, remove>
@@ -244,6 +227,8 @@ empty.  If it succeeds it returns true, otherwise it returns false and
 sets C<$!> (errno).  If FILENAME is omitted, uses C<$_>.
 
 =item stat
+
+=item IO.stat
 
 Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
 to true, and additional file tests may be performed on the value.  If
@@ -282,33 +267,33 @@ It is an error to use bare C<unlink> without arguments.
 
 =over 4
 
-=item getc FILEHANDLE
+=item getc IO
 
-=item FILEHANDLE.getc
+=item IO.getc
 
-Returns the next character from the input file attached to FILEHANDLE,
+Returns the next character from the input file attached to IO,
 or the undefined value at end of file, or if there was an error (in
 the latter case C<$!> is set). 
 
-=item print FILEHANDLE: LIST
+=item print IO: LIST
 
-=item FILEHANDLE.print(LIST)
+=item IO.print(LIST)
 
-=item FILEHANDLE.print: LIST
+=item IO.print: LIST
 
 =item print LIST
 
-=item .print(FILEHANDLE)
+=item .print(IO)
 
 =item .print
 
 
 Prints a string or a list of strings.  Returns true if successful.
-FILEHANDLE, if supplied, must be a filehandle object.  Indirect objects
+IO, if supplied, must be a filehandle object.  Indirect objects
 in Perl 6 must always be followed by a colon, and any indirect object
 more complicated than a variable should be put into parentheses.
 
-If FILEHANDLE is omitted, prints to C<$*DEFOUT>, which is aliased to C<$*OUT>
+If IO is omitted, prints to C<$*DEFOUT>, which is aliased to C<$*OUT>
 when the program starts but may be temporarily or permanently rebound to
 some other file handle.  The form with leading dot prints C<$_> to C<$*DEFOUT>
 unless an explicit filehandle is supplied.
@@ -321,15 +306,15 @@ There is are no variables corresponding to Perl 5's C<$,> and
 C<$\> variables.  Use C<join> to interpose separators; use filehandle
 properties to change line endings.
 
-=item say FILEHANDLE: LIST
+=item say IO: LIST
 
-=item FILEHANDLE.say(LIST)
+=item IO.say(LIST)
 
-=item FILEHANDLE.say: LIST
+=item IO.say: LIST
 
 =item say LIST
 
-=item .say(FILEHANDLE)
+=item .say(IO)
 
 =item say
 
@@ -344,7 +329,7 @@ arguments.
 
 =item printf(FORMAT, LIST)
 
-=item .printf(FORMAT, LIST)
+=item IO.printf(FORMAT, LIST)
 
 The function form works as in Perl 5.  The method form works on
 filehandle objects, not formats.
@@ -355,25 +340,25 @@ filehandle objects, not formats.
 
 =over 4
 
-=item fileno
+=item IO.fileno
 
-=item flock
+=item IO.flock
 
-=item getpeername
+=item IO.getpeername
 
-=item eof
+=item IO.eof
 
-=item accept
+=item IO.accept
 
 =item /[get|set][host|net|proto|serv|sock].*/
 
 =item alarm
 
-=item bind
+=item IO.bind
 
-=item binmode
+=item IO.binmode
 
-=item lines
+=item IO.lines
 
     our List multi method lines (IO $handle:) is export;
     our List multi lines (Str $filename);
@@ -383,27 +368,27 @@ See also C<slurp>.
 
 =item pipe
 
-=item read
+=item IO.read
 
-=item readline
+=item IO.readline
 
-=item readpipe
+=item Str.readpipe
 
-=item recv
+=item IO.recv
 
-=item seek
-
-=item seekdir
+=item IO.seek
 
 =item select(both)
 
-=item send
+Gone.
 
-=item setsockopt
+=item IO.send
 
-=item shutdown
+=item IO.setsockopt
 
-=item slurp
+=item IO.shutdown
+
+=item IO.slurp
 
     our Item multi method slurp (IO $handle: *%opts) is export;
     our Item multi slurp (Str $filename, *%opts);
@@ -416,19 +401,19 @@ the options.
 
 =item socketpair
 
-=item sysread
+=item IO.sysread
 
-=item sysseek
+=item IO.sysseek
 
-=item syswrite
+=item IO.syswrite
 
-=item tell
+=item IO.tell
 
-=item telldir
-
-=item truncate
+=item IO.truncate
 
 =item warn
+
+=item Str.warn
 
 =back
 
