@@ -11,8 +11,8 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Maintainer:    Larry Wall <larry@wall.org>
  Contributions: Mark Stosberg <mark@summersault.com>
  Date:          12 Sep 2006
- Last Modified: 8 Feb 2007
- Version:       16
+ Last Modified: 1 May 2007
+ Version:       17
 
 This is a draft document. Many of these functions will work as in Perl 5,
 except we're trying to rationalize everything into packages.  For now you can
@@ -298,6 +298,8 @@ the latter case C<$!> is set).
 
 =item print LIST
 
+=item .print(FILEHANDLE)
+
 =item .print
 
 
@@ -306,8 +308,11 @@ FILEHANDLE, if supplied, must be a filehandle object.  Indirect objects
 in Perl 6 must always be followed by a colon, and any indirect object
 more complicated than a variable should be put into parentheses.
 
-If FILEHANDLE is omitted, prints to standard output.
-The form with leading dot prints C<$_> to standard output.
+If FILEHANDLE is omitted, prints to C<$*DEFOUT>, which is aliased to C<$*OUT>
+when the program starts but may be temporarily or permanently rebound to
+some other file handle.  The form with leading dot prints C<$_> to C<$*DEFOUT>
+unless an explicit filehandle is supplied.
+
 It is a compiler error to use a bare C<print> without arguments.
 (However, it's fine if you have an explicit argument list that evaluates to
 the empty list at runtime.)
@@ -316,17 +321,33 @@ There is are no variables corresponding to Perl 5's C<$,> and
 C<$\> variables.  Use C<join> to interpose separators; use filehandle
 properties to change line endings.
 
-=item printf
+=item say FILEHANDLE: LIST
+
+=item FILEHANDLE.say(LIST)
+
+=item FILEHANDLE.say: LIST
+
+=item say LIST
+
+=item .say(FILEHANDLE)
 
 =item say
 
-This is a version of print() that auto-appends a newline:
+This is identical to print() except that it auto-appends a newline after
+the final argument.
 
     Was:    print "Hello, world!\n";
     Now:    say   "Hello, world!";
 
 As with C<print>, it is a compiler error to use a bare C<say> without
 arguments.
+
+=item printf(FORMAT, LIST)
+
+=item .printf(FORMAT, LIST)
+
+The function form works as in Perl 5.  The method form works on
+filehandle objects, not formats.
 
 =back
 
