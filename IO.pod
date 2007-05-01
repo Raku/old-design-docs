@@ -14,9 +14,13 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Last Modified: 1 May 2007
  Version:       17
 
-This is a draft document. Many of these functions will work as in Perl 5,
-except we're trying to rationalize everything into packages.  For now you can
-assume most of the important ones will automatically be in the * namespace.
+This is a draft document. Many of these functions will work as in Perl
+5, except we're trying to rationalize everything into packages.  For
+now you can assume most of the important functions will automatically
+be in the * namespace.  However, with IO operations in particular,
+many of them are really methods on an IO handle, and if there is a
+corresponding global function, it's merely an exported version of
+the method.
 
 As a starting point, you can help by finding the official Perl 5 documentation
 for these functions and copying it here. 
@@ -122,6 +126,43 @@ Or pass multiple tests together in OO style:
   if $filename.TEST(:e,:x) {...}
 
 =item chown
+
+    our Int multi chown ($uid = -1, $gid = -1, *@files)
+
+Changes the owner (and group) of a list of files.  The first
+two elements of the list must be the numeric uid and gid, in
+that order.  A value of -1 in either position is interpreted by
+most systems to leave that value unchanged.  Returns the number
+of files successfully changed.
+
+    $count = chown $uid, $gid, ’foo’, ’bar’;
+    chown $uid, $gid, @filenames;
+
+On systems that support C<fchown>, you might pass file handles
+among the files.  On systems that don’t support C<fchown>, passing
+file handles produces a fatal error at run time.
+
+Here’s an example that looks up nonnumeric uids in the passwd
+file:
+
+   $user = prompt "User: ";
+   $pattern = prompt "Files: ";
+
+   ($login,$pass,$uid,$gid) = getpwnam($user)
+       or die "$user not in passwd file";
+
+   @ary = glob($pattern);      # expand filenames
+   chown $uid, $gid, @ary;
+
+On most systems, you are not allowed to change the ownership of
+the file unless you’re the superuser, although you should be
+able to change the group to any of your secondary groups.  On
+insecure systems, these restrictions may be relaxed, but this
+is not a portable assumption.  On POSIX systems, you can detect
+this condition this way:
+
+    use POSIX qw(sysconf _PC_CHOWN_RESTRICTED);
+    $can_chown_giveaway = not sysconf(_PC_CHOWN_RESTRICTED);
 
 =item chmod LIST
 X<chmod> X<permission> X<mode>
@@ -267,31 +308,25 @@ It is an error to use bare C<unlink> without arguments.
 
 =over 4
 
-=item getc IO
+=item getc
 
-=item IO.getc
+    our Bool method getc (IO $self: *@LIST)
 
-Returns the next character from the input file attached to IO,
+Returns the next character from the input stream attached to IO,
 or the undefined value at end of file, or if there was an error (in
 the latter case C<$!> is set). 
 
-=item print IO: LIST
+=item print
 
-=item IO.print(LIST)
+    our Bool method print (IO $self: *@LIST)
+    our Bool multi print (*@LIST)
+    our Bool method print (Str $self: IO *io)
 
-=item IO.print: LIST
-
-=item print LIST
-
-=item .print(IO)
-
-=item .print
-
-
-Prints a string or a list of strings.  Returns true if successful.
-IO, if supplied, must be a filehandle object.  Indirect objects
-in Perl 6 must always be followed by a colon, and any indirect object
-more complicated than a variable should be put into parentheses.
+Prints a string or a list of strings.  Returns Bool::True if
+successful, Failure otherwise.  The IO handle, if supplied, must be
+an object that supports I/O.  Indirect objects in Perl 6 must always
+be followed by a colon, and any indirect object more complicated than
+a variable should be put into parentheses.
 
 If IO is omitted, prints to C<$*DEFOUT>, which is aliased to C<$*OUT>
 when the program starts but may be temporarily or permanently rebound to
@@ -306,17 +341,11 @@ There is are no variables corresponding to Perl 5's C<$,> and
 C<$\> variables.  Use C<join> to interpose separators; use filehandle
 properties to change line endings.
 
-=item say IO: LIST
-
-=item IO.say(LIST)
-
-=item IO.say: LIST
-
-=item say LIST
-
-=item .say(IO)
-
 =item say
+
+    our Bool method say (IO $self: *@LIST)
+    our Bool multi say (*@LIST)
+    our Bool method say (Str $self: IO *io)
 
 This is identical to print() except that it auto-appends a newline after
 the final argument.
@@ -327,12 +356,13 @@ the final argument.
 As with C<print>, it is a compiler error to use a bare C<say> without
 arguments.
 
-=item printf(FORMAT, LIST)
+=item printf
 
-=item IO.printf(FORMAT, LIST)
+    our Bool method printf (IO $self: Str $fmt, *@LIST)
+    our Bool multi printf (Str $fmt, *@LIST)
 
-The function form works as in Perl 5.  The method form works on
-filehandle objects, not formats.
+The function form works as in Perl 5 and always prints to $*DEFOUT.
+The method form uses IO handles as objects, not formats.
 
 =back
 
@@ -368,6 +398,10 @@ See also C<slurp>.
 
 =item pipe
 
+=item prompt
+
+    our Str prompt (Str $prompt)
+
 =item IO.read
 
 =item IO.readline
@@ -380,7 +414,7 @@ See also C<slurp>.
 
 =item select(both)
 
-Gone.
+Gone.  (Note: for subsecond sleep, just use sleep with a fractional argument.)
 
 =item IO.send
 
