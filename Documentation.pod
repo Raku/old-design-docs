@@ -20,7 +20,7 @@ Damian Conway <L<C<damian@conway.org>|mailto:damian@conway.org>>
 =table
     Maintainer:     Damian Conway
     Date:           9 Apr 2005
-    Last Modified:  19 Feb 2007
+    Last Modified:  25 Apr 2007
 
 
 =head1 Perldoc
@@ -97,20 +97,37 @@ uppercase (for example: C<=begin SYNOPSIS>) are reserved.
 
 After the typename, the rest of the C<=begin> marker line is treated as
 configuration information for the block. This information is used in
-different ways by different types of blocks, and is specified using
-Perl6ish C<:key<value>> or C<< key=>value >> pairs (which must, of
-course, be constants since Perldoc is a specification language, not a
-programming language).
+different ways by different types of blocks, but is always specified using
+Perl6-ish option pairs. That is, any of:
+
+=for table :nested
+  Value is...      Specify with...      Or with...      Or with...
+  ===============  ==================   ==============  ======================
+  Boolean (true)   C«:key»              C«:key(1)»      C«key => 1»
+  Boolean (false)  C«:!key»             C«:key(0)»      C«key => 0»
+  String           C«:key<str>»         C«:key('str')»  C«key => 'str'» 
+  List             C«:key<1 2 3>»       C«:key[1,2,3]»  C«key => [1,2,3]» 
+  Hash             C«:key{a=>1, b=>2}»                  C«key => {a=>1, b=>2}» 
+  Code             C«:key{ sqrt($_) }»
+   
+All option keys and values must, of course, be constants since Perldoc
+is a specification language, not a programming language.
 See L<Synopsis 2|http://dev.perl.org/perl6/doc/design/syn/S02.html#Literals>
-for a summary of the Perl 6 pair notation.
+for details of the various Perl 6 pair notations.
 
 The configuration section may be extended over subsequent lines by
 starting those lines with an C<=> in the first column followed by a
 whitespace character.
 
-The lines following the opening delimiter and configuration are the data
-or contents of the block, which continue until the block's C<=end> marker
-line. The general syntax is:
+The lines following the opening delimiter and configuration are the
+data or contents of the block, which continue until the block's C<=end>
+marker line. For most block types, these contents may be indented if you
+wish, without them being treated as L<code blocks|#Code blocks>. Unlike
+Perl 5, indented text is only treated as code within C<=pod>,
+L<C<=nested>|#Nesting blocks>, L<C<=item>|#Lists>, C<=code>, and
+L<semantic|#Semantic blocks> blocks.
+
+The general syntax is:
 
 =begin code :allow< R >
      =begin R<BLOCK_TYPE>  R<OPTIONAL CONFIG INFO>
@@ -254,8 +271,8 @@ or even by folding the text (so long as a visible placeholder is provided).
 Occasionally it is desirable to nest content by more than one level:
 
     =begin para :nested
-    =begin para   :nested
-    =begin para     :nested
+    =begin para :nested
+    =begin para :nested
     "We're going deep, deep, I<deep> undercover!"
     =end para
     =end para
@@ -500,9 +517,10 @@ For example:
     the trailing directive on the next line.
     =head2 This is another heading block
 
-Within a C<=pod>, C<=item>, C<=nested>, or C<=END> block, ordinary
-paragraphs do not require an explicit marker or delimiters, but there is
-also an explicit C<para> marker (which may be used anywhere):
+Within a C<=pod>, C<=item>, C<=nested>, C<=END>, or
+L<semantic|#Semantic blocks> block, ordinary paragraphs do not require
+an explicit marker or delimiters, but there is also an explicit C<para>
+marker (which may be used anywhere):
 
 =for code :allow<B>
      B<=para>
@@ -512,16 +530,22 @@ also an explicit C<para> marker (which may be used anywhere):
 
 and likewise the longer C<=for> and C<=begin>/C<=end> forms. For example:
 
-=for code :allow<B>
+=begin code :allow<B>
      B<=begin para>
          This is an ordinary paragraph.
          Its text  will   be     squeezed     and
          short lines filled.
+
+         This is I<still> part of the same paragraph,
+         which continues until an...
      B<=end para>
+=end code
 
 As the previous example implies, when any form of explicit C<para> block
 is used, any whitespace at the start of each line is removed, so
-the paragraph text no longer has to begin at column 1.
+the paragraph text no longer has to begin at column 1. In addition,
+within a delimited C<=begin para>/C<=end para> block, any blank lines are
+preserved.
 
 
 =head3 Code blocks
@@ -546,7 +570,7 @@ terminated by a blank line. For example:
 =end code
 
 Implicit code blocks may only be used within C<=pod>, C<=item>,
-C<=nested>, or C<=END> blocks.
+C<=nested>, C<=END>, or L<semantic|#Semantic blocks> blocks.
 
 There is also an explicit C<=code> block (which can be specified within
 I<any> other block type, not just C<=pod>, C<=item>, etc.):
@@ -639,7 +663,7 @@ serifed for code, bold sans-serif for input, and regular sans-serif for
 output).
 
 Unlike C<=code> blocks, both C<=input> and C<=output> blocks honour any
-nested formatting codes. This is particular useful since a sample of
+nested formatting codes. This is particularly useful since a sample of
 input will often include prompts (which are, of course, output).
 Likewise a sample of output may contain the occasional interactive
 component. Pod provides L<special formatting codes|#Example specifiers>
