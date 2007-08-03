@@ -975,7 +975,8 @@ interact with typically depends on what your current lexical context has
 declared the "working Unicode level to be". Default is C<Grapheme>.
 [Default can't be C<CharLingua> because we don't go into "language"
 mode unless there's a specific language declaration saying either
-exactly what language we're going into.]
+exactly what language we're going into or, in the absence of that, how to
+find the exact language somewhere in the enviroment.]
 
 Attempting to use a string at a level higher it can support is handled
 without warning. The current highest supported level of the string
@@ -1267,14 +1268,14 @@ The C<$format> is scanned for C<%> characters. Any C<%> introduces a
 format token. Format tokens have the following grammar:
 
  grammar Str::SprintfFormat {
-  regex format_token { \%: <index>? <precision>? <modifier>? <directive> }
-  token index { \d+ \$ }
+  regex format_token { '%': <index>? <precision>? <modifier>? <directive> }
+  token index { \d+ '$' }
   token precision { <flags>? <vector>? <precision_count> }
-  token flags { <[\ +0\#\-]>+ }
-  token precision_count { [ <[1-9]>\d* | \* ]? [ \. [ \d* | \* ] ]? }
-  token vector { \*? v }
-  token modifier { ll | <[lhmVqL]> }
-  token directive { <[\%csduoxefgXEGbpniDUOF]> }
+  token flags { <[ \x20 + 0 \# \- ]>+ }
+  token precision_count { [ <[1..9]>\d* | '*' ]? [ '.' [ \d* | '*' ] ]? }
+  token vector { '*'? v }
+  token modifier { < ll l h m V q L > }
+  token directive { < % c s d u o x e f g X E G b p n i D U O F > }
  }
 
 Directives guide the use (if any) of the arguments. When a directive
@@ -1349,8 +1350,8 @@ Examples:
 
 =item substr
 
- our Str multi substr (Str $s, StrPos $start, StrLen $length?) is rw
- our Str multi substr (Str $s, StrPos $start, StrPos $end?) is rw
+ our Str multi method substr (Str $string: StrPos $start, StrLen $length?) is rw is export
+ our Str multi method substr (Str $string: StrPos $start, StrPos $end?) is rw is export
 
 C<substr> returns part of an existing string. You control what part by
 passing a starting position and optionally either an end position or length.
