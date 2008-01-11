@@ -12,8 +12,8 @@ Synopsis 29: Builtin Functions
  Contributions: Aaron Sherman <ajs@ajs.com>
                 Mark Stosberg <mark@summersault.com>
  Date:          12 Mar 2005
- Last Modified: 1 Jan 2008
- Version:       15
+ Last Modified: 10 Jan 2008
+ Version:       16
 
 This document attempts to document the list of builtin functions in Perl 6.
 It assumes familiarity with Perl 5 and prior synopses.
@@ -1112,6 +1112,20 @@ composite where possible.
 These de-compositions and re-compositions are performed recursively,
 until there is no further work to be done.
 
+=item samecase
+
+ our Str multi method samecase ( Str $string: Str $pattern ) is export
+
+Has the effect of making the case of the string match the case pattern in C<$pattern>.
+(Used by s:ii/// internally, see L<S05>.)
+
+=item samebase
+
+ our Str multi method samebase ( Str $string: Str $pattern ) is export
+
+Has the effect of making the case of the string match the accent pattern in C<$pattern>.
+(Used by s:bb/// internally, see L<S05>.)
+
 =item capitalize
 
  our Str multi method capitalize ( Str $string: ) is export
@@ -1123,6 +1137,41 @@ C<s:g/(\w+)/{ucfirst $1}/> on it.
 =item length
 
 This word is banned in Perl 6.  You must specify units.
+
+=item chars
+
+ our Int multi method chars ( Str $string: ) is export
+
+Returns the number of characters in the string in the current
+(lexically scoped) idea of what a normal character is, usually graphemes.
+
+=item graphs
+
+ our Int multi method codes ( Str $string: ) is export
+
+Returns the number of graphemes in the string in a language-independent way.
+
+=item codes
+
+ our Int multi method codes ( Str $string: $nf = "C") is export
+
+Returns the number of codepoints in the string if it were canonicalized the
+specified way.  Do not confuse codepoints with UTF-16 encoding.  Characters
+above U+FFFF count as a single codepoint.
+
+=item bytes
+
+ our Int multi method bytes ( Str $string: $nf = "C", $enc = "UTF-8") is export
+
+Returns the number of bytes in the string if it were encoded in the
+specified way.  Note the inequality:
+
+    .bytes("C","UTF-16") * 2 >= .codes("C")
+
+This is caused by the possibility of surrogate pairs, which are counted as one
+codepoint.  However, this problem does not arise for UTF-32:
+
+    .bytes("C","UTF-32") * 4 == .codes("C")
 
 =item index
 
