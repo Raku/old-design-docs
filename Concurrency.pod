@@ -13,9 +13,9 @@ Synopsis 17: Concurrency [DRAFT]
 
  Maintainer: Elizabeth Mattijsen <liz@dijkmat.nl>
  Date: 13 Jun 2005
- Last Modified: 13 Nov 2005
+ Last Modified: 08 Feb 2008
  Number: 0
- Version: 1
+ Version: 2
 
 =head1 SKETCH
 
@@ -258,32 +258,41 @@ inside the subroutine.  Positional parameters will be available to any code
 looking at them, but will B<not> be handled automatically.  It would seem that
 the use of named parameters is therefore advisable.
 
-#######################################################################
-Below here still the more or less unorganized stuff
+=head2 Threads
 
-CORE::GLOBAL::exit; # kills all the threads
 
-# We intentionally do not list cross-machine parallelism Conc:: classes here.
-# Consult your local 6PAN mirror with a time machine.
-use Conc::Processes; # fork() or createProcess based implementation
-use Conc::Threads;   # maybe it just exports &async to override the default one, yay
-use Conc::Multiplex; # this is default
+=head3 Kill all
 
-my $thr = async {
-    ...do something...
-    END { }
-};
+   CORE::GLOBAL::exit; # kills all the threads
 
-Conc::Thread.this
-Conc::Proc.this
+
+=head3 Thread models 
+
+We intentionally do not list cross-machine parallelism Conc:: classes here.
+Consult your local 6PAN mirror with a time machine.
+
+   use Conc::Processes; # fork() or createProcess based implementation
+   use Conc::Threads;   # maybe it just exports &async to override the default one, yay
+   use Conc::Multiplex; # this is default
+
+   my $thr = async {
+       ...do something...
+       END { }
+   };
+
+   Conc::Thread.this
+   Conc::Proc.this
+
+=head3 Thread methods and attributes
 
 Conc object # name is still up for grabs!
-- numify to TIDs (as in pugs)
-- stringify to something sensible (eg. "<Conc:tid=5>");
-- enumerable with Conc.list
-- Conc.yield (if this is to live but deprecated, maybe call it sleep(0)?)
-- sleep() always respects other threads, thank you very much
-- standard methods:
+
+ - numify to TIDs (as in pugs)
+ - stringify to something sensible (eg. "<Conc:tid=5>");
+ - enumerable with Conc.list
+ - Conc.yield (if this is to live but deprecated, maybe call it sleep(0)?)
+ - sleep() always respects other threads, thank you very much
+ - standard methods:
     - .join    # wait for invocant to finish (always item cxt)
     - .die     # throw exception in the invocant thread
     - .alarm   # set up alarms
@@ -295,7 +304,7 @@ Conc object # name is still up for grabs!
                # tentatively, the control methods still applies to it
                # including wait (which will always return undef)
                # also needs to discard any atomicity context
-- attributes:
+ - attributes:
     - .started  # time
     - .finished # time
     - .waiting  # suspended (not diff from block on wakeup signal)
@@ -305,7 +314,7 @@ Conc object # name is still up for grabs!
     - .current_continuation
                 # the CC currently running in that thread
 
-- "is throttled" trait
+ - "is throttled" trait
 
     method throttled::trait_auxiliary:<is> ($limit=1, :$key=gensym()) {
         # "is throttled" limits max connection to this Code object
@@ -324,7 +333,9 @@ Conc object # name is still up for grabs!
     async { $f.a }
     async { $f.b }
 
-- Thread::Status
+
+=head3 Thread status
+
 - IO objects and containers gets concurrency love!
     - $obj.wake_on_readable
     - $obj.wake_on_writable
@@ -342,6 +353,10 @@ Communication abstractions
 # program will wait for _all_ threads
 # unjoined threads will be joined at the beginning of the END block batch
 # of the parent thread that spawned them
+
+
+=head2 Still more or less unorganized stuff
+
 
 ### INTERFACE BARRIER ###
 module Blah;
