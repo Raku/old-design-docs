@@ -246,31 +246,54 @@ the use of named parameters is therefore advisable.
 
 =head2 Examples
 
+=over
+
+=item Coro as function used in a builtin
+
   coro dbl { yield $_ * 2; yield $_; };
   (1..4).map:{ dbl($_) }
   # should result in 2 2 6 4
 
+=item Constant coro
 
+  coro foo { yield 42 };
+  # always return 42
+
+=item Yield and return
+
+  coro foo ($x) {
+    yield $x;
+    # this point with $x bound to 10
+    yield $x+1;
+    return 5;
+    ... # this is never reached, I think we all agree
+  }
+
+=back
 
 =head1 Threads
 
 =head2 Thread methods and attributes
 
-We intentionally do not list cross-machine parallelism Conc:: classes here.
-Consult your local 6PAN mirror with a time machine.
+=over
 
-   use Conc::Processes; # fork() or createProcess based implementation
-   use Conc::Threads;   # maybe it just exports &async to override the default one, yay
-   use Conc::Multiplex; # this is default
+=item Create
+
+A thread will be created using the keyword C<async> followed by
+a codeblock being executed in this thread.
 
    my $thr = async {
        ...do something...
        END { }
    };
 
-   Conc::Thread.this
-   Conc::Proc.this
+=item Self reflection
 
+   async {
+      say "my tid is ", +self();
+   };
+
+=item TODO
 
  - numify to TIDs (as in pugs)
  - stringify to something sensible (eg. "<Conc:tid=5>");
@@ -318,6 +341,7 @@ Consult your local 6PAN mirror with a time machine.
     async { $f.a }
     async { $f.b }
 
+=back
 
 =head2 Thread status
 
@@ -483,8 +507,6 @@ module Blah;
   p1(); p1();
   p2(); p2();
 
-  coro foo { yield 42 };
-
   coro foo ($x) {
     yield $x;
     yield $x+2;
@@ -500,14 +522,6 @@ module Blah;
   &foo.finished; # true on return() and false on midway yield()
 
   foo(4); # and that's all she wrote
-
-  coro foo ($x) {
-    yield $x;
-    # this point with $x bound to 10
-    yield $x+1;
-    return 5;
-    ... # this is never reached, I think we all agree
-  }
 
   # If you don't want your variables to get rebound, use "is copy":
   coro foo ($x is copy) {...}
