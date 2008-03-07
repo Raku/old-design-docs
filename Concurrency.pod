@@ -244,7 +244,27 @@ inside the subroutine.  Positional parameters will be available to any code
 looking at them, but will B<not> be handled automatically.  It would seem that
 the use of named parameters is therefore advisable.
 
-=head2 Examples
+=head2 Coroutine attributes
+
+=over
+
+=item finished
+
+True on return() and false on midway yield()
+
+=back
+
+=head2 Coroutine methods
+
+=over
+
+=item start
+
+Set starting parameter list.
+
+=back
+
+=head2 Coroutine examples
 
 =over
 
@@ -253,6 +273,12 @@ the use of named parameters is therefore advisable.
   coro dbl { yield $_ * 2; yield $_; };
   (1..4).map:{ dbl($_) }
   # should result in 2 2 6 4
+
+  # coro parameters
+  coro perm ( @x ) {
+     my @y = @x; # need a copy
+     while @x { @y.splice($_,1).yield; }
+  }
 
 =item Constant coro
 
@@ -273,11 +299,7 @@ the use of named parameters is therefore advisable.
 
 =head1 Threads
 
-=head2 Thread methods and attributes
-
-=over
-
-=item Create
+=head2 Thread creation
 
 A thread will be created using the keyword C<async> followed by
 a codeblock being executed in this thread.
@@ -287,42 +309,114 @@ a codeblock being executed in this thread.
        END { }
    };
 
+
+=head2 Thread attributes
+
+=over
+
 =item Self reflection
+
+TODO: how you can access thread attributes inside a thread
 
    async {
       say "my tid is ", +self();
    };
 
-=item TODO
+=item started
 
- - numify to TIDs (as in pugs)
- - stringify to something sensible (eg. "<Conc:tid=5>");
- - enumerable with Conc.list
- - Conc.yield (if this is to live but deprecated, maybe call it sleep(0)?)
- - sleep() always respects other threads, thank you very much
- - standard methods:
-    - .join    # wait for invocant to finish (always item cxt)
-    - .die     # throw exception in the invocant thread
-    - .alarm   # set up alarms
-    - .alarms  # query existing alarms
-    - .suspend # pause a thread; fail if already paused
-    - .resume  # revive a thread; fail if already running
-    - .detach  # survives parent thread demise (promoted to process)
-               # process-local changes no longer affects parent
-               # tentatively, the control methods still applies to it
-               # including wait (which will always return undef)
-               # also needs to discard any atomicity context
- - attributes:
-    - .started  # time
-    - .finished # time
-    - .waiting  # suspended (not diff from block on wakeup signal)
-                # waiting on a handle, a condition, a lock, et cetera
-                # otherwise returns false for running threads
-                # if it's finished then it's undef(?)
-    - .current_continuation
-                # the CC currently running in that thread
+start time
 
- - "is throttled" trait
+=item finished
+
+end time
+
+=item waiting
+
+suspended (not diff from block on wakeup signal)
+waiting on a handle, a condition, a lock, et cetera
+otherwise returns false for running threads
+if it's finished then it's undef(?)
+
+=item current_continuation
+
+the CC currently running in that thread
+
+=back
+
+=head2 Thread operators
+
+=over
+
+=item Stringify
+
+Stringify to something sensible (eg. "<Conc:tid=5>");
+
+  my $thr = async { ... };
+  say ~$thr;
+
+=item Numerify
+
+Numify to TIDs (as in pugs)
+
+  my $thr = async { ... };
+  say +$thr;
+
+=item Enumerable
+
+TODO: Enumerable with Conc.list
+
+=back
+
+=head2 Thread methods
+
+=over
+
+=item yield
+
+TODO: Conc.yield (if this is to live but deprecated, maybe call it sleep(0)?)
+
+=item sleep
+
+sleep() always respects other threads, thank you very much
+
+=item join
+
+wait for invocant to finish (always item cxt)
+
+  my $thr = async { ... };
+  $thr.join();
+
+=item die
+
+throw exception in the invocant thread
+
+=item alarm
+
+set up alarms
+
+=item alarms
+
+query existing alarms
+
+=item suspend
+
+pause a thread; fail if already paused
+
+=item resume
+
+revive a thread; fail if already running
+
+=item detach
+
+survives parent thread demise (promoted to process)
+process-local changes no longer affects parent
+tentatively, the control methods still applies to it
+including wait (which will always return undef)
+also needs to discard any atomicity context
+
+=item "is throttled" trait
+
+TODO:
 
     method throttled::trait_auxiliary:<is> ($limit=1, :$key=gensym()) {
         # "is throttled" limits max connection to this Code object
@@ -499,13 +593,6 @@ module Blah;
 
 - Coros are _like_ processes
 
-  coro perm (@x) {
-     @x.splice(rand(@x),1).yield while @x;
-  }
-  my &p1 := &perm.start(1..10);
-  my &p2 := &perm.start(1..20);
-  p1(); p1();
-  p2(); p2();
 
   coro foo ($x) {
     yield $x;
@@ -518,8 +605,6 @@ module Blah;
     }
   } # implicit falloff return + return() means start over without yielding
     # return() means yielding and restart + no implicit falloff (I LIKE THIS)
-
-  &foo.finished; # true on return() and false on midway yield()
 
   foo(4); # and that's all she wrote
 
@@ -561,13 +646,6 @@ module Blah;
 
   %*ENV(123);
 
-  &foo_continued := &foo.start(10);
-  &foo.start(20);
-
-  foo(10);    # returns 10
-
-  foo();      # be "insufficient param" error or just return 11?
-  foo(20);    # returns 21
 
   # continuation coros
   multi foo () { ...no rebinding... }
