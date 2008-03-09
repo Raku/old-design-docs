@@ -299,6 +299,13 @@ Set starting parameter list.
 
 =head1 Threads
 
+All outside of a thread defined variables are
+shared and transactional variables by default
+
+Program will wait for _all_ threads.
+Unjoined threads will be joined at the beginning of the END
+block batch of the parent thread that spawned them
+
 =head2 Thread creation
 
 A thread will be created using the keyword C<async> followed by
@@ -310,7 +317,7 @@ a codeblock being executed in this thread.
    };
 
 
-=head2 Thread attributes
+=head2 Thread status and attributes
 
 =over
 
@@ -340,6 +347,20 @@ if it's finished then it's undef(?)
 =item current_continuation
 
 the CC currently running in that thread
+
+
+=item wake_on_readable, wake_on_writable, wake_on
+
+TODO: IO objects and containers gets concurrency love!
+
+ - $obj.wake_on_either_readable_or_writable_or_passed_time(3); # fixme fixme
+ - $obj.wake_on:{.readable} # busy wait, probably
+
+    my @a is Array::Chan = 1..Inf;
+    async { @a.push(1) };
+    async { @a.blocking_shift({ ... }) };
+    async { @a.unshift({ ... }) };
+
 
 =back
 
@@ -436,26 +457,6 @@ TODO:
     async { $f.b }
 
 =back
-
-=head2 Thread status
-
- -IO objects and containers gets concurrency love!
-    - $obj.wake_on_readable
-    - $obj.wake_on_writable
-    - $obj.wake_on_either_readable_or_writable_or_passed_time(3); # fixme fixme
-    - $obj.wake_on:{.readable} # busy wait, probably
-
-    my @a is Array::Chan = 1..Inf;
-    async { @a.push(1) };
-    async { @a.blocking_shift({ ... }) };
-    async { @a.unshift({ ... }) };
-
- Communication abstractions
- - shared, transactional variables by default
-
-# program will wait for _all_ threads
-# unjoined threads will be joined at the beginning of the END block batch
-# of the parent thread that spawned them
 
 
 =head2 Signals
@@ -607,17 +608,6 @@ module Blah;
     # return() means yielding and restart + no implicit falloff (I LIKE THIS)
 
   foo(4); # and that's all she wrote
-
-  # If you don't want your variables to get rebound, use "is copy":
-  coro foo ($x is copy) {...}
-  # which is sugar for
-  coro foo ($x) {
-    {
-      my $x := $OUTER::x;
-      ...;
-      # Further calls of &foo rebound $OUTER::x, not $x.
-    }
-  }
 
   sub foo {
      return undef if rand;
