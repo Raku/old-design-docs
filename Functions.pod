@@ -1433,6 +1433,22 @@ Examples:
  sprintf "%ld a big number, %lld a bigger number, %mf complexity\n",
 	4294967295, 4294967296, 1+2i);
 
+=item fmt
+
+  our Str multi method fmt( Scalar $scalar: )
+  our Str multi method fmt( List $list:, Str $separator )
+  our Str multi method fmt( Hash $hash:, Str $separator )
+  our Str multi method fmt( Pair $pair: )
+
+A wrapper on C<sprintf>. A call to the scalar version C<$o.fmt($format)>
+returns the result of C<sprintf($format, $o)>. A call to the array version
+C<@a.fmt($format, $sep)> returns the result of C<join $sep, map {
+sprintf($format, $_) }, @a>. A call to the hash version C<%h.fmt($format,
+$sep)> returns the result of C<join $sep, map { sprintf($format, $_.key,
+$_.value) }, %h.pairs>. A call to the pair versionC<%p.fmt($format)> returns
+the result of C<sprintf($format, %h.key,
+%h.value)>.
+
 =item substr
 
  our Str multi method substr (Str $string: StrPos $start, StrLen $length?) is rw is export
