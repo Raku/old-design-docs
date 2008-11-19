@@ -13,8 +13,8 @@ Synopsis 29: Builtin Functions
                 Mark Stosberg <mark@summersault.com>
                 Carl Mäsak <cmasak@gmail.com>
  Date:          12 Mar 2005
- Last Modified: 7 Nov 2008
- Version:       29
+ Last Modified: 19 Nov 2008
+ Version:       30
 
 This document attempts to document the list of builtin functions in Perl 6.
 It assumes familiarity with Perl 5 and prior synopses.
@@ -1365,7 +1365,7 @@ format token. Format tokens have the following grammar:
  }
 
 Directives guide the use (if any) of the arguments. When a directive
-(other than C<%>) are used, they indicate how the next argument
+(other than C<%>) is used, it indicates how the next argument
 passed is to be formatted into the string.
 
 The directives are:
@@ -1394,7 +1394,7 @@ Compatibility:
  O   a synonym for %lo
  F   a synonym for %f
 
-Perl 5 compatibility:
+Perl 5 (non-)compatibility:
 
  n   produces a runtime exception (see below)
  p   produces a runtime exception
@@ -1436,10 +1436,10 @@ Examples:
 
 =item fmt
 
-  our Str multi method fmt( Scalar $scalar: )
-  our Str multi method fmt( List $list:, Str $separator = ' ' )
-  our Str multi method fmt( Hash $hash:, Str $separator = "\n" )
-  our Str multi method fmt( Pair $pair: )
+  our Str multi method fmt( Scalar $scalar: Str $format )
+  our Str multi method fmt( List $list: Str $format, Str $separator = ' ' )
+  our Str multi method fmt( Hash $hash: Str $format, Str $separator = "\n" )
+  our Str multi method fmt( Pair $pair: Str $format )
 
 A set of wrappers around C<sprintf>. A call to the scalar version
 C<$o.fmt($format)> returns the result of C<sprintf($format, $o)>. A call to
@@ -1708,7 +1708,7 @@ and the address is some sort of network identifier (e.g.
 an IPV4 address when resolving hosts that have IPV4 addresses).
 
 When stringified, an C<OS::Name> yields its name. When
-stringified, an C<OS::addr> yields its address in an
+stringified, an C<OS::Addr> yields its address in an
 appropriate text format (e.g. "10.1.2.3" for an IPV4 address).
 
 The optional C<type> adverb can be passed when resolving a hostname,
@@ -1978,7 +1978,7 @@ C<blocking => False>.
 
 =item dump
 
-Dumped.
+Dumped. The C<.perl> method fills this role in Perl 6.
 
 
 =item format, formline, write
