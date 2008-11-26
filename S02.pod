@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 7 Nov 2008
+  Last Modified: 19 Nov 2008
   Number: 2
-  Version: 142
+  Version: 143
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -910,6 +910,16 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Signature   Function parameters (left-hand side of a binding)
     Capture     Function call arguments (right-hand side of a binding)
     Blob        An undifferentiated mass of bits
+
+Insofar as Lists are lazy, they're really only partially immutable, in
+the sense that the past is fixed but the future is not.  The portion of
+a List yet to be determined by iterators may depend on mutable values.
+When an iterator is called upon to iterate and extend the known part
+of the list, some number of immutable values (which includes immutable
+references to mutable objects) are decided and locked in at that point.
+Iterators may have several different ways of iterating depending on
+the degree of laziness/eagerness desired in context.  The iterator
+API is described in S07.
 
 =head2 Mutable types
 
@@ -3226,7 +3236,7 @@ In addition to undifferentiated items, we also have these item contexts:
     string      buf     Str     ~
 
 There are also various container contexts that require particular kinds of
-containers.
+containers (such as slice and hash context; see S03 for details).
 
 =item *
 
