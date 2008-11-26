@@ -1,0 +1,236 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 13: Overloading
+
+=head1 AUTHOR
+
+Larry Wall <larry@wall.org>
+
+=head1 VERSION
+
+  Maintainer: Larry Wall <larry@wall.org>
+  Date: 2 Nov 2004
+  Last Modified: 8 Oct 2008
+  Number: 13
+  Version: 11
+
+=head1 Overview
+
+This synopsis discusses those portions of Apocalypse 12 that ought to have
+been in Apocalypse 13.
+
+=head1 Multiple dispatch
+
+The overloading mechanism of Perl 5 has been superseded by Perl 6's
+multiple dispatch mechanism.  Nearly all internal functions
+are defined as C<multi> subs or C<multi> methods on generic types.
+Built-in operators are merely oddly named functions with an alternate
+call syntax.  All you have to do to overload them is to define your
+own C<multi> subs and methods that operate on arguments with more
+specific types.
+
+For unary operators, this makes little effective difference, but for
+binary operators, multiple dispatch fixes the Perl 5 problem of paying
+attention only to the type of the left argument.  Since both argument
+types are used in deciding which routine to call, there is no longer
+any trickery involving swapping the arguments to use the right argument's
+type instead of the left one.  And there's no longer any need to
+examine a special flag to see if the arguments were reversed.
+
+For much more about multiple dispatch, see S12.
+
+=head1 Syntax
+
+There is no longer any special C<use overload> syntax separate from the
+declarations of the C<multi> routines themselves.  To overload an
+existing built-in sub, say something like:
+
+    multi sub *uc (TurkishStr $s) {...}
+
+Now if you call C<uc()> on any Turkish string, it will call your function
+rather than the built-in one.  Putting the C<multi> into the C<*>
+namespace makes it show up in everyone's packages, but as long as no one
+else defines a version of C<uc> on C<TurkishStr>, there's no collision.
+
+The types of the parameters are included in the I<longname> of any C<multi>
+sub or method.  So if you want to overload string concatenation for Arabic
+strings so you can handle various ligatures, you can say:
+
+    multi sub *infix:<~>(ArabicStr $s1, ArabicStr $s2) {...}
+    multi sub *infix:<~>(Str $s1, ArabicStr $s2) {...}
+    multi sub *infix:<~>(ArabicStr $s1, Str $s2) {...}
+
+The C<use overload> syntax had one benefit over Perl 6's syntax in that
+it was easy to alias several different operators to the same service
+routine.  This can easily be handled with Perl 6's aliasing:
+
+    multi sub unimpl (MyFoo $x, MyFoo $y) { upchuck(); }
+    &infix:<+> ::= &unimpl;
+    &infix:<-> ::= &unimpl;
+    &infix:<*> ::= &unimpl;
+    &infix:</> ::= &unimpl;
+
+That's one solution, but often your alternatives all have the same
+name, and vary instead in their signature.  Some operators are
+commutative, or can otherwise take their arguments in more than
+one order.  Perl allows you to declare multiple signatures for a
+given body, and these will be pattern matched as if you had declared
+separate multi entries.  If you say:
+
+    multi sub infix:<+> (Us $us, Them $them) |
+                        (Them $them, Us $us) { myadd($us,$them) }
+
+that's equivalent to:
+
+    multi sub infix:<+> (Us $us, Them $them) { myadd($us,$them) }
+    multi sub infix:<+> (Them $them, Us $us) { myadd($us,$them) }
+
+except that there really is only one body.  If you declared a C<state>
+variable within the body, for instance, there would only be one
+of them.
+
+Note the lack of C<*> on the definitions above.  That means this definition
+of addition is syntactically in effect only within the scope in which
+C<< infix:<+> >> is defined or imported.  Similar constraints apply
+to lexically scoped multi subs.  Generally you want to put your multi
+subs into the C<*> space, however, so that they work everywhere.
+
+When you use the multiple signature syntax, the alternate signatures
+must all bind the same set of formal variable names, though they
+are allowed to vary in any other way, such as by type, or by which
+parameters are considered optional or named-only or slurpy.  In other
+words, the compiler is allowed to complain if any of the alternatives
+omits any of the variable names.  This is intended primarily to catch
+editing errors.
+
+Conjectural: If the first parameter to a multi signature is followed
+by an invocant colon, that signature represents two signatures, one
+for an ordinary method definition, and one for the corresponding multi
+definition that has a comma instead of the colon.  This form is legal
+only where the standard method definition would be legal, and only
+if any declared type of the first parameter is consistent with $?CLASS.
+
+=head1 Fallbacks
+
+Dispatch is based on a routine's signature declaration without regard
+to whether the routine is defined yet.  If an attempt is made to
+dispatch to a declared but undefined routine, Perl will redispatch
+to an C<AUTODEF> submethod [conjectural] as appropriate to define the routine.  This provides
+a run-time mechanism for fallbacks.  By default, these declarations
+are taken at face value and do not specify any underlying semantics.
+As such, they're a "shallow" interpretation.
+
+However, sometimes you want to specify a "deep" interpretation of
+your operators.  That is, you're specifying the abstract operation,
+which may be used by various shallow operators.  Any deep multi
+declarations will be "amplified" into all the shallow operators that
+can be logically based on it.  If you say:
+
+    multi sub infix:<%> (Us $us, Them $them) is deep { mymod($us,$them) }
+
+then
+
+    multi sub infix:<%=> (Us $us, Them $them) { $us = $us % $them }
+
+is also generated for you (unless you define it yourself).
+The mappings of magical names to sub definitions is controlled by the
+C<%?DEEPMAGIC> compiler hash.  Pragmas can influence the contents of
+this hash over a lexical scope, so you could have different policies
+on magical autogeneration.  The default mappings correspond to the
+standard fallback mappings of Perl 5 overloading.
+
+These deep mappings are mainly intended for infix operators that would have
+difficulty naming all their variants.  Prefix operators tend to be simpler;
+note in particular that
+
+    multi prefix:<~> is deep {...}
+
+is better written:
+
+    method Str {...}
+
+(see below).
+
+=head1 Type Casting
+
+A class may define methods that allow it to respond as if it were a
+routine, array, or hash.  The long forms are as follows:
+
+    method postcircumfix:<( )> ($capture) {...}
+    method postcircumfix:<[ ]> (*@@slice) {...}
+    method postcircumfix:<{ }> (*@@slice) {...}
+
+Those are a bit unwieldy, so you may also use these short forms:
+
+    method &.( $capture ) {...}
+    method @.[ *@@slice ] {...}
+    method %.{ *@@slice } {...}
+
+The sigil-dot sequence in these short forms autogenerates the
+corresponding public operators, in exactly the same way that
+the sigil-dot in:
+
+    has $.action;
+    has @.sequence;
+    has %.mapping;
+
+autogenerates public accessor methods.
+
+And because it uses the same method-autogeneration mechanism, the
+specific sigil used to specify a short-form postcircumfix operator
+doesn't actually matter...as long as it's followed by a dot and the
+bracket pair containing the signature. (Though it's probably kinder
+to future readers of your code to stick with the "natural" sigil
+for each type of bracket.)
+
+Note that the angle bracket subscripting form C<< .<a b c> >>
+automatically translates itself into a call to C< .{'a','b','c'} >,
+so defining methods for angles is basically useless.
+
+The expected semantics of C<&.()> is that of a type coercion which may
+or may not create a new object.  So if you say:
+
+    $fido = Dog.new($spot)
+
+it certainly creates a new C<Dog> object.  But if you say:
+
+    $fido = Dog($spot)
+
+it might call C<Dog.new>, or it might pull a C<Dog> with Spot's
+identity from the dog cache, or it might do absolutely nothing if
+C<$spot> already knows how to be a C<Dog>.  As a fallback, if no
+method responds to a coercion request, the class will be asked to attempt to
+do C<Dog.new($spot)> instead.
+
+It is also possible (and often preferable) to specify coercions from
+the other end, that is, for a class to specify how to coerce one of
+its values to some other class.  If you define a method whose name
+is a declared type, it is taken as a coercion to that type:
+
+    method Str { self.makestringval() }
+
+As with all methods, you can also export the corresponding multi:
+
+    method Str is export { self.makestringval() }
+
+in which case you can use both calling forms:
+
+    $x.Str
+    Str($x)
+
+If the source class and the destination class both specify a
+coercion routine, the ambiguity is settled by the ordinary rules
+of multiple dispatch.  Usually the source class will have the more
+specific argument and will win; ties are also possible, and those
+calls will fail.  Additional arguments may sway the dispatch one way
+or the other depending on the candidate list.
+
+Note that, because the name of an anonymous class is unknown, coercion to
+an anonymous class can only be specified by the destination class:
+
+    $someclass = generate_class();
+    $someclass($x);
+
+=for vim:set expandtab sw=4:

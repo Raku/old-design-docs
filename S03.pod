@@ -1,0 +1,4345 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 3: Perl 6 Operators
+
+=head1 AUTHOR
+
+Luke Palmer <luke@luqui.org>
+
+=head1 VERSION
+
+  Maintainer: Larry Wall <larry@wall.org>
+  Date: 8 Mar 2004
+  Last Modified: 7 Nov 2008
+  Number: 3
+  Version: 146
+
+=head1 Overview
+
+For a summary of the changes from Perl 5, see L</Changes to Perl 5 operators>.
+
+=head1 Operator precedence
+
+Not counting terms and terminators, Perl 6 has 23 operator precedence
+levels (same as Perl 5, but differently arranged).  Here we list the
+levels from "tightest" to "loosest", along with a few examples of
+each level:
+
+    A  Level             Examples
+    =  =====             ========
+    N  Terms             42 3.14 "eek" qq["foo"] $x :!verbose @$array
+    L  Method postfix    .meth .+ .? .* .() .[] .{} .<> .«» .:: .= .^ .:
+    L  Autoincrement     ++ --
+    R  Exponentiation    **
+    L  Symbolic unary    ! + - ~ ? | +^ ~^ ?^ \ ^ =
+    L  Multiplicative    * / % +& +< +> ~& ~< ~> ?& div mod
+    L  Additive          + - +| +^ ~| ~^ ?| ?^
+    L  Replication       x xx
+    X  Concatenation     ~
+    X  Junctive and      & also
+    X  Junctive or       | ^
+    L  Named unary       sleep abs sin
+    N  Nonchaining infix but does <=> leg cmp .. ..^ ^.. ^..^
+    C  Chaining infix    != == < <= > >= eq ne lt le gt ge ~~ === eqv !eqv
+    X  Tight and         &&
+    X  Tight or          || ^^ // min max
+    L  Conditional       ?? !! ff fff
+    R  Item assignment   = := ::= => += -= **= xx= .=
+    L  Loose unary       true not :by(2)
+    X  Comma operator    , p5=>
+    X  List infix        Z minmax X X~X X*X XeqvX ...
+    R  List prefix       : print push say die map substr ... [+] [*] any $ @
+    X  Loose and         and andthen
+    X  Loose or          or xor orelse
+    N  Terminator        ; <==, ==>, <<==, ==>>, {...}, unless, extra ), ], }
+
+Using two C<!> symbols below generically to represent any pair of operators
+that have the same precedence, the associativities specified above
+for binary operators are interpreted as follows:
+
+        Assoc     Meaning of $a ! $b ! $c
+        =====     =========================
+    L   left      ($a ! $b) ! $c
+    R   right     $a ! ($b ! $c)
+    N   non       ILLEGAL
+    C   chain     ($a ! $b) and ($b ! $c)
+    X   list      infix:<!>($a; $b; $c)
+
+For unaries this is interpreted as:
+
+        Assoc     Meaning of !$a!
+        =====     =========================
+    L   left      (!$a)!
+    R   right     !($a!)
+    N   non       ILLEGAL
+
+Note that list associativity (X) only works between identical operators.
+If two different list-associative operators have the same precedence,
+they are assumed to be left-associative with respect to each other.
+For example, the C<X> cross operator and the C<Z> zip operator both
+have a precedence of "list infix", but:
+
+    @a X @b Z @c
+
+is parsed as:
+
+    (@a X @b) Z @c
+
+Similarly, if the only implementation of a list-associative operator
+is binary, it will be treated as left associative.
+
+If you don't see your favorite operator above, the following
+sections cover all the operators in precedence order.  Basic operator
+descriptions are here; special topics are covered afterwards.
+
+=head2 Term precedence
+
+This isn't really a precedence level, but it's in here because no operator
+can have tighter precedence than a term.  See S02 for longer descriptions of
+various terms.  Here are some examples.
+
+=over
+
+=item *
+
+C<Int> literal
+
+    42
+
+=item *
+
+C<Num> literal
+
+    3.14
+
+=item *
+
+Non-interpolating C<Str> literal
+
+    '$100'
+
+=item *
+
+Interpolating C<Str> literal
+
+    "Answer = $answer\n"
+
+=item *
+
+Generalized C<Str> literal
+
+    q["$100"]
+    qq["$answer"]
+
+=item *
+
+Heredoc
+
+    qq:to/END/
+        Dear $recipient:
+        Thanks!
+        Sincerely,
+        $me
+        END
+
+=item *
+
+Array composer
+
+    [1,2,3]
+
+Provides list context inside.  (Technically, it really provides a
+"semilist" context, which is a semicolon-separated list of statements,
+each of which is interpreted in list context and then concatenated
+into the final list.)
+
+=item *
+
+Hash composer
+
+    { }
+    { a => 42 }
+
+Inside must be either empty, or a single list starting with a pair or a hash,
+otherwise you must use C<hash()> or C<%()> instead.
+
+=item *
+
+Closure
+
+    { ... }
+
+When found where a statement is expected, executes immediately.  Otherwise
+always defers evaluation of the inside scope.
+
+=item *
+
+Capture composer
+
+    \(@a,$b,%c)
+
+An abstraction representing an argument list that doesn't yet know its context.
+
+=item *
+
+Sigiled variables
+
+    $x
+    @y
+    %z
+    $^a
+    $?FILE
+    @@slice
+    &func
+    &div:(Int, Int --> Int)
+
+=item *
+
+Sigils as contextualizer functions
+
+    $()
+    @()
+    %()
+    &()
+    @@()
+
+=item *
+
+Regexes in quote-like notation
+
+    /abc/
+    rx:i[abc]
+    s/foo/bar/
+
+=item *
+
+Transliterations
+
+    tr/a..z/A..Z/
+
+Note ranges use C<..> rather than C<->.
+
+=item *
+
+Type names
+
+    Num
+    ::Some::Package
+
+=item *
+
+Subexpressions circumfixed by parentheses
+
+    (1+2)
+
+Parentheses are parsed on the inside as a semicolon-separated list
+of statements, which (unlike the statements in a block) returns the results
+of all the statements concatenated together as a C<List> of C<Capture>.
+How that is subsequently treated depends on its eventual binding.
+
+=item *
+
+Function call with parens:
+
+    a(1)
+
+=item *
+
+Pair composers
+
+    :by(2)
+    :!verbose
+
+=item *
+
+Signature literal
+
+    :(Dog $self:)
+
+=item *
+
+Method call with implicit invocant
+
+    .meth       # call on $_
+    .=meth      # modify $_
+
+Note that this may occur only where a term is expected.  Where a
+postfix is expected, it is a postfix.  If only an infix is expected
+(that is, after a term with intervening whitespace), C<.meth> is a
+syntax error.  (The C<.=meth> form is allowed there only because there
+is a special C<.=> infix assignment operator that is equivalent in
+semantics to the method call form but that allows whitespace between
+the C<=> and the method name.)
+
+=item *
+
+Listop (leftward)
+
+    4,3, sort 2,1       # 4,3,1,2
+
+As in Perl 5, a list operator looks like a term to the expression on
+its left, so it binds tighter than comma on the left but looser than
+comma on the right--see List prefix precedence below.
+
+=item *
+
+0-ary functions
+
+    self
+    undef
+    rand
+
+=back
+
+=head2 Method postfix precedence
+
+All method postfixes start with a dot, though the dot is optional
+for subscripts.  Since these are the tightest standard operator,
+you can often think of a series of method calls as a single term that
+merely expresses a complicated name.
+
+See S12 for more discussion of single dispatch method calls.
+
+=over
+
+=item *
+
+Standard single-dispatch method calls
+
+    $obj.meth
+
+=item *
+
+Variants of standard single-dispatch method call
+
+    $obj.+meth
+    $obj.?meth
+    $obj.*meth
+
+In addition to the ordinary C<.> method invocation, there are variants
+C<.*>, C<.?>, and C<.+> to control how multiple related methods of
+the same name are handled.
+
+=item *
+
+Class-qualified method call
+
+    $obj.::Class::meth
+    $obj.Class::meth    # same thing, assuming Class is predeclared
+
+As in Perl 5, tells the dispatcher which class to start searching from,
+not the exact method to call.
+
+=item *
+
+Mutating method call
+
+    $obj.=meth
+
+The C<.=> operator does inplace modification of the object on the left.
+
+=item *
+
+Meta-method call
+
+    $obj.^meth
+
+The C<.^> operator calls a class metamethod;
+C<foo.^bar> is short for C<foo.HOW.bar>.
+
+=item *
+
+Method-like postcircumfixes
+
+    $routine.()
+    $array.[]
+    $hash.{}
+    $hash.<>
+    $hash.«»
+
+The dotless forms of these have exactly the same precedences.
+
+=item *
+
+Dotted form of any other postfix operator
+
+    $x.++         # postfix:<++>($x)
+
+=item *
+
+Dotted postfix form of any other prefix operator
+
+    $x.:<++>       # prefix:<++>($x)
+
+=item *
+
+There is specifically no C<< infix:<.> >> operator, so
+
+    $foo . $bar
+
+will always result in a compile-time error indicating the user should
+use C<< infix:<~> >> instead.  This is to catch an error likely to
+be made by Perl 5 programmers learning Perl 6.
+
+=back
+
+=head2 Autoincrement precedence
+
+As in C, these operators increment or decrement the object in question
+either before or after the value is taken from the object, depending on
+whether it is put before or after.  Also as in C, multiple references
+to a single mutating object in the same expression may result in undefined
+behavior unless some explicit sequencing operator is interposed.
+See L</Sequence points>.
+
+As with all postfix operators in Perl 6, no space is allowed between
+a term and its postfix.  See S02 for why, and for how to work around the
+restriction with an "unspace".
+
+As mutating methods, all these operators dispatch to the type of
+the operand and return a result of the same type, but they are legal
+on value types only if the (immutable) value is stored in a mutable
+container.  However, a bare undefined value (in a suitable C<Scalar>
+container) is allowed to mutate itself into an C<Int> in order to
+support the common idiom:
+
+    say $x unless %seen{$x}++;
+
+Increment of a C<Str> (in a suitable container) works similarly to
+Perl 5, but is generalized slightly.
+A scan is made for the final alphanumeric sequence in
+the string that is not preceded by a '.' character.  Unlike in Perl 5, this
+alphanumeric sequence need not be anchored to the beginning of the
+string, nor does it need to begin with an alphabetic character;
+the final sequence in the string matching C<< <!after '.'> <rangechar>+ >>
+is incremented regardless of what comes before it.
+
+The C<< <rangechar> >> character class is defined as that subset of
+C<\w> that Perl knows how to increment within a range, as defined
+below.
+
+The additional matching behaviors provide two useful benefits:
+for its typical use of incrementing a filename, you don't have to
+worry about the path name or the extension:
+
+    $file = "/tmp/pix000.jpg";
+    $file++;            # /tmp/pix001.jpg, not /tmp/pix000.jph
+
+Perhaps more to the point, if you happen to increment a string that ends
+with a decimal number, it's likely to do the right thing:
+
+    $num = "123.456";
+    $num++;             # 124.456, not 123.457
+
+Character positions are incremented within their natural range for
+any Unicode range that is deemed to represent the digits 0..9 or
+that is deemed to be a complete cyclical alphabet for (one case
+of) a (Unicode) script.  Only scripts that represent their alphabet
+in codepoints that form a cycle independent of other alphabets may
+be so used.  (This specification defers to the users of such a script
+for determining the proper cycle of letters.)  We arbitrarily define
+the ASCII alphabet not to intersect with other scripts that make use
+of characters in that range, but alphabets that intersperse ASCII letters are
+not allowed.
+
+If the current character in a string position is the final character
+in such a range, it wraps to the first character of the range and
+sends a "carry" to the position left of it, and that position is
+then incremented in its own range.  If and only if the leftmost
+position is exhausted in its range, an additional character of the
+same range is inserted to hold the carry in the same fashion as Perl 5,
+so incrementing '(zz99)' turns into '(aaa00)' and incrementing
+'(99zz)' turns into '(100aa)'.
+
+The following Unicode ranges are some of the possible rangechar ranges.
+For alphabets we might have ranges like:
+
+    A..Z        # ASCII uc
+    a..z        # ASCII lc
+    Α..Ω        # Greek uc
+    α..ω        # Greek lc (presumably skipping U+03C2, final sigma)
+    א..ת        # Hebrew
+      etc.      # (XXX out of my depth here)
+
+For digits we have ranges like:
+
+    0..9        # ASCII
+    ٠..٩        # Arabic-Indic
+    ०..९        # Devangari
+    ০..৯        # Bengali 
+    ੦..੯        # Gurmukhi
+    ૦..૯        # Gujarati
+    ୦..୯        # Oriya
+      etc.
+
+Other non-script 0..9 ranges may also be incremented, such as
+
+    ⁰..⁹        # superscripts (note, cycle includes latin-1 chars)
+    ₀..₉        # subscripts
+    ０..９      # fullwith digits
+
+Conjecturally, any common sequence may be treated as a cycle even if it does
+not represent 0..9:
+
+    Ⅰ..Ⅻ        # clock roman numerals uc
+    ⅰ..ⅻ        # clock roman numerals lc
+    ①..⑳        # circled digits 1..20
+    ⒜..⒵        # parenthesize lc
+    ⚀..⚅        # die faces 1..6
+    ❶..❿        # dingbat negative circled 1..10
+      etc.
+
+While it doesn't really make sense to "carry" such numbers when they
+reach the end of their cycle, treating such values as incrementable may
+be convenient for writing outlines and similar numbered bullet items.
+(Note that we can't just increment unrecognized characters, because
+we have to locate the string's final sequence of rangechars before knowing
+which portion of the string to increment.  Note also that all character
+increments can be handled by lookup in a single table of successors
+since we've defined our ranges not to include overlapping cycles.)
+
+Perl 6 also supports C<Str> decrement with similar semantics, simply by
+running the cycles the other direction.  However, leftmost characters
+are never removed, and the decrement fails when you reach a string like
+"aaa" or "000".
+
+Increment and decrement on non-<Str> types are defined in terms of the
+C<.succ> and C<.pred> methods on the type of object in the C<Scalar>
+container.  More specifically,
+
+    ++$var
+    --$var
+
+are equivalent to
+
+    $var.=succ
+    $var.=pred
+
+If the type does not support these methods, the corresponding increment
+or decrement operation will fail.  (The optimizer is allowed to assume
+that the ordinary increment and decrement operations on integers will
+not be overridden.)
+
+Increment of a C<Bool> (in a suitable container) turns it true.
+Decrement turns it false regardless of how many times it was
+previously incremented.  This is useful if your C<%seen> array is
+actually a C<KeySet>, in which case decrement actually deletes it
+from the C<KeySet>.
+
+=over
+
+=item *
+
+Autoincrement C<< prefix:<++> >> or C<< postfix:<++> >> operator
+
+    $x++
+    ++$x;
+
+=item *
+
+Autodecrement C<< prefix:<--> >> or C<< postfix:<--> >> operator
+
+    $x--
+    --$x
+
+=back
+
+=head2 Exponentiation precedence
+
+=over
+
+=item *
+
+C<< infix:<**> >> exponentiation operator
+
+    $x ** 2
+
+If the right argument is not a non-negative integer, the result is likely to
+be an approximation.  If the right argument is of an integer type,
+exponentiation is at least as accurate as repeated multiplication on
+the left side's type.  (From which it can be deduced that C<Int**UInt>
+is always exact, since C<Int> supports arbitrary precision.)  If the
+right argument is an integer represented in a non-integer type, the
+accuracy is left to implementation provided by that type; there is
+no requirement to recognize an integer to give it special treatment.
+
+=back
+
+=head2 Symbolic unary precedence
+
+=over
+
+=item *
+
+C<< prefix:<?> >>, boolean context
+
+    ?$x
+
+Evaluates the expression as a boolean and returns C<True> if expression
+is true or C<False> otherwise.
+See "true" below for a low-precedence alternative.
+
+=item *
+
+C<< prefix:<!> >>, boolean negation
+
+    !$x
+
+Returns the opposite of what C<?> would.
+See "not" below for a low-precedence alternative.
+
+=item *
+
+C<< prefix:<+> >>, numeric context
+
+    +$x
+
+Unlike in Perl 5, where C<+> is a no-op, this operator coerces to
+numeric context in Perl 6.  (It coerces only the value, not the
+original variable.)  For values that are not already considered
+numeric, the narrowest appropriate type of C<Int>, C<Num>, or
+C<Complex> will be returned; however, string containing two integers
+separated by a C</> will be returned as a C<Rat>.  Exponential notation
+and radix notations are recognized.
+
+=item *
+
+C<< prefix:<-> >>, numeric negation
+
+    -$x
+
+Coerces to numeric and returns the arithmetic negation of the resulting number.
+
+=item *
+
+C<< prefix:<~> >>, string context
+
+    ~$x
+
+Coerces the value to a string.  (It only coerces the value, not the
+original variable.)
+
+=item *
+
+C<< prefix:<|> >>, flatten object into arglist
+
+    | $capture
+
+Interpolates the contents of the C<Capture> (or C<Capture>-like) value
+into the current argument list as if they had been specified literally.
+
+=item *
+
+C<< prefix:<+^> >>, numeric bitwise negation
+
+    +^$x
+
+Coerces to integer and then does bitwise negation (complement) on the number.
+
+=item *
+
+C<< prefix:<~^> >>, string bitwise negation
+
+    ~^$x
+Coerces to string buffer and then does bitwise negation (complement)
+on each element.
+
+=item *
+
+C<< prefix:<?^> >>, boolean bitwise negation
+
+    ?^$x
+
+Coerces to boolean and then flips the bit.  (Same as C<!>.)
+
+=item *
+
+C<< prefix:<\> >>, Capture constructor
+
+    \$x
+    \@x
+    \%x
+    \($invocant: $pos1, $pos2, :named($arg))
+
+Defers the contextualization of its argument or arguments till it is
+bound into some other context.
+
+=item *
+
+C<< prefix:<^> >>, upto operator
+
+    ^$limit
+
+Constructs a range of C<0 ..^ $limit> or locates a metaclass as a shortcut
+for C<$limit.HOW>.  See L</Range semantics>.
+
+=item *
+
+C<< prefix:<=> >>, iterate iterator
+
+    =$iterator
+
+Unary C<=> reads lines from a filehandle or filename, or
+iterates an iterator, or in general causes a scalar to explode its guts
+when it would otherwise not.  How it does that is context sensitive.
+For instance, C<=$iterator> is item/list context sensitive and will
+produce one value in item context but many values in list context.
+The production of values is abstract here, so a lazy list merely
+remembers that it should iterate the iterator to completion upon
+demand.  Use an eager list to force completion.
+
+Use C<@$iterator> to produce a list of all the values even in item
+context, and C<$$iterator> to produce a single value even
+in list context.  On the other hand, C<=$capture> produces all
+parts of the capture that makes sense in the current list context,
+depending on what controls that list context.  [Conjecture: the
+previous sentence is non-sensical.]
+
+=back
+
+=head2 Multiplicative precedence
+
+=over
+
+=item *
+
+C<< infix:<*> >>
+
+    $x*$y
+
+Multiplication, resulting in wider type of the two.
+
+=item *
+
+C<< infix:</> >>
+
+    $numerator / $denominator
+
+If either operand is of C<Num> type, converts both operands to C<Num>
+and does division returning C<Num>.  If the denominator is zero,
+returns an object representing either C<+Inf>, C<NaN>, or C<-Inf>
+as the numerator is positive, zero, or negative.  (This is construed
+as the best default in light of the operator's possible use within
+hyperoperators and junctions.  Note however that these are not
+actually the native IEEE non-numbers; they are undefined values of the
+"unthrown exception" type that happen to represent the corresponding
+IEEE concepts, and if you subsequently try to use one of these values
+in a non-parallel computation, it will likely throw an exception at
+that point.)
+
+If both operands are of integer type, you still get a C<Num>, but the
+C<Num> type is allowed to do the division lazily; internally it may
+store a C<Rat> until the time a value is called for.  If converted
+to C<Rat> directly no division ever need be done.
+
+=item *
+
+C<< infix:<div> >>, generic division
+
+    $numerator div $denominator
+
+Dispatches to the C<< infix:<div> >> multi most appropriate to the operand
+types.  Policy on what to do about division by zero is up to the type,
+but for the sake of hyperoperators and junctions those types that
+can represent overflow (or that can contain an unthrown exception)
+should try to do so rather than simply throwing an exception.  (And in
+general, other operators that might fail should also consider their
+use in hyperops and junctions, and whether they can profitably benefit
+from a lazy exception model.)
+
+Use of C<div> on two C<Int> values results in a ratio of the C<Rat> type.
+
+=item *
+
+C<< infix:<%> >>, modulus
+
+    $x % $mod
+
+Always floor semantics using C<Num> or C<Int>.
+
+=item *
+
+C<< infix:<mod> >>, generic modulus
+
+    $x mod $mod
+
+Dispatches to the C<< infix:<mod> >> multi most appropriate to the operand types.
+
+=item *
+
+C<< infix:{'+&'} >>, numeric bitwise and
+
+    $x +& $y
+
+Converts both arguments to integer and does a bitwise numeric AND.
+
+=item *
+
+C<< infix:{'+<'} >>, numeric shift left
+
+    $integer +< $bits
+
+=item *
+
+C<< infix:{'+>'} >>, numeric shift right
+
+    $integer +> $bits
+
+By default, signed types do sign extension, while unsigned types do not, but
+this may be enabled or disabled with a C<:signed> or C<:!signed> adverb.
+
+=item *
+
+C<< infix:<~&> >>, buffer bitwise and
+
+    $x ~& $y
+
+=item *
+
+C<< infix:{'~<'} >>, buffer bitwise shift left
+
+    $buf ~< $bits
+
+=item *
+
+C<< infix:{'~>'} >>, buffer bitwise shift right
+
+    $buf ~> $bits
+
+Sign extension is not done by default but may be enabled with a C<:signed>
+adverb.
+
+=item *
+
+C<< infix:<?&> >>, boolean bitwise and
+
+    $x ?& $y
+
+=back
+
+Any bit shift operator may be turned into a rotate operator with the
+C<:rotate> adverb.  If C<:rotate> is specified, the concept of
+sign extension is meaningless, and you may not specify a C<:signed> adverb.
+
+=head2 Additive precedence
+
+=over
+
+=item *
+
+C<< infix:<+> >>, numeric addition
+
+    $x + $y
+
+Microeditorial: As with most of these operators, any coercion or type
+mismatch is actually handled by multiple dispatch.  The intent is that
+all such variants preserve the notion of numeric addition to produce a
+numeric result, presumably stored in suitably "large" numeric type to
+hold the result.  Do not overload the C<+> operator for other purposes,
+such as concatenation.  (And please do not overload the bitshift
+operators to do I/O.)  In general we feel it is much better for you
+to make up a different operator than overload an existing operator for
+"off topic" uses.  All of Unicode is available for this purpose.
+
+=item *
+
+C<< infix:<-> >>, numeric subtraction
+
+    $x - $y
+
+=item *
+
+C<< infix:<+|> >>, numeric bitwise inclusive or
+
+    $x +| $y
+
+=item *
+
+C<< infix:<+^> >> numeric bitwise exclusive or
+
+    $x +^ $y
+
+=item *
+
+C<< infix:<~|> >>, buffer bitwise inclusive or
+
+    $x ~| $y
+
+=item *
+
+C<< infix:<~^> >> buffer bitwise exclusive or
+
+    $x ~^ $y
+
+=item *
+
+C<< infix:<?|> >>, boolean bitwise inclusive or
+
+    $x ?| $y
+
+=item *
+
+C<< infix:<?^> >> boolean bitwise exclusive or
+
+    $x ?^ $y
+
+=back
+
+=head2 Replication
+
+=over
+
+=item *
+
+C<< infix:<x> >>, string/buffer replication
+
+    $string x $count
+
+Evaluates the left argument in string context, replicates the resulting
+string value the number of times specified by the right argument and
+returns the result as a single concatenated string regardless of context.
+
+If the count is less than 1, returns the null string.
+The count may not be C<*> because Perl 6 does not support
+infinite strings.  (At least, not yet...)  Note, however, that an
+infinite string may be emulated with C<cat($string xx *)>.
+
+=item *
+
+C<< infix:<xx> >>, list replication
+
+    @list xx $count
+
+Evaluates the left argument in list context, replicates the resulting
+C<Capture> value the number of times specified by the right argument and
+returns the result in a context dependent fashion.  If the operator
+is being evaluated in ordinary list context, the operator returns a
+flattened list.  In slice (C<@@>) context, the operator converts each C<Capture>
+to a separate sublist and returns the list of those sublists.
+
+If the count is less than 1, returns the empty list, C<()>.
+If the count is C<*>, returns an infinite list (lazily, since lists
+are lazy by default).
+
+=back
+
+=head2 Concatenation
+
+=over
+
+=item *
+
+C<< infix:<~> >>, string/buffer concatenation
+
+    $x ~ $y
+
+=back
+
+=head2 Junctive and (all) precedence
+
+=over
+
+=item *
+
+C<< infix:<&> >>, all() operator
+
+    $a & $b & $c ...
+
+=item *
+
+C<< infix:<also> >>, short-circuit junctional and operator
+
+    EXPR also EXPR also EXPR ...
+
+Can be used to construct ANDed patterns with the same semantics as
+C<< infix:<&> >>, but with left-to-right evaluation guaranteed, for use
+in guarded patterns:
+
+    $target ~~ MyType also .mytest1 also .mytest2
+
+This is useful when later tests might throw exceptions if earlier
+tests don't pass.  This cannot be guaranteed by:
+
+    $target ~~ MyType & .mytest1 & .mytest2
+
+=back
+
+=head2 Junctive or (any) precedence
+
+=over
+
+=item *
+
+C<< infix:<|> >>, any() operator
+
+    $a | $b | $c ...
+
+=item *
+
+C<< infix:<^> >>, one() operator
+
+    $a ^ $b ^ $c ...
+
+=back
+
+=head2 Named unary precedence
+
+Functions of one argument
+
+    int
+    sleep
+    abs
+    sin
+    ...         # see S29 Functions
+
+Note that, unlike in Perl 5, you must use the C<.meth> forms to default
+to C<$_> in Perl 6.
+
+There is no unary C<rand> function in Perl 6, though there is a C<.rand>
+method call and a 0-ary C<rand> term.
+
+=over
+
+=item *
+
+C<< prefix:<int> >>
+
+Coerces to type C<Int>.  Floor semantics are used for fractional
+values, including strings that appear to express fractional values.
+That is, C<int($x)> must have the same result as C<int(+$x)> in all
+cases.  All implicit conversions to integer use the same semantics.
+
+(Note that, despite the fact that C<int> is a valid native type
+name, this function does not express conversion to that native type.
+Such subtype conversions are done automatically upon assignment to
+a subtyped container, and fail if the container cannot hold the value.)
+
+=item *
+
+C<< prefix:<sleep> >>
+
+Suspends the current thread of execution for the specified number of seconds,
+which may be fractional.
+
+=item *
+
+C<< prefix:<abs> >>
+
+Returns the absolute value of the specified argument.
+
+=back
+
+=head2 Nonchaining binary precedence
+
+=over
+
+=item *
+
+C<< infix:<but> >>
+
+    $value but Mixin
+
+=item *
+
+C<< infix:<does> >>
+
+    $object does Mixin
+
+=item *
+
+Sort comparisons
+
+    $num1 <=> $num2
+    $str1 leg $str2
+    $obj1 cmp $obj2
+
+These operators compare their operands using numeric, string,
+or C<eqv> semantics respectively, and depending on the order return
+one of C<Order::Increase>, C<Order::Same>, or C<Order::Decrease>
+(which numerify to -1, 0, or +1).  See L</Comparison semantics>.
+
+=item *
+
+Range object constructor
+
+    $min .. $max
+    $min ^.. $max
+    $min ..^ $max
+    $min ^..^ $max
+
+Constructs Range objects, optionally excluding one or both endpoints.
+See L</Range semantics>.
+
+Note that these differ:
+
+    0 ..^ 10	# 0 .. 9
+    0 .. ^10	# 0 .. (0..9)
+
+(It's not yet clear what the second one should mean, but whether it
+succeeds or fails, it won't do what you want.)
+
+=back
+
+=head2 Chaining binary precedence
+
+All operators on this precedence level may be I<chained>; see
+L</Chained comparisons>.
+
+=over
+
+=item *
+
+C<< infix:<==> >> etc.
+
+    == != < <= > >=
+
+As in Perl 5, converts to C<Num> before comparison.  C<!=> is short for C<!==>.
+
+=item *
+
+C<< infix:<eq> >> etc.
+
+    eq ne lt le gt ge
+
+As in Perl 5, converts to C<Str> before comparison. C<ne> is short for C<!eq>.
+
+=item *
+
+Generic ordering
+
+    $a before $b
+    $a after $b
+
+=item *
+
+Smart match
+
+    $obj ~~ $pattern
+
+Perl 5's C<=~> becomes the "smart match" operator C<~~>, with an
+extended set of semantics.  See L</Smart matching> for details.
+
+To catch "brainos", the Perl 6 parser defines an C<< infix:<=~> >>
+operator which always fails at compile time with a message directing
+the user to use C<~~> or C<~=> (string append) instead if they meant
+it as a single operator, or to put a space between if they really
+wanted to assign a stringified value as two separate operators.
+
+A negated smart match is spelled C<!~~>.
+
+=item *
+
+Container identity
+
+    VAR($a) =:= VAR($b)
+
+See L</Comparison semantics>.
+
+=item *
+
+Value identity
+
+    $x === $y
+
+For objects that are not value types, their identities are their values.
+(Identity is returned by the C<.WHICH> metamethod.)  The actual contents of
+the objects are ignored.  These semantics are those used by hashes that
+allow objects for keys.  See also L</Comparison semantics>.
+
+=item *
+
+Canonical equivalence
+
+    $obj1 eqv $obj2
+
+Compares two objects for canonical equivalence.  For value types compares
+the values.  For object types, compares current contents according to some
+scheme of canonicalization.  These semantics are those used by hashes
+that allow only values for keys (such as Perl 5 string-key hashes).
+See also L</Comparison semantics>.
+
+=item *
+
+Negated relational operators
+
+    $num !== 42
+    $str !eq "abc"
+    "foo" !~~ /^ <ident> $/
+    VAR($a) !=:= VAR($b)
+    $a !=== $b
+    $a !eqv $b
+
+See L</Negated relational operators>.
+
+=back
+
+=head2 Tight and precedence
+
+=over
+
+=item *
+
+C<< infix:<&&> >>, short-circuit and
+
+    $a && $b && $c ...
+
+Returns the first argument that evaluates to false, otherwise
+returns the result of the last argument.  In list context forces
+a false return to mean C<()>.  See C<and> below for low-precedence
+version.
+
+=back
+
+=head2 Tight or precedence
+
+=over
+
+=item *
+
+C<< infix:<||> >>, short-circuit inclusive-or
+
+    $a || $b || $c ...
+
+Returns the first argument that evaluates to a true value, otherwise
+returns the result of the last argument.  It is specifically allowed
+to use a list or array both as a boolean and as a list value produced
+if the boolean is true:
+
+    @a = @b || @c;              # broken in Perl 5; works in Perl 6
+
+In list context this operator forces a false return to mean C<()>.
+See C<or> below for low-precedence version.
+
+=item *
+
+C<< infix:<^^> >>, short-circuit exclusive-or
+
+    $a ^^ $b ^^ $c ...
+
+Returns the true argument if there is one (and only one).  Returns
+C<Bool::False> if all arguments are false or if more than one argument
+is true.  In list context forces a false return to mean C<()>.
+See C<xor> below for low-precedence version.
+
+This operator short-circuits in the sense that it does not evaluate
+any arguments after a 2nd true result.  Closely related is the reduce
+operator:
+
+    [^^] a(), b(), c() ...
+
+but note that reduce operators are not macros but ordinary list
+operators, so c() is always called before the reduce is done.
+
+
+=item *
+
+C<< infix:<//> >>, short-circuit default operator
+
+    $a // $b // $c ...
+
+Returns the first argument that evaluates to a defined value, otherwise
+returns the result of the last argument.  In list context forces a
+false return to mean C<()>.  See C<orelse> below for a similar but
+not identical low-precedence version.
+
+=item *
+
+Minimum and maximum
+
+    $a min $b min $c ...
+    $a max $b max $c ...
+
+These return the minimum or maximum value.  See also the
+C<minmax> listop.
+
+Not all types can support the concept of infinity.  Therefore any
+value of any type may be compared with C<+Inf> or C<-Inf> values,
+in which case the infinite value stands for "larger/smaller than any
+possible value of the type."  That is,
+
+    "foo" min +Inf              # "foo"
+    "foo" min -Inf              # -Inf
+    "foo" max +Inf              # +Inf
+    "foo" max -Inf              # "foo"
+
+All orderable object types must support C<+Inf> and C<-Inf> values
+as special forms of the undefined value.  It's an error, however,
+to attempt to store an infinite value into a native type that cannot
+support it:
+
+    my int $max;
+    $max max= -Inf;     # ERROR
+
+=back
+
+=head2 Conditional operator precedence
+
+=over
+
+=item *
+
+Conditional operator
+
+    say "My answer is: ", $maybe ?? "yes" !! "no";
+
+Also known as the "ternary" or "trinary" operator, but we prefer
+"conditional" just to stop people from fighting over the terms.  The
+operator syntactically separates the expression into three subexpressions.
+It first evaluates the left part in boolean context, then based on that
+selects one of the other two parts to evaluate. (It never evaluates
+both of them.)  If the conditional is true it evaluates and returns
+the middle part; if false, the right part.  The above is therefore
+equivalent to:
+
+    say "My answer is: ", do {
+        if $maybe {
+            "yes";
+        }
+        else {
+            "no";
+        }
+    };
+
+It is a syntax error to use an operator in the middle part that binds
+looser in precedence, such as C<=>.
+
+    my $x;
+    hmm() ?? $x = 1 !! $x = 2;        # ERROR
+    hmm() ?? ($x = 1) !! ($x = 2);    # works
+
+Note that both sides have to be parenthesized.  A partial fix is
+even wronger:
+
+    hmm() ?? ($x = 1) !! $x = 2;      # parses, but WRONG
+
+That actually parses as:
+
+    (
+        hmm() ?? ($x = 1) !! $x
+    ) = 2;
+
+and always assigns C<2> to C<$x> (because C<($x = 1)> is a valid lvalue).
+
+And in any case, repeating the C<$x> forces you to declare it earlier.
+The best don't-repeat-yourself solution is simply:
+
+    my $x = hmm() ?? 1 !! 2;          # much better
+
+=item *
+
+C<< infix:<?> >>
+
+To catch likely errors by people familiar with C-derived languages
+(including Perl 5), a bare question mark in infix position will
+produce an error suggesting that the user use C<?? !!> instead.
+
+=item *
+
+Flipflop ranges
+
+    start() ff end()
+    start() ^ff end()
+    start() ff^ end()
+    start() ^ff^ end()
+
+=item *
+
+Flipflop ranges (sed style)
+
+    start() fff end()
+    start() ^fff end()
+    start() fff^ end()
+    start() ^fff^ end()
+
+=back
+
+=head2 Item assignment precedence
+
+=over
+
+=item *
+
+C<< infix:<=> >>
+
+    $x = 1, $y = 2;
+
+With simple lvalues, C<=> has this precedence, which is tighter than comma.
+(List assignments have listop precedence below.)
+
+=item *
+
+C<< infix:<:=> >>, run-time binding
+
+    $signature := $capture
+
+A new form of assignment is present in Perl 6, called I<binding>, used in
+place of typeglob assignment.  It is performed with the C<:=> operator.
+Instead of replacing the value in a container like normal assignment, it
+replaces the container itself.  For instance:
+
+    my $x = 'Just Another';
+    my $y := $x;
+    $y = 'Perl Hacker';
+
+After this, both C<$x> and C<$y> contain the string C<"Perl Hacker">,
+since they are really just two different names for the same variable.
+
+There is also an identity test, C<=:=>, which tests whether two names
+are bound to the same underlying variable.  C<$x =:= $y> would return
+true in the above example.
+
+The binding fails if the type of the variable being bound is sufficiently
+inconsistent with the type of the current declaration.  Strictly speaking,
+any variation on
+
+    my Any $x;
+    $x := [1,2,3];
+
+should fail because the type being bound is not consistent with
+C<Scalar of Any>, but since the C<Any> type is not a real instantiable
+type but a generic (non)constraint, and C<Scalar of Any> is sort of
+a double non-constraint similar to C<Any>, we treat this situation
+specially as the equivalent of binding to a typeless variable.
+
+=item *
+
+C<< infix:<::=> >>, compile-time binding
+
+    $signature ::= $capture
+
+This does the same as C<:=> except it does it at compile time.  (This implies
+that the expression on the right is also evaluated at compile time; it does
+not bind a lazy thunk.)
+
+=item *
+
+C<< infix:{'=>'} >>, Pair constructor
+
+    foo => 1, bar => "baz"
+
+Binary C<< => >> is no longer just a "fancy comma".  It now constructs
+a C<Pair> object that can, among other things, be used to pass named
+arguments to functions.  It provides item context to both sides.
+It does not actually do an assignment except in a notional sense;
+however its precedence is now equivalent to assignment, and it is
+also right associative.  Note that, unlike in Perl 5, C<< => >>
+binds tighter than comma.
+
+=item *
+
+Assignment operators
+
+    += -= **= xx= .= etc.
+
+See L</Assignment metaoperators>.
+
+=back
+
+=head2 Loose unary precedence
+
+=over
+
+=item *
+
+C<< prefix:<true> >>
+
+    true any(@args) eq '-v' | '-V'
+
+=item *
+
+C<< prefix:<not> >>
+
+    not any(@args) eq '-v' | '-V'
+
+=back
+
+While the preceding are parsed as prefix operators, operator adverbs
+are parsed as trailing unary operators at this precedence level,
+just tighter than comma.  (They're not officially "postfix" operators
+because those require the absense of whitespace, and these allow whitespace.
+These adverbs insert themselves in the spot where the parser is
+expecting an infix operator, but the parser continues to look for
+an infix after parsing the adverb and applying it to the previous
+term.)  Thus,
+
+    $a < 1 and $b == 2 :carefully
+
+does the C<==> carefully, while
+
+    $a < 1 && $b == 2 :carefully
+
+does the C<&&> carefully because C<&&> is of
+tighter precedence than "loose unary".  Use
+
+    $a < 1 && ($b == 2 :carefully)
+
+to apply the adverb to the C<==> operator instead.  We say that
+C<==> is the "topmost" operator in the sense that it is at the
+top of the parse tree that the adverb could possibly apply to.
+(It could not apply outside the parens.)  If you are unsure
+what the topmost operator is, just ask yourself which operator
+would be applied last.  For instance, in
+
+    +%hash{$key} :foo
+
+The subscript happens first and the C<+> operator happens last,
+so C<:foo> would apply to that.  Use
+
+    +(%hash{$key} :foo)
+
+to apply C<:foo> to the subscripting operator instead.  Likewise
+
+    $x = 1..10:by(2)
+
+will apply the adverb to the item assignment (and fail), but since
+
+    @x = 1..10:by(2)
+
+is a (looser) list assignment, the adverb applies to the range operator
+as expected.  And in general note that adverbs will attach the way
+you want when you say things like
+
+    1 .. $x+2 :by(2)
+
+The new internal testing syntax makes use of these precedence rules:
+
+    $x eqv $y+2  :ok<$x is equivalent to $y+2>;
+
+Here the adverb is considered to be modifying the C<eqv> operator.
+
+=head2 Comma operator precedence
+
+=over
+
+=item *
+
+C<< infix:<,> >>, the argument separator
+
+    1, 2, 3, @many
+
+Unlike in Perl 5, comma operator never returns the last value.  (In item
+context it returns a list instead.)
+
+=item *
+
+C<< infix:«p5=>» >>, the Perl 5 fatarrow
+
+This operator, which behaves exactly like the Perl 5 fatarrow in being
+equivalent to a comma, is purely for easier migration from Perl 5
+to Perl 6.  It is not intended for use by programmers in fresh code;
+it is for use by the p5-to-p6 translator to preserve Perl 5 argument
+passing semantics without losing the intent of the notation.
+
+This operator is purposefully ugly and easy to search for.  Note that,
+since the operator is equivalent to a comma, arguments come in as
+positional pairs rather than named arguments.  Hence, if you have
+a Perl 5 sub that manually handles named argument processing by
+assigning to a hash, it will continue to work.  If, however, you edit
+the C<< p5=> >> operator in an argument list to Perl 6's C<< => >>
+operator, it becomes a real named argument, so you must also change
+the called sub to handle real named args, since the named pair will no
+longer come in via C<@_>.  You can either name your formal parameters
+explicitly if there is an explicit signature, or pull them out of C<%_>
+rather than C<@_> if there is no explicit signature.
+
+=back
+
+=head2 List infix precedence
+
+List infixes all have list associativity, which means that identical
+infix operators work together in parallel rather than one after
+the other.  Non-identical operators are considered non-associative
+and must be parenthesized for clarity.
+
+=over
+
+=item *
+
+C<< infix:<Z> >>, the zip operator
+
+    1,2 Z 3,4   # (1,3),(2,4)
+
+=item *
+
+C<< infix:<minmax> >>, the minmax operator
+
+    $min0, $max0 minmax $min1, $max1    # ($min0 min $min1, $max0 max $max1)
+
+The C<minmax> operator is for calculating both a minimum and maximum
+in a single expression.  Otherwise you'd have to write twice as
+many expressions.  Instead of
+
+    @a minmax @b
+
+you'd have to say something like
+
+    ($a[0] min $b[0], $a[1] max $b[1])
+
+Note that there is no guarantee that the resulting minimum and maximum come
+from the same side.  The two calculations are bundled but independent.
+
+=item *
+
+C<< infix:<X> >>, the cross operator
+
+    1,2 X 3,4          # (1,3), (1,4), (2,3), (2,4)
+
+In contrast to the zip operator, the C<X> operator returns all possible
+lists formed by taking one element from each of its list arguments.  The
+returned lists are ordered such that the rightmost elements vary most rapidly.
+If there are just two lists, for instance, it forms all pairs
+where one element is from the first list and the other one from
+the second, with the second element varying most rapidly.  Hence you may say:
+
+    <a b> X <1 2>
+
+and you end up with
+
+    ('a', '1'), ('a', '2'), ('b', '1'), ('b', '2')
+
+This becomes a flat list in C<@> context and a list of arrays in C<@@> context:
+
+    say @(<a b> X <1 2>)
+    'a', '1', 'a', '2', 'b', '1', 'b', '2'
+    say @@(<a b> X <1 2>)
+    ['a', '1'], ['a', '2'], ['b', '1'], ['b', '2']
+
+The operator is list associative, so
+
+    1,2 X 3,4 X 5,6
+
+produces
+
+    (1,3,5),(1,3,6),(1,4,5),(1,4,6),(2,3,5),(2,3,6),(2,4,5),(2,4,6)
+
+On the other hand, if any of the lists is empty, you will end up with
+a null list.
+
+Only the leftmost list may usefully be an infinite list.  For instance
+
+    <a b> X 0..*
+
+would produce
+
+    ('a',0), ('a',1), ('a',2), ('a',3), ('a',4), ('a',5), ...
+
+and you'd never get to 'b'.
+
+=item *
+
+Cross hyperoperators
+
+    @files X~X '.' X~X @extensions
+    1..10 X*X 1..10
+    @x XeqvX @y
+    etc.
+
+See L</Cross operators>.
+
+=item *
+
+C<< infix:<...> >>, the series operator.
+
+This operator takes a concrete list on its left and a function to be
+iterated on its right when the list must be extended.  Each time the
+function must be called, it extends the list with the values
+returned by the function (if any).
+
+The value of the operator is the lazy list formed of the
+concrete list followed by the result of applying the function to the
+tail of the list as needed.  The function indicates by its signature
+how many of the preceding values to pay attention to (and which the
+operator must track internally).  Demonstration of this falls to the
+lot of the venerable Fibonacci sequence:
+
+    1, 1 ... { $^y + $^z }	# 1,1,2,3,5,8...
+    1, 1 ... &infix:<+>		# 1,1,2,3,5,8...
+
+More typically the function is unary, in which case any extra values
+in the list may be construed as human-readable documentation:
+
+    0,2,4 ... { $_ + 2 }	# same as 1..*:by(2)
+    <a b c> ... { .succ }	# same as 'a'..*
+
+The function need not be monotonic, of course:
+
+    1 ... { -$_ }		# 1, -1, 1, -1, 1, -1...
+    False ... &prefix:<!>	# False, True, False...
+
+The function can be 0-ary as well:
+
+    () ... &rand		# list of random numbers
+
+The function may also be slurpy (*-ary), in which case all the
+preceding values are passed in (which means they must all be cached
+by the operator, so performance may suffer).
+
+The arity of the function need not match the number of return values, but
+if they do match you may interleave unrelated sequences:
+
+    1,1 ... { $^a + 1, $^b * 2 }   # 1,1,2,2,3,4,4,8,5,16,6,32...
+
+If the right operand is C<*> (Whatever) and the sequence is obviously
+arithmetic or geometric, the appropriate function is deduced:
+
+    1, 3, 5 ... *		# odd numbers
+    1, 2, 4 ... *		# powers of 2
+
+Conjecture: other such patterns may be recognized in the future,
+depending on which unrealistic benchmarks we want to run faster.  C<:)>
+
+Note: the yada operator is recognized only where a term is expected.
+This operator may only be used where an infix is expected.  If you
+put a comma before the C<...> it will be taken as a yada list operator
+expressing the desire to fail when the list reaches that point:
+
+    1..20, ... "I only know up to 20 so far mister"
+
+If the yada operator finds a closure for its argument at compile time,
+it should probably whine about the fact that it's difficult to turn
+a closure into an error message.  Alternately, we could treat
+an ellipsis as special when it follows a comma to better support
+traditional math notation.
+
+The function may choose to terminate its list by returning ().
+Since this operator is list associative, an inner function may be
+followed by a C<...> and another function to continue the list,
+and so on.  Hence,
+
+    1 ... { $_ + 1   if $_ < 10 }
+      ... { $_ + 10  if $_ < 100 }
+      ... { $_ + 100 if $_ < 1000 }
+
+produces
+
+    1,2,3,4,5,6,7,8,9,
+    10,20,30,40,50,60,70,80,90,
+    100,200,300,400,500,600,700,800,900
+
+In slice context the function's return value is appended as a capture
+rather than as a flattened list of values, and the argument to each
+function call is the previous capture in the list.
+
+=back
+
+Many of these operators return a list of Captures, which depending on
+context may or may not flatten them all out into one flat list.  The
+default is to flatten, but see the contextualizers below.
+
+=head2 List prefix precedence
+
+=over
+
+=item *
+
+C<< infix:<=> >>, list assignment
+
+    @array = 1,2,3;
+
+With compound targets, performs list assignment.  The right side
+is looser than comma.  You might be wondering why we've classified
+this as a prefix operator when its token name is C<< infix:<=> >>.
+That's because you can view the left side as a special syntax for a
+prefix listop, much as if you'd said:
+
+    @array.assign: 1,2,3
+
+However, the tokener classifies it as infix because it sees it when
+it's expecting an infix operator.  Assignments in general are treated
+more like retroactive macros, since their meaning depends greatly on
+what is on the left, especially if what is on the left is a declarator
+of some sort.  We even call some of them pseudo-assignments, but they're
+all a bit pseudo insofar as we have to figure out whether the left side
+is a list or a scalar destination.
+
+In any case, list assignment is defined to be arbitrarily lazy,
+insofar as it basically does the obvious copying as long as there
+are scalar destinations on the left or already-computed values on
+the right.  However, many list lvalues end with an array destination
+(where assignment directly to an array can be considered a degenerate
+case).  When copying into an array destination, the list assignment
+continues to copy in known values immediately, but suspends when it
+hits an actively iterating iterator (but not one merely passed as an
+object within the list).  The array location on the left is then set
+up as a self-extending array, with the remainder of the list on the
+right as the "specs" for its remaining values, to be reified on
+demand.  Hence it is legal to say:
+
+    @natural = 0..*;
+
+(Note that when we say that an iterator in list context suspends,
+it is not required to suspend immediately.  When the scheduler is
+running an iterator, it may choose to precompute values in batches if
+it thinks that approach will increase throughput.  This is likely to
+be the case on single-core architectures with heavy context switching,
+and may very well be the case even on manycore CPU architectures when
+there are more iterators than cores, such that cores may still have
+to do context switching.  In any case, this is all more-or-less
+transparent to the user because in the abstract the list is all
+there, even if it hasn't been entirely computed yet.)
+
+Though elements may be reified into an array on demand, they act
+like ordinary array elements both before and after reification, as
+far as the user is concerned. These elements may be written to if
+the underlying container type supports it:
+
+    @unnatural = 0..*;
+    @unnatural[42] = "Life, the Universe, and Everything";
+
+Note that, unlike assignment, binding replaces the container,
+so the following fails because a range object cannot be subscripted:
+
+    @natural := 0..*;     # bind a Range object
+    @natural[42] = "Life, the Universe, and Everything";  # FAILS
+
+but this succeeds:
+
+    @unnatural := [0..*]; # bind an Array object
+    @unnatural[42] = "Life, the Universe, and Everything"; # ok
+
+It is erroneous to make use of any side effects of reification, such
+as movement of a file pointer, since different implementations may
+have different batch semantics, and in any case the unreified part
+of the list already "belongs" to the array.
+
+When a self-extending array is asked for its count of elements, it
+is allowed to return C<+Inf> without blowing up if it can determine
+by inspection that its unreified parts contain any infinite lists.
+If it cannot determine this, it is allowed to use all your
+memory, and then some.  C<:)>
+
+Assignment to a hash is not lazy (probably).
+
+=item *
+
+C<< infix:<:> >>, the invocant marker
+
+    say $*OUT: "howdy, world"
+
+The colon operator turns method calls and contextualizers into
+list operators.  It's not really a general operator; much like list
+assignment, it takes a special syntax on the left side and turns it
+into a list operator over the list on the right.  See L</Invocant
+marker>.
+
+=item *
+
+Normal listops
+
+    print push say join split substr open etc.
+
+=item *
+
+Listop forms of junctional operators
+
+    any all one none
+
+=item *
+
+Exception generators
+
+    fail "Division by zero"
+    die System::Error(ENOSPC,"Drive $d seems to be full");
+    warn "Can't open file: $!"
+
+=item *
+
+Stubby exception generators
+
+    ...
+    !!! "fill this in later, Dave"
+    ??? "oops in $?CLASS"
+
+The C<...> operator is the "yada, yada, yada" list operator, which
+among other things is used as the body in function prototypes.
+It complains bitterly (by calling C<fail>) if it is ever executed.
+Variant C<???> calls C<warn>, and C<!!!> calls C<die>.  The argument
+is optional, but if provided, is passed onto the C<fail>, C<warn>,
+or C<die>.  Otherwise the system will make up a message for you based
+on the context, indicating that you tried to execute something that
+is stubbed out.  (This message differs from what C<fail>, C<warn>, and
+C<die> would say by default, since the latter operators typically point
+out bad data or programming rather than just an incomplete design.)
+
+=item *
+
+Reduce operators
+
+    [+] [*] [<] [\+] [\*] etc.
+
+See L<Reduction operators> below.
+
+=item *
+
+Sigils as contextualizer listops
+
+    Sigil       Alpha variant
+    -----       -------------
+    $           item
+    @           list
+    @@          slice
+    %           hash
+
+As listops, these look like terms from the left, but raise their
+precedence on the right sufficiently to govern list infix
+operators:
+
+     $ 1,2 Z 3,4       # [\(1,3),\(2,4)]
+     @ 1,2 Z 3,4       # 1,3,2,4
+    @@ 1,2 Z 3,4       # [1,3],[2,4]
+     % 1,2 Z 3,4       # { 1 => 3, 2 => 4 }
+
+     $ 1,2 X 3,4      # [\(1,3),\(1,4),\(2,3),\(2,4)]
+     @ 1,2 X 3,4      # 1,3,1,4,2,3,2,4
+    @@ 1,2 X 3,4      # [1,3],[1,4],[2,3],[2,4]
+
+These can also influence the result of functions that returns lists of captures:
+
+     $ map { $_, $_*2 }, ^4   # [\(0,0),\(1,2),\(2,4),\(3,6)]
+     @ map { $_, $_*2 }, ^4   # 0,0,1,2,2,4,3,6
+    @@ map { $_, $_*2 }, ^4   # [0,0],[1,2],[2,4],[3,6]
+     % map { $_, $_*2 }, ^4   # { 0 => 0, 1 => 2, 2 => 4, 3 => 6 }
+
+=item *
+
+The C<item> contextualizer
+
+    item foo()
+
+The new name for Perl 5's C<scalar> contextualizer.  Equivalent to C<$()>
+(except that empty C<$()> means C<$($/)>, while empty C<item()> yields C<Failure>).
+We still call the values scalars, and talk about "scalar operators", but
+scalar operators are those that put their arguments into item context.
+
+If given a list, this function makes an C<Array> from it.  The function
+is agnostic about any C<Captures> in such a list.  (Use C<@> or C<@@>
+below to force that one way or the other).
+
+Note that this is a list operator, not a unary prefix operator,
+since you'd generally want it for converting a list to an item.
+Single items don't need to be converted to items.
+
+=item *
+
+The C<list> contextualizer
+
+    list foo()
+
+Forces the subsequent expression to be evaluated in list context.
+A list of C<Capture>s will be transformed into a flat list.
+Equivalent to C<@()> (except that empty C<@()> means C<@($/)>, while
+empty C<list()> means an empty list).
+
+=item *
+
+The C<slice> contextualizer
+
+    slice foo()
+
+Forces the subsequent expression to be evaluated in slice context.
+(Slices are considered to be potentially multidimensional in Perl 6.)
+A list of C<Capture>s will be transformed into a list of lists.
+Equivalent to C<@@()> (except that empty C<@@()> means C<@@($/)>, while
+empty C<slice()> means a null slice).
+
+=item *
+
+The C<hash> contextualizer
+
+    hash foo()
+
+Forces the subsequent expression to be evaluated in hash context.
+The expression is evaluated in list context (flattening any C<Capture>s),
+then a hash will be created from the list, taken as a list of C<Pair>s.
+(Any element in the list that is not a C<Pair> will pretend to be a key
+and grab the next value in the list as its value.)  Equivalent to
+C<%()> (except that empty C<%()> means C<%($/)>, while
+empty C<hash()> means an empty hash).
+
+=back
+
+=head2 Loose and precedence
+
+=over
+
+=item *
+
+C<< infix:<and> >>, short-circuit and
+
+    $a and $b and $c ...
+
+Returns the first argument that evaluates to false, otherwise
+returns the result of the last argument.  In list context forces
+a false return to mean C<()>.  See C<&&> above for high-precedence
+version.
+
+=item *
+
+C<< infix:<andthen> >>, proceed on success
+
+    test1() andthen test2() andthen test3() ...
+
+Returns the first argument whose evaluation indicates failure
+(that is, if the result is undefined).  Otherwise it
+evaluates and returns the right argument.
+
+If the right side is a block or pointy block, the result of the left
+side is bound to any arguments of the block.  If the right side is
+not a block, a block scope is assumed around the right side, and the
+result of the left side is implicitly bound to C<$_> for the scope
+of the right side.  That is,
+
+    test1() andthen test2()
+
+is equivalent to
+
+    test1() andthen -> $_ { test2() }
+
+There is no corresponding high-precedence version.
+
+=back
+
+=head2 Loose or precedence
+
+=over
+
+=item *
+
+C<< infix:<or> >>, short-circuit inclusive or
+
+    $a or $b or $c ...
+
+Returns the first argument that evaluates to true, otherwise returns
+the result of the last argument.  In list context forces a false return
+to mean C<()>.  See C<||> above for high-precedence version.
+
+=item *
+
+C<< infix:<xor> >>, exclusive or
+
+    $a xor $b xor $c ...
+
+Returns the true argument if there is one (and only one).  Returns
+C<Bool::False> if all arguments are false or if more than one argument is true.
+In list context forces a false return to mean C<()>.
+See C<^^> above for high-precedence version.
+
+=item *
+
+C<< infix:<orelse> >>, proceed on failure
+
+    test1() orelse test2() orelse test3() ...
+
+Returns the first argument that evaluates successfully (that is,
+if the result is defined).  Otherwise returns the result of the
+right argument.
+
+If the right side is a block or pointy block, the result of the left
+side is bound to any arguments of the block.  If the right side is
+not a block, a block scope is assumed around the right side, and the
+result of the left side is implicitly bound to C<$!> for the scope
+of the right side.  That is,
+
+    test1() orelse test2()
+
+is equivalent to
+
+    test1() orelse -> $! { test2() }
+
+(The high-precedence C<//> operator is similar, but does not set C<$!> or
+treat blocks specially.)
+
+=back
+
+=head2 Terminator precedence
+
+As with terms, terminators are not really a precedence level, but
+looser than the loosest precedence level.  They all have the effect of
+terminating any operator precedence parsing and returning a complete
+expression to the main parser.  They don't care what state the operator
+precedence parser is in.  If the parser is currently expecting a term
+and the final operator in the expression can't deal with a nullterm,
+then it's a syntax error.  (Notably, the comma operator and many prefix
+list operators can handle a nullterm.)
+
+=over
+
+=item *
+
+Semicolon: ;
+
+    $x = 1; $y = 2;
+
+The context determines how the expressions terminated by semicolon
+are interpreted.  At statement level they are statements.  Within a
+bracketing construct they are interpreted as lists of C<Capture>s,
+which in slice context will be treated as the multiple dimensions of a
+multidimensional slice.  (Other contexts may have other interpretations
+or disallow semicolons entirely.)
+
+=item *
+
+Feed operators: <==, ==>, <<==, ==>>
+
+    source() ==> filter() ==> sink()
+
+The forms with the double angle append rather than clobber the sink's
+todo list.  The C<<< ==>> >>> form always looks ahead for an appropriate
+target to append to, either the final sink in the chain, or the next
+filter stage with an explicit C<@(*)> or C<@@(*)> target.  This means
+you can stack multiple feeds onto one filter command:
+
+    source1() ==>>
+    source2() ==>>
+    source3() ==>>
+    filter(@(*)) ==> sink()
+
+Similar semantics apply to C<<< <<== >>> except it looks backward for
+an appropriate target to append to.
+
+=item *
+
+Control block: <ws>{...}
+
+When a block occurs after whitespace where an infix is expected, it is
+interpreated as a control block for a statement control construct.
+(If there is no whitespace, it is a subscript, and if it is where a
+term is expected, it's just a bare closure.)  If there is no statement
+looking for such a block currently, it is a syntax error.
+
+=item *
+
+Statement modifiers: if, unless, while, until, for
+
+Statement modifiers terminate one expression and start another.
+
+=item *
+
+Any unexpected ), ], } at this level.
+
+Calls into the operator precedence parser may be parameterized
+to recognize additional terminators, but right brackets of any
+sort (except angles) are automatically included in the set of
+terminators as tokens of length one.  (An infix of longer length
+could conceivably start with one of these characters, and would be
+recognized under the longest-token rule and continue the expression,
+but this practice is discouraged.  It would be better to use Unicode
+for your weird operator.)  Angle brackets are exempted so that they
+can form hyperoperators (see L</Hyper operators>).
+
+=item *
+
+A block-final } at the end of the line terminates the current expression.
+A block within an argument list terminates the argument list unless
+followed by the comma operator.
+
+=back
+
+=head1 Changes to Perl 5 operators
+
+Several operators have been given new names to increase clarity and better
+Huffman-code the language, while others have changed precedence.
+
+=over
+
+=item *
+
+Perl 5's C<${...}>, C<@{...}>, C<%{...}>, etc. dereferencing
+forms are now C<$(...)>, C<@(...)>, C<%(...)>, etc. instead.
+Listop-like forms use the bare sigil following by whitespace.
+Use of the Perl 5 curly forms will result in an error message
+pointing the user to the new forms.
+
+=item *
+
+C<< -> >> becomes C<.>, like the rest of the world uses.  There is
+a pseudo C<< postfix:{'->'} >> operator that produces a compile-time
+error reminding Perl 5 users to use dot instead.  (The "pointy block"
+use of C<< -> >> in Perl 5 requires preceding whitespace when the arrow
+could be confused with a postfix, that is when an infix is expected.
+Preceding whitespace is not required in term position.)
+
+=item *
+
+The string concatenation C<.> becomes C<~>.  Think of it as
+"stitching" the two ends of its arguments together.  String append
+is likewise C<~=>.
+
+=item *
+
+The filetest operators are gone.  We now use a C<Pair> as a
+pattern that calls an object's method:
+
+    if $filename ~~ :e { say "exists" }
+
+is the same as
+
+    if $filename.e { say "exists" }
+
+The 1st form actually translates to the latter form, so the object's
+class decides how to dispatch methods.  It just happens that
+C<Str> (filenames), C<IO> (filehandles), and C<Statbuf> (stat buffers)
+default to the expected filetest semantics, but C<$regex.i> might
+tell you whether the regex is case insensitive, for instance.
+
+Using the pattern form, multiple tests may be combined via junctions:
+
+    given $handle {
+        when :r & :w & :x {...}
+        when :!w | :!x    {...}
+        when *            {...}
+    }
+
+When adverbial pairs are stacked into one term, it is assumed they are
+ANDed together, so
+
+    when :r :w :x
+
+is equivalent to either of:
+
+    when :r & :w & :x
+    when all(:r,:w,:x)
+
+The advantage of the method form is that it can be used in places that
+require tighter precedence than C<~~> provides:
+
+    sort { $^a.M <=> $^b.M }, @files
+
+though that's a silly example since you could just write:
+
+    sort { .M }, @files
+
+But that demonstrates the other advantage of the method form, which is
+that it allows the "unary dot" syntax to test the current topic.
+
+Unlike in earlier versions of Perl 6, these filetests do not return
+stat buffers, but simple scalars of type C<Bool>, C<Int>, or C<Num>.
+
+In general, the user need not worry about caching the stat buffer
+when a filename is queried.  The stat buffer will automatically be
+reused if the same object has recently been queried, where "recently"
+is defined as less than a second or so.  If this is a concern, an
+explicit stat() or lstat() may be used to return an explicit stat
+buffer object that will not be subject to timeout, and may be tested
+repeatedly just as a filename or handle can.  A C<Statbuf> object has
+a C<.file> method that can be queried for its filename (if known);
+the C<.io> method returns the handle (if known).  If the C<Statbuf>
+object doesn't know its filename but does know its IO handle, then
+C<.file> attempts to return C<.io.file>.
+
+Note that C<:s> still returns the filesize, but C<:!s> is true
+only if the file is of size 0, since it is smartmatched
+against the implicit False argument.  By the same token,
+C<:s(0..1024)> will be true only for files of size 1K or less.
+
+(Inadvertent use of the Perl 5 forms will normally result in treatment
+as a negated postdeclared subroutine, which is likely to produce an
+error message at the end of compilation.)
+
+=item *
+
+All postfix operators that do not start with a dot also have
+an alternate form that does.  (The converse does not hold--just because
+you can write C<x().foo> doesn't mean you can write C<x()foo>.  Likewise
+the ability to say C<$x.'foo'> does not imply that C<$x'foo'> will work.)
+
+The postfix interpretation of an operator may be overridden by
+use of a quoted method call, which calls the prefix form instead.
+So C<x().!> is always the postfix operator, but C<x().'!'> will always
+call C<!x()>.  In particular, you can say things like C<$array.'@'>.
+and C<$fh.'='>, which
+because of the quotes will not be confused lexically with C<$fh.=new>.
+
+=item *
+
+Unary C<~> now imposes a string (C<Str>) context on its
+argument, and C<+> imposes a numeric (C<Num>) context (as opposed
+to being a no-op in Perl 5).  Along the same lines, C<?> imposes
+a boolean (C<Bool>) context, and the C<|> unary operator imposes
+a function-arguments (C<Capture>) context on its argument.
+Unary sigils impose the container context implied by their sigil.
+As with Perl 5, however, C<$$foo[bar]> parses as C<( $($foo) )[bar]>,
+so you need C<$($foo[bar])> to mean the other way.
+
+=item *
+
+Bitwise operators get a data type prefix: C<+>, C<~>, or C<?>.
+For example, Perl 5's C<|> becomes either C<+|> or C<~|> or C<?|>,
+depending on whether the operands are to be treated as numbers,
+strings, or boolean values.  Perl 5's left shift C< << > becomes
+C< +< >, and correspondingly with right shift. Perl 5's unary C<~>
+(one's complement) becomes either C<+^> or C<~^> or C<?^>, since a
+bitwise NOT is like an exclusive-or against solid ones.  Note that
+C<?^> is functionally identical to C<!>, but conceptually coerces to
+boolean first and then flips the bit.  Please use C<!> instead.
+
+C<?|> is a logical OR but differs from C<||> in that C<?|> always
+evaluates both sides and returns a standard boolean value.  That is,
+it's equivalent to C<< ?$a + ?$b != 0 >>.  Another difference is that
+it has the precedence of an additive operator.
+
+C<?&> is a logical AND but differs from C<&&> in that C<?&> always
+evaluates both sides and returns a standard boolean value.  That is,
+it's equivalent to C<< ?$a * ?$b != 0 >>.  Another difference is that
+it has the precedence of a multiplicative operator.
+
+Bitwise string operators (those starting with C<~>) may only be
+applied to C<Buf> types or similar compact integer arrays, and treat
+the entire chunk of memory as a single huge integer.  They differ from
+the C<+> operators in that the C<+> operators would try to convert
+the string to a number first on the assumption that the string was an
+ASCII representation of a number.
+
+=item *
+
+C<x> splits into two operators: C<x> (which concatenates repetitions 
+of a string to produce a single string), and C<xx> (which creates a list of 
+repetitions of a list or item).  C<"foo" xx *> represents an arbitrary
+number of copies, useful for initializing lists.  The left side of
+an C<xx> is evaluated only once.  (To call a block repeatedly, use a C<map>
+instead.)
+
+=item *
+
+The C<? :> conditional operator becomes C<?? !!>.  A pseudo operator,
+C<< infix:<?> >>, catches migratory brainos at compile time.
+
+=item *
+
+C<qw{ ... }> gets a synonym: C<< < ... > >>, and an interpolating
+variant, C<«...»>.
+For those still living without the blessings of Unicode, that can also be
+written: C<<< << ... >> >>>.
+
+=item *
+
+In item context comma C<,> now constructs a C<List> object from its
+operands.  You have to use a C<[*-1]> subscript to get the last one.
+(Note the C<*>.  Negative subscripts no longer implicitly count from
+the end; in fact, the compiler may complain if you use C<[-1]> on an
+object known at compile time not to have negative subscripts.)
+
+=item *
+
+The unary backslash operator captures its arguments, and returns an
+object representing those arguments.  You can I<dereference> this object
+in several ways to retrieve different parts of the arguments; see the
+definition of C<Capture> in S02 for details.  (No whitespace is allowed
+after the backslash because that would instead start an "unspace", that is,
+an escaped sequence of whitespace or comments.  See S02 for details.
+However, oddly enough, because of that unspace rule, saying C<\\ $foo>
+turns out to be equivalent to C<\$foo>.)
+
+=item *
+
+The old C<..> flipflop operator is now done with
+C<ff> operator.  (C<..> now always produces a C<Range> object
+even in item context.)  The C<ff> operator may take a caret on
+either end to exclude either the beginning or ending.  There is
+also a corresponding C<fff> operator with Perl 5's C<...> semantics.
+You may say
+
+    /foo/ ff *
+
+to indicate a flipflop that never flops once flipped.
+
+=item *
+
+All comparison operators are unified at the same precedence level.
+See L</Chained comparisons> below.
+
+=item *
+
+The list assignment operator now parses on the right like
+any other list operator, so you don't need parens on the right side of:
+
+    @foo = 1, 2, 3;
+
+You do still need them on the left for
+
+    ($a, $b, $c) = 1, 2, 3;
+
+since assignment operators are tighter than comma to their left.
+
+"Don't care" positions may be indicated by assigment to the C<*> token.
+A final C<*> throws away the rest of the list:
+
+    ($a, *, $c) = 1, 2, 3;      # throw away the 2
+    ($a, $b, $c, *) = 1..42;    # throw away 4..42
+
+(Within signature syntax, a bare C<$> can ignore a single argument as well,
+and a bare C<*@> can ignore the remaining arguments.)
+
+List assignment offers the list on the right to each container on the
+left in turn, and each container may take one or more elements from the
+front of the list.  If there are any elements left over, a warning is
+issued unless the list on the left ends with C<*> or the final iterator
+on the right is defined in terms of C<*>.  Hence none of these warn:
+
+    ($a, $b, $c, *) = 1..9999999;
+    ($a, $b, $c) = 1..*;
+    ($a, $b, $c) = 1 xx *;
+    ($a, $b, $c) = 1, 2, *;
+
+This, however, warns you of information loss:
+
+    ($a, $b, $c) = 1, 2, 3, 4;
+
+As in Perl 5, assignment to an array or hash slurps up all the
+remaining values, and can never produce such a warning.  (It will,
+however, leave any subsequent lvalue containers with no elements,
+just as in Perl 5.)
+
+The left side is evaluated completely for its sequence of containers before
+any assignment is done.  Therefore this:
+
+    my $a = 0; my @b;
+    ($a, @b[$a]) = 1, 2;
+
+assigns 2 to @b[0], not @b[1].
+
+=item *
+
+The item assignment operator expects a single expression with
+precedence tighter than comma, so
+
+    loop ($a = 1, $b = 2; ; $a++, $b++) {...}
+
+works as a C programmer would expect.   The term on the right of the
+C<=> is always evaluated in item context.
+
+The syntactic distinction between item and list assignment is similar
+to the way Perl 5 defines it, but has to be a little different because
+we can no longer decide the nature of an inner subscript on the basis
+of the outer sigil.  So instead, item assignment is restricted to
+lvalues that are simple scalar variables, and assignment to anything
+else is parsed as list assignment.  The following forms are parsed as
+"simple lvalues", and imply item assignment to the scalar container:
+
+    $a = 1          # scalar variable
+    $foo::bar = 1   # scalar package variable
+    $(ANY) = 1      # scalar dereference (including $$a)
+    $::(ANY) = 1    # symbolic scalar dereference
+    $foo::(ANY) = 1 # symbolic scalar dereference
+
+Such a scalar variable lvalue may be decorated with declarators,
+types, and traits, so these are also item assignments:
+
+    my $fido = 1
+    my Dog $fido = 1
+    my Dog $fido is trained is vicious = 1
+
+However, anything more complicated than that (including parentheses
+and subscripted expressions) forces parsing as list assignment instead.
+Assignment to anything that is not a simple scalar container also forces
+parsing as list assignment.  List assignment expects an expression
+that is looser than comma precedence.  The right side is always
+evaluated in list context:
+
+    ($x) = 1,2,3
+    $x[1] = 1,2,3
+    @$array = 1,2,3
+    my ($x, $y) = 1,2,3
+    our %map = :a<1>, :b<2>
+
+The rules of list assignment apply, so all the assignments involving
+C<$x> above produce warnings for discarded values.  A warning may be
+issued at compile time if it is detected that a run-time warning is
+inevitable.
+
+The C<=> in a default declaration within a signature is not really
+assignment, and is always parsed as item assignment.  (That is, to
+assign a list as the default value you must use parentheses to hide
+any commas in the list value.)
+
+To assign a list to a scalar value, you cannot say:
+
+    $a = 1, 2, 3;
+
+because the 2 and 3 will be seen as being in a void context, as if
+you'd said:
+
+    ($a = 1), 2, 3;
+
+Instead, you must do something to explicitly disable or subvert the
+item assignment interpretation:
+
+    $a = [1, 2, 3];             # force construction (probably best practice)
+    $a = (1, 2, 3);             # force grouping as syntactic item
+    $a = list 1, 2, 3;          # force grouping using listop precedence
+    $a = @ 1, 2, 3;             # same thing
+    @$a = 1, 2, 3;              # force list assignment
+    $a[] = 1, 2, 3;             # same thing
+
+If a function is contextually sensitive and you wish to return a scalar
+value, you must use C<item> (or C<$> or C<+> or C<~>) if you wish to
+force item context for either the subscript or the right side:
+
+    @a[foo()] = bar();           # foo() and bar() called in list context
+    @a[item foo()] = item bar(); # foo() and bar() called in item context
+    @a[$ foo()] = $ bar();       # same thing
+    @a[+foo()] = +bar();         # foo() and bar() called in numeric context
+    %a{~foo()} = ~bar();         # foo() and bar() called in string context
+
+But note that the first form still works fine if C<foo()> and C<bar()>
+are item-returning functions that are not context sensitive.
+
+In general, this will all just do what the user expects most of the time.
+The rest of the time item or list behavior can be forced with minimal
+syntax.
+
+=item *
+
+List operators are all parsed consistently.  As in Perl 5,
+to the left a list operator look like term, while to the right it looks like
+an operator that is looser than comma.  Unlike in Perl 5, the difference
+between the list operator form and the function form is consistently
+indicated via whitespace between the list operator and the first
+argument.  If there is whitespace, it is always a list operator,
+and the next token will be taken as the first term of the list (or
+if there are no terms, as the expression terminator).  Any infix operator
+occurring where a term is expected will be misinterpreted as a term:
+
+    say + 2;    # means say(+2);
+
+If there is no whitespace, subsequent parsing depends on the
+syntactic category of the next item.  Parentheses (with or without
+a dot) turn the list operator into a function call instead, and
+all the function's arguments must be passed inside the parentheses
+(except for postfix adverbs, which may follow the parentheses provided they
+would not attach to some other operator by the rules of precedence).
+
+Other than various forms of parentheses, all other postfixes are
+disallowed immediately after a list operator, even if there are no
+arguments.  To add a postfix to an argumentless list operator you
+must write it as a function call with empty parentheses:
+
+    foo.[]      # ILLEGAL
+    foo++       # ILLEGAL
+    foo().[]    # legal
+    foo()++     # legal (if foo() is rw)
+
+After the parentheses any postfix operators are allowed, and apply
+to the result of the function call.  (Also note that the postfix
+restriction applies only to list operators; it doesn't apply to
+methods.  It is legal to say
+
+    $foo.bar<a b c>
+
+to mean
+
+    $foo.bar().{'a','b','c'}
+
+because methods never assume there are arguments unless followed by
+parentheses or a colon.)
+
+If the next item after the list operator is either an infix operator
+or a term, a syntax error is reported.  [Conjecture: this may be relaxed in
+non-strict mode.]
+
+Examples:
+
+    say foo + 1;                        say(foo(+1));
+    say foo $x;                         say(foo($x));
+    say foo$x;                          ILLEGAL, need space or parens
+    say foo+1;                          ILLEGAL, need space or parens
+    say foo++;                          ILLEGAL, need parens
+
+    say foo($bar+1),$baz                say(foo($bar+1), $baz);
+    say foo.($bar+1),$baz               say(foo($bar+1), $baz);
+    say foo ($bar+1),$baz               say(foo($bar+1, $baz));
+    say foo .($bar+1),$baz              say(foo($_.($bar+1), $baz));
+
+    say foo[$bar+1],$baz                ILLEGAL, need foo()[]
+    say foo.[$bar+1],$baz               ILLEGAL, need foo().[]
+    say foo [$bar+1],$baz               say(foo([$bar+1], $baz));
+    say foo .[$bar+1],$baz              say(foo($_.[$bar+1], $baz));
+
+    say foo{$bar+1},$baz                ILLEGAL, need foo(){}
+    say foo.{$bar+1},$baz               ILLEGAL, need foo().{}
+    say foo {$bar+1},$baz               say(foo({$bar+1}, $baz));
+    say foo .{$bar+1},$baz              say(foo($_.{$bar+1}, $baz));
+
+    say foo<$bar+1>,$baz                ILLEGAL, need foo()<>
+    say foo.<$bar+1>,$baz               ILLEGAL, need foo().<>
+    say foo <$bar+1>,$baz               say(foo(<$bar+1>, $baz));
+    say foo .<$bar+1>,$baz              say(foo($_.<$bar+1>, $baz));
+
+Note that Perl 6 is making a consistent three-way distinction between
+term vs postfix vs infix, and will interpret an overloaded character
+like C<< < >> accordingly:
+
+    any <a b c>                 any('a','b','c')        # term
+    any()<a b c>                (any).{'a','b','c'}     # postfix
+    any() < $x                  (any) < $x              # infix
+    any<a b c>                  ILLEGAL                 # stealth postfix
+
+This will seem unfamiliar and "undwimmy" to Perl 5 programmers, who
+are used to a grammar that sloppily hardwires a few postfix operators
+at the price of extensibility.  Perl 6 chooses instead to mandate a
+whitespace dependency in order to gain a completely extensible class
+of postfix operators.
+
+=item *
+
+A list operator's arguments are also terminated by a closure
+that is not followed by a comma or colon.  (And a semicolon is implied
+if the closure is the final thing on a line.  Use an "unspace" to
+suppress that.)  This final closure may be followed by a postfix,
+in which case the postfix is applied to the result of the entire
+list operator.
+
+=item *
+
+A function predeclared with an empty signature is considered 0-ary
+at run time but is still parsed as a list prefix operator, and looks
+for a following list.  To declare a function that is parsed
+as a simple 0-ary term, you must use the form C<< term:<foo> >>.
+Such a term is never considered a list prefix operator, though it
+allows an optional set of empty parentheses (because it represents a
+C<Code> object).  Unlike functions and list operators with arguments
+(see above), a 0-ary term does not require parentheses even if followed
+immediately by a postfix.
+
+=item *
+
+A non-multi sub predeclared with an arity of exactly 1 also still
+parses as a list prefix operator.  You must explicitly use the form
+C<< prefix:<foo> >> to declare C<foo> as a named unary in precedence;
+it must still take a single positional parameter (though any number of
+named parameters are allowed, which can be bound to adverbs).
+All other subs with arguments parse as list operators.
+
+=item *
+
+The C<&&> and C<||> operators are smarter about list context
+and return C<()> on failure in list context rather than C<Bool::False>.
+The operators still short-circuit, but if either operator would return
+a false value, it is converted to the null list in list context so
+that the false results are self-deleting.  (If this self-deleting
+behavior is not desired, put the expression into item context rather
+than list context.)  This self-deletion is a behavior of the operators
+themselves, not a general property of boolean values in list context, so
+
+    @foo = true($a||$b);
+
+is guaranteed to insert exactly one boolean value into C<@foo>.
+
+=back
+
+=head1 Junctive operators
+
+C<|>, C<&>, and C<^> are no longer bitwise operators (see
+L</Changes to Perl 5 operators>) but now serve a much higher cause:
+they are now the junction constructors.
+
+A junction is a single value that is equivalent to multiple values. They
+thread through operations, returning another junction representing the
+result:
+
+     (1|2|3) + 4;                            # 5|6|7
+     (1|2) + (3&4);                          # (4|5) & (5|6)
+
+Note how when two junctions are applied through an operator, the result
+is a junction representing the operator applied to each combination of
+values.
+
+Junctions come with the functional variants C<any>, C<all>, C<one>, and C<none>.
+
+This opens doors for constructions like:
+
+     unless $roll == any(1..6) { print "Invalid roll" }
+
+     if $roll == 1|2|3 { print "Low roll" }
+
+Junctions work through subscripting:
+
+    doit() if @foo[any(1,2,3)]
+
+Junctions are specifically unordered.  So if you say
+
+    foo() | bar() | baz() == 42
+
+it indicates to the compiler that there is no coupling between
+the junctional arguments.  They can be evaluated in any order or in
+parallel.  They can short-circuit as soon as any of them return 42,
+and not run the others at all.  Or if running in parallel, the first
+successful thread may terminate the other threads abruptly.  In general
+you probably want to avoid code with side effects in junctions.
+
+Use of negative operators with syntactically recognizable junctions may
+produce a warning on code that works differently in English than in Perl.
+Instead of writing
+
+    if $a != 1 | 2 | 3 {...}
+
+you need to write
+
+    if not $a == 1 | 2 | 3 {...}
+
+However, this is only a syntactic warning, and
+
+    if $a != $b {...}
+
+will not complain if $b happens to contain a junction at runtime.
+
+Junctive methods on arrays, lists, and sets work just like the
+corresponding list operators.  However, junctive methods on a hash
+make a junction of only the hash's keys.  Use the listop form (or an
+explicit C<.pairs>) to make a junction of pairs.
+
+=head1 Comparison semantics
+
+=over
+
+=item *
+
+Perl 5's comparison operators are basically unchanged, except that they
+can be chained because their precedence is unified.
+
+=item *
+
+Binary C<===> tests immutable type and value correspondence:
+for two value types (that is, immutable types), tests whether
+they are the same value (eg. C<1 === 1>); for two mutable types
+(object types), checks whether they have the same identity value.
+(For most such types the identity is simply the reference itself.)
+It is not true that C<[1,2] === [1,2]> because those are different
+C<Array> objects, but it is true that C<@a === @a> because those are
+the same C<Array> object).
+
+Any object type may pretend to be a value type by defining a C<.WHICH>
+method which returns a value type that can be recursively compared
+using C<===>, or in cases where that is impractical, by overloading
+C<===> such that the comparison treats values consistently with their
+"eternal" identity.  (Strings are defined as values this way despite
+also being objects.)
+
+Two values are never equivalent unless they are of exactly the same type.  By
+contrast, C<eq> always coerces to string, while C<==> always coerces to
+numeric.  In fact, C<$a eq $b> really means "C<~$a === ~$b>" and C<$a == $b>
+means C<+$a === +$b>.
+
+Note also that, while string-keyed hashes use C<eq> semantics by default,
+object-keyed hashes use C<===> semantics, and general value-keyed hashes
+use C<eqv> semantics.
+
+=item *
+
+Binary C<eqv> tests equality much like C<===> does, but does
+so with "snapshot" semantics rather than "eternal" semantics.  For
+top-level components of your value that are of immutable types, C<eqv>
+is identical in behavior to C<===>.  For components of your value
+that are mutable, however, rather than comparing object identity using
+C<===>, the C<eqv> operator tests whether the canonical representation
+of both subvalues would be identical if we took a snapshot of them
+right now and compared those (now-immutable) snapshots using C<===>.
+
+If that's not enough flexibility, there is also an C<eqv()> function
+that can be passed additional information specifying how you want
+canonical values to be generated before comparison.  This gives
+C<eqv()> the same kind of expressive power as a sort signature.
+(And indeed, the C<cmp> operator from Perl 5 also has a functional
+analog, C<cmp()>, that takes additional instructions on how to
+do 3-way comparisons of the kind that a sorting algorithm wants.)
+In particular, a signature passed to C<eqv()> will be bound to the
+two operands in question, and then the comparison will proceed
+on the formal parameters according to the information contained
+in the signature, so you can force numeric, string, natural, or
+other comparisons with proper declarations of the parameter's type
+and traits.  If the signature doesn't match the operands, C<eqv()>
+reverts to standard C<eqv> comparison.  (Likewise for C<cmp()>.)
+
+=item *
+
+Binary C<cmp> is no longer the comparison operator that
+forces stringification.  Use the C<leg> operator for the old Perl 5
+C<cmp> semantics.  The C<cmp> is just like the C<eqv> above except that
+instead of returning C<Bool::False> or C<Bool::True> values it always
+returns C<Order::Increase>, C<Order::Same>, or C<Order::Decrease>
+(which numerify to -1, 0, or +1).
+
+=item *
+
+The C<leg> operator (less than, equal, or greater) is defined
+in terms of C<cmp>, so C<$a leg $b> is now defined as C<~$a cmp ~$b>.
+The sort operator still defaults to C<cmp> rather than C<leg>.  The
+C<< <=> >> operator's semantics are unchanged except that it returns
+an C<Order> value as described above.  In other words, C<< $a <=> $b >>
+is now equivalent to C<+$a cmp +$b>.
+
+=item *
+
+For boolean comparison operators with non-coercive C<cmp>
+semantics, use the generic C<before> and C<after> infix operators.
+As ordinary infix operators these may be negated (C<!before> and C<!after>)
+as well as reduced (C<[before]> and C<[after]>).
+
+=item *
+
+Infix C<min> and C<max> may be used to select one or the other
+of their arguments.  Reducing listop forms C<[min]> and C<[max]> are
+also available, as are the C<min=> and C<max=> assignment operators.
+By default C<min> and C<max> use C<cmp> semantics.  As with all C<cmp>-based
+operators, this may be modified by an adverb specifying different semantics.
+
+=back
+
+=head1 Range semantics
+
+=over
+
+=item *
+
+The C<..> range operator has variants with C<^> on either end to
+indicate exclusion of that endpoint from the range.  It always
+produces a C<Range> object.  Range objects are lazy iterators, and
+can be interrogated for their current C<.from> and C<.to> values
+(which change as they are iterated).  The C<.minmax> method returns
+both as a two-element list representing the interval.  Ranges are not
+autoreversing: C<2..1> is always a null range.  Likewise, C<1^..^2>
+produces no values when iterated, but does represent the interval from
+1 to 2 excluding the endpoints when used as a pattern.  To iterate
+a range in reverse use:
+
+    2..1:by(-1)
+    reverse 1..2
+
+(The C<reverse> is preferred because it works for alphabetic ranges
+as well.)  Note that, while C<.minmax> normally returns C<(.from,.to)>,
+a negative C<:by> causes the C<.minmax> method returns C<(.to,.from)>
+instead.  You may also use C<.min> and C<.max> to produce the individual
+values of the C<.minmax> pair, but again note that they are reversed
+from C<.from> and C<.to> when the step is negative.  Since a reversed
+C<Range> changes its direction, it swaps its C<.from> and C<.to> but
+not its C<.min> and C<.max>.
+
+Because C<Range> objects are lazy, they do not automatically generate
+a list.  One result of this is that a reversed C<Range> object is still lazy.
+Another is that smart matching against a C<Range> object smartmatches the
+endpoints in the domain of the object being matched, so fractional
+numbers are C<not> truncated before comparison to integer ranges:
+
+    1.5 ~~ 1^..^2  # true, equivalent to 1 < 1.5 < 2
+    2.1 ~~ 1..2    # false, equivalent to 1 <= 2.1 <= 2
+
+If a C<*> (see the "Whatever" type in S02) occurs on the right side
+of a range, it is taken to mean "positive infinity" in whatever
+typespace the range is operating, as inferred from the left operand.
+A C<*> on the left means "negative infinity" for types that support
+negative values, and the first value in the typespace otherwise as
+inferred from the right operand.  (For signed infinities the signs
+reverse for a negative step.)  A star on both sides prevents any type
+from being inferred other than the C<Ordered> role.
+
+    0..*        # 0 .. +Inf
+    'a'..*      # 'a' .. 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzz...'
+    *..0        # -Inf .. 0
+    *..*        # "-Inf .. +Inf", really Ordered
+    1.2.3..*    # Any version higher than 1.2.3.
+    May..*      # May through December
+
+Note: infinite lists are constructed lazily.  And even though C<*..*>
+can't be constructed at all, it's still useful as a selector object.
+
+Range objects may be iterated on either end as long as it is not
+infinite.  (Iterating an infinite end does not fail but just produces a
+lot of infinities.)  Ordinary iteration iterates the C<.from> value by
+adding the step.  Either C<< prefix:<=> >> or the C<shift> function
+may be used to iterate the front of a range object.  The C<pop>
+function iterates the C<.to> end by subtracting the step.  In either
+case, the value returned is either the old value if the endpoint
+was inclusive, or the next value if the endpoint was exclusive.
+In the case of ranges that are not an integral multiple of the step,
+no check is done to see that iterating the front would produce the
+same list as interating from the back and reversing.  So we have
+
+    $range = 1..^42.5;
+    $front = $range.shift;      # $front = 1, $range = 2..^42.5
+    $back = $range.pop;      # $back = 41.5, $range = 2..^41.5
+
+For any kind of zip or dwimmy hyper operator, any list ending with C<*>
+is assumed to be infinitely extensible by taking its final element
+and replicating it:
+
+    @array, *
+
+is short for something like:
+
+    @array[0..^@array], @array[*-1] xx *
+
+An empty Range cannot be iterated; it returns a C<Failure> instead.  An empty
+range still has a defined min and max, but the min is greater than the max.
+
+If a range is generated using a magical autoincrement, it stops if the magical
+increment would "carry" and make the next value longer than the "to" value, on the
+assumption that the sequence can never match the final value exactly.  Hence,
+all of these produce 'A' .. 'Z':
+
+    'A' .. 'Z'
+    'A' .. 'z'
+    'A' .. '_'
+    'A' .. '~'
+
+=item *
+
+The unary C<^> operator generates a range from C<0> up to
+one less than its argument.  So C<^4> is short for C<0..^4> or C<0..3>.
+
+    for ^4 { say $_ } # 0, 1, 2, 3
+
+If applied to a list, it generates a multidimensional set of subscripts.
+
+    for ^(3,3) { ... } # (0,0)(0,1)(0,2)(1,0)(1,1)(1,2)(2,0)(2,1)(2,2)
+
+If applied to a type name, it indicates the metaclass instance instead,
+so C<^Moose> is short for C<HOW(Moose)> or C<Moose.HOW>.  It still kinda
+means "what is this thing's domain" in an abstract sort of way.
+
+=item *
+
+Since use of C<Range> objects in item context is usually
+non-sensical, a C<Range> object used as an operand for scalar operators
+will generally attempt to distribute the operator to its endpoints and
+return another suitably modified C<Range> instead.  (Notable exceptions
+include C<< infix:<~~> >>, which does smart matching, and C<< prefix:<+> >>
+which returns the length of the range.)  Therefore if you wish to
+write a slice using a length instead of an endpoint, you can say
+
+    @foo[ start() + ^$len ]
+
+which is short for:
+
+    @foo[ start() + (0..^$len) ]
+
+which is equivalent to something like:
+
+    @foo[ list do { my $tmp = start(); $tmp ..^ $tmp+$len } ]
+
+In other words, operators of numeric and other ordered types are
+generally overloaded to do something sensible on C<Range> objects.
+In particular, multiplicative operators not only multiply the endpoints
+but also the "by" of the C<Range> object:
+
+    (1..11:by(2)) * 5           # same as 5..55:by(10) 
+    5,15,25,35,45,45,55
+
+Conjecture: non-linear functions might even produce non-uniform "by" values!
+Think of log scaling, for instance.
+
+=back
+
+=head1 Chained comparisons
+
+Perl 6 supports the natural extension to the comparison operators,
+allowing multiple operands:
+
+    if 1 < $a < 100 { say "Good, you picked a number *between* 1 and 100." }
+
+    if 3 < $roll <= 6              { print "High roll" }
+
+    if 1 <= $roll1 == $roll2 <= 6  { print "Doubles!" }
+
+A chain of comparisons short-circuits if the first comparison fails:
+
+    1 > 2 > die("this is never reached");
+
+Each argument in the chain will evaluate at most once:
+
+    1 > $x++ > 2    # $x increments exactly once
+
+Note: any operator beginning with C<< < >> must have whitespace
+in front of it, or it will be interpreted as a hash subscript instead.
+
+=head1 Smart matching
+
+Here is the table of smart matches for standard Perl 6
+(that is, the dialect of Perl in effect at the start of your
+compilation unit).  Smart matching is generally done on the current
+"topic", that is, on C<$_>.  In the table below, C<$_> represents the
+left side of the C<~~> operator, or the argument to a C<given>,
+or to any other topicalizer.  C<X> represents the pattern to be
+matched against on the right side of C<~~>, or after a C<when>.
+
+The first section contains privileged syntax; if a match can be done
+via one of those entries, it will be.   These special syntaxes are
+dispatched by their form rather than their type.  Otherwise the rest
+of the table is used, and the match will be dispatched according to
+the normal method dispatch rules.  The optimizer is allowed to assume
+that no additional match operators are defined after compile time,
+so if the pattern types are evident at compile time, the jump table
+can be optimized.  However, the syntax of this part of the table
+is still somewhat privileged, insofar as the C<~~> operator is one
+of the few operators in Perl that does not use multiple dispatch.
+Instead, type-based smart matches singly dispatch to an underlying
+method belonging to the C<X> pattern object.
+
+In other words, smart matches are dispatched first on the basis of the
+pattern's form or type (the C<X> below), and then that pattern itself
+decides whether and how to pay attention to the type of the topic
+(C<$_>).  So the second column below is really the primary column.
+The C<Any> entries in the first column indicate a pattern that either
+doesn't care about the type of the topic, or that picks that entry
+as a default because the more specific types listed above it didn't match.
+
+    $_        X         Type of Match Implied   Match if (given $_)
+    ======    =====     =====================   ===================
+    Any       Code:($)  item sub truth          X($_)
+    Any       Code:()   simple closure truth    X() (ignoring $_)
+    Any       undef     undefined               not .defined
+    Any       *         block signature match   block successfully binds to |$_
+    Any       .foo      method truth            ?X       i.e. ?.foo
+    Any       .foo(...) method truth            ?X       i.e. ?.foo
+    Any       .(...)    sub call truth          ?X       i.e. ?.(...)
+    Any       .[...]    array value slice truth ?all(X)  i.e. ?all(.[...])
+    Any       .{...}    hash value slice truth  ?all(X)  i.e. ?all(.{...})
+    Any       .<...>    hash value slice truth  ?all(X)  i.e. ?all(.<...>)
+
+    Any       Bool      simple truth            X
+    Any       Num       numeric equality        +$_ == X
+    Any       Str       string equality         ~$_ eq X
+
+    Hash      Pair      test hash mapping       $_{Xkey} ~~ Xval
+    Any       Pair      test object attribute   .Xkey ~~ Xval (e.g. filetests)
+
+    Set       Set       identical sets          $_ === X
+    Hash      Set       hash keys same set      $_.keys === X
+    Any       Set       force set comparison    Set($_) === X
+
+    Array     Array     arrays are comparable   $_ «===» X (dwims * wildcards!)
+    Set       Array     array equiv to set      $_ === Set(X)
+    Any       Array     lists are comparable    @$_ «===» X
+
+    Hash      Hash      hash keys same set      $_.keys === X.keys
+    Set       Hash      hash keys same set      $_ === X.keys
+    Array     Hash      hash slice existence    X.contains(any @$_)
+    Regex     Hash      hash key grep           any(X.keys).match($_)
+    Scalar    Hash      hash entry existence    X.contains($_)
+    Any       Hash      hash slice existence    X.contains(any @$_)
+
+    Str       Regex     string pattern match    .match(X)
+    Hash      Regex     hash key "boolean grep" .any.match(X)
+    Array     Regex     array "boolean grep"    .any.match(X)
+    Any       Regex     pattern match           .match(X)
+
+    Num       Range     in numeric range        X.min <= $_ <= X.max (mod ^'s)
+    Str       Range     in string range         X.min le $_ le X.max (mod ^'s)
+    Any       Range     in generic range        [!after] X.min,$_,X.max (etc.)
+
+    Any       Type      type membership         $_.does(X)
+
+    Signature Signature sig compatibility       $_ is a subset of X      ???
+    Code      Signature sig compatibility       $_.sig is a subset of X  ???
+    Capture   Signature parameters bindable     $_ could bind to X (doesn't!)
+    Any       Signature parameters bindable     |$_ could bind to X (doesn't!)
+
+    Signature Capture   parameters bindable     X could bind to $_
+
+    Any       Any       scalars are identical   $_ === X
+
+The final rule is applied only if no other pattern type claims X.
+
+All smartmatch types are "itemized"; both C<~~> and C<given>/C<when>
+provide item contexts to their arguments, and autothread any
+junctive matches so that the eventual dispatch to C<.ACCEPTS> never
+sees anything "plural".  So both C<$_> and C<X> above are potentially
+container objects that are treated as scalars.  (You may hyperize
+C<~~> explicitly, though.  In this case all smartmatching is done
+using the type-based dispatch to C<.ACCEPTS>, not the form-based
+dispatch at the front of the table.)
+
+The exact form of the underlying type-based method dispatch is:
+
+    X.ACCEPTS($_)      # for ~~
+    X.REJECTS($_)      # for !~~
+
+As a single dispatch call this pays attention only to the type of
+C<X> initially.  The C<ACCEPTS> method interface is defined by the
+C<Pattern> role.  Any class composing the C<Pattern> role may choose
+to provide a single C<ACCEPTS> method to handle everything, which
+corresponds to those pattern types that have only one entry with
+an C<Any> on the left above.  Or the class may choose to provide
+multiple C<ACCEPTS> multi-methods within the class, and these
+will then redispatch within the class based on the type of C<$_>.
+The class may also define one or more C<REJECTS> methods; if it does
+not, the default C<REJECTS> method from the C<Pattern> role defines
+it in terms of a negated C<ACCEPTS> method call.  This generic method
+may be less efficient than a custom C<REJECTS> method would be, however.
+
+The smartmatch table is primarily intended to reflect forms and types that
+are recognized at compile time.  To avoid an explosion of entries,
+the table assumes the following types will behave similarly:
+
+    Actual type                 Use entries for
+    ===========                 ===============
+    List Seq                    Array
+    KeySet KeyBag KeyHash       Hash
+    Class Enum Role             Type
+    Subst Grammar               Regex
+    Char Cat                    Str
+    Int UInt etc.               Num
+    Match                       Capture
+    Byte                        Str or Int
+    Buf                         Str or Array of Int
+
+(Note, however, that these mappings can be overridden by explicit
+definition of the appropriate C<ACCEPTS> and C<REJECTS> methods.
+If the redefinition occurs at compile time prior to analysis of the
+smart match then the information is also available to the optimizer.)
+
+A C<Buf> type containing any bytes or integers outside the ASCII
+range may silently promote to a C<Str> type for pattern matching if
+and only if its relationship to Unicode is clearly declared or typed.
+This type information might come from an input filehandle, or the
+C<Buf> role may be a parametric type that allows you to instantiate
+buffers with various known encodings.  In the absence of such typing
+information, you may still do pattern matching against the buffer, but
+(apart from assuming the lowest 7 bits represent ASCII) any attempt
+to treat the buffer as other than a sequence integers is erroneous,
+and warnings may be generously issued.
+
+Matching against a C<Grammar> object will call the C<TOP> method
+defined in the grammar.  The C<TOP> method may either be a rule
+itself, or may call the actual top rule automatically.  How the
+C<Grammar> determines the top rule is up to the grammar, but normal
+Perl 6 grammars will default to setting top to the first rule in the
+original base grammar.  Derived grammars then inherit this idea of
+the top rule.  This may be overridden in either the base grammar or a
+derived grammar by explicitly naming a rule C<TOP>, or defining your
+own C<TOP> method to call some other rule.
+
+Matching against a C<Signature> does not actually bind any variables,
+but only tests to see if the signature I<could> bind.  To really bind
+to a signature, use the C<*> pattern to delegate binding to the C<when>
+statement's block instead.  Matching against C<*> is special in that
+it takes its truth from whether the subsequent block is bound against
+the topic, so you can do ordered signature matching:
+
+    given $capture {
+        when * -> Int $a, Str $b { ... }
+        when * -> Str $a, Int $b { ... }
+        when * -> $a, $b         { ... }
+        when *                   { ... }
+    }
+
+This can be useful when the unordered semantics of multiple dispatch
+are insufficient for defining the "pecking order" of code.  Note that
+you can bind to either a bare block or a pointy block.  Binding to a
+bare block conveniently leaves the topic in C<$_>, so the final form
+above is equivalent to a C<default>.  (Placeholder parameters may
+also be used in the bare block form, though of course their types
+cannot be specified that way.)
+
+There is no pattern matching defined for the C<Any> pattern, so if you
+find yourself in the situation of wanting a reversed smartmatch test
+with an C<Any> on the right, you can almost always get it by explicit
+call to the underlying C<ACCEPTS> method using $_ as the pattern.
+For example:
+
+    $_      X    Type of Match Wanted   What to use on the right
+    ======  ===  ====================   ========================
+    Code    Any  item sub truth         .ACCEPTS(X) or .(X)
+    Range   Any  in range               .ACCEPTS(X)
+    Type    Any  type membership        .ACCEPTS(X) or .does(X)
+    Regex   Any  pattern match          .ACCEPTS(X)
+    etc.
+
+Similar tricks will allow you to bend the default matching rules for
+composite objects as long as you start with a dotted method on $_:
+
+    given $somethingordered {
+        when .values.'[<=]'     { say "increasing" }
+        when .values.'[>=]'     { say "decreasing" }
+    }
+
+In a pinch you can define a macro to do the "reversed when":
+
+    my macro statement_control:<ACCEPTS> () { "when .ACCEPTS: " }
+    given $pattern {
+        ACCEPTS $a      { ... }
+        ACCEPTS $b      { ... }
+        ACCEPTS $c      { ... }
+    }
+
+Various proposed-but-deprecated smartmatch behaviors may be easily
+(and we hope, more readably) emulated as follows:
+
+    $_      X      Type of Match Wanted   What to use on the right
+    ======  ===    ====================   ========================
+    Array   Num    array element truth    .[X]
+    Array   Num    array contains number  *,X,*
+    Array   Str    array contains string  *,X,*
+    Array   Seq    array begins with seq  X,*
+    Array   Seq    array contains seq     *,X,*
+    Array   Seq    array ends with seq    *,X
+    Hash    Str    hash element truth     .{X}
+    Hash    Str    hash key existence     .contains(X)
+    Hash    Num    hash element truth     .{X}
+    Hash    Num    hash key existence     .contains(X)
+    Buf     Int    buffer contains int    .match(X)
+    Str     Char   string contains char   .match(X)
+    Str     Str    string contains string .match(X)
+    Array   Scalar array contains item    .any === X
+    Str     Array  array contains string  X.any
+    Num     Array  array contains number  X.any
+    Scalar  Array  array contains object  X.any
+    Hash    Array  hash slice exists      .contains(X.all) .contains(X.any)
+    Set     Set    subset relation        .contains(X)
+    Set     Hash   subset relation        .contains(X)
+    Any     Set    subset relation        .Set.contains(X)
+    Any     Hash   subset relation        .Set.contains(X)
+    Any     Set    superset relation      X.contains($_)
+    Any     Hash   superset relation      X.contains($_)
+    Any     Set    sets intersect         .contains(X.any)
+    Set     Array  subset relation        X,*          # (conjectured)
+    Array   Regex  match array as string  .Cat.match(X)  cat(@$_).match(X)
+
+(Note that the C<.cat> method and the C<Cat> type coercion both take a
+single object, unlike the C<cat> function which, as a list operator,
+takes a syntactic list (or multilist) and flattens it.  All of these
+return a Cat object, however.)
+
+Boolean expressions are those known to return a boolean value, such
+as comparisons, or the unary C<?> operator.  They may reference C<$_>
+explicitly or implicitly.  If they don't reference C<$_> at all, that's
+okay too--in that case you're just using the switch structure as a more
+readable alternative to a string of elsifs.  Note, however, that this means
+you can't write:
+
+    given $boolean {
+        when True  {...}
+        when False {...}
+    }
+
+because it will always choose the C<True> case.  Instead use something like:
+
+    given $boolean {
+        when .true {...}
+        when .not  {...}
+    }
+
+Better, just use an C<if> statement.
+
+Note also that regex matching does I<not> return a C<Bool>, but merely
+a C<Match> object that can be used as a boolean value.  Use an explicit
+C<?> or C<true> to force a C<Bool> value if desired.
+
+The primary use of the C<~~> operator is to return a boolean value in
+a boolean context.  However, for certain operands such as regular
+expressions, use of the operator within item or list context transfers
+the context to that operand, so that, for instance, a regular expression
+can return a list of matched substrings, as in Perl 5.  This is done
+by returning an object that can return a list in list context, or that
+can return a boolean in a boolean context.  In the case regex matching
+the C<Match> object is a kind of C<Capture>, which has these capabilities.
+
+For the purpose of smartmatching, all C<Set> and C<Bag> values are
+considered to be of type C<KeyHash>, that is, C<Hash> containers
+where the keys represent the unique objects and the values represent
+the replication count of those unique keys.  (Obviously, a C<Set> can
+have only 0 or 1 replication because of the guarantee of uniqueness).
+
+The C<Cat> type allows you to have an infinitely extensible string.
+You can match an array or iterator by feeding it to a C<Cat>,
+which is essentially a C<Str> interface over an iterator of some sort.
+Then a C<Regex> can be used against it as if it were an ordinary
+string.  The C<Regex> engine can ask the string if it has more
+characters, and the string will extend itself if possible from its
+underlying interator.  (Note that such strings have an indefinite
+number of characters, so if you use C<.*> in your pattern, or if you
+ask the string how many characters it has in it, or if you even print
+the whole string, it may be feel compelled to slurp in the rest of
+the string, which may or may not be expeditious.)
+
+The C<cat> operator takes a (potentially lazy) list and returns a
+C<Cat> object.  In string context this coerces each of its elements
+to strings lazily, and behaves as a string of indeterminate length.
+You can search a gather like this:
+
+    my $lazystr := cat gather for @foo { take .bar }
+
+    $lazystr ~~ /pattern/;
+
+The C<Cat> interface allows the regex to match element boundaries
+with the C<< <,> >> assertion, and the C<StrPos> objects returned by
+the match can be broken down into elements index and position within
+that list element.  If the underlying data structure is a mutable
+array, changes to the array (such as by C<shift> or C<pop>) are tracked
+by the C<Cat> so that the element numbers remain correct.  Strings,
+arrays, lists, sequences, captures, and tree nodes can all be pattern
+matched by regexes or by signatures more or less interchangably.
+However, the structure searched is not guaranteed to maintain a C<.pos>
+unless you are searching a C<Str> or C<Cat>.
+
+=head1 Invocant marker
+
+An appended C<:> marks the invocant when using the indirect-object
+syntax for Perl 6 method calls.  The following two statements are
+equivalent:
+
+    $hacker.feed('Pizza and cola');
+    feed $hacker: 'Pizza and cola';
+
+A colon may also be used on an ordinary method call to indicate that
+it should be parsed as a list operator:
+
+    $hacker.feed: 'Pizza and cola';
+
+This colon is a separate token.  A colon prefixing an adverb is not
+a separate token.  Therefore, under the longest-token rule,
+
+    $hacker.feed:xxx('Pizza and cola');
+
+is tokenized as an adverb applying to the method as its "toplevel preceding operator":
+
+    $hacker.feed :xxx('Pizza and cola');
+
+not as an xxx sub in the argument list of .feed:
+
+    $hacker.feed: xxx('Pizza and cola');  # wrong
+
+If you want both meanings of colon in order to supply both an adverb
+and some positional arguments, you have to put the colon twice:
+
+    $hacker.feed: :xxx('Pizza and cola'), 1,2,3;
+
+(For similar reasons it's required to put whitespace after the colon of a label.)
+
+Note in particular that because of adverbial precedence:
+
+    1 + $hacker.feed :xxx('Pizza and cola');
+
+will apply the C<:xxx> adverb to the C<+> operator, not the method call.
+This is not likely to succeed.
+
+=head1 Feed operators
+
+The new operators C<< ==> >> and C<< <== >> are akin to UNIX pipes,
+but work with functions or statements that accept and return lists.
+Since these lists are composed of discrete objects and not liquids,
+we call these I<feed> operators rather than pipes.  For example,
+
+     @result = map { floor($^x / 2) },
+                 grep { /^ \d+ $/ },
+                   @data;
+
+can also now be written with rightward feeds as:
+
+     @data ==> grep { /^ \d+ $/ }
+           ==> map { floor($^x / 2) }
+           ==> @result;
+
+or with leftward feeds as:
+
+     @result <== map { floor($^x / 2) }
+             <== grep { /^ \d+ $/ }
+             <== @data;
+
+Either form more clearly indicates the flow of data.  See S06 for 
+more of the (less-than-obvious) details on these two operators.
+
+=head1 Meta operators
+
+Perl 6's operators have been greatly regularized, for instance, by
+consistently prefixing numeric, stringwise, and boolean operators
+with C<+>, C<~> and C<?> respectively to indicate whether the bitwise
+operation is done on a number, a string, or a single bit.
+But that's just a naming convention, and if you wanted to add a new
+bitwise C<¬> operator, you'd have to add the C<+¬>, C<~¬>, and C<?¬>
+operators yourself.  Similarly, the carets that exclude the endpoints
+on ranges are there by convention only.
+
+In contrast to that, Perl 6 has five standard metaoperators for
+turning a given existing operator into a related operator that is
+more powerful (or at least differently powerful).  These differ from a
+mere naming convention in that Perl automatically generates these new
+metaoperators from user-defined operators as well as from builtins.
+In fact, you're not generally supposed to define the individual
+metaoperations--their semantics are supposed to be self-evident by
+the transformation of the base operator.
+
+Note: Spaces are never allowed between any metaoperator and the
+operator it's modifying, because all operators including modified
+ones have to be recognized by the Longest-Token Rule, which disallows
+spaces within a token.
+
+=head2 Assignment metaoperators
+
+These are already familiar to C and Perl programmers.  (Though the
+C<.=> operator now means to call a mutating method on the object on
+the left, and C<~=> is string concatenation.)  Most non-relational
+infix operators may be turned into their corresponding assignment
+operator by suffixing with C<=>.  The limitation is actually based
+on whether the left side can function both as an rvalue and an lvalue
+by the usual correspondence:
+
+    A op= B;
+    A = A op B;
+
+Existing forms ending in C<=> may not be modified with this metaoperator.
+
+Regardless of the precedence of the base operator, the precedence
+of any assignment metaoperators is forced to be the same as that of
+ordinary assignment.  If the base operator is tighter than comma,
+the expression is parsed as item assignment.  If the base operator is
+the same or looser than comma, the expression is parsed as a list assignment:
+
+    $a += 1, $b += 2    # two separate item assignments
+    @foo ,= 1,2,3       # same as push(@foo,1,2,3)
+    @foo Z= 1,2,3       # same as @foo = @foo Z 1,2,3
+
+Note that metaassignment to a list does not automatically distribute
+the right argument over the assigned list unless the base operator
+does (as in the C<Z> case above).  Hence if you want to say:
+
+    ($a,$b,$c) += 1;    # ILLEGAL
+
+you must instead use a hyperoperator (see below):
+
+    ($a,$b,$c) »+=» 1;  # add one to each of three variables
+
+If you apply an assignment operator to a protoobject, it is assumed that
+you are implementing some kind of notional "reduction" to an accumulator
+variable.  To that end, the operation is defined in terms
+of the corresponding reduction operator, where the protoobject
+becomes the operator's identify value.  So if you say:
+
+    $x -= 1;
+
+it is more or less equivalent to:
+
+    $x = [-]() unless defined $x;	# 0 for [-]()
+    $x = $x - 1;
+
+and $x ends up with -1 in it, as expected.
+
+Hence you may correctly write:
+
+    my Num $prod;
+    for @factors -> $f {
+	$prod *= $f;
+    }
+
+While this may seem marginally useful in the scalar variable case,
+it's much more important for it to work this way when the modified
+location may have only just been created by autovivification.  In other
+words, if you write:
+
+    %prod{$key} *= $f
+
+you need not worry about whether the hash element exists yet.  If it
+does not, it will simply be initialized with the value of C<$f>.
+
+=head2 Negated relational operators
+
+Any infix relational operator may be transformed into its negative
+by prefixing with C<!>.  A couple of these have traditional shortcuts:
+
+    Full form   Shortcut
+    ---------   --------
+    !==         !=
+    !eq         ne
+
+but most of them do not:
+
+    !~~
+    !<
+    !>=
+    !ge
+    !===
+    !eqv
+    !=:=
+
+To avoid visual confusion with the C<!!> operator, you may not modify
+any operator already beginning with C<!>.
+
+The precedence of any negated operator is the same as the base operator.
+
+=head2 Hyper operators
+
+The Unicode characters C<»> (C<\x[BB]>) and C<«> (C<\x[AB]>) and
+their ASCII digraphs C<<< >> >>> and C<<< << >>> are used to denote a
+"list operation" that operates on each element of its list (or array)
+argument (or arguments) and returns a single list (or array) of
+the results.  In other words, a hyper operator evaluates its arguments in
+item context but then distributes the operator over them as lists.
+
+When writing a hyper operator, spaces are not allowed on the inside,
+that is, between any "hyper" marker and the operator it's modifying.
+On the outside the spacing policy is the same as the base operator.
+Likewise the precedence of any hyperoperator is the same as its
+base operator.  This means that you must parenthesize your comma
+lists for most operators.  For example:
+
+     -« (1,2,3);                   # (-1, -2, -3)
+     (1,1,2,3,5) »+« (1,2,3,5,8);  # (2,3,5,8,13)
+
+A unary hyper operator (either prefix or postfix) has only one
+hyper marker, located on its argument side, while an infix operator
+always has one on each side to indicate there are two arguments.
+Unary operators always produce a list or array of exactly the same
+shape as their single argument.  When infix operators are presented with
+two lists or arrays of identical shape, a result of that same shape is
+produced.  Otherwise the result depends on how you write the hyper
+markers.
+
+For an infix operator, if either argument is insufficiently
+dimensioned, Perl "upgrades" it, but only if you point the "sharp" end
+of the hypermarker at it.
+
+     (3,8,2,9,3,8) >>->> 1;          # (2,7,1,8,2,7)
+     @array »+=» 42;                 # add 42 to each element
+
+In fact, an upgraded scalar is the only thing that will work for an
+unordered type such as a C<Bag>:
+
+     Bag(3,8,2,9,3,8) >>->> 1;       # Bag(2,7,1,8,2,7) === Bag(1,2,2,7,7,8)
+
+In other words, pointing the small end at an argument tells the hyperoperator
+to "dwim" on that side.  If you don't know whether one side or the other will
+be underdimensioned, you can dwim on both sides:
+
+    $left «*» $right
+
+[Note: if you are worried about Perl getting confused by something like this:
+
+    foo «*»
+
+then you shouldn't worry about it, because unlike previous versions,
+Perl 6 never guesses whether the next thing is a term or operator.
+In this case it is always expecting a term unless C<foo> is predeclared
+to be a 0-ary sub.]
+
+The upgrade never happens on the "blunt" end of a hyper.  If you write
+
+    $bigger «*« $smaller
+    $smaller »*» $bigger
+
+an exception is thrown, and if you write
+
+    $foo »*« $bar
+
+you are requiring the shapes to be identical, or an exception will be thrown.
+By default this dwimmery only upgrades whole dimensions, not short lists.
+However, any list ending with C<*> can also be arbitrarily extended as if
+the last element of the list were arbitrarily replicated C<*> times.  But
+this happens only on the "dwimmy" side.
+
+On the non-dwimmy side, any scalar value that does not know how to
+do C<List> will be treated as a list of one element, and for infix
+operators must be matched by an equivalent one-element list on the
+other side.  That is, a hyper operator is guaranteed to degenerate
+to the corresponding scalar operation when all its arguments are
+non-list arguments.
+
+When using a unary operator, you always aim the blunt end at the
+single operand, because no dwimmery ever happens:
+
+     @negatives = -« @positives;
+
+     @positions»++;            # Increment all positions
+
+     @positions.»++;           # Same thing, dot form
+     @positions».++;           # Same thing, dot form
+     @positions.».++;          # Same thing, dot form
+     @positions\  .»\  .++;    # Same thing, unspace form
+
+     @objects.».run();
+     ("f","oo","bar").>>.chars;   # (1,2,3)
+
+Note that method calls are really postfix operators, not infix, so you
+shouldn't put a C<«> after the dot.
+
+Hyper operators are defined recursively on shaped arrays, so:
+
+    -« [[1, 2], 3]               #    [-«[1, 2], -«3]
+                                 # == [[-1, -2], -3]
+
+Likewise the dwimminess of dwimmy infixes propagates:
+
+    [[1, 2], 3] «+» [4, [5, 6]]  #    [[1,2] «+» 4, 3 «+» [5, 6]]
+                                 # == [[5, 6], [8, 9]]
+
+More generally, a dwimmy hyper operator works recursively for any object
+matching the C<Each> role even if the object itself doesn't support
+the operator in question:
+
+    Bag(3,8,[2,Seq(9,3)],8) >>->> 1;         # Bag(2,7,[1,Seq(8,2)],7)
+    Seq(3,8,[2,Seq(9,3)],8) >>->> (1,1,2,1); # Seq(2,7,[0,Seq(7,1)],7)
+
+In particular, tree node types with C<Each> semantics enable visitation:
+
+    $tree.».foo;        # short for $tree.foo, $tree.each: { .».foo }
+
+If not all nodes support the operation, you need a form of it that
+specifies the call is optional:
+
+    $tree.».?foo;       # short for $tree.?foo, $tree.each: { .».?foo }
+    $tree.».*foo;       # short for $tree.*foo, $tree.each: { .».*foo }
+
+You are not allowed to define your own hyper operators, because they
+are supposed to have consistent semantics derivable entirely from
+the modified scalar operator.  If you're looking for a mathematical
+vector product, this isn't where you'll find it.  A hyperoperator
+is one of the ways that you can promise to the optimizer that your
+code is parallelizable.  (The tree visitation above is allowed to
+have side effects, but it is erroneous for the meaning of those side
+effects to depend on the order of visitation in any way.  Hyper tree
+visitation is not required to follow DAG semantics, at least by default.)
+
+Even in the absence of hardware that can do parallel processing,
+hyperoperators may be faster than the corresponding scalar operators
+if they can factor out looping overhead to lower-level code, or
+can apply loop-unrolling optimizations, or can factor out some or
+all of the MMD dispatch overhead, based on the known types of the
+operands (and also based on the fact that hyper operators promise
+no interaction among the "iterations", whereas the corresponding
+scalar operator in a loop cannot make the same promise unless all
+the operations within the loop are known to be side-effect free.)
+
+In particular, infix hyperops on two C<int> or C<num> arrays need
+only do a single MMD dispatch to find the correct function to call for
+all pairs, and can further bypass any type-checking or type-coercion
+entry points to such functions when there are known to be low-level
+entry points of the appropriate type.  (And similarly for unary C<int>
+or C<num> ops.)
+
+Application-wide analysis of finalizable object types may also enable
+such optimizations to be applied to C<Int>, C<Num>, and such.  In the
+absence of that, run-time analysis of partial MMD dispatch may save
+some MMD searching overhead.  Or particular object arrays might even
+keep track of their own run-time type purity and cache partial MMD
+dispatch tables when they know they're likely to be used in hyperops.
+
+Beyond all that, "array of scalar" types are known at compile time not to
+need recursive hypers, so the operations can be vectorized aggressively.
+
+Hypers may be applied to hashes as well as to lists.  In this case
+"dwimminess" says whether to ignore keys that do not exist
+in the other hash, while "non-dwimminess" says to use all keys that are
+in either hash.  That is,
+
+    %foo «+» %bar;
+
+gives you the intersection of the keys, while
+
+    %foo »+« %bar;
+
+gives you the union of the keys.  Asymmetrical hypers are also useful;
+for instance, if you say:
+
+    %outer »+» %inner;
+
+only the %inner keys that already exist in %outer will occur in the result.
+Note, however, that you want
+
+    %outer »+=« %inner;
+
+in order to pass accumulated statistics up a tree, assuming you want %outer
+to have the union of keys.
+
+Unary hash hypers and binary hypers that have only one hash operand
+will apply the hyper operator to just the values but return a new
+hash value with the same set of keys as the original hash.
+
+=head2 Reduction operators
+
+The fourth metaoperator in Perl 6 is the reduction operator.  Any
+infix operator (except for non-associating operators)
+can be surrounded by square brackets in term position to
+create a list operator that reduces using that operation:
+
+    [+] 1, 2, 3;      # 1 + 2 + 3 = 6
+    my @a = (5,6);
+    [*] @a;           # 5 * 6 = 30
+
+As with all the metaoperators, space is not allowed inside.  The whole
+thing parses as a single token.
+
+A reduction operator has the same precedence as a list operator.  In fact,
+a reduction operator really is a list operator, and is invoked as one.
+Hence, you can implement a reduction operator in one of two ways.  Either
+you can write an explicit list operator:
+
+    proto prefix:<[+]> (*@args) {
+        my $accum = 0;
+        while (@args) {
+            $accum += @args.shift();
+        }
+        return $accum;
+    }
+
+or you can let the system autogenerate one for you based on the
+corresponding infix operator, probably by currying:
+
+    # (examples, actual system may define prefix:[**] instead)
+    &prefix:<[*]> ::= &reduce.assuming(&infix:<*>, 1);
+    &prefix:<[**]> ::= &reducerev.assuming(&infix:<**>);
+
+As a special form of name, the non-prefix notation, as in
+
+    proto [foo] (*@args) {
+        ...
+    }
+
+or
+
+    &[foo] ::= ...
+
+defines both the C<[foo]> reduce operator and the C<foo> infix operator.
+Where appropriate, use of the infix form may be optimized like this:
+
+    # Original          # Optimized
+    $a foo $b           # [foo] $a, $b
+    $a foo $b foo $c    # [foo] $a, $b, $c
+
+(Note that any infix generated with C<::=> will default to the precedence
+of C<+>.  When that is not desired you must use C<is equiv>.  See S06.)
+
+If the reduction operator is defined separately from the infix operator,
+it must associate the same way as the operator used:
+
+    [-] 4, 3, 2;      # 4-3-2 = (4-3)-2 = -1
+    [**] 4, 3, 2;     # 4**3**2 = 4**(3**2) = 262144
+
+For chain-associative operators (like C<< < >>), all arguments are taken
+together, just as if you had written it out explicitly:
+
+    [<] 1, 3, 5;      # 1 < 3 < 5
+
+If fewer than two arguments are given, a dispatch is still attempted
+with whatever arguments are given, and it is up to the receiver of that
+dispatch to deal with fewer than two arguments.  Note that the proto
+list operator definition is the most general, so you are allowed to define
+different ways to handle the one argument case depending on type:
+
+    multi prefix:<[foo]> (Int $x) { 42 }
+    multi prefix:<[foo]> (Str $x) { fail "Can't foo a single Str" }
+
+However, the zero argument case cannot be defined this way, since there
+is no type information to dispatch on.  Operators that wish to specify an
+identity value should do so by specifying a multi variant that takes zero
+arguments:
+
+    multi prefix:<[foo]> () { 0 }
+
+Among the builtin operators, C<[+]()> returns 0 and C<[*]()> returns 1,
+for instance.
+
+By default, if there is one argument, the built-in reduce operators
+return that one argument.  However, this default doesn't make sense
+for operators like C<< < >> that don't return the same type as they
+take, so these kinds of operators overload the single-argument case
+to return something more meaningful.  All the comparison operators
+return a boolean for either 1 or 0 arguments.  Negated operators
+return C<Bool::False>, and all the rest return C<Bool::True>.
+
+You can also make a reduce operator of the comma operator.  This is just
+the list operator form of the C<< circumfix:<[ ]> >> anonymous array composer:
+
+    [1,2,3]     # make new Array: 1,2,3
+    [,] 1,2,3   # same thing
+
+You may also reduce using the semicolon second-dimension separator:
+
+    [[;] 1,2,3]   # equivalent to [1;2;3]
+
+Builtin reduce operators return the following identity values:
+
+    [**]()      # 1     (arguably nonsensical)
+    [*]()       # 1
+    [/]()       # fail  (reduce is nonsensical)
+    [%]()       # fail  (reduce is nonsensical)
+    [x]()       # fail  (reduce is nonsensical)
+    [xx]()      # fail  (reduce is nonsensical)
+    [+&]()      # -1    (from +^0, the 2's complement in arbitrary precision)
+    [+<]()      # fail  (reduce is nonsensical)
+    [+>]()      # fail  (reduce is nonsensical)
+    [~&]()      # fail  (sensical but 1's length indeterminate)
+    [~<]()      # fail  (reduce is nonsensical)
+    [~>]()      # fail  (reduce is nonsensical)
+    [+]()       # 0
+    [-]()       # 0
+    [~]()       # ''
+    [+|]()      # 0
+    [+^]()      # 0
+    [~|]()      # ''    (length indeterminate but 0's default)
+    [~^]()      # ''    (length indeterminate but 0's default)
+    [&]()       # all()
+    [|]()       # any()
+    [^]()       # one()
+    [!==]()     # Bool::False   (also for 1 arg)
+    [==]()      # Bool::True    (also for 1 arg)
+    [before]()  # Bool::True    (also for 1 arg)
+    [after]()   # Bool::True    (also for 1 arg)
+    [<]()       # Bool::True    (also for 1 arg)
+    [<=]()      # Bool::True    (also for 1 arg)
+    [>]()       # Bool::True    (also for 1 arg)
+    [>=]()      # Bool::True    (also for 1 arg)
+    [~~]()      # Bool::True    (also for 1 arg)
+    [!~~]()     # Bool::False   (also for 1 arg)
+    [eq]()      # Bool::True    (also for 1 arg)
+    [!eq]()     # Bool::False   (also for 1 arg)
+    [lt]()      # Bool::True    (also for 1 arg)
+    [le]()      # Bool::True    (also for 1 arg)
+    [gt]()      # Bool::True    (also for 1 arg)
+    [ge]()      # Bool::True    (also for 1 arg)
+    [=:=]()     # Bool::True    (also for 1 arg)
+    [!=:=]()    # Bool::False   (also for 1 arg)
+    [===]()     # Bool::True    (also for 1 arg)
+    [!===]()    # Bool::False   (also for 1 arg)
+    [eqv]()     # Bool::True    (also for 1 arg)
+    [!eqv]()    # Bool::False   (also for 1 arg)
+    [&&]()      # Bool::True
+    [||]()      # Bool::False
+    [^^]()      # Bool::False
+    [//]()      # undef
+    [min]()     # +Inf
+    [max]()     # -Inf
+    [=]()       # undef    (same for all assignment operators)
+    [,]()       # []
+    [Z]()       # []
+
+User-defined operators may define their own identity values, but
+there is no explicit identity property.  The value is implicit in the
+behavior of the 0-arg reduce, so mathematical code wishing to find
+the identity value for an operation can call C<prefix:{"[$opname]"}()>
+to discover it.
+
+To call some other non-infix function as a reduce operator, you may
+define an alias in infix form.  The infix form will parse the right
+argument as an item even if the aliased function would have parsed it
+as a list:
+
+    &infix:<dehash> ::= postcircumfix:<{ }>;
+    $x = [dehash] $a,'foo','bar';  # $a<foo><bar>, not $a<foo bar>
+
+Alternately, just define your own C<< prefix:<[dehash]> >> routine.
+
+Note that, because a reduce is a list operator, the argument list is
+evaluated in list context.  Therefore the following would be incorrect:
+
+    $x = [dehash] %a,'foo','bar';
+
+You'd instead have to say one of:
+
+    $x = [dehash] \%a,'foo','bar';
+    $x = [dehash] %a<foo>,'bar';
+
+On the plus side, this works without a star:
+
+    @args = (\%a,'foo','bar');
+    $x = [dehash] @args;
+
+Likewise, from the fact that list context flattens inner arrays and
+lists, it follows that a reduced assignment does no special syntactic
+dwimmery, and hence only scalar assignments are supported.  Therefore
+
+    [=] $x, @y, $z, 0
+    [+=] $x, @y, $z, 1
+
+are equivalent to
+
+    $x = @y[0] = @y[1] = @y[2] ... @y[*-1] = $z = 0
+    $x += @y[0] += @y[1] += @y[2] ... @y[*-1] += $z += 1
+
+rather than
+
+    $x = @y = $z = 0;
+    $x += @y += $z += 1;
+
+(And, in fact, the latter are already easy to express anyway,
+and more obviously nonsensical.)
+
+Similarly, list-associative operators that have the thunk-izing characteristics of
+macros (such as short-circuit operators) lose those macro-like characteristics.
+You can say
+
+    [||] a(), b(), c(), d()
+
+to return the first true result, but the evaluation of the list is controlled
+by the semantics of the list, not the semantics of C<||>.
+
+Most reduce operators return a simple scalar value, and hence do not care
+whether they are evaluated in item or list context.  However, as with
+other list operators and functions, a reduce operator may return a list
+that will automatically be interpolated into list context, so you may
+use it on infix operators that operate over lists as well as scalars:
+
+    my ($min, $max) = [minmax] @minmaxpairs;
+
+A variant of the reduction metaoperator is pretty much guaranteed
+to produce a list; to lazily generate all intermediate results along
+with the final result, you can backslash the operator:
+
+    say [\+] 1..*  #  (1, 3, 6, 10, 15, ...)
+
+The visual picture of a triangle is not accidental.  To produce a triangular
+list of lists, you can use a "triangular comma":
+
+    [\,] 1..5
+    [1],
+    [1,2],
+    [1,2,3],
+    [1,2,3,4],
+    [1,2,3,4,5]
+
+If there is ambiguity between a triangular reduce and an infix operator
+beginning with backslash, the infix operator is chosen, and an extra backslash
+indicates the corresponding triangular reduce.  As a consequence, defining an
+infix operator beginning with backslash, C<< infix:<\x> >> say, will make it
+impossible to write certain triangular reduction operators, since C<[\x]> would
+mean the normal reduction of C<< infix:<\x> >> operator, not the triangular
+reduction of C<< infix:<x> >>.  This is deemed to be an insignificant problem.
+
+=head2 Cross operators
+
+The final metaoperator is the cross metaoperator.  It is formed syntactically
+by placing an infix operator between two C<X> characters.  It applies the
+modified operator across all groupings of its list arguments as returned
+by the ordinary C<< infix:<X> >> operator.  All
+cross operators are of list infix precedence, and are list associative.
+
+The string concatenating form is:
+
+    <a b> X~X <1 2>           #  'a1', 'a2', 'b1', 'b2'
+
+The C<X~X> operator desugars to something like:
+
+    [~]«( <a b> X,X <1 2> )  #  'a1', 'a2', 'b1', 'b2'
+
+The list concatenating form, C<X,X>, when used like this:
+
+    <a b> X,X 1,2 X,X <x y>
+
+produces
+
+    ('a', 1, 'x'),
+    ('a', 1, 'y'),
+    ('a', 2, 'x'),
+    ('a', 2, 'y'),
+    ('b', 1, 'x'),
+    ('b', 1, 'y'),
+    ('b', 2, 'x'),
+    ('b', 2, 'y')
+
+The list form is common enough to have a shortcut, the ordinary infix
+C<X> operator described earlier.
+
+For the general form, any existing, non-mutating infix operator
+may be used.
+
+    1,2 X*X 3,4               # 3,4,6,8
+
+(Note that C<< <== >> and C<< ==> >> are considered mutating, as well as
+all assignment operators.)
+
+If the underlying operator is non-associating, so is the metaoperator:
+
+    @a XcmpX @b XcmpX @c       # ILLEGAL
+    @a XeqX @b XeqX @c         # ok
+
+In fact, though the C<X> operators are all list associative
+syntactically, the underlying operator is always applied with its
+own associativity, just as the corresponding reduce operator would do.
+
+Note that only the first term of an C<X> operator may reasonably be
+an infinite list.
+
+Multidimensional lists should be handled properly.
+
+=head2 Nesting of metaoperators
+
+In order to match operators by the longest-token rule, the
+compiler pregenerates various metaforms based on existing operators.
+Unfortunately, with nesting metaoperators there are an infinite number
+of metaforms, so we arbitrarily say that no metacircumfix form is
+pregenerated that uses the same grammatical category more than once.
+Therefore forms like C<[+=]> and C<»!===«> and C<X*X=> are generated,
+but not forms like C<»X*X«> or C<X«*»X> or C<<< <<+=>>= >>>.
+You do get C<[X*X]>,
+though, because reduction is prefix_circumfix_meta_operator while
+cross operators are infix_circumfix_meta_operator.
+
+This use-each-category-once limitation is not a great hardship since
+you can define your own infix operators.  Suppose you say
+
+    &infix:<xp> ::= &infix:<X*X>;
+
+After this you can use C<XxpX>, C<[xp]>, and C<[«xp»=]«> as if C<xp>
+were a built-in.  Not that any of those necessarily make sense...
+
+The compiler is not actually required to pregenerate the metaform
+tokens as long as it can guarantee the same semantics, that is,
+that it follows the longest-token rule across all syntax categories
+active at that spot in the parse.  This could be achieved by use
+of a DFA parser (or exhaustive NFA matcher) to guarantee longest
+match of the generatable forms, for instance, followed by a check
+to make sure it is not trumped by an even longer "hardwired" token.
+Suppose the user were to define, say, C<< infix:<XxX!#@$> >> or
+C<< statement_modifier:<XxXfor> >>; those hardwired forms must take
+precedence over the C<XxX> operator even if the metaform DFA only
+knows how to recognize the C<XxX> part.
+
+Note that the maximum possible token length is bounded by the sum
+of the maximum lengths of each metacategory, so an enumerated solution
+is always possible, though perhaps not practical.  It's also the case
+that no metaform is allowed to contain whitespace, so a solution
+that starts at the length of the current "word" and works down is also
+possible.
+
+=head1 Declarators
+
+The list of variable declarators has expanded from C<my> and C<our>
+to include:
+
+    my $foo             # ordinary lexically scoped variable
+    our $foo            # lexically scoped alias to package variable
+    has $foo            # object attribute
+    state $foo          # persistent lexical (cloned with closures)
+    constant $foo       # lexically scoped compile-time constant
+
+Variable declarators such as C<my> now take a I<signature> as their
+argument.  (The syntax of function signatures is described more fully in S06.)
+
+The parentheses around the signature may be omitted for a
+simple declaration that declares a single variable, along with its
+associated type, traits and the initializer:
+
+    constant Dog $foo is woof = 123;    # okay: initializes $foo to 123
+    constant (Dog $foo is woof = 123);  # same thing (with explicit parens)
+    constant :(Dog $foo is woof = 123); # same thing (full Signature form)
+    constant (Dog $foo is woof) = 123;  # wrong: constants cannot be assigned to
+
+Each declarator can take an initializer following an equals
+sign (which should not be confused with a normal assignment, because
+the timing of the initialization depends on the natural lifetime of the
+container, which in turn depends on which declarator you use).
+
+    my $foo = 1;         # happens at the same time as normal assignment
+    our $foo = 1;        # happens at INIT time
+    has $foo = 1;        # happens at BUILD time
+    state $foo = 1;      # happens at START time
+    constant $foo = 1;   # happens at BEGIN time
+
+(Note that the semantics of C<our> are different from Perl 5, where the
+initialization happens at the same time as a C<my>.  To get the same
+effect in Perl 6 you'd have to say "c<(our $foo) = 1;>" instead.)
+
+If you do not initialize a container, it starts out undefined at the
+beginning of its natural lifetime.  (In other words, you can't use
+the old Perl 5 trick of "C<my $foo if 0>" to get a static variable,
+because a C<my> variable starts out uninitialized every time through
+in Perl 6 rather than retaining its previous value.)  Native integer
+containers that do not support the concept of undefined should be
+initialized to 0 instead.  (Native floating-point containers are
+by default initialized to C<NaN>.)  Typed object containers start
+out containing an undefined protoobject of the correct type.
+
+List-context pseudo-assignment is supported for simple declarations but
+not for signature defaults:
+
+    constant @foo = 1,2,3;      # okay: initializes @foo to (1,2,3)
+    constant (@foo = 1,2,3);    # wrong: 2 and 3 are not variable names
+
+When parentheses are omitted, you may use any infix assignment operator
+instead of C<=> as the initializer.  In that case, the left hand side of
+the infix operator will be the variable's prototype object:
+
+    constant Dog $fido .= new;      # okay: a constant Dog object
+    constant Dog $fido = Dog.new;   # same thing
+    constant Dog $fido = $fido.new; # wrong: invalid self-reference
+    constant (Dog $fido .= new);    # wrong: cannot use .= with parens
+
+Note that very few mutating operators make sense on a protoobject, however,
+since protoobjects are a kind of undefined object.
+
+Parentheses must always be used when declaring multiple parameters:
+
+    my $a;                  # okay
+    my ($b, $c);            # okay
+    my ($b = 1, $c = 2);    # okay - "my" intializers assign at runtime
+    my $b, $c;              # wrong: "Use of undeclared variable: $c"
+
+Types occurring between the declarator and the signature are distributed into
+each variable:
+
+    my Dog ($b, $c);
+    my (Dog $b, Dog $c);    # same thing
+
+[XXX the following probably belongs in S06.]
+The syntax for constructing a C<Signature> object when the parser isn't already
+expecting one is:
+
+    :(Dog $a, *@c)
+
+This might be used like this:
+
+    my $sig = :(Dog $a, *@c);
+
+Signatures are expected after declarators such as C<my>, C<sub>, C<method>,
+C<rule>, etc.  In such declarators the colon may be omitted.  But it's
+also legal to use it:
+
+    my :($b, $c);               # okay
+    sub foo :($a,$b) {...}      # okay
+
+The C<< -> >> "pointy block" token also introduces a signature, but
+in this case you must omit both the colon and the parens.  For instance,
+if you're defining the "loop variable" of a loop block:
+
+    for @dogpound -> Dog $fido { ... }
+
+If a signature is assigned to (whether declared or colon form), the
+signature is converted to a list of lvalue variables and the ordinary
+rules of assignment apply, except that the evaluation of the right
+side and the assignment happens at time determined by the declarator.
+(With C<my> this is always when an ordinary assignment would happen.)
+If the signature is too complicated to convert to an assignment,
+a compile-time error occurs.  Assignment to a signature makes the
+same item/list distinction as ordinary assignment, so
+
+    my $a = foo();      # foo in item context
+    my ($a) = foo();    # foo in list context
+
+If a signature is bound to an argument list, then the binding of the
+arguments proceeds as if the signature were the formal parameters for
+a function, except that, unlike in a function call, the parameters
+are bound C<rw> by default rather than C<readonly>.  See Binding above.
+
+Note that C<temp> and C<let> are I<not> variable declarators, because
+their effects only take place at runtime.  Therefore, they take an ordinary
+lvalue object as their argument.  See S04 for more details.
+
+There are a number of other declarators that are not variable
+declarators.  These include both type declarators:
+
+    package Foo
+    module Foo
+    class Foo
+    role Foo
+    subset Foo
+
+and code declarators:
+
+    sub foo
+    method foo
+    submethod foo
+    multi foo
+    proto foo
+    macro foo
+    quote qX
+    regex foo
+    rule foo
+    token foo
+
+These all have their uses and are explained in subsequent Synopses.
+
+=head1 Argument List Interpolating
+
+Perl 5 forced interpolation of a function's argument list by use of
+the C<&> prefix.  That option is no longer available in Perl 6, so
+instead the C<|> prefix operator serves as an
+interpolator, by casting its operand to a C<Capture> object
+and inserting the capture's parts into the current argument list.
+This operator can be used to interpolate an C<Array> or C<Hash>
+into the current call, as positional and named arguments respectively.
+
+Note that the resulting arguments still must comply with the subroutine's
+signature, but the presence of C<|> defers that test until run time for
+that argument (and for any subsequent arguments):
+
+    my @args := [item @foo, @bar];
+    push |@args;
+
+is equivalent to:
+
+    push @foo: @bar;
+
+which is just another way to write:
+
+    @foo.push(@bar);
+
+Unlike C<[,]>, C<|> does not turn its argument into an C<Array>, but instead directly
+converts its argument into a C<Capture>:
+
+    my @args = \$x, 1, 2, 3;
+    say [,] @args;  # say([\$x, 1, 2, 3]);
+    say |@args;     # say(\$x, 1, 2, 3);
+
+Because of this, C<|%args> always produces named arguments, and
+C<|@args> always produces positional arguments.
+
+In list context, a C<Scalar> holding an C<Array> object does not flatten.  Hence
+
+    $bar = @bar;
+    @foo.push($bar);
+
+merely pushes a single C<Array> object onto C<@foo>.  You can
+explicitly flatten it in one of these ways:
+
+    @foo.push(@$bar);
+    @foo.push($bar[]);
+    @foo.push(|$bar);
+
+Those three forms work because the slurpy array in C<push>'s signature
+flattens the C<Array> object into a list argument.
+
+Note that the first two forms also allow you to specify list context on
+assignment:
+
+    @$bar = 1,2,3;
+    $bar[] = 1,2,3;
+
+For long expressions that need to be cast to an array lvalue, the
+second form can keep the "arrayness" of the lvalue close to the
+assignment operator:
+
+    $foo.bar.baz.bletch.whatever.attr[] = 1,2,3;
+
+Otherwise you'd have to write:
+
+    @($foo.bar.baz.bletch.whatever.attr) = 1,2,3;
+
+and remember the C<@> at the front until you get to the C<=>.
+
+The empty C<[]> and C<.[]> postfix operators are interpreted as a
+zero-dimensional slice returning the entire array, not as a one-dimensional
+null slice returning no elements.  Likewise for C<{}> and C<.{}> on hashes,
+as well as the C<< <> >>, C<< .<> >>, C<«»>, and C<.«»> constant and
+interpolating slice subscripting forms.
+
+The C<|> operator interpolates lazily for C<Array> and C<Range> objects.
+To get an immediate interpolation like Perl 5 does, add the C<eager> list
+operator:
+
+    func(|(1..Inf));       # works fine
+    func(|eager 1..Inf);   # never terminates (well, actually...)
+
+To interpolate a function's return value, you can say:
+
+    push |func();
+
+Within such an argument list, function return values are
+automatically exploded into their various parts, as if you'd said:
+
+    my $capture = \(func());
+    push $$capture: @$capture, %$capture;
+
+or some such.  The C<|> then handles the various zones appropriately
+depending on the context.  An invocant only makes sense as the first
+argument to the outer function call.  An invocant inserted anywhere
+else just becomes a positional argument at the front of its list,
+as if its colon changed back to a comma.
+
+If you already have a capture variable, you can interpolate all of
+its bits at once using the C<< prefix:<|> >> operator:
+
+    my (|$capture) := func();
+    push |$capture;
+
+=head1 Traversing arrays in parallel
+
+In order to support parallel iteration over multiple arrays, Perl 6
+has a C<zip> function that builds a list of C<Seq> objects from the
+elements of two or more arrays.  In ordinary list context this behaves
+as a list of C<Captures> and automatically flattens.
+
+    for zip(@names; @codes) -> $name, $zip {
+        print "Name: $name;   Zip code: $zip\n";
+    }
+
+C<zip> has an infix synonym, the C<Z> operator.
+
+In an explicitly multidimensional list context, however, the sequences
+turn into subarrays, and each element would then have to be unpacked
+by the signature:
+
+    for @@(zip(@names; @codes)) -> [$name, $zip] {
+        print "Name: $name;   Zip code: $zip\n";
+    }
+
+By default the C<zip> function reads to the end of the shortest list,
+but a short list may always be extended arbitrarily by putting C<*>
+after the final value, which replicates the final value as many times
+as necessary.  If instead of supplying a default value for short lists,
+you just wish to skip missing entries, use C<roundrobin> instead:
+
+    for roundrobin(@queue1; @queue2; @queue3) -> $next {
+        ...
+    }
+
+To read arrays serially rather than in parallel, use C<list(@x;@y)>.
+This wins a "useless use of list award" in this case since you could
+always just write C<(@x,@y)> to mean the same thing.  But sometimes
+it's nice to be explicit about that:
+
+    @foo := [[1,2,3],[4,5,6]]; say list([;] @foo); # 1,2,3,4,5,6
+
+=head1 Minimal whitespace DWIMmery
+
+Whitespace is no longer allowed before the opening bracket of an array
+or hash subscript, or the opening parenthesis of an argument list.  That is:
+
+    @deadbeef[$x]         # okay
+    @a       [$b]         # WRONG
+    %monsters{'cookie'}   # okay
+    %people  {'john'}     # WRONG
+    saymewant('cookie')   # okay
+    mewant   ('cookie')   # WRONG
+
+One of the several useful side-effects of this restriction is that
+parentheses are no longer required around the condition of control
+constructs:
+
+    if $value eq $target {
+        print "Bullseye!";
+    }
+    while $i < 10 { $i++ }
+
+It is, however, still possible to align subscripts and other postfix
+operators by explicitly using the I<unspace> syntax (see S02):
+
+     %monsters.{'cookie'} = Monster.new;
+     %beatles\.{'ringo'}  = Beatle.new;
+     %people\ .{'john'}   = Person.new;
+     %cats\   .{'fluffy'} = Cat.new;
+
+Whitespace is in general required between any keyword and any opening
+bracket that is I<not> introducing a subscript or function arguments.
+Any keyword followed directly by parentheses will be taken as a
+function call instead.
+
+    if $a == 1 { say "yes" }            # preferred syntax
+    if ($a == 1) { say "yes" }          # P5-ish if construct
+    if($a,$b,$c)                        # if function call
+
+It is possible for C<if()> to also invoke a macro call, but if so, it's a
+C<< prefix:<if> >> macro rather than a C<< statement_control:<if> >> macro.
+
+=head1 Sequence points
+
+Certain operators are guaranteed to provide I<sequence points>.
+Sequence points are guaranteed whenever some thunk (a lazy chunk of code) is
+conditionally evaluated based on the result of some other evaluation,
+so the short-circuit and conditional operators all provide sequence
+points.
+
+Certain other operators guarantee the I<absence> of sequence points,
+including junctional operators, hyperoperators, and feed operators.
+These operators promise the compiler that you consider the bits of
+code not to be dependent on each other so that they can operate
+in parallel if they like.
+
+A large number of operators (such as C<+>) are stuck in the middle,
+and may exhibit sequential behavior today, but might not tomorrow.
+A program that relies on either sequential or parallel behavior for one
+of these operators is erroneous.  As we get more feedback from people
+writing parallelizing optimizers, we reserve the right to classify
+various of the unclassified operators into one of the two specified
+sets.  (We need to give these three sets of operators good names.)
+
+
+=for vim:set expandtab sw=4:

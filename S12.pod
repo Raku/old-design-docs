@@ -1,0 +1,2091 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 12: Objects
+
+=head1 AUTHOR
+
+Larry Wall <larry@wall.org>
+
+=head1 VERSION
+
+  Maintainer: Larry Wall <larry@wall.org>
+  Date: 27 Oct 2004
+  Last Modified: 7 Nov 2008
+  Number: 12
+  Version: 65
+
+=head1 Overview
+
+This synopsis summarizes Apocalypse 12, which discusses object-oriented
+programming.
+
+=head1 Classes
+
+A class is a module declared with the C<class> keyword.  As with
+modules, the public storage, interface, and name of the class is
+represented by a package and its name, which is usually (but not
+necessarily) a global name.
+
+Taken as an object, a class represents all of the possible values of
+its type, and the class object can thus be used as a proxy for any
+"real" object of that type in calculating what a generic object of
+that type can do.  The class object is an Object, but it is not a
+Class, because there is no mandatory Class class in Perl 6.  We wish
+to support both class-based and prototype-based OO programming.
+So all metaprogramming is done through the current object's C<HOW>
+object, which can delegate metaprogramming to any metamodel it likes.
+However, by default, objects derived from Object support a fairly
+standard class-based model.
+
+There are two basic class declaration syntaxes:
+
+    class Foo;          # rest of file is class definition
+    ...
+
+    class Bar {...}     # block is class definition
+
+The first form is allowed only as the first declaration in a compilation
+unit (that is, file or eval string).
+
+In either case, the code represented by C<...> executes at compile
+time as the body of a method of the metaclass, which is responsible
+for interpreting the keywords of the class definition.  (And since a
+class is also a module, it also handles any module-oriented keywords.
+You can export subs from a class at "use" time, for instance.)
+
+A named class declaration can occur as part of an expression, just like
+named subroutine declarations.
+
+Classes are primarily for instance management, not code reuse.
+Consider using C<roles> when you simply want to factor out
+common code.
+
+Perl 6 supports multiple inheritance, anonymous classes, and autoboxing.
+
+All public method calls are "virtual" in the C++ sense.  More
+surprisingly, any class name mentioned in a method is also considered
+virtual, that is, polymorphic on the actual type of the object.
+
+You may derive from any built-in type, but the derivation of a low-level
+type like C<int> may only add behaviors, not change the representation.
+Use composition and/or delegation to change the representation.
+
+Since there are no barewords in Perl 6, bare class names must be
+predeclared.  You can predeclare a stub class and fill it in later
+just as you would a subroutine.  Alternately, you can define a local
+class or type variable using the C<::> type sigil.  In an rvalue
+context the C<::> prefix is a no-op, but in a declarational context,
+it binds a new type name within its declared scope.
+
+Without a C<my> or other scoping declarator, a bare C<class>
+declarator declares an C<our> declarator, that is, a name within
+the current package.  Since class files begin parsing in the C<*>
+(C<GLOBAL>) package, the first class declaration in the file installs
+itself as a global name, and subsequent declarations then install
+themselves into the current class rather than the global package.
+
+Hence, to declare an inner class in the current package (or module, or
+class), use C<our class> or just C<class>.  To declare a lexically
+scoped class, use C<my class>.  Class names are always searched
+for from innermost scopes to outermost.  As with an initial C<::>,
+the presence of a C<::> within the name does not imply globalness
+(unlike in Perl 5).  So the outward search can look in children
+of the searched namespaces.
+
+Class traits are set using C<is>:
+
+    class MyStruct is rw {...}
+
+An "isa" is just a trait that happens to be another class:
+
+    class Dog is Mammal {...}
+
+MI is specified with multiple C<is> modifiers:
+
+    class Dog is Mammal is Pet {...}
+
+Roles use C<does> instead of C<is>:
+
+    class Dog is Mammal does Pet {...}
+
+You may put these inside as well:
+
+    class Dog {
+        is Mammal;
+        does Pet;
+        ...
+    }
+
+Every object (including any class object) delegates to an instance of
+its metaclass.  You can get at the metaclass of any object via the
+C<HOW> method, which returns an instance of the metaclass.  A "class" object is just considered an "empty"
+instance in Perl 6, more properly called a "prototype" object, or just
+"protoobject".
+The actual class object is the metaclass object pointed to by the
+C<HOW> syntax.  So when you say "C<Dog>", you're referring to both a
+package and a protoobject, that latter of which points to the
+actual object representing the class via C<HOW>.  The protoobject
+differs from an instance object not by having a different
+type but rather in the extent to which it is defined.  Some objects
+may tell you that they are defined, while others may tell you that
+they are undefined.  That's up to the object, and depends on how the
+metaclass chooses to dispatch the C<.defined> method.
+
+The notation C<^Dog> is syntactic sugar for C<Dog.HOW()>, so C<^> can be
+considered the "class" sigil when you want to talk about the current
+metaclass instance.
+
+Classes are open and non-final by default, but may easily be closed
+or finalized not by themselves but by the entire application, provided
+nobody issued an explicit compile-time request that the class stay open
+or non-final.  (Or a site policy could close any applications that use
+the policy.)  Platforms that do dynamic loading of sub-applications
+probably don't want to close or finalize classes wholesale, however.
+
+Roles take on some of the compile-time function of closed classes,
+so you should probably use those instead anyway.
+
+A private class can be declared using C<my>; most privacy issues are
+handled with lexical scoping in Perl 6.  The fact that importation
+is lexical by default also means that any names your class imports
+are also private by default.
+
+=head1 Methods
+
+Methods are routines declared in a class with the C<method> keyword:
+
+    method doit ($a, $b, $c) { ... }
+    method doit ($self: $a, $b, $c) { ... }
+    method doit (MyName $self: $a, $b, $c) { ... }
+    method doit (::?CLASS $self: $a, $b, $c) { ... }
+
+Declaration of the invocant is optional.  You may always access the
+current invocant using the keyword C<self>.  You need not declare the
+invocant's type, since the lexical class of the invocant is known in any
+event because methods must be declared in the class of the invocant,
+though of course the actual (virtual) type may be a derived type of
+the lexical type.  You could declare a more restrictive type, but
+that would probably be a bad thing for proper polymorphism.  You may
+explicitly type the invocant with the lexical type, but any check for
+that will be optimized away.  (The current lexically-determined class
+may always be named as C<::?CLASS> even in anonymous classes or roles.)
+
+To mark an explicit invocant, just put a colon after it:
+
+    method doit ($x: $a, $b, $c) { ... }
+
+This is true also for multi methods:
+
+    multi method doit ($x: $a; $b; $c) { ... }
+
+If you declare an explicit invocant for an Array type using an array variable,
+you may use that directly in list context to produce its elements
+
+    method push3 (@x: $a, $b, $c) { ... any(@x) ... }
+
+Note that the C<self> function is not context sensitive and thus always
+returns the current object as a single item even in list context.
+Hence if your current object happens to be an array but you did not
+declare it with an explicit array variable. you need to explicitly
+access the elements of the array somehow:
+
+    any(self)     # WRONG
+    any(self[])   # okay
+    any(@(self))  # okay
+    any(@self)    # WRONG unless you declared @self yourself
+
+Private methods are declared using C<my>:
+
+    my method think (Brain $self: $thought)
+
+(Such methods are completely invisible to ordinary method calls, and are
+in fact called with a different syntax that uses C<!> in place of the C<.>
+character.  See below.)
+
+To call an ordinary method with ordinary method-dispatch semantics,
+use either the dot notation or indirect object notation:
+
+    $obj.doit(1,2,3)
+    doit $obj: 1,2,3
+
+Indirect object notation now requires a colon after the invocant,
+even if there are no arguments after the colon:
+
+    $handle.close;
+    close $handle:;
+
+To reject method call and only consider subs, simply omit the colon
+from the invocation line:
+
+    close($handle);
+    close $handle;
+
+However, here the built-in B<IO> class defines C<method close () is export>,
+which puts a C<multi sub close (IO)> in scope by default.  Thus if the
+C<$handle> evaluates to an IO object, then the two subroutine calls above
+are still translated into method calls.
+
+Dot notation can omit the invocant if it's in C<$_>:
+
+    .doit(1,2,3)
+
+Note that there is no corresponding notation for private methods.
+
+    !doit(1,2,3)        # WRONG, would be parsed as not(doit(1,2,3))
+    self!doit(1,2,3)    # okay
+
+There are several forms of indirection for the method name.  You can
+replace the identifier with a quoted string, and it will be evaluated
+as a quote and then the result of that is used as the method name.
+
+    $obj."$methodname"(1,2,3)   # use contents of $methodname as method name
+    $obj.'$methodname'(1,2,3)   # no interpolation; call method with $ in name!
+
+    $obj!"$methodname"          # indirect call to private method name
+
+[Note: to help catch the mistaken use of C<< infix:<.> >> as a string
+concatenation operator, Perl 6 will warn you about "useless use of
+quotes" at compile time if the string inside quotes is an identifier.
+(It does not warn about non-identifier strings, but such strings are
+likely to produce missing method errors at run time in any case.)
+Also, if there is whitespace around an intended C<.> concatenation,
+it cannot be parsed as a method call at all; instead if fails at
+compile time because standard Perl 6 has a pseudo C<< infix:<.> >> operator
+that always fails at compile time.]
+
+For situations where you already have a method located, you
+can use a simple scalar variable in place of method name:
+
+    $methodobj = $foo ?? &bar !! &baz;
+    $obj.$methodobj(1,2,3)
+
+or more succinctly but less readably:
+
+    $obj.$($foo ?? &bar !! &baz)(1,2,3)
+
+The variable must contain a Code object, that is, a closure of some
+sort.  Regardless of whether the closure was defined as a method or
+a sub or a block, the closure is called directly without any class
+dispatch; from the closure's point of view, however, it is always
+called as a method, with the object as its first argument, and the
+rest of the arguments second, third, and so on.   For instance, such
+a closure may be used to abstract a "navigational" path through a
+data structure without specifying the root of the path till later:
+
+    $locator = -> $root, $x, $y { $root.<foo>[$x]<bar>{$y}[3] }
+    $obj.$locator(42,"baz")  # $obj<foo>[42]<bar><baz>[3]
+
+    $locator = { .<here> }
+    $obj.$locator            # $obj<here>
+
+As a convenient form of documentation, such a closure may also be written
+in the form of an anonymous method:
+
+    $locator = method ($root: $x, $y) { $root.<foo>[$x]<bar>{$y}[3] }
+    $obj.$locator(42,"baz")  # $obj<foo>[42]<bar><baz>[3]
+
+    $locator = method { self.<here> }
+    $obj.$locator            # $obj<here>
+
+Note however that, like any anonymous closure, an anonymous method
+can only be dispatched to directly, like a sub.  You may, of course,
+bind an anonymous method to the name of a method in a class's public
+interface, in which case it is no longer anonymous, and may be
+dispatched to normally via the class.  (And in fact, when the normal
+method dispatcher is calling individual candidates in its candidate
+list, it calls each candidate as a sub, not as a method, or you'd
+end up with recursive dispatchers.)  But fundamentally, there's
+no such thing as a method closure.  The C<method> declarator on an
+anonymous method has the primary effect of making the declaration
+of the invocant optional.  (It also makes it an official C<Routine>
+that can be returned from, just as if you'd used C<sub> to declare it.)
+
+Instead of a scalar variable, an array variable may also be used:
+
+    $obj.@candidates(1,2,3)
+
+As with the scalar variant, each array element must be a Code object,
+but the list is treated as a list of candidates to call.  Note also that
+the 
+
+    $obj.$candidates(1,2,3)
+
+form may dispatch to a list of candidates if $candidates is a special
+C<Code> object representing a partial dispatch to a list of candidates.
+
+Another form of indirection relies on the fact that operators are named
+using a variant on hash subscript notation, which gives you these forms:
+
+    $x.infix:{$op}($y)
+    $x.prefix:{$op}
+    $x.postfix:{$op}
+
+Generally you see these with the literal angle bracket form of subscript:
+
+    $a.infix:<*>($b)      # equivalent to $a * $b
+    $a.prefix:<++>        # equivalent to ++$a
+    $a.postfix:<++>       # equivalent to $a++
+
+If you omit the syntactic category, the call will be dispatched according
+to the number of arguments either as "prefix" or as "infix":
+
+    $a.:<+>($b)           # equivalent to $a + $b
+    $a.:<++>              # equivalent to ++$a
+    $a.:<!>               # equivalent to !$a
+    @a.:<[*]>             # equivalent to [*] @a
+
+But it's probably better to spell out the syntactic category when
+the actual operator is not obvious:
+
+    $x.infix:{$op}($y)
+    $x.prefix:{$op}
+
+You must use a special syntax to call a private method:
+
+    $mybrain!think($pinky)
+    self!think($pinky)
+
+For a call on your own private method, you may also use the attribute-ish form:
+
+    $!think($pinky)     # short for $(self!think($pinky))
+
+Parentheses (or a colon) are required on the dot/bang notations if there
+are any arguments (not counting adverbial arguments).  There may be
+no space between the method name and the left parenthesis unless you
+use the dot form of parentheses or otherwise make use of "unspace":
+
+    .doit       # okay, no arguments
+    .doit()     # okay, no arguments
+    .doit ()    # ILLEGAL (two terms in a row)
+    .doit.()    # okay, no arguments, same as .doit()
+    .doit\ ()   # okay, no arguments, same as .doit() (unspace form)
+    .doit\ .()  # okay, no arguments, same as .doit.() (unspace form)
+
+However, you can turn any of the legal forms above into a list
+operator by appending a colon:
+
+    .doit: 1,2,3        # okay, three arguments
+    .doit(1): 2,3       # okay, one argument plus list
+    .doit (): 1,2,3     # ILLEGAL (two terms in a row)
+    .doit.(1): 2,3      # okay, same as .doit(1,2,3)
+    .doit\ .(1,2): 3    # okay, same as .doit(1,2,3)
+
+In particular, this allows us to pass a closure in addition to the
+"normal" arguments:
+
+    .doit: { $^a <=> $^b }              # okay
+    .doit(): { $^a <=> $^b }            # okay
+    .doit(1,2,3): { $^a <=> $^b }       # okay
+
+In case of ambiguity between indirect object notation and dot form,
+the nearest thing wins:
+
+    dothis $obj.dothat: 1,2,3
+
+means
+
+    dothis ($obj.dothat(1,2,3))
+
+and you must say
+
+    dothis ($obj.dothat): 1,2,3
+
+or
+
+    $obj.dothat.dothis: 1,2,3
+
+if you mean the other thing.
+
+Also note that if any term in a list is a bare closure or pointy
+sub, it will be considered to be the final argument of its list
+unless the closure's right curly is followed immediately by comma
+or colon.  In particular, a method call does *not* extend
+the list, so you can say:
+
+    @list.grep: { $_ % 2 }.map: { $_ - 1 }.say
+
+and that will be taken as equivalent to
+
+    @list.grep({ $_ % 2 }).map({ $_ - 1 }).say
+
+Methods (and subs) may be declared as lvalues with C<is rw>.  You can
+use an argumentless C<rw> method anywhere you can use a variable,
+including in C<temp> and C<let> statements.  (In fact, you can use an
+C<rw> method with arguments as a variable as long as the arguments are
+used only to identify the actual value to change, and don't otherwise
+have strange side effects that differ between rvalue and lvalue usage.
+Setter methods that expect the new value as an argument do not fall
+into the well-behaved category, however.)
+
+Method calls on mutable scalars always go to the object contained in
+the scalar (autoboxing value types as necessary):
+
+    $result = $object.doit();
+    $length = "mystring".codes;
+
+Method calls on non-scalar variables just calls the C<Array>, C<Hash>
+or C<Code> object bound to the variable:
+
+    $elems = @array.elems;
+    @keys  = %hash.keys;
+    $sig   = &sub.signature;
+
+Use the prefix C<VAR> macro on a scalar variable to get at its
+underlying C<Scalar> object:
+
+    if VAR($scalar).readonly {...}
+
+C<VAR> is a no-op on a non-scalar variables and values:
+
+    VAR(1);     # 1
+    VAR(@x);    # @x
+
+There's also a corresponding C<< postfix:<.VAR> >> macro that can be used
+as if it were a method:
+
+    if $scalar.VAR.readonly {...}
+
+(But since it's a macro, C<VAR> is not dispatched as a real method.
+To dispatch to a real C<.VAR> method, use the indirect C<$obj."VAR">
+form.)
+
+You can also get at the container through the appropriate symbol table:
+
+    if MY::<$scalar>.readonly {...}
+
+=head1 Class methods
+
+Other OO languages give you the ability to declare "class" methods that either don't
+need or actively prohibit calls on instances.  Perl 6 gives you a choice.
+If you declare an ordinary method, it can function as a "class" method when you
+pass it a protoobject such as "C<Dog>" regardless of how defined the prototype
+object is, as long as the method body doesn't try to access any information that
+is undefined in the current instance.
+
+Alternately, you can associate a class method with the current metaclass instance,
+which as a singleton object knows your package, and can function as a more traditional
+"class" method:
+
+    our $count;
+    method ^count { return $count }
+
+Such a I<metaclass method> is always delegated to the C<HOW> object just as methods like
+C<.does> are, so it's possible to call this as C<Dog.count> or C<$dog.count>.
+However, best practice is probably to call such a class method as C<Dog.^count>
+or C<$dog.^count> to make it clear that it's in its own namespace separate
+from ordinary methods, and so that your class method cannot be accidentally
+overridden by an ordinary method in a subclass--presuming you don't want to
+allow for that possibility.
+
+=head1 Submethods
+
+Submethods are for declaring infrastructural methods that shouldn't
+be inherited by subclasses, such as initializers:
+
+    submethod BUILD ($arg) {
+        $.attr = $arg;
+    }
+
+Apart from the keyword, submethod declaration and call syntax is
+identical to method syntax.  You may mix methods and submethods of
+the same name within the class hierarchy, but only the methods are
+visible to derived classes via inheritance.  A submethod is called
+only when a method call is dispatched directly to the current class.
+
+Conjecture: in order to catch spelling errors it is a compile-time
+warning to define a submethod in any class that does not inherit the
+corresponding method name from some base class.  More importantly, this
+would help safeguard Liskov substitutability. (But note that the
+standard C<Object> class already supplies a default C<BUILD> and C<new>.)
+
+=head1 Attributes
+
+Attributes are stored in an opaque datatype, not in a hash.  Not even
+the class has to care how they're stored, since they're declared much like
+ordinary variables.  Instead of C<my>, use C<has>:
+
+    class Dog is Mammal {
+        has $.name = "fido";
+        has $.tail is rw;
+        has @.legs;
+        has $!brain;
+        ...
+    }
+
+Public attributes have a secondary sigil of "dot", indicating
+the automatic generation of an accessor method of the same name.
+Private attributes use an exclamation to indicate that no public accessor is
+generated.
+
+        has $!brain;
+
+The "true name" of the private variable always has the exclamation, but
+much like with C<our> variables, you may declare a lexically scoped alias
+to the private variable by saying:
+
+        has $brain;     # also declares $!brain;
+
+As with the C<!> declaration, no accessor is generated.
+
+And any later references to the private variable within the same block
+may either use or omit the exclamation, as you wish to emphasize or
+ignore the privacy of the variable.  Outside the block, you must use
+the C<!> form.  If you declare with the C<!> form, you must use that
+form consistently everywhere.  If you declare with the C<.> form, you
+also get the private C<!> form as a non-virtual name for the actual
+storage location, and you may use either C<!> or C<.> form anywhere
+within the class, even if the class is reopened.  Outside the class
+you must use the public C<.> form, or rely on a method call (which
+can be a private method call, but only for trusted classes).
+
+For public attributes, some traits are copied to the accessor method.
+The C<rw> trait causes the generated accessor to be declared C<rw>,
+making it an lvalue method.  The default is a read-only accessor.
+
+If you declare the class as C<rw>, then all the class's attributes
+default to C<rw>, much like a C struct.
+
+You may write your own accessors to override any or all of the
+autogenerated ones.
+
+The attribute variables may be used within instance methods to refer
+directly to the attribute values.  Outside the instance methods, the
+only access to attributes is through the accessors since an object has
+to be specified.  The dot form of attribute variables may be used in
+derived classes because the dot form always implies a virtual accessor
+call.  Every I<dot> declaration also declares a corresponding private
+I<exclamation> storage location, and the exclamation form may be used
+only in the actual class, not in derived classes.  Reference to the
+internal storage location via C<$!foo> should generally be restricted
+to submethods.  Ordinary methods should stick to the C<$.foo> form.
+
+In fact, within submethods, use of the C<$.foo> form on attributes
+that are available as C<$!foo> (that is, that are declared directly
+by this class) is illegal and produces a dire compile-time warning
+(which may be suppressed).  Within a submethod the C<$.foo> form may
+only be used on attributes from parent classes, because only the parent
+classes' part of the object is guaranteed to be in a consistent state
+(because C<BUILDALL> call's the parent classes' C<BUILD> routines
+first).  If you attempt to get around this by declaring C<BUILD> as
+a method rather than a submethod, that will also be flagged as a dire
+(but suppressible) compile-time warning.  (It is I<possible> to define
+an inheritable C<BUILD> routine if you have access to all the metadata
+for the current class, but it's not easy, and it certainly doesn't
+happen by accident just because you change C<submethod> to C<method>.)
+
+Because C<$.foo>, C<@.foo>, C<%.foo>, C<&.foo> are just shorthands of
+C<self.foo> with different contexts, the class does not need to declare
+any of those as an attribute -- a C<method foo> declaration can work
+just as well.
+
+The dot form can take an argument list as well.  These are all equivalent:
+
+    self.foo(1,2,3);    # a regular method call
+    self.foo.(1,2,3);   # ditto
+    $.foo(1,2,3);       # calls self.foo under $ context
+    $.foo.(1,2,3);      # ditto
+    @.foo(1,2,3);       # calls self.foo under @ context
+    @.foo.(1,2,3);      # ditto
+
+Pseudo-assignment to an attribute declaration specifies the default
+value.  The value on the right is treated as an implicit closure and
+evaluated at object build time, that is, when the object is being
+constructed, not when class is being composed.  To refer to a value
+computed at compilation or composition time, you can either use a
+temporary or a temporal block of some sort:
+
+    has $.r = rand;     # each object gets different random value
+
+    constant $random = rand;
+    has $.r = $random;  # every object gets same value
+
+    has $.r = BEGIN { rand };
+    has $.r = INIT { rand };
+    has $.r = ENTER { rand };
+    has $.r = FIRST { rand };
+    has $.r = constant $myrand = rand;
+
+When it is called at C<BUILD> time, the topic of the implicit closure
+will be the attribute being initialized, while "self" refers to the
+entire object being initialized.  The closure will be called at the
+end of the C<BUILD> only if the attribute is not otherwise initialized
+in either the signature or the body of the C<BUILD>.
+
+Class attributes are declared with either C<my> or C<our>.  The only
+difference from ordinary C<my> or C<our> variables is that an accessor
+is generated according to the secondary sigil:
+
+    our $.count;        # generates a public read-only .count accessor
+    our %!cache is rw;  # generates no public accessor
+    my  $.count;        # generates a public read-only .count accessor
+    my  %!cache is rw;  # generates no public accessor
+
+=head1 Construction and Initialization
+
+All classes inherit a default C<new> constructor from C<Object>.  It
+expects all arguments to be named parameters initializing attributes of
+the same name.  You may write your own C<new> to override the default,
+or write constructors with any other name you like.  As in Perl 5,
+a constructor is any routine that calls C<bless>.  Unlike in Perl 5,
+you call it as a method on the class object (though any object may be
+used as a class object), passing the candidate as the first argument.
+To bless a hash as in Perl 5, say:
+
+    $object = $class.bless({k1 => $v1, k2 => $v2, ...});
+
+If the candidate is omitted, a candidate object is implicitly created in
+the current class by calling C<CREATE>:
+
+    $object = $class.bless(k1 => $v1, k2 => $v2, ...)
+    $object = $class.bless(:k1($v1), :k2($v2), ...)  # same
+
+(The default C<CREATE> makes an opaque object.)
+
+In addition to the candidate position argument, C<bless> also
+allows one or more positional arguments representing autovivifying
+protoobjects.  Such an object looks like a prototype followed by a
+hash subscript (see "Autovivifying objects" below).  These are used
+to initialize superclasses.
+
+Other than the candidate object and any autovivifying protoobjects,
+all arguments to C<bless> must be named arguments, not positional.
+Hence, the main purpose of custom constructors is to turn positional
+arguments into named arguments for C<bless>.  The C<bless> method
+allows an object to be used for its class invocant.  (Your constructor
+need not allow this).  In any case, the object is not used as a prototype.
+Use C<.clone> instead of C<.bless> if that's what you mean.
+
+Any named arguments to C<bless> are automatically passed to the
+C<CREATE> and C<BUILD> routines.  If you wish to pass special options
+to the C<CREATE> routine (such as an alternate representation),
+call C<CREATE> yourself and then pass the resulting candidate to C<.bless>:
+
+    my $candidate = $class.CREATE(:repr<P6opaque>);
+    $object = $class.bless($candidate, :k1($v1), :k2($v2))
+
+For the built-in default C<CREATE> method, C<P6opaque> is the default
+representation.  Other possiblilities are C<P6hash>, C<P5hash>,
+C<P5array>, C<PyDict>, C<Cstruct>, etc.
+
+The C<bless> function automatically calls all appropriate C<BUILD>
+routines by calling the C<BUILDALL> routine for the current class,
+which initializes the object in least-derived to most-derived order.
+C<DESTROY> and C<DESTROYALL> work the same way, only in reverse.
+
+The default C<BUILD> and C<BUILDALL> are inherited from C<Object>,
+so you need to write initialization routines only if you wish to
+modify the default behavior.  The C<bless> function automatically
+passes the appropriate argument list to the C<BUILD> of its various
+parent classes.  If the type of the parent class corresponds to one
+of the protoobjects passed to bless, that protoobject's argument
+list is used.  Otherwise all the arguments to bless are passed to
+the parent class's C<BUILD>.  For the final C<BUILD> of the current
+object, all the arguments to C<bless> are passed to the C<BUILD>, so
+it can deal with any protoobjects that need special handling.  (It is
+allowed to pass protoobjects that don't correspond to any parent class.)
+
+    class Dog is Animal {...}
+    my $pet = Dog.new( :name<Fido>, Animal{ :blood<warm>, :legs(4) } );
+
+Here we are using an autovivifying C<Animal> protoobject to specify what
+the arguments to C<Animal>'s C<BUILD> routine should look like.  (It does
+not actually autovivify an C<Animal> apart from the one being created.)
+
+You can clone an object, changing some of the attributes:
+
+    $newdog = $olddog.clone(:trick<RollOver>);
+
+You can write your own C<BUILD> submethod to control initialization.
+If you name an attribute as a parameter, that attribute is initialized
+directly, so
+
+    submethod BUILD ($!tail, $!legs) {}
+
+is equivalent to
+
+    submethod BUILD ($tail, $legs) {
+        $!tail = $tail;
+        $!legs = $legs;
+    }
+
+Whether you write your own C<BUILD> or not, at the end of the C<BUILD>,
+any default attribute values are implicitly copied into any attributes
+that haven't otherwise been initialized.
+
+=head1 Mutating methods
+
+You can call an in-place mutator method like this:
+
+    @array .= sort;
+
+If there is a C<self:sort> operator defined, that will be used.  Otherwise
+one will be autogenerated from the ordinary C<sort> operator, on the
+order of:
+
+    @array = @array.sort;
+
+One handy place for an in-place mutator is to call a constructor on a
+variable of a known type:
+
+    my Dog $spot .= new(:tail<LONG> :legs<SHORT>);
+
+=head1 Calling sets of methods
+
+For any method name, there may be some number of candidate methods
+that could handle the request: typically, inherited methods or
+multi variants.  The ordinary "dot" operator dispatches
+to a method in the standard fashion.  There are also "dot" variants
+that call some number of methods with the same name:
+
+    $object.meth(@args)   # calls one method or dies
+    $object.?meth(@args)  # calls method if there is one, otherwise undef
+    $object.*meth(@args)  # calls all methods (0 or more)
+    $object.+meth(@args)  # calls all methods (1 or more)
+
+The method name may be quoted when disambiguation is needed:
+
+    $object."+meth"(@args)
+    $object.'VAR'(@args)
+
+As with ordinary calls, the identifier supplying the literal method
+name may be replaced with an interpolated quote to specify the method
+name indirectly.  It may also be replaced with an array to specify
+the exact list of candidates to be considered:
+
+    my @candidates := $object.WALK(:name<foo>, :breadth, :omit($?CLASS));
+    $object.*@candidates(@args);
+
+The C<WALK> method takes these arguments:
+
+    :canonical      # canonical dispatch order
+    :ascendant      # most-derived first, like destruction order
+    :descendant     # least-derived first, like construction order
+    :preorder       # like Perl 5 dispatch
+    :breadth        # like multi dispatch
+
+    :super              # only immediate parent classes
+    :name<name>         # only classes containing named method declaration
+    :omit(Selector)     # only classes that don't match selector
+    :include(Selector)  # only classes that match selector
+
+Any method can defer to the next candidate method in the list by
+the special functions C<callsame>, C<callwith>, C<nextsame>, and
+C<nextwith>.  The "same" variants reuse the original argument list
+passed to the current method, whereas the "with" variants allow a
+new argument list to be substituted for the rest of the candidates.
+The "call" variants dispatch to the rest of the candidates and return
+their values to the current method for subsequent processing, whereas
+while the "next" variants don't return, but merely defer to the rest
+of the candidate list:
+
+    callsame;           # call with the original arguments (return here)
+    callwith();         # call with no arguments (return here)
+    callwith(1,2,3);    # call with a new set of arguments (return here)
+    nextsame;           # redispatch with the original arguments (no return)
+    nextwith();         # redispatch with no arguments (no return)
+    nextwith(1,2,3);    # redispatch with a new set of arguments (no return)
+
+For dispatches using C<.> and C<.?>, the return value is the
+C<Capture> returned by the first method completed without deferring.
+(Such a return value may in fact be failure, but it still counts as a
+successful call from the standpoint of the dispatcher.)  Likewise the
+return value of C<.*> and C<.+> is a list of C<Captures> returned by
+those methods that ran to completion without deferring to next method.
+
+It is also possible to trim the candidate list so that the current
+call is considered the final candidate.  (This is implicitly the case
+already for the dispatch variants that want a single successful call.)
+For the multiple call variants, C<lastcall> will cause the dispatcher
+to throw away the rest of the candidate list, and the subsequent
+return from the current method will produce the final C<Capture>
+in the returned list.
+
+=head1 Parallel dispatch
+
+Any of the method call forms may be turned into a hyperoperator by
+treating the method call as a postfix:
+
+    @object».meth(@args)   # calls one method on each
+    @object».?meth(@args)  # calls method if there is one on each
+    @object».*meth(@args)  # calls all methods (0 or more) on each
+    @object».+meth(@args)  # calls all methods (1 or more) on each
+    @object».=meth(@args)  # calls mutator method on each
+    @object»!meth(@args)   # calls private method on each
+
+The return value is a list with exactly the same number of elements
+as C<@object>.  Each such return value is a Capture or List of Captures
+as specified above for the non-hyper "dot" variants.
+
+Hyperoperators treat a junction as a scalar value, so saying:
+
+    $junction».meth(@args);
+
+is just like:
+
+    $junction.meth(@args);
+
+To hyperoperate over the values of a junction you have to explicitly
+pull out the values:
+
+    $junction.values».meth(@args);
+
+As with other forms of method call, the "meth" above may be replaced
+with a quoted string or variable to do various forms of indirection.
+
+Note that, as with any hyper operator, the methods may be evaluated
+in any order (although the method results are always returned in the
+same order as the list of invocants).  Use an explicit loop if you
+want to do something with ordered side effects, such as I/O.
+
+=head1 Multisubs and Multimethods
+
+The "long name" of a subroutine or method includes the type signature
+of its invocant arguments.  The "short name" doesn't.  If you put
+C<multi> in front of any sub (or method) declaration, it allows
+multiple long names to share a short name, provided all of them are
+declared C<multi>.  (Putting C<proto> on the first such declaration has
+the same effect, but usually you want to put the C<multi> explicitly
+anyway for documentation.)  If a sub (or method) is not marked
+with C<multi> and it is not within the package or lexical scope of
+a C<proto> of the same short name, it is considered unique, an I<only>
+sub.  You may mark a sub explicitly as C<only> if you're worried it
+might be within the scope of a C<proto>, and you want to suppress
+any other declarations within this scope.  An C<only> sub (or method)
+doesn't share with anything outside of it or declared prior to it.
+Only one such sub (or method) can inhabit a given namespace, and it
+hides any outer subs (or less-derived methods) of the same short name.
+
+The default C<proto> declarations provided by Perl from the global
+scope are I<not> automatically propagated to the user's scope
+unless explicitly imported, so a C<sub> declaration there that
+happens to be the same as a global multi is considered C<only> unless
+explicitly marked C<multi>.  In the absence of such an explicit C<sub>
+declaration, however, the global proto is used by the compiler in
+the analysis of any calls to that short name.  (Since only list
+operators may be post-declared, as soon as the compiler sees a
+non-listop operator it is free to apply the global C<proto> since
+any user-defined C<only> version of it must of necessity be declared
+earlier in the user's lexical scope or not at all.)
+
+A C<proto> may share dispatch with multis declared after it in the same scope,
+but in that case it functions only as the final tie-breaker if the
+inner multis can't decide among themselves what to do.  (It may
+then, of course, decide to redispatch outside of the current scope.)
+
+Within its scope,
+the signature of a C<proto> also nails down the presumed order
+and naming of positional parameters, so that any multi call with named
+arguments in that scope can presume to rearrange those arguments into
+positional parameters based on that information.  (Unrecognized names
+remain named arguments.)  Any other type information or traits attached
+to the C<proto> are also shared by the routines within its scope,
+so a C<proto> definition can be used to factor out common traits.
+This is particularly useful for establishing grammatical categories
+in a grammar by declaring a C<proto> C<token> or C<proto> C<rule>.  (Perl 6's
+grammar does this, for instance.)
+
+You can have multiple C<multi> variables of the same name in the
+same scope, and they all share the same storage location and type.
+Usually these are declared by one C<proto> declaration at the top,
+and leaving the C<multi> implicit on the rest of the declarations.
+You might do this when you suspect you'll have multiple declarations
+of the same variable name (such code might be produced by a macro
+or by a code generator, for instance) and you wish to suppress any
+possible warnings about redefinition.
+
+In contrast, C<multi> routines can have only one instance of the long
+name in any namespace, and that instance hides any outer (or less-derived)
+routines with the same long name.  It does not hide any routines with
+the same short name but a different long name.  In other words, multis
+with the same short name can come from several different namespaces
+provided their long names differ and their short names aren't hidden
+by an C<only> declaration in some intermediate scope.
+
+When you call a routine with a particular short name, if there are
+multiple visible long names, they are all considered candidates.
+They are sorted into an order according to how close the run-time types
+of the arguments match up with the declared types of the parameters of
+each candidate.  The best candidate is called, unless there's a tie,
+in which case the tied candidates are redispatched using any additional
+tiebreaker long names (see below).
+
+If a tie still results, only candidates marked with the C<default> trait are
+considered, and the best matching default routine is used.  If there
+are no default routines, or if the available defaults are also tied,
+a final tie-breaking proto sub is called, if there is one (see above).
+Otherwise the dispatch fails.
+
+The order in which candidates are considered is defined by a
+topological sort based on the "type narrowness" of each candidate's
+long name, where that in turn depends on the narrowness of each
+parameter that is participating.  Identical types are considered tied.
+Parameters whose types are not comparable are also considered tied.
+A candidate is considered narrower than another candidate if at least
+one of its parameters is narrower and all the rest of its parameters
+are either narrower or tied.  This defines the partial ordering of
+all the candidates.  If the topological sort detects a circularity in
+the partial ordering, all candidates in the circle are considered tied.
+A warning will be issued at C<CHECK> time if this is detected and there is
+no default candidate to fall back to.
+
+Ordinarily all the parameters of a multi sub are considered for dispatch.
+Here's a declaration for an integer range operator with two parameters
+in its long name:
+
+    multi sub infix:<..>(Int $min, Int $max) {...}
+
+Sometimes you want to have parameters that aren't counted as part of the
+long name.  For instance, if you want to allow an optional "step" parameter
+to your range operator, but not consider it for multi dispatch, then put a
+double semicolon instead of a comma before it:
+
+    multi sub infix:<..>(Int $min, Int $max;; Int $by = 1) {...}
+
+The double semicolon, if any, determines the complete long name of
+a multi.  (In the absence of that, a double semicolon is assumed
+after the last declared argument, but before any return signature.)
+Note that a call to the routine must still be compatible with
+subsequent arguments.
+
+[Conjecture: However, a given multi may advertise multiple long names,
+some of which are shorter than the complete long name.  This is done
+by putting a semicolon after each advertised long name (replacing
+the comma, if present).  A semicolon has the effect of inserting two
+candidates into the list.  One of them is inserted with exactly the
+same types, as if the semicolon were a comma.  The other is inserted
+as if all the types after the semicolon were of type Any, which puts
+it later in the list than the narrower actual candidate.  This merely
+determines its sort order; the candidate uses its real type signature
+if the dispatcher gets to it after rejecting all earlier entries on the
+candidate list.  If that set of delayed candidates also contains ties,
+then additional semicolons have the same effect within that sublist
+of ties.  Note, however, that semicolon is a no-op if the types after
+it are all C<Any>.  (As a limiting case, putting a semicolon after
+every parameter produces dispatch semantics much like Common Lisp.
+And putting a semicolon after only the first argument is much like
+ordinary single-dispatch methods.)  Note: This single-semicolon syntax
+is merely to be considered reserved until we understand the semantics
+of it, and more importantly, the pragamatics of it (that is, whether
+it has any valid use case).  Until then only the double-semicolon
+form will be implemented in the standard language.]
+
+Within a class, C<multi submethod> is visible to both method-dispatch
+and subroutine-dispatch.  A C<multi method> never participates in the
+subroutine-dispatch process.  It is dispatched just like a normal
+method, then the tie-breaking rules of the previous paragraph are applied.
+That is, the shortest long name of a multi method includes I<only> the
+single invocant, and any additional semicolons may only indicate long names
+to be used as tiebreakers.
+
+Conjecture: In order to specify dispatch that includes the return
+type context, it is necessary to place the return type before the double
+semicolon:
+
+    multi infix:<..>(Int $min, Int $max --> Iterator;; Int $by = 1) {...}
+    multi infix:<..>(Int $min, Int $max --> Selector;; Int $by = 1) {...}
+
+Note that such a declaration might have to delay dispatch until the
+actual desired type is known!  (Generally, you might just consider
+returning a flexible C<Range> object instead of an anonymous partial
+dispatch that may or may not be resolved at compile time via type
+inferencing.  Therefore return-type tiebreaking need not be supported
+in 6.0.0 unless some enterprising soul decides to make it work.)
+
+=head2 Method call vs. Subroutine call
+
+The caller indicates whether to make a method call or subroutine
+call by the call syntax.  The "dot" form and the indirect object form
+default to method calls.  All other prefix calls default to subroutine calls.
+This applies to prefix unary operators as well:
+
+    !$obj;  # same as $obj.prefix:<!>
+
+A method call considers only methods (including multi-methods and submethods)
+from the class hierarchy of its invocant, and fails if none is found.  The
+object in question is in charge of interpreting the meaning of the method
+name, so if the object is a foreign object, the name will be interpreted
+by that foreign runtime.
+
+A subroutine call considers only visible subroutines (including
+submethods) of that name.  The object itself has no say in the
+dispatch; the subroutine dispatcher considers only the types the
+arguments involved, along with the name.  Hence foreign objects passed
+to subroutines are forced to follow Perl semantics (to the extent
+foreign types can be coerced into Perl types, otherwise they fail).
+
+There is no fail-over either from subroutine to method dispatch or
+vice versa.  However, you may use C<is export> on a method
+definition to make it available also as a multi sub.  As with indirect
+object syntax, the first argument is still always the invocant,
+but the export allows you to use a comma after the invocant instead of
+a colon, or to omit the colon entirely in the case of a method with
+no arguments other than the invocant.  Many standard methods (such
+as C<IO::close> and C<Array::push>) are automatically exported to the
+global namespace by default.  For other exported methods, you will not
+see the multi sub definition unless you C<use> the class in your scope,
+which will import the multi sub lexically, after which you can call it
+using normal subroutine call syntax.
+
+Note that explicit use of a syntactic category as a method name
+overrides the choice of dispatcher, so
+
+    $x.infix:<*>($y)
+
+and
+
+    infix:<*>($x,$y)
+
+are exactly equivalent.  That is, both calls use the subroutine/multi
+dispatcher, not the method/single dispatcher.  Likewise
+
+    foo($bar)
+
+can be written
+
+    $bar.prefix:<foo>()
+
+with the same meaning.  To get single dispatch of that method
+name to a foreign function, you must say:
+
+    $bar.'prefix:<foo>'()
+
+Most foreign languages are not going to understand such a method name,
+however.
+
+=head1 Multi dispatch
+
+Multi submethods work just like multi methods except they are constrained
+to an exact type match on the invocant, just as ordinary submethods are.
+
+Perl 6.0.0 is not required to support multiple dispatch on named parameters,
+only on positional parameters.  Note that most builtins will map known
+named parameters to positional via a C<proto> declaration.
+
+Within a multiple dispatch, C<nextsame> means to try the next best
+match, or next best default in case of tie, or the proto sub if there
+is one.
+
+Attributes are tied to a particular class definition, so a multi method
+can only directly access the attributes of a class it's defined within
+when the invocant is the "self" of that attribute.
+However, it may call the private attribute accessors from a different
+class if that other class has indicated that it trusts the class the
+multi method is defined in:
+
+    class MyClass {
+        trusts Yourclass;
+        ...
+    }
+
+The syntax for calling back to C<MyClass> is C<$obj!MyClass::meth()>.
+
+The C<sub> keyword is optional immediately after a C<proto>, C<multi>,
+or C<only> keyword.
+
+A C<proto> declaration may not occur after a C<multi> declaration in the
+same scope.
+
+=head1 Roles
+
+Classes are primarily in charge of object management, and only
+secondarily in charge of software reuse.  In Perl 6, roles take over
+the job of managing software reuse.  Depending on how you care to look
+at it, a role is like a partial class, or an interface with default
+implementation, or a set of generic methods and their associated data,
+or a class closed at compile time.
+
+Roles may be composed into a class at compile time, in which case
+you get automatic detection of conflicting methods.  A role may also
+be mixed into a class or object at run time to produce an anonymous
+derived class with extra capabilities, but in this case conflicting
+methods are overridden by the new role silently.  In either case,
+a class is necessary for instantiation--a role may not be directly
+instantiated.
+
+A role is declared like a class, but with a C<role> keyword:
+
+    role Pet {
+        method feed ($food) {
+            $food.open_can;
+            $food.put_in_bowl;
+            self.eat($food);
+        }
+    }
+
+A role may not inherit from a class, but may be composed of other
+roles.  However, this "crony" composition is not evaluated until
+class composition time.  This means that if two roles bring in the
+same crony, there's no conflict--it's just as if the class pulled in
+the crony role itself and the respective roles didn't.  A role may
+never conflict with itself regardless of its method of incorporation.
+A role that brings in two conflicting crony roles *may* resolve them
+as if it were a class.  This solution is accepted by the class unless
+the class supplies its own solution.  If two different roles resolve
+the same crony conflict two different ways, those roles are themselves
+in conflict and must be resolved by a "more derived" role or the class.
+
+A role doesn't know its own type until it is composed into a class.
+Any mention of its main type (such as C<::?CLASS>) is generic, as is
+any reference to C<self> or the type of the invocant.  You can use
+a role name as a type, but only for constraints, not for declaring
+actual objects.  (However, if you use a role as if it were a class,
+an anonymous class is generated that composes the role, which provides
+a way to force a role to test its crony composition for infelicities.)
+
+A role's main type is generic by default, but you can also parameterize
+other types explicitly using type parameters:
+
+    role Pet[::Petfood = TableScraps] {
+        method feed (Petfood $food) {...}
+    }
+
+(Note that in this case you must not use ::Petfood in the inner declaration,
+or it would rebind the type to type of the actual food parameter.)
+
+If a role merely declares methods without defining them, it degenerates
+to an interface:
+
+    role Pet {
+        method feed ($food) {...}
+        method groom () {...}
+        method scratch (:$where) {...}
+    }
+
+Note that, while these methods must become available at class
+composition time, they might be supplied by any of: another role,
+the class itself, or some superclass.  We know the methods that are
+coming from the other roles or the class, but we don't necessarily know
+the complete set of methods supplied by our super classes if they are
+open or rely on wildcard delegation.  However, the class composer is
+allowed to assume that only currently declared superclass methods or
+non-wildcard methods are going to be available.  A stub can always
+be installed somewhere to "supply" a missing method's declaration.
+
+Roles may have attributes:
+
+    role Pet {
+        has $.collar = Collar.new(Tag.new);
+        method id () { return $.collar.tag }
+        method lose_collar () { undefine $.collar }
+    }
+
+If you want to parameterize the initial value of a role attribute,
+be sure to put a double semicolon if you don't want the parameter to
+be considered part of the long name:
+
+    role Pet[::ID;; $tag] {
+        has ID $.collar .= new($tag);
+    }
+
+Within a role the C<has> declarator always indicates the declaration
+from the viewpoint of the class.  Therefore a private attribute declared
+using C<has> is private to the class, not to the role.  You may wish to declare an attribute
+that is hidden even from the class; a completely private role
+attribute may be declared like this:
+
+    my $!spleen;
+
+The name of such a private attribute is always considered lexically scoped.
+If a role declares private lexical items, those items are private to
+the role due to the nature of lexical scoping.  Accessors to such
+items may be exported to the class, but this is not the default.
+In particular, a role may say
+
+    trusts ::?Class;
+
+to allow C<self!attr()> access to the role's C<$!attr> variables with the
+class or from other roles composed into the class.  Conflicts between
+private accessors are also caught at composition time, but of course
+need not consider super classes, since no-one outside the current
+class (or a trusted class) can call a private accessor at all.
+(Private accessors are never virtual, and must be package qualified
+if called from a trusted scope other than our own.  That is, it's
+either C<self!attr()> or C<$obj!TrustsMe::attr().>)
+
+A role may also distinguish a shared method
+
+    has method foo ...
+    method foo ...      # same
+
+from a nonshared private method:
+
+    my method !foo ...
+    my method foo ...   # same, but &foo is aliased to &!foo
+
+Generally you'd just use a lexically scoped sub, though.
+
+    my sub foo ...
+
+[Conjectural: To put a private sub into the class, say
+
+    our sub !foo ...
+
+]
+
+A role can abstract the decision to delegate:
+
+    role Pet {
+        has $groomer handles <bathe groom trim> = hire_groomer();
+    }
+
+Note that this puts the three methods into the class as well as
+C<$groomer>.  In contrast, "C<my $!groomer>" would only put the
+three methods; the attribute itself is private to the role.
+
+A role is allowed to declare an additional inheritance for its class when
+that is considered an implementation detail:
+
+    role Pet {
+        is Friend;
+    }
+
+A class incorporates a role with the verb "does", like this:
+
+    class Dog is Mammal does Pet does Sentry {...}
+
+or equivalently, within the body of the class closure:
+
+    class Dog {
+        is Mammal;
+        does Pet;
+        does Sentry;
+        ...
+    }
+
+There is no ordering dependency among the roles.
+
+A class's explicit method definition hides any role definition of
+the same name.  A role method in turn hides any methods inherited
+from other classes.
+
+If there are no method name conflicts between roles (or with the
+class), then each role's methods can be installed in the class.  If,
+however, two roles try to introduce a method of the same name the
+composition of the class fails.  (Two C<has> attributes of the same
+name, whether public or private, are simply merged into one slot,
+provided the types are the same; otherwise, the composition fails.
+Role-private attributes are not merged, and from the viewpoint of
+the composition, don't even exist, except to allocate a slot for each
+such attribute.)
+
+There are several ways to solve method conflicts.  The first is simply to
+write a class method that overrides the conflicting role methods, perhaps
+figuring out which role method to call.
+
+Alternately, if the role's methods are declared C<multi>, they can be
+disambiguated based on their long name.  If the roles forget to declare
+them as multi, you can force a multi on the roles' methods by installing
+a proto stub in the class being constructed:
+
+    proto method shake {...}
+
+(This declaration need not precede the C<does> clause textually, since
+roles are not actually composed until the end of the class definition,
+at which point we know which roles are to be composed together
+in a single logical operation, as well as how the class intends to
+override the roles.)
+
+The proto method will be called if the multi fails:
+
+    proto method shake { warn "They couldn't decide" }
+
+Run-time mixins are done with C<does> and C<but>.  The C<does> binary
+operator is a mutator that derives a new anonymous class (if necessary)
+and binds the object to it:
+
+    $fido does Sentry
+
+The C<does> infix operator is non-associative, so this is a syntax error:
+
+    $fido does Sentry does Tricks does TailChasing does Scratch;
+
+You can, however, say
+
+    $fido does Sentry;
+    $fido does Tricks;
+    $fido does TailChasing;
+    $fido does Scratch;
+
+And since it returns the left side, you can also say:
+
+    ((($fido does Sentry) does Tricks) does TailChasing) does Scratch;
+
+Unlike the compile-time role composition, each of these layers on a new
+mixin with a new level of inheritance, creating a new anonymous class
+for dear old Fido, so that a C<.chase> method from C<TailChasing> hides a
+C<.chase> method from C<Sentry>.
+
+You can also mixin a precomposed set of roles:
+
+    $fido does (Sentry, Tricks, TailChasing, Scratch);
+
+This will level the playing field for collisions among the new
+set of roles, and guarantees the creation of no more than one more
+anonymous class.  Such a role still can't conflict with itself, but it
+can hide its previous methods in the parent class, and the calculation
+of what conflicts is done again for the set of roles being mixed in.
+If you can't do compile-time composition, we strongly recommend this
+approach for run-time mixins since it approximates a compile-time
+composition at least for the new roles involved.
+
+A role applied with C<does> may be parameterized with an initializer
+in parentheses, but only if the role supplies exactly one attribute
+to the mixin class:
+
+    $fido does Wag($tail);
+    $line does taint($istainted);
+
+The supplied initializer will be coerced to type of the attribute.
+Note that this initializer is in addition to any parametric type
+supplied in square brackets, which is considered part of the actual
+type name:
+
+    $myobj does Array[:of(Int)](@initial)
+
+The C<but> operator creates a copy and works on that.  It also knows
+how to generalize a particular enumerated value to its role.  So
+
+    0 but True
+
+is short for something like:
+
+    0 but Bool::True
+
+A property is defined by a role like this:
+
+    role SomeRole {
+        has SomeType $.prop is rw = 1;
+    }
+
+You can declare a property with
+
+    my int property answer;
+
+and that declares a role whose name is the same as the accessor:
+
+    my role answer {
+        has int $.answer is rw;
+    }
+
+Then you can say
+
+    $a = 0 but answer(42)
+
+Note that the parenthesized form is I<not> a subroutine or method call.
+It's just special initializing syntax for roles that contain a single
+property.  The above really means something like:
+
+    $a = ($anonymous = 0) does answer(42);
+
+which really means:
+
+    (($anonymous = 0) does answer).answer = 42;
+    $a = $anonymous;
+
+Which is why there's a C<but> operator.
+
+=head1 Traits
+
+Traits are just properties (roles) applied to declared items like
+containers or classes.  It's the declaration of the item itself that
+makes traits seem more permanent than ordinary properties.  In addition
+to adding the property, a trait can also have side effects.
+
+Traits are generally applied with the "is" keyword, though not always.
+To define a trait handler for an "is xxx" trait, define one or
+more multisubs into a property role like this:
+
+    role xxx {
+        has Int $.xxx;
+        multi trait_auxiliary:is(xxx $trait, Class $container; $arg?) {...}
+        multi trait_auxiliary:is(xxx $trait, Any $container; $arg?) {...}
+    }
+
+Then it can function as a trait.  A well-behaved trait handler will say
+
+    $container does xxx($arg);
+
+somewhere inside to set the metadata on the container correctly.
+Since a class can function as a role when it comes to parameter type
+matching, you can also say:
+
+    class MyBase {
+        multi trait_auxiliary:is(MyBase $base, Class $class; $arg?) {...}
+        multi trait_auxiliary:is(MyBase $tied, Any $container; $arg?) {...}
+    }
+
+These capture control if C<MyBase> wants to capture control of how it gets
+used by any class or container.  But usually you can just let it call
+the generic defaults:
+
+    multi *trait_auxiliary:is(Class $base, Class $class; $arg?) {...}
+
+which adds C<$base> to the "isa" list of C<$class>, or
+
+    multi *trait_auxiliary:is(Class $tied, Any $container; $arg?) {...}
+
+which sets the "tie" type of the container to the implementation type
+in C<$tied>.
+
+Most traits are introduced by use of a "helping verb", which could
+be something like "C<is>", or "C<will>", or "C<can>", or "C<might>",
+or "C<should>", or "C<does>".  We call these helping verbs "trait
+auxiliaries". Here's "C<will>", which (being syntactic sugar) merely
+delegates to back to "is":
+
+    multi sub *trait_auxiliary:will($trait, $container; &arg) {
+        trait_auxiliary:is($trait, $container, &arg);
+    }
+
+Other traits are applied with a single word, and we call one of those a
+"trait verb".  For instance, the "C<as>" trait
+is defined something like this:
+
+    role as {
+        has ReturnType $.as;
+        multi sub trait_verb:as($container; ReturnType $arg) {
+            $container does as($arg);
+        }
+        ...
+    }
+
+Unlike compile-time roles, which all flatten out in the same class,
+compile-time traits are applied one at a time, like mixin roles.
+You can, in fact, apply a trait to a container at run time, but
+if you do, it's just an ordinary mixin role. You have to call the
+appropriate C<trait_auxiliary:is()> routine yourself if you want it to
+do any extra shenanigans.  The compiler won't call it for you at run
+time like it would at compile time.
+
+=head1 Delegation
+
+Delegation lets you pretend that some other object's methods are your own.
+Delegation is specified by a C<handles> trait verb with an argument
+specifying one or more method names that the current object and the
+delegated object will have in common:
+
+    has $tail handles 'wag';
+
+Since the method name (but nothing else) is known at class construction
+time, the following C<.wag> method is autogenerated for you:
+
+    method wag (|$args) { $!tail.wag(|$args) }
+
+You can specify multiple method names:
+
+    has $.legs handles <walk run lope shake lift>;
+
+It's illegal to call the outer method unless the attribute
+has been initialized to an object of a type supporting the method,
+such as by:
+
+    has Tail $.tail handles 'wag' .= new(|%_);
+
+Note that putting a C<Tail> type on the attribute does not necessarily
+mean that the method is always delegated to the C<Tail> class.
+The dispatch is still based on the I<run-time> type of the object,
+not the declared type.
+
+Any other kind of argument to C<handles> is considered to be a
+smartmatch selector for method names.  So you can say:
+
+    has $.fur is rw handles /^get_/;
+
+If you say
+
+    has $.fur is rw handles Groomable;
+
+then you get only those methods available via the C<Groomable> role
+or class.  To delegate everything, use the C<Whatever> matcher:
+
+    has $the_real_me handles *;
+
+Wildcard matches are evaluated only after it has been determined that
+there's no exact match to the method name anywhere.  When you have
+multiple wildcard delegations to different objects, it's possible
+to have a conflict of method names.  Wildcard method matches are
+evaluated in order, so the earliest one wins.  (Non-wildcard method
+conflicts can be caught at class composition time.)
+
+If, where you would ordinarily specify a string, you put a pair, then
+the pair maps the method name in this class to the method name in the
+other class.  If you put a hash, each key/value pair is treated as
+such a mapping.  Such mappings are not considered wildcards.
+
+    has $.fur handles { :shakefur<shake> :scratch<get_fleas> };
+
+You I<can> do a wildcard renaming, but not with pairs.  Instead do smartmatch
+with a substitution:
+
+    has $.fur handles (s/^furget_/get_/);
+
+Ordinarily delegation is based on an attribute holding an object, but it can
+also be based on the return value of a method:
+
+    method select_tail handles <wag hang> {...}
+
+If your delegation object happens to be an array:
+
+    has @handlers handles 'foo';
+
+then Perl 6 assumes that your array contains a list of potential
+handlers, and you just want to call the I<first> one that succeeds.
+This is not considered a wildcard match unless the "handles" argument
+forces it to be.
+
+[Conjectural: the hash syntax is reserved until we figure out the
+semantics we really want, and whether this actually buys us anything
+over normal polymorphism.] If your delegation object happens to be
+a hash:
+
+    has %objects handles 'foo';
+
+then the hash provides a mapping from a set of Selectors specified as Pair
+keys to the object specified as the Pair value that should be delegated to:
+
+    has %barkers handles "bark" =
+                (Chihauhau => $yip,
+                    Beagle => $yap,
+                   Terrier => $arf,
+                 StBernard => $woof,
+                         * => $ruff,
+                );
+
+If the current object matches no Selector, a "C<nextsame>" is
+automatically performed.
+
+=head1 Types and Subtypes
+
+The type system of Perl consists of roles, classes, and subtypes.
+You can declare a subtype like this:
+
+    my subset Str_not2b of Str where /^[isnt|arent|amnot|aint]$/;
+
+or this:
+
+    my Str subset Str_not2b where /^[isnt|arent|amnot|aint]$/;
+
+An anonymous subtype looks like this:
+
+    Str where /^[isnt|arent|amnot|aint]$/;
+
+A C<where> clause implies future smartmatching of some kind: the as-yet
+unspecified object of the type on the left must match the selector on
+the right.  Our example is roughly equivalent to this closure:
+
+    { $_.does(Str) and $_ ~~ /^[isnt|arent|amnot|aint]$/; }
+
+except that a subtype knows when to call itself.
+
+A subtype is not a subclass.  Subclasses add capabilities, whereas
+a subtype adds constraints (takes away capabilites).  A subtype is
+primarily a handy way of sneaking smartmatching into multiple dispatch.
+Just as a role allows you to specify something more general than a
+class, a subtype allows you to specify something more specific than
+a class.  A subtype specifies a subset of the values that the original
+type specified, which is why we use the C<subset> keyword for it.
+
+While subtypes are primarily intended for restricting parameter types
+for multiple dispatch, they also let you impose preconditions on
+assignment.  If you declare any container with a subtype,
+Perl will check the constraint against any value you might try to
+bind or assign to the container.
+
+    subset Str_not2b of Str where /^[isnt|arent|amnot|aint]$/;
+    subset EvenNum   of Num where { $^n % 2 == 0 }
+
+    my Str_not2b $hamlet;
+    $hamlet = 'isnt';   # Okay because 'isnt' ~~ /^[isnt|arent|amnot|aint]$/
+    $hamlet = 'amnt';   # Bzzzzzzzt!   'amnt' !~~ /^[isnt|arent|amnot|aint]$/
+
+    my EvenNum $n;
+    $n = 2;             # Okay
+    $n = -2;            # Okay
+    $n = 0;             # Okay
+    $n = 3;             # Bzzzzzzzt
+
+It's legal to base one subtype on another; it just adds an additional
+constraint.  That is, it's a subset of a subset.
+
+You can use an anonymous subtype in a signature:
+
+    sub check_even (Num where { $^n % 2 == 0 } $even) {...}
+
+That's a bit unwieldy, but by the normal type declaration rules you
+can turn it around to get the variable out front:
+
+    sub check_even ($even of Num where { $^n % 2 == 0 }) {...}
+
+and just for convenience we also let you write it:
+
+    sub check_even (Num $even where { $^n % 2 == 0 }) {...}
+
+since all the type constraints in a signature parameter are just
+anded together anyway.
+
+Subtype constraints are used as tiebreakers in multiple dispatch:
+
+    use Rules::Common :profanity;
+
+    multi sub mesg ($mesg of Str where /<profanity>/ is copy) {
+        $mesg ~~ s:g/<profanity>/[expletive deleted]/;
+        print $MESG_LOG: $mesg;
+    }
+
+    multi sub mesg ($mesg of Str) {
+        print $MESG_LOG: $mesg;
+    }
+
+For multi dispatch, a long name with a matching constraint is preferred over
+an equivalent one with no constraint.  So the first C<mesg> above is
+preferred if the constraint matches, and otherwise the second is
+preferred.
+
+=head1 Enums
+
+An enum is a low-level class that can function as a role or property.
+A given enum value can function as a subtype, a method, or as an ordinary
+value (an argumentless sub).  The names of the values are specified as a list:
+
+    my enum Day ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    my enum Day <Sun Mon Tue Wed Thu Fri Sat>;
+
+If the first value is unspecified, it defaults to 0.  To specify the
+first value, use pair notation (see below).
+
+If the declared type name begins with an uppercase letter, the default
+type is C<Int> or C<Str>, depending on the type of the first value.
+If the declared type is lowercase, the default return type is C<int> or C<buf>.
+
+The type can be specified:
+
+    my bit enum maybe <no yes>;
+    my Int enum day ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    my enum day of uint4 <Sun Mon Tue Wed Thu Fri Sat>;
+
+An anonymous enum just makes sure each string turns into a pair with
+sequentially increasing values, so:
+
+    %e = enum < ook! ook. ook? >;
+
+is equivalent to:
+
+    %e = ();
+    %e<ook!> = 0;
+    %e<ook.> = 1;
+    %e<ook?> = 2;
+
+The enum installer inspects list values for pairs, where the value
+of the pair sets the next value explicitly.  Non-pairs C<++> the
+previous value.  (Str and buf types increment like Perl 5 strings.)
+Since the C<«...»> quoter automatically recognizes
+pair syntax along with interpolations, we can simply say:
+
+    my enum DayOfWeek «:Sun(1) Mon Tue Wed Thu Fri Sat»;
+
+    our Str enum Phonetic «:Alpha<A> Bravo Charlie Delta
+                            Echo Foxtrot Golf Hotel India Juliet
+                            Kilo Lima Mike November Oscar Papa
+                            Quebec Romeo Sierra Tango Uniform
+                            Victor Whiskey X-ray Yankee Zulu»;
+
+    enum roman [i => 1,   v => 5,
+                x => 10,  l => 50,
+                c => 100, d => 500,
+                m => 1000];
+
+    my Item enum hex «:zero(0) one two three four five six seven eight nine
+                      :ten<a> eleven twelve thirteen fourteen fifteen»;
+
+You may import enum types; only non-colliding values are imported.
+Colliding enum values are hidden and must be disambiguated with the
+type name.  Any attempt to use the ambiguous name will result in a fatal
+compilation error.  (All colliding values are hidden, not just the new one,
+or the old one.)  Any explicit sub or type definition hides all imported
+enum values of the same name but will produce a warning unless
+C<is redefined> is included.  Note that true() is a built-in function,
+while True is short for C<Bool::True>.
+
+Enum values may be used as a property on the right side
+of a C<but>, and the enum type will be intuited from the value to make
+sure the object in question has the right semantics mixed in:
+
+    $x = "Today" but Tue;
+
+is the same as
+
+    $x = "Today" but day::Tue;
+
+or pseudo-hash form:
+
+    $x = "Today" but day<Tue>;
+
+which is short for something like:
+
+    $x = "Today";
+    $x does day;
+    $x.day = &day::('Tue');
+
+There's also a pseudo-functional form:
+
+    $x = "Today" but day(Tue);
+
+which lets you cheat:
+
+    $x = "Today" but day(3);
+
+After any of those
+
+    $x.day
+
+returns C<day::Tue> (that is, 3), and
+
+    $x ~~ day
+    $x ~~ Tue
+    $x.does(Tue)
+    $x.does(day)
+    $x.day == Tue
+    day($x) == Tue
+    Tue($x)
+    $x.Tue
+
+all return true, and
+
+    $x.does(Wed)
+    $x.Wed
+    $x.day == Wed
+    8.does(day)
+    8 ~~ day
+
+all return false.
+
+Two built-in enums are:
+
+    our bit enum Bool <False True>;
+    our bit enum Taint <Untainted Tainted>;
+
+Note that C<Bool> and C<Taint> are really role names, and the enum
+values are really subset types of the C<bit> integer type.  You can
+call the C<.Bool> coercion or the C<true> function or the C<?>
+prefix operator on any built-in type, but the value returned is of
+type C<bit>.  Never compare a value to "C<true>", or even "C<True>".
+Just use it in a boolean context.
+
+Enum types (and perhaps certain other finite, enumerable types such
+as finite ranges) define a C<.pick> method on the protoobject of
+that type.  Hence:
+
+    my enum CoinFace <Heads Tails>;
+    CoinFace.pick
+
+returns C<Heads> or C<Tails> with equal probability, and
+
+    Month.pick(*)
+
+will return the months in random order.  Presumably
+
+    StandardPlayingCards.pick(5)
+
+might return a Royal Flush, but a Full House is much
+more likely.  It can never return Five Aces, since the pick
+is done without replacement.  (If it I<does> return Five Aces,
+it's time to walk away.  Or maybe run.)
+
+=head1 Open vs Closed Classes
+
+By default, all classes in Perl are non-final, which means
+you can potentially derive from them.  They are also open, which means
+you can add more methods to them, though you have to be explicit that
+that is what you're doing:
+
+    class Object is also {
+        method wow () { say "Wow, I'm an object." }
+    }
+
+Otherwise you'll get a class redefinition error.  (Also, to completely
+replace a definition, use "C<is instead>" instead of "C<is also>"...but
+don't do that.)
+
+For optimization purposes, Perl 6 gives the top-level application the
+right to close and finalize classes by the use of C<oo>, a pragma for
+selecting global semantics of the underlying object-oriented engine:
+
+    use oo :closed :final;
+
+This merely changes the application's default to closed and final,
+which means that at the end of the main compilation (C<CHECK> time)
+the optimizer is allowed to look for candidate classes to close or
+finalize.  But anyone (including the main application) can request
+that any class stay open or nonfinal, and the class closer/finalizer
+must honor that.
+
+    use class :open<Mammal Insect> :nonfinal<Str>
+
+These properties may also be specified on the class definition:
+
+    class Mammal is open {...}
+    class Insect is open {...}
+    class Str is nonfinal {...}
+
+or by lexically scoped pragma around the class definition:
+
+    {
+        use class :open;
+        class Mammal {...}
+        class Insect {...}
+    }
+    {
+        use class :nonfinal;
+        class Str {...}
+    }
+
+There is I<no> syntax for declaring individual classes closed or final.
+The application may only request that the optimizer close and finalize
+unmarked classes.
+
+=head1 Interface Consistency
+
+By default, all methods and submethods that do not declare an explicit
+C<*%> parameter will get an implicit C<*%_> parameter declared for
+them whether they like it or not.  In other words, all methods allow
+unexpected named arguments, so that C<nextsame> semantics work
+consistently.
+
+If you mark a class "C<is hidden>", it hides the current class
+from "C<nextsame>" semantics, and incidentally suppresses the
+autogeneration of C<*%_> parameters.  Hidden classes may be visited
+as C<SUPER::>, but not via "C<next>".
+
+A similar effect can be achieved from the derived class by saying
+C<hides Base> instead of C<is Base>.
+
+=head1 Introspection
+
+Metamethods for objects are named with interrogative pronouns in uppercase:
+
+    WHAT        the prototype object of the type, stringifies to short name
+    WHICH       the object's identity value
+    WHO         the package supporting the object, stringifies to long name
+    WHERE       the memory address of the object
+    HOW         the metaclass object: "Higher Order Workings"
+    WHEN        (reserved for events?)
+    WHY         (reserved for documentation?)
+    WHENCE      autovivification closure
+
+These may be used either as methods or as unary operators:
+
+    $obj.WHAT   # method form of P5's ref
+    WHAT $obj   # unary form of P5's ref
+
+These are all actually macros, not true operators or methods.  If you get
+a foreign object from another language and need to call its C<.WHERE> method,
+you can say:
+
+    $obj."WHERE"
+
+And if you don't know the method name in advance, you'd be using the
+variable form anyway:
+
+    $obj.$somemeth
+
+which also bypasses the macros.
+
+For now Perl 6 reserves the right to change how all these macros
+and the corresponding C<^> forms are defined in terms of each other.
+In particular, the C<.^> forms will automatically supply the invocant
+as the first argument to methods of the metaclass, while the other
+forms require you to pass this explicitly.
+
+In general, use of these in ordinary code should be a red flag that
+Something Very Strange is going on.  (Hence the allcaps.)  Most code
+should use Perl 6's operators that make use of this information
+implicitly.  For instance, instead of
+
+    $obj.WHAT eq 'Dog'
+    $x.WHICH === $y.WHICH
+    $obj.WHAT.bless(%args)
+
+you usually just want:
+
+    $obj ~~ Dog
+    $x === $y
+    $obj.bless(%args)
+
+Every class has a C<HOW> function/method that lets you get at the
+class's metaobject, which lets you get at all the metadata properties
+for the class (or other metaobject protocol) implementing the objects
+of the class:
+
+    MyClass.methods()           # call MyClass's .methods method (error?)
+    MyClass.HOW.methods($obj)       # get the method list of MyClass
+
+The C<^> metasyntax is equivalent to C<.HOW>:
+
+    MyClass.HOW.methods($obj)   # get the method list of MyClass
+    ^MyClass.methods($obj)      # get the method list of MyClass
+    MyClass.^methods()          # get the method list of MyClass
+
+Each object of the class also has a C<.HOW> or C<.^> method:
+
+    $obj.HOW.methods($obj);
+    $obj.^methods();
+
+Class traits may include:
+
+    identifier  { :name<Dog> :ver<1.2.1> :auth<http://www.some.com/~jrandom> } 
+        name      Dog
+        version   1.2.1
+        authority http://www.some.com/~jrandom
+    author        Joe Random
+    description   This class implements camera obscura.
+    subject       optics, boxes
+    language      ja_JP
+    licensed      Artistic|GPL
+    isa           list of parent classes
+    roles         list of roles
+    disambig      how to deal with ambiguous method names from roles
+    layout        P6opaque, P6hash, P5hash, P5array, PyDict, Cstruct, etc.
+
+These are for the standard Perl 6 Meta-Object Protocol, but other MOPs
+may define other traits.  The identifier should probably be accessed
+through the C<.WHO> object in any case, which may have its own object
+methods depending on how type namespaces evolve over time.  Which of
+these items are actually part of the C<.HOW> object and which are
+delegated back to the package and prototype objects is up to the MOP.
+(Note also that anonymous classes may have anonymous packages and
+prototype objects, in which case stringification is not likely to
+produce something of interest to non-gurus.)
+
+The C<.^methods> method returns method-descriptors containing:
+
+    name                the name of the method
+    signature           the parameters of the method
+    as                  the coercion type of the method
+    multi               whether duplicate names are allowed
+    do                  the method body
+
+The C<.^methods> method has a selector parameter that lets you
+specify whether you want to see a flattened or hierarchical view,
+whether you're interested in private methods, and so forth.
+
+The C<.^attributes> method returns a list of attribute descriptors
+that have traits like these:
+
+    name
+    type
+    scope
+    rw
+    private
+    accessor
+    build
+    readonly
+
+Strictly speaking, metamethods like C<.isa()>, C<.does()>, and C<.can()>
+should be called through the meta object:
+
+    $obj.HOW.can($obj, "bark")
+    $obj.HOW.does($obj, Dog)
+    $obj.HOW.isa($obj, Mammal)
+
+or
+
+    $obj.^can("bark")
+    $obj.^does(Dog)
+    $obj.^isa(Mammal)
+
+But C<Any> gives you shortcuts to those:
+
+    $obj.can("bark")
+    $obj.does(Dog)
+    $obj.isa(Mammal)
+
+These, may, of course, be overridden in a subclass, so don't use the
+short form unless you wish to allow for overrides.  In general, C<Any>
+will delegate only those metamethods that read well when reasoning
+about an individual object.  Infrastructural methods like C<.^methods>
+and C<.^attributes> are not delegated, so C<$obj.methods> fails.
+
+The smartmatch:
+
+    $obj ~~ Dog
+
+actually calls:
+
+    $obj.HOW.does($obj, Dog)
+
+which is true if C<$obj> either "does" or "isa" C<Dog> (or "isa"
+something that "does" C<Dog>).  If C<Dog> is a subset, any additional
+C<where> constraints must also evaluate true.
+
+Unlike in Perl 5 where C<.can> returns a single C<Code> object,
+Perl 6's version of C<.^can> returns a "WALK" iterator for a
+set of routines that match the name, including all autoloaded and
+wildcarded possibilities.  In particular, C<.^can> interrogates
+any class package's C<CANDO> method for names that are to be considered autoloadable methods
+in the class, even if they haven't been declared yet.  Role composition
+sometimes relies on this ability to determine whether a superclass supplies
+a method of a particular name if it's required and hasn't been supplied
+by the class or one of its roles.
+
+=head1 Autovivifying objects
+
+The C<WHENCE> property of an object is its autovivifying closure.
+Any undefined prototype object may carry such a closure that can
+lazily create an object of the appropriate type.  When the closure
+is eventually evaluated it is expected to return an argument list
+corresponding to the arguments to a C<.bless> call.  For instance,
+a C<CANDO> routine, instead of creating a C<Dog> object directly,
+could instead return something like:
+
+    Dog but WHENCE({ :name<Fido> })
+
+which runs the closure if the object ever needs to be autovivified.
+The closure can capture whatever initializers were available in the
+original lexical scope.
+
+The short form of the above is simply:
+
+    Dog{ :name<Fido> }
+
+This form is also lazily evaluated:
+
+    my $dog = Dog{ :name<Fido> };
+    defined $dog or say "doesn't exist";  # Fido doesn't exist
+    $dog.wag()                            # Fido wags his tail
+
+When the typename happens to be a role, autovivifying it involves
+attempting to create a punned class of the same name as the role.
+Whether this succeeds or not depends on whether the role is
+sufficiently complete to serve as a class on its own.  Regardless of
+whether such an attempt would succeed, it is always perfectly fine to
+define a lazy protoobject for a role just as long as it's only ever
+used as an argument to C<bless>, since C<bless> will only be using
+its closure to construct the role's C<BUILD> arguments in the context
+of the complete new class.  (Of course, an inconsistent or incomplete
+class composition may subsequently fail, and in fact the incomplete
+role autovivification mentioned above is likely to be implemented by
+failing at the point of class composition.)
+
+Note that when used as an argument to a method like C<bless>,
+the protoobject is sufficiently lazy that autovivifying is done
+only by the appropriate C<BUILD> routine.  It does not waste energy
+creating a C<Dog> object when that object's attributes would later
+have to be copied into the actual object.  (On top of which, such
+an implementation would make it impossible to use protoobjects to
+initialize incomplete roles.)
+
+The object autovivification syntax works only for literal named types,
+so any indirection must be written more explicitly:
+
+    ::($dogproto){ :name<Fido> }
+    $dogproto but WHENCE({ :name<Fido> })
+    $dogproto.WHAT{ :name<Fido> }
+
+Note that in contrast to this syntax, a lookup of a symbol in the C<Dog>
+package requires a final C<::> before the subscript:
+
+    Dog::{$varname}
+
+=for vim:set expandtab sw=4:

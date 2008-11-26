@@ -1,0 +1,152 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 10: Packages
+
+=head1 AUTHOR
+
+Larry Wall <larry@wall.org>
+
+=head1 VERSION
+
+  Maintainer: Larry Wall <larry@wall.org>
+  Date: 27 Oct 2004
+  Last Modified: 24 Apr 2007
+  Number: 10
+  Version: 7
+
+=head1 Overview
+
+This synopsis summarizes Apocalypse 10, which discusses packages
+despite never having been written.
+
+=head1 Packages
+
+As in Perl 5, packages are the basis of modules and classes.  Unlike in
+Perl 5, modules and classes are declared with separate keywords,
+but they're still just packages with extra behaviors.
+
+An ordinary package is declared with the C<package> keyword.  It can
+only be used with a block:
+
+    package Bar {...}   # block is in package Bar
+
+A named package declaration can occur as part of an expression, just like
+named subroutine declarations.
+
+As a special exception, if a braceless C<package> declaration occurs
+as the first executable statement in a file, then it's taken to mean that the rest of
+the file is Perl 5 code.
+
+    package Foo;        # the entire file is Perl 5
+    ...
+
+This form is illegal in the middle of a Perl 6 file.
+
+Since there are no barewords in Perl 6, package names must be predeclared,
+or use the sigil-like C<::PackageName> syntax.  The C<::> prefix does not
+imply top-levelness as it does in Perl 5.  (Use C<::*> for that.)
+
+A bare C<package> declarator declares an C<our> package within the
+current package (or module, or class, or role, or...).  Use C<*>
+or C<GLOBAL::> to declare a global package name.
+
+To declare a lexically scoped package, use C<my package>.
+Package names are always searched for from innermost scopes to outermost.
+As with an initial C<::>, the presence of a C<::> within the name
+does not imply globalness (unlike in Perl 5).  True globals are always
+in the C<GLOBAL::> namespace, which has the shortcut C<*> where that
+is not ambiguous with "real" operators.
+
+The C<*> namespace is not "main".  The default namespace for the main
+program is C<*Main> in Perl 6.  All files start out being parsed in the C<*>
+package, but switch to some other package scope depending on the first
+declaration.  If that first declaration is not a package variant, then
+the parsing switches to the "C<*main>" package for Perl 5 code and the
+"C<*Main>" package for Perl 6 code.
+
+Package traits are set using C<is>:
+
+    package Foo is bar {...}
+
+All symbolic links are done with the C<::($expr)> syntax, which is
+legal in any variable, package, module, or class name anywhere a
+C<::Ident> is legal.  The string returned by the expression will be
+parsed for C<::> indicating subpackage names.  Do not confuse this
+with the
+
+    Foo::{$key}
+
+syntax that lets you do a lookup in a particular symbol table.  In this case,
+the key is not parsed for C<::>.  It's just a hash lookup.
+
+=head1 Autoloading
+
+A package (or any other similar namespace) can control autoloading.
+However, Perl 5's C<AUTOLOAD> is being superseded by MMD autoloaders
+that distinguish declaration from definition, but are not restricted
+to declaring subs.  A run-time declarator multisub is declared as:
+
+    multi CANDO ( MyPackage, $type, $name, *%args --> Container)
+
+which stands in for the declaration of a container object within
+another container object; it is called when anyone is searching for
+a name in the package (or module, or class), and the name doesn't
+already exist in the package.  (In particular, C<.can> calls C<CANDO>
+when trying to determine if a class supports a particular method.)
+The arguments to C<CANDO> include type information on what kind
+of object is expected in context, or this may be intuited from the
+name requested.  In any case, there may be multiple C<CANDO> routines
+that are dispatched via MMD:
+
+    multi CANDO ( MyPackage, Item, $name, *%args --> Container)
+    multi CANDO ( MyPackage, Array, $name, *%args --> Container)
+    multi CANDO ( MyPackage, Hash, $name, *%args --> Container)
+    multi CANDO ( MyPackage, Code, $name, *%args --> Container)
+
+The package itself is just passed as the first argument, since it's
+the container object.  Subsequent arguments identify the desired type
+of the inner container and the "name" or "key" by which the object is
+to be looked up in the outer container.  Such a name does not include
+its container name, unlike Perl 5's magical C<$AUTOLOAD> variable.
+Nor does it include the type information of a Code object's "long
+name"; this information comes in via the type parameter, and may be
+matched against using ordinary subsignature matching:
+
+    multi CANDO ( MyPackage, &:($), $name, *%args --> Container)     # 1 arg
+    multi CANDO ( MyPackage, &:($,$), $name, *%args --> Container)   # 2 args
+
+The slurpy C<%args> hash is likely to be empty in standard Perl 6
+usage, but it's possible that some dialects of Perl will desire
+a mechanism to pass in additional contextual information, so this
+parameter is reserved for such purposes.
+
+The C<CANDO> is expected to return an inner container object of
+the proper sort (i.e. a variable, subroutine, or method object),
+or a proxy object that can "autovivify" lazily, or C<undef> if that
+name is not to be considered declared in the namespace in question.
+(Only bare C<undef> is interpreted as "not there", since typed undefs
+may function as autovivifiable proxy objects.  See S12.)
+
+The declaration merely defines the interface to the new object.  That object
+need not be completely defined yet, though the C<CANDO> routine is certainly
+I<allowed> to define it eagerly, and even install the inner object into the
+outer container (the symbol table) if it wants to cache the declaration.
+
+At declaration time it might not yet be known whether the inner
+container object will be used in lvalue or rvalue context; the use
+of a proxy object can supply either readonly or rw semantics later.
+
+When the package in question is a class, it is also possible to declare 
+real methods or submethods:
+
+    multi method CANDO ($self: Code, $name, *%args --> Container)
+
+    multi submethod CANDO ($self: Item, $name, *%args --> Container)
+
+The method form is inherited by subclasses.  Submethods are never
+inherited but may still do MMD within the class.   (Ordinary multisubs
+are inherited only to the extent allowed by the MMD mechanism.)
+
+=for vim:set expandtab sw=4:

@@ -1,0 +1,3549 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 2: Bits and Pieces
+
+=head1 AUTHOR
+
+Larry Wall <larry@wall.org>
+
+=head1 VERSION
+
+  Maintainer: Larry Wall <larry@wall.org>
+  Date: 10 Aug 2004
+  Last Modified: 7 Nov 2008
+  Number: 2
+  Version: 142
+
+This document summarizes Apocalypse 2, which covers small-scale
+lexical items and typological issues.  (These Synopses also contain
+updates to reflect the evolving design of Perl 6 over time, unlike the
+Apocalypses, which are frozen in time as "historical documents".
+These updates are not marked--if a Synopsis disagrees with its
+Apocalypse, assume the Synopsis is correct.)
+
+=head1 One-pass parsing
+
+To the extent allowed by sublanguages' parsers, Perl is parsed using a
+one-pass, predictive parser.  That is, lookahead of more than one
+"longest token" is discouraged.  The currently known exceptions to
+this are where the parser must:
+
+=over 4
+
+=item *
+
+Locate the end of interpolated expressions that begin with a sigil
+and might or might not end with brackets.
+
+=item *
+
+Recognize that a reduce operator is not really beginning a C<[...]> composer.
+
+=back
+
+=head1 Lexical Conventions
+
+=over 4
+
+=item *
+
+In the abstract, Perl is written in Unicode, and has consistent Unicode
+semantics regardless of the underlying text representations.
+
+=item *
+
+Perl can count Unicode line and paragraph separators as line markers,
+but that behavior had better be configurable so that Perl's idea of
+line numbers matches what your editor thinks about Unicode lines.
+
+=item *
+
+Unicode horizontal whitespace is counted as whitespace, but it's better
+not to use thin spaces where they will make adjoining tokens look like
+a single token.  On the other hand, Perl doesn't use indentation as syntax,
+so you are free to use any whitespace anywhere that whitespace makes sense.
+Comments always count as whitespace.
+
+=item *
+
+For some syntactic purposes, Perl distinguishes bracketing characters
+from non-bracketing.  Bracketing characters are defined as any Unicode
+characters with either bidirectional mirrorings or Ps/Pe properties.
+
+In practice, though, you're safest using matching characters with
+Ps/Pe properties, though ASCII angle brackets are a notable exception,
+since they're bidirectional but not in the Ps/Pe set.
+
+Characters with no corresponding closing character do not qualify
+as opening brackets.  This includes the second section of the Unicode
+BidiMirroring data table, as well as C<U+201A> and C<U+201E>.
+
+If a character is already used in Ps/Pe mappings, then any entry
+in BidiMirroring is ignored (both forward and backward mappings).
+For any given Ps character, the next Pe codepoint (in numerical
+order) is assumed to be its matching character even if that is not
+what you might guess using left-right symmetry.  Therefore C<U+298D>
+maps to C<U+298E>, not C<U+2990>, and C<U+298F> maps to C<U+2990>,
+not C<U+298E>.  Neither C<U+298E> nor C<U+2990> are valid bracket
+openers, despite having reverse mappings in the BidiMirroring table.
+
+The C<U+301D> codepoint has two closing alternatives, C<U+301E> and C<U+301F>;
+Perl 6 only recognizes the one with lower code point number, C<U+301E>,
+as the closing brace.  This policy also applies to new one-to-many
+mappings introduced in the future.
+
+=back
+
+=head1 Whitespace and Comments
+
+=over 4
+
+=item *
+
+POD sections may be used reliably as multiline comments in Perl 6.
+Unlike in Perl 5, POD syntax now requires that C<=begin comment>
+and C<=end comment> delimit a POD block correctly without the need
+for C<=cut>.  (In fact, C<=cut> is now gone.)  The format name does
+not have to be C<comment> -- any unrecognized format name will do
+to make it a comment.  (However, bare C<=begin> and C<=end> probably
+aren't good enough, because all comments in them will show up in the
+formatted output.)
+
+We have single paragraph comments with C<=for comment> as well.
+That lets C<=for> keep its meaning as the equivalent of a C<=begin>
+and C<=end> combined.  As with C<=begin> and C<=end>, a comment started
+in code reverts to code afterwards.
+
+Since there is a newline before the first C<=>, the POD form of comment
+counts as whitespace equivalent to a newline.
+
+=item *
+
+Except within a string literal, a C<#> character always introduces a comment in
+Perl 6.  There are two forms of comment based on C<#>.  Embedded
+comments require the C<#> to be followed by one
+or more opening bracketing characters.
+
+All other uses of C<#> are interpreted as single-line comments that
+work just as in Perl 5, starting with a C<#> character and
+ending at the subsequent newline.  They count as whitespace equivalent
+to newline for purposes of separation.  Unlike in Perl 5, C<#>
+may not be used as the delimiter in quoting constructs.
+
+=item *
+
+Embedded comments are supported as a variant on quoting syntax, introduced
+by C<#> plus any user-selected bracket characters (as defined in
+L</Lexical Conventions> above):
+
+    say #( embedded comment ) "hello, world!";
+
+    $object\#{ embedded comments }.say;
+
+    $object\ #「
+        embedded comments
+    」.say;
+
+Brackets may be nested, following the same policy as ordinary quote brackets.
+
+There must be no space between the C<#> and the opening bracket character.
+(There may be the I<visual appearance> of space for some double-wide
+characters, however, such as the corner quotes above.)
+
+An embedded comment is not allowed as the first thing on the line.
+
+    #sub foo                    # line-end comment
+    #{                          # ILLEGAL, syntax error
+    #   ...
+    #}
+
+If you wish to have a comment there, you must disambiguate it to
+either an embedded comment or a line-end comment.  You can put a
+space in front of it to make it an embedded comment:
+
+    #sub foo                    # line end comment
+     #{                         # okay, comment
+       ...                      # extends
+    }                           # to here
+
+Or you can put something other than a single C<#>
+to make it a line-end comment.  Therefore, if you are commenting out a
+block of code using the line-comment form, we recommend that you use
+C<##>, or C<#> followed by some whitespace, preferably a tab to keep
+any tab formatting consistent:
+
+    ##sub foo
+    ##{                         # okay
+    ##   ...
+    ##}
+
+    # sub foo
+    # {                         # okay
+    #    ...
+    # }
+
+
+    #       sub foo
+    #       {                   # okay
+    #          ...
+    #       }
+
+However, it's often better to use pod comments because they are
+implicitly line-oriented.  And if you have an intelligent syntax
+highlighter that will mark pod comments in a different color, there's
+less visual need for a C<#> on every line.
+
+=item *
+
+For all quoting constructs that use user-selected brackets, you can open
+with multiple identical bracket characters, which must be closed by the
+same number of closing brackets.  Counting of nested brackets applies only
+to pairs of brackets of the same length as the opening brackets:
+
+    say #{{
+        This comment contains unmatched } and { { { {   (ignored)
+        Plus a nested {{ ... }} pair                    (counted)
+    }} q<< <<woot>> >>   # says " <<woot>> "
+
+Note however that bare circumfix or postcircumfix C<<< <<...>> >>> is
+not a user-selected bracket, but the ASCII variant of the C<< «...» >>
+interpolating word list.  Only C<#> and the C<q>-style quoters (including
+C<m>, C<s>, C<tr>, and C<rx>) enable subsequent user-selected brackets.
+
+=item *
+
+Some languages such as C allow you to escape newline characters
+to combine lines.  Other languages (such as regexes) allow you to
+backslash a space character for various reasons.  Perl 6 generalizes
+this notion to any kind of whitespace.  Any contiguous whitespace
+(including comments) may be hidden from the parser by prefixing it
+with C<\>.  This is known as the "unspace".  An unspace can suppress
+any of several whitespace dependencies in Perl.  For example, since
+Perl requires an absence of whitespace between a noun and a postfix
+operator, using unspace lets you line up postfix operators:
+
+    %hash\  {$key}
+    @array\ [$ix]
+    $subref\($arg)
+
+As a special case to support the use above, a backslash where
+a postfix is expected is considered a degenerate form of unspace.
+Note that whitespace is not allowed before that, hence
+
+    $subref \($arg)
+
+is a syntax error (two terms in a row).  And
+
+    foo \($arg)
+
+will be parsed as a list operator with a C<Capture> argument:
+
+    foo(\($arg))
+
+However, other forms of unspace may usefully be preceded by whitespace.
+(Unary uses of backslash may therefore never be followed by whitespace
+or they would be taken as an unspace.)
+
+Other postfix operators may also make use of unspace:
+
+    $number\  ++;
+    $number\  --;
+    1+3\      i;
+    $object\  .say();
+    $object\#{ your ad here }.say
+
+Another normal use of a you-don't-see-this-space is typically to put
+a dotted postfix on the next line:
+
+    $object\ # comment
+    .say
+
+    $object\#[ comment
+    ].say
+
+    $object\
+    .say
+
+But unspace is mainly about language extensibility: it lets you continue
+the line in any situation where a newline might confuse the parser,
+regardless of your currently installed parser.  (Unless, of course,
+you override the unspace rule itself...)
+
+Although we say that the unspace hides the whitespace from the parser,
+it does not hide whitespace from the lexer.  As a result, unspace is not
+allowed within a token.  Additionally, line numbers are still
+counted if the unspace contains one or more newlines.  A C<#> following
+such a newline is always an end-of-line comment, as described above.
+Since Pod chunks count as whitespace to the language, they are also
+swallowed up by unspace.  Heredoc boundaries are suppressed, however,
+so you can split excessively long heredoc intro lines like this:
+
+    ok(q:to'CODE', q:to'OUTPUT', \
+    "Here is a long description", \ # --more--
+    todo(:parrøt<0.42>, :dötnet<1.2>));
+        ...
+        CODE
+        ...
+        OUTPUT
+
+To the heredoc parser that just looks like:
+
+    ok(q:to'CODE', q:to'OUTPUT', "Here is a long description", todo(:parrøt<0.42>, :dötnet<1.2>));
+        ...
+        CODE
+        ...
+        OUTPUT
+
+Note that this is one of those cases in which it is fine to have
+whitespace before the unspace, since we're only trying to suppress
+the newline transition, not all whitespace as in the case of postfix
+parsing.  (Note also that the example above is not meant to spec how
+the test suite works. :)
+
+=item *
+
+An unspace may contain a comment, but a comment may not contain an unspace.
+In particular, end-of-line comments do not treat backslash as significant.
+If you say:
+
+    #\ (...
+
+it is an end-of-line comment, not an embedded comment.  Write:
+
+    \ #(
+        ...
+       )
+
+to mean the other thing.
+
+=item *
+
+In general, whitespace is optional in Perl 6 except where it is needed
+to separate constructs that would be misconstrued as a single token or
+other syntactic unit.  (In other words, Perl 6 follows the standard
+I<longest-token> principle, or in the cases of large constructs, a
+I<prefer shifting to reducing> principle.  See L</Grammatical Categories>
+below for more on how a Perl program is analyzed into tokens.)
+
+This is an unchanging deep rule, but the surface ramifications of it
+change as various operators and macros are added to or removed from
+the language, which we expect to happen because Perl 6 is designed to
+be a mutable language.  In particular, there is a natural conflict
+between postfix operators and infix operators, either of which
+may occur after a term.  If a given token may be interpreted as
+either a postfix operator or an infix operator, the infix operator
+requires space before it.  Postfix operators may never have intervening
+space, though they may have an intervening dot.  If further separation
+is desired, an embedded comment may be used as described above, as long
+as no whitespace occurs outside the embedded comment.
+
+For instance, if you were to add your own C<< infix:<++> >> operator,
+then it must have space before it. The normal autoincrementing
+C<< postfix:<++> >> operator may never have space before it, but may
+be written in any of these forms:
+
+    $x++
+
+    $x.++
+
+    $x\ ++
+
+    $x\ .++
+
+    $x\#( comment ).++
+    $x\#((( comment ))).++
+
+    $x\
+    .++
+
+    $x\         # comment
+                # inside unspace
+    .++
+
+    $x\         # comment
+                # inside unspace
+    ++          # (but without the optional postfix dot) 
+
+    $x\#『      comment
+                more comment
+    』.++
+
+    $x\#[   comment 1
+    comment 2
+    =begin podstuff
+    whatever (pod comments ignore current parser state)
+    =end podstuff
+    comment 3
+    ].++
+
+A consequence of the postfix rule is that (except when delimiting a
+quote or terminating an unspace) a dot with whitespace in front
+of it is always considered a method call on C<$_> where a term is
+expected.  If a term is not expected at this point, it is a syntax
+error.  (Unless, of course, there is an infix operator of that name
+beginning with dot.  You could, for instance, define a Fortranly
+C<< infix:<.EQ.> >> if the fit took you.  But you'll have to be sure to
+always put whitespace in front of it, or it would be interpreted as
+a postfix method call instead.)
+
+For example,
+
+    foo .method
+
+and
+
+    foo
+    .method
+
+will always be interpreted as
+
+    foo $_.method
+
+but never as
+
+    foo.method  
+
+Use some variant of
+
+    foo\
+    .method
+
+if you mean the postfix method call.
+
+One consequence of all this is that you may no longer write a Num as
+C<42.> with just a trailing dot.  You must instead say either C<42>
+or C<42.0>.  In other words, a dot following a number can only be a
+decimal point if the following character is a digit.  Otherwise the
+postfix dot will be taken to be the start of some kind of method call
+syntax, whether long-dotty or not.  (The C<.123> form with a leading
+dot is still allowed however when a term is expected, and is equivalent
+to C<0.123> rather than C<$_.123>.)
+
+=back
+
+=head1 Built-In Data Types
+
+=over 4
+
+=item *
+
+In support of OO encapsulation, there is a new fundamental datatype:
+B<P6opaque>.  External access to opaque objects is always through method
+calls, even for attributes.
+
+=item *
+
+Perl 6 has an optional type system that helps you write safer
+code that performs better.  The compiler is free to infer what type
+information it can from the types you supply, but will not complain
+about missing type information unless you ask it to.
+
+=item *
+
+Types are officially compared using name equivalence rather than
+structural equivalence.  However, we're rather liberal in what we
+consider a name.  For example, the name includes the version and
+authority associated with the module defining the type (even if
+the type itself is "anonymous").  Beyond that, when you instantiate
+a parametric type, the arguments are considered part of the "long
+name" of the resulting type, so one C<Array of Int> is equivalent to
+another C<Array of Int>.  (Another way to look at it is that the type
+instantiation "factory" is memoized.)  Typename aliases are considered
+equivalent to the original type.
+
+This name equivalence of parametric types extends only to parameters
+that can be considered immutable (or that at least can have an
+immutable snapshot taken of them).  Two distinct classes are never
+considered equivalent even if they have the same attributes because
+classes are not considered immutable.
+
+=item *
+
+Perl 6 supports the notion of B<properties> on various kinds of
+objects.  Properties are like object attributes, except that they're
+managed by the individual object rather than by the object's class.
+
+According to S12, properties are actually implemented by a
+kind of mixin mechanism, and such mixins are accomplished by the
+generation of an individual anonymous class for the object (unless
+an identical anonymous class already exists and can safely be shared).
+
+=item *
+
+Properties applied to objects constructed at compile-time, such as
+variables and classes, are also called B<traits>.  Traits cannot be
+changed at run-time.  Changes to run-time properties are done via
+mixin instead, so that the compiler can optimize based on declared traits.
+
+=item *
+
+Perl 6 is an OO engine, but you're not generally required to think
+in OO when that's inconvenient.  However, some built-in concepts such
+as filehandles will be more object-oriented in a user-visible way
+than in Perl 5.
+
+=item *
+
+A variable's type is a constraint indicating what sorts of values the
+variable may contain.  More precisely, it's a promise that the object
+or objects contained in the variable are capable of responding to the
+methods of the indicated "role".  See S12 for more about roles.
+
+    # $x can contain only Int objects
+    my Int $x;
+
+A variable may itself be bound to a container type that specifies how
+the container works, without specifying what kinds of things it contains.
+
+    # $x is implemented by the MyScalar class
+    my $x is MyScalar;
+
+Constraints and container types can be used together:
+
+    # $x can contain only Int objects,
+    # and is implemented by the MyScalar class
+    my Int $x is MyScalar;
+
+Note that C<$x> is also initialized to C<::Int>.  See below for more on this.
+
+=item *
+
+C<my Dog $spot> by itself does not automatically call a C<Dog> constructor.
+It merely assigns an undefined C<Dog> prototype object to C<$spot>:
+
+    my Dog $spot;           # $spot is initialized with ::Dog
+    my Dog $spot = Dog;     # same thing
+
+    $spot.defined;          # False
+    say $spot;              # "Dog"
+
+Any class name used as a value by itself is an undefined instance of
+that class's prototype, or I<protoobject>.  See S12 for more on that.
+(Any type name in rvalue context is parsed as a list operator
+indicating a typecast, but an argumentless one of these degenerates
+to a typecast of undef, producing the protoobject.)
+
+To get a real C<Dog> object, call a constructor method such as C<new>:
+
+    my Dog $spot .= new;
+    my Dog $spot = $spot.new;   # .= is rewritten into this
+
+You can pass in arguments to the constructor as well:
+
+    my Dog $cerberus .= new(heads => 3);
+    my Dog $cerberus = $cerberus.new(heads => 3);   # same thing
+
+=item *
+
+If you say
+
+    my int @array is MyArray;
+
+you are declaring that the elements of C<@array> are native integers,
+but that the array itself is implemented by the C<MyArray> class.
+Untyped arrays and hashes are still perfectly acceptable, but have
+the same performance issues they have in Perl 5.
+
+=item *
+
+To get the number of elements in an array, use the C<.elems> method.  You can
+also ask for the total string length of an array's elements, in bytes,
+codepoints or graphemes, using these methods C<.bytes>, C<.codes> or C<.graphs>
+respectively on the array.  The same methods apply to strings as well.
+(Note that C<.bytes> is not guaranteed to be well-defined when the encoding
+is unknown.  Similarly, C<.codes> is not well-defined unless you know which
+canonicalization is in effect.  Hence, both methods allow an optional argument
+to specify the meaning exactly if it cannot be known from context.)
+
+There is no C<.length> method for either arrays or strings, because C<length>
+does not specify a unit.
+
+=item *
+
+Built-in object types start with an uppercase letter. This includes
+immutable types (e.g. C<Int>, C<Num>, C<Complex>, C<Rat>, C<Str>,
+C<Bit>, C<Regex>, C<Set>, C<Junction>, C<Code>, C<Block>, C<List>,
+C<Seq>), as well as mutable (container) types, such as C<Scalar>,
+C<Array>, C<Hash>, C<Buf>, C<Routine>, C<Module>, etc.
+
+Non-object (native) types are lowercase: C<int>, C<num>, C<complex>,
+C<rat>, C<buf>, C<bit>.  Native types are primarily intended for
+declaring compact array storage.  However, Perl will try to make those
+look like their corresponding uppercase types if you treat them that way.
+(In other words, it does autoboxing.  Note, however, that sometimes
+repeated autoboxing can slow your program more than the native type
+can speed it up.)
+
+Some object types can behave as value types.  Every object can produce
+a "WHICH" value that uniquely identifies the
+object for hashing and other value-based comparisons.  Normal objects
+just use their address in memory, but if a class wishes to behave as a
+value type, it can define a C<.WHICH> method that makes different objects
+look like the same object if they happen to have the same contents.
+
+=item *
+
+Variables with non-native types can always contain I<undefined> values,
+such as C<Object>, C<Whatever> and C<Failure> objects.  See S04 for more
+about failures (i.e. unthrown exceptions):
+
+    my Int $x = undef;    # works
+
+Variables with native types do not support undefinedness: it is an error
+to assign an undefined value to them:
+
+    my int $y = undef;    # dies
+
+Conjecture: num might support the autoconversion of undef to NaN, since
+the floating-point form can represent this concept.  Might be better
+to make that conversion optional though, so that the rocket designer
+can decide whether to self-destruct immediately or shortly thereafter.
+
+Variables of non-native types start out containing an undefined value
+unless explicitly initialized to a defined value.
+
+=item *
+
+Every object supports a C<HOW> function/method that returns the
+metaclass instance managing it, regardless of whether the object
+is defined:
+
+    'x'.HOW.methods;   # get available methods for strings
+    Str.HOW.methods;   # same thing with the prototype object Str
+    HOW(Str).methods;  # same thing as function call
+
+    'x'.methods;        # this is likely an error - not a meta object
+    Str.methods;        # same thing
+
+(For a prototype system (a non-class-based object system), all objects are merely managed by the same meta object.)
+
+=item *
+
+Perl 6 intrinsically supports big integers and rationals through its
+system of type declarations.  C<Int> automatically supports promotion
+to arbitrary precision, as well as holding C<Inf> and C<NaN> values.
+Note that C<Int> assumes 2's complement arithmetic, so C<+^1 == -2>
+is guaranteed.  (Native C<int> operations need not support this on
+machines that are not natively 2's complement.  You must convert to
+and from C<Int> to do portable bitops on such ancient hardware.)
+
+(C<Num> may support arbitrary-precision floating-point arithmetic, but
+is not required to unless we can do so portably and efficiently.  C<Num>
+must support the largest native floating point format that runs at full speed.)
+
+C<Rat> supports arbitrary precision rational arithmetic.  However,
+dividing two C<Int> objects using C<< infix:</> >> produces a
+fraction of C<Num> type, not a ratio.  You can produce a ratio by
+using C<< infix:<div> >> on two integers instead.
+
+Lower-case types like C<int> and C<num> imply the native
+machine representation for integers and floating-point numbers,
+respectively, and do not promote to arbitrary precision, though
+larger representations are always allowed for temporary values.
+Unless qualified with a number of bits, C<int> and C<num> types represent
+the largest native integer and floating-point types that run at full speed.
+
+Numeric values in untyped variables use C<Int> and C<Num> semantics
+rather than C<int> and C<num>.
+
+=item *
+
+Perl 6 should by default make standard IEEE floating point concepts
+visible, such as C<Inf> (infinity) and C<NaN> (not a number).  Within a
+lexical scope, pragmas may specify the nature of temporary values,
+and how floating point is to behave under various circumstances.
+All IEEE modes must be lexically available via pragma except in cases
+where that would entail heroic efforts to bypass a braindead platform.
+
+The default floating-point modes do not throw exceptions but rather
+propagate Inf and NaN.  The boxed object types may carry more detailed
+information on where overflow or underflow occurred.  Numerics in Perl
+are not designed to give the identical answer everywhere.  They are
+designed to give the typical programmer the tools to achieve a good
+enough answer most of the time.  (Really good programmers may occasionally
+do even better.)  Mostly this just involves using enough bits that the
+stupidities of the algorithm don't matter much.
+
+=item *
+
+A C<Str> is a Unicode string object.  There is no corresponding native
+C<str> type.  However, since a C<Str> object may fill multiple roles,
+we say that a C<Str> keeps track of its minimum and maximum Unicode
+abstraction levels, and plays along nicely with the current lexical
+scope's idea of the ideal character, whether that is bytes, codepoints,
+graphemes, or characters in some language.  For all builtin operations,
+all C<Str> positions are reported as position objects, not integers.
+These C<StrPos> objects point into a particular string at a particular
+location independent of abstraction level, either by tracking the
+string and position directly, or by generating an abstraction-level
+independent representation of the offset from the beginning of the
+string that will give the same results if applied to the same string
+in any context.  This is assuming the string isn't modified in the
+meanwhile; a C<StrPos> is not a "marker" and is not required to follow
+changes to a mutable string.  For instance, if you ask for the positions
+of matches done by a substitution, the answers are reported in terms of the
+original string (which may now be inaccessible!), not as positions within
+the modified string.  (However, if you use C<.pos> on the modified string,
+it will report the position of the end of the substitution in terms
+of the new string.)
+
+The subtraction of two C<StrPos> objects gives a C<StrLen> object,
+which is also not an integer, because the string between two positions
+also has multiple integer interpretations depending on the units.
+A given C<StrLen> may know that it represents 18 bytes, 7 codepoints,
+3 graphemes, and 1 letter in Malayalam, but it might only know this
+lazily because it actually just hangs onto the two C<StrPos> endpoints
+within the string that in turn may or may not just lazily point into
+the string.  (The lazy implementation of C<StrLen> is much like a
+C<Range> object in that respect.)
+
+If you use integers as arguments where position objects are expected,
+it will be assumed that you mean the units of the current lexically
+scoped Unicode abstraction level.  (Which defaults to graphemes.)
+Otherwise you'll need to coerce to the proper units:
+
+    substr($string, 42.as(Bytes), 1.as(ArabicChars))
+
+Of course, such a dimensional number will fail if used on a string
+that doesn't provide the appropriate abstraction level.
+
+If a C<StrPos> or C<StrLen> is forced into a numeric context, it will
+assume the units of the current Unicode abstraction level.  It is
+erroneous to pass such a non-dimensional number to a routine that
+would interpret it with the wrong units.
+
+Implementation note: since Perl 6 mandates that the default Unicode
+processing level must view graphemes as the fundamental unit rather
+than codepoints, this has some implications regarding efficient
+implementation.  It is suggested that all graphemes be translated on
+input to a unique grapheme numbers and represented as integers within
+some kind of uniform array for fast substr access.  For those graphemes
+that have a precomposed form, use of that codepoint is suggested.
+(Note that this means Latin-1 can still be represented internally
+with 8-bit integers.)
+
+For graphemes that have no precomposed form, a temporary private
+id should be assigned that uniquely identifies the grapheme.
+If such ids are assigned consistently thoughout the process,
+comparison of two graphemes is no more difficult than the comparison
+of two integers, and comparison of base characters no more difficult
+than a direct lookup into the id-to-NFD table.
+
+Obviously, any temporary grapheme ids must be translated back to
+some universal form (such as NFD) on output, and normal precomposed
+graphemes may turn into either NFC or NFD forms depending on the
+desired output.  Maintaining a particular grapheme/id mapping over the
+life of the process may have some GC implications for long-running
+processes, but most processes will likely see a limited number of
+non-precomposed graphemes.
+
+If the program has a scope that wants a codepoint view rather than
+a grapheme view, the string visible to that lexical scope must also
+be translated to universal form, just as with output translation.
+Alternately, the temporary grapheme ids may be hidden behind an
+abstraction layer.  In any case, codepoint scope should never see
+any temporary grapheme ids.  (The lexical codepoint declaration
+should probably specify which normalization form it prefers to
+view strings under.  Such a declaration could be applied to input
+translation as well.)
+
+=item *
+
+A C<Buf> is a stringish view of an array of
+integers, and has no Unicode or character properties without explicit
+conversion to some kind of C<Str>.  (A C<buf> is the native counterpart.)
+Typically it's an array of bytes serving as a buffer.  Bitwise
+operations on a C<Buf> treat the entire buffer as a single large
+integer.  Bitwise operations on a C<Str> generally fail unless the
+C<Str> in question can provide an abstract C<Buf> interface somehow.
+Coercion to C<Buf> should generally invalidate the C<Str> interface.
+As a generic type C<Buf> may be instantiated as (or bound to) any
+of C<buf8>, C<buf16>, or C<buf32> (or to any type that provides the
+appropriate C<Buf> interface), but when used to create a buffer C<Buf>
+defaults to C<buf8>.
+
+Unlike C<Str> types, C<Buf> types prefer to deal with integer string
+positions, and map these directly to the underlying compact array
+as indices.  That is, these are not necessarily byte positions--an
+integer position just counts over the number of underlying positions,
+where one position means one cell of the underlying integer type.
+Builtin string operations on C<Buf> types return integers and expect
+integers when dealing with positions.  As a limiting case, C<buf8> is
+just an old-school byte string, and the positions are byte positions.
+Note, though, that if you remap a section of C<buf32> memory to be
+C<buf8>, you'll have to multiply all your positions by 4.
+
+=item *
+
+Ordinarily a term beginning with C<*> indicates a global function
+or type name, but by itself, the C<*> term captures the notion of
+"Whatever", which is applied lazily by whatever operator it is an
+argument to.  Generally it can just be thought of as a "glob" that
+gives you everything it can in that argument position.  For instance:
+
+    if $x ~~ 1..* {...}                 # if 1 <= $x <= +Inf
+    my ($a,$b,$c) = "foo" xx *;         # an arbitrary long list of "foo"
+    if /foo/ ff * {...}                 # a latching flipflop
+    @slice = @x[*;0;*];                 # any Int
+    @slice = %x{*;'foo'};               # any keys in domain of 1st dimension
+    @array[*]                           # flattens, unlike @array[]
+    (*, *, $x) = (1, 2, 3);             # skip first two elements
+                                        # (same as lvalue "undef" in Perl 5)
+
+C<Whatever> is an undefined prototype object derived from C<Any>.  As a
+type it is abstract, and may not be instantiated as a defined object.
+If for a particular MMD dispatch, nothing in the MMD system claims it,
+it dispatches to as an C<Any> with an undefined value, and usually
+blows up constructively.  If you say
+
+    say 1 + *;
+
+you should probably not expect it to yield a reasonable answer, unless
+you think an exception is reasonable.  Since the C<Whatever> object
+is effectively immutable, the optimizer is free to recognize C<*>
+and optimize in the context of what operator it is being passed to.
+
+A variant of C<*> is the C<**> term.  It is generally understood to
+be a multidimension form of C<*> when that makes sense.
+
+Other uses for C<*> will doubtless suggest themselves over time.  These
+can be given meaning via the MMD system, if not the compiler.  In general
+a C<Whatever> should be interpreted as maximizing the degrees of freedom
+in a dwimmey way, not as a nihilistic "don't care anymore--just shoot me".
+
+=back
+
+=head2 Native types
+
+Values with these types autobox to their uppercase counterparts when
+you treat them as objects:
+
+    bit         single native bit
+    int         native signed integer
+    uint        native unsigned integer (autoboxes to Int)
+    buf         native buffer (finite seq of native ints or uints, no Unicode)
+    num         native floating point
+    complex     native complex number
+    bool        native boolean
+
+Since native types cannot represent Perl's concept of undefined values,
+in the absence of explicit initialization, native floating-point types
+default to NaN, while integer types (including C<bit>) default to 0.
+The complex type defaults to NaN + NaN.i.  A buf type of known size
+defaults to a sequence of 0 values.  If any native type is explicitly
+initialized to C<*> (the C<Whatever> type), no initialization is attempted
+and you'll get whatever was already there when the memory was allocated.
+
+If a buf type is initialized with a Unicode string value, the string
+is decomposed into Unicode codepoints, and each codepoint shoved into
+an integer element.  If the size of the buf type is not specified,
+it takes its length from the initializing string.  If the size
+is specified, the initializing string is truncated or 0-padded as
+necessary.  If a codepoint doesn't fit into a buf's integer type,
+a parse error is issued if this can be detected at compile time;
+otherwise a warning is issued at run time and the overflowed buffer
+element is filled with an appropriate replacement character, either
+C<U+FFFD> (REPLACEMENT CHARACTER) if the element's integer type is at
+least 16 bits, or C<U+007f> (DELETE) if the larger value would not fit.
+If any other conversion is desired, it must be specified explicitly.
+In particular, no conversion to UTF-8 or UTF-16 is attempted; that
+must be specified explicitly.  (As it happens, conversion to a buf
+type based on 32-bit integers produces valid UTF-32 in the native
+endianness.)
+
+=head2 Undefined types
+
+These can behave as values or objects of any class, except that
+C<defined> always returns false.  One can create them with the
+built-in C<undef> and C<fail> functions.  (See S04 for how failures
+are handled.)
+
+    Nil         Empty list viewed as an item
+    Object      Uninitialized (derivatives serve as protoobjects of classes)
+    Whatever    Wildcard (like undef, but subject to do-what-I-mean via MMD)
+    Failure     Failure (lazy exceptions, thrown if not handled properly)
+
+Whenever you declare any kind of type, class, module, or package, you're
+automatically declaring a undefined prototype value with the same name.
+
+Whenever a C<Failure> value is put into a typed container, it takes
+on the type specified by the container but continues to carry the
+C<Failure> role.  (The C<undef> function merely returns the most
+generic C<Failure> object.  Use C<fail> to return more specific failures.  Use
+C<Object> for the most generic non-failure undefined value.  The C<Any>
+type is also undefined, but excludes C<Junctions> so that autothreading
+may be dispatched using normal multiple dispatch rules.)
+
+The C<Nil> type is officially undefined as an item but interpolates
+as a null list into list context, and an empty capture into slice
+context.  A C<Nil> object may also carry failure information,
+but if so, the object behaves as a failure only in item context.
+Use C<Failure>/C<undef> when you want to return a hard failure that
+will not evaporate in list context.
+
+=head2 Immutable types
+
+Objects with these types behave like values, i.e. C<$x === $y> is true
+if and only if their types and contents are identical (that is, if
+C<$x.WHICH> eqv C<$y.WHICH>).
+
+    Bit         Perl single bit (allows traits, aliasing, undef, etc.)
+    Int         Perl integer (allows Inf/NaN, arbitrary precision, etc.)
+    Str         Perl string (finite sequence of Unicode characters)
+    Num         Perl number
+    Rat         Perl rational
+    Complex     Perl complex number
+    Bool        Perl boolean
+    Exception   Perl exception
+    Code        Base class for all executable objects
+    Block       Executable objects that have lexical scopes
+    List        Lazy Perl list (composed of immutables and iterators)
+    Seq         Completely evaluated (hence immutable) sequence
+    Range       A pair of Ordered endpoints; gens immutables when iterated
+    Set         Unordered collection of values that allows no duplicates
+    Bag         Unordered collection of values that allows duplicates
+    Junction    Set with additional behaviors
+    Pair        A single key-to-value association
+    Mapping     Set of Pairs with no duplicate keys
+    Signature   Function parameters (left-hand side of a binding)
+    Capture     Function call arguments (right-hand side of a binding)
+    Blob        An undifferentiated mass of bits
+
+=head2 Mutable types
+
+Objects with these types have distinct C<.WHICH> values that do not change
+even if the object's contents change.  (Routines are considered mutable
+because they can be wrapped in place.)
+
+    Scalar      Perl scalar
+    Array       Perl array
+    Hash        Perl hash
+    KeyHash     Perl hash that autodeletes values matching default
+    KeySet      KeyHash of Bool (does Set in list/array context)
+    KeyBag      KeyHash of UInt (does Bag in list/array context)
+    Buf         Perl buffer (a stringish array of memory locations)
+    IO          Perl filehandle
+    Routine     Base class for all wrappable executable objects
+    Sub         Perl subroutine
+    Method      Perl method
+    Submethod   Perl subroutine acting like a method
+    Macro       Perl compile-time subroutine
+    Regex       Perl pattern
+    Match       Perl match, usually produced by applying a pattern
+    Package     Perl 5 compatible namespace
+    Module      Perl 6 standard namespace
+    Class       Perl 6 standard class namespace
+    Role        Perl 6 standard generic interface/implementation
+    Grammar     Perl 6 pattern matching namespace
+    Any         Perl 6 object (default parameter type, excludes Junction)
+    Object      Perl 6 object (either Any or Junction)
+
+A C<KeyHash> differs from a normal C<Hash> in how it handles default
+values.  If the value of a C<KeyHash> element is set to the default
+value for the C<KeyHash>, the element is deleted.  If undeclared,
+the default default for a C<KeyHash> is 0 for numeric types, C<False>
+for boolean types, and the null string for string and buffer types.
+A C<KeyHash> of a C<Object> type defaults to the undefined prototype
+for that type.  More generally, the default default is whatever defined
+value an C<undef> would convert to for that value type.  A C<KeyHash>
+of C<Scalar> deletes elements that go to either 0 or the null string.
+A C<KeyHash> also autodeletes keys for normal undef values (that is,
+those undefined values that do not contain an unthrown exception).
+
+A C<KeySet> is a C<KeyHash> of booleans with a default of C<False>.
+If you use the C<Hash> interface and increment an element of a
+C<KeySet> its value becomes true (creating the element if it doesn't
+exist already).  If you decrement the element it becomes false and
+is automatically deleted.  Decrementing a non-existing value results
+in a C<False> value.  Incrementing an existing value results in C<True>.
+When not used as a C<Hash> (that is,
+when used as an C<Array> or list or C<Set> object) a C<KeySet>
+behaves as a C<Set> of its keys.  (Since the only possible value of
+a C<KeySet> is the C<True> value, it need not be represented in
+the actual implementation with any bits at all.)
+
+A C<KeyBag> is a C<KeyHash> of C<UInt> with default of 0.  If you
+use the C<Hash> interface and increment an element of a C<KeyBag>
+its value is increased by one (creating the element if it doesn't exist
+already).  If you decrement the element the value is decreased by one;
+if the value goes to 0 the element is automatically deleted.  An attempt
+to decrement a non-existing value results in a C<Failure> value.  When not
+used as a C<Hash> (that is, when used as an C<Array> or list or C<Bag>
+object) a C<KeyBag> behaves as a C<Bag> of its keys, with each key
+replicated the number of times specified by its corresponding value.
+(Use C<.kv> or C<.pairs> to suppress this behavior in list context.)
+
+=head2 Value types
+
+Explicit types are optional. Perl variables have two associated types:
+their "value type" and their "implementation type".  (More generally, any
+container has an implementation type, including subroutines and modules.)
+The value type is stored as its C<of> property, while the implementation
+type of the container is just the object type of the container itself.
+The word C<returns> is allowed as an alias for C<of>.
+
+The value type specifies what kinds of values may be stored in the
+variable. A value type is given as a prefix or with the C<of> keyword:
+
+    my Dog $spot;
+    my $spot of Dog;
+
+In either case this sets the C<of> property of the container to C<Dog>.
+
+Subroutines have a variant of the C<of> property, C<as>, that sets
+the C<as> property instead.  The C<as> property specifies a
+constraint (or perhaps coercion) to be enforced on the return value (either
+by explicit call to C<return> or by implicit fall-off-the-end return).
+This constraint, unlike the C<of> property, is not advertised as the
+type of the routine.  You can think of it as the implicit type signature of
+the (possibly implicit) return statement.  It's therefore available for
+type inferencing within the routine but not outside it.  If no C<as> type
+is declared, it is assumed to be the same as the C<of> type, if declared.
+
+    sub get_pet() of Animal {...}       # of type, obviously
+    sub get_pet() returns Animal {...}  # of type
+    our Animal sub get_pet() {...}      # of type
+    sub get_pet() as Animal {...}       # as type
+
+A value type on an array or hash specifies the type stored by each element:
+
+    my Dog @pound;  # each element of the array stores a Dog
+
+    my Rat %ship;   # the value of each entry stores a Rat
+
+The key type of a hash may be specified as a shape trait--see S09.
+
+=head2 Implementation types
+
+The implementation type specifies how the variable itself is implemented. It is
+given as a trait of the variable:
+
+    my $spot is Scalar;             # this is the default
+    my $spot is PersistentScalar;
+    my $spot is DataBase;
+
+Defining an implementation type is the Perl 6 equivalent to tying
+a variable in Perl 5.  But Perl 6 variables are tied directly at
+declaration time, and for performance reasons may not be tied with a
+run-time C<tie> statement unless the variable is explicitly declared
+with an implementation type that does the C<Tieable> role.
+
+However, package variables are always considered C<Tieable> by default.
+As a consequence, all named packages are also C<Tieable> by default.
+Classes and modules may be viewed as differently tied packages.
+Looking at it from the other direction, classes and modules that
+wish to be bound to a global package name must be able to do the
+C<Package> role.
+
+=head2 Hierarchical types
+
+A non-scalar type may be qualified, in order to specify what type of
+value each of its elements stores:
+
+    my Egg $cup;                       # the value is an Egg
+    my Egg @carton;                    # each elem is an Egg
+    my Array of Egg @box;              # each elem is an array of Eggs
+    my Array of Array of Egg @crate;   # each elem is an array of arrays of Eggs
+    my Hash of Array of Recipe %book;  # each value is a hash of arrays of Recipes
+
+Each successive C<of> makes the type on its right a parameter of the
+type on its left. Parametric types are named using square brackets, so:
+
+    my Hash of Array of Recipe %book;
+
+actually means:
+
+    my Hash[of => Array[of => Recipe]] %book; 
+
+Because the actual variable can be hard to find when complex types are
+specified, there is a postfix form as well:
+
+    my Hash of Array of Recipe %book;           # HoHoAoRecipe
+    my %book of Hash of Array of Recipe;        # same thing
+
+The C<as> form may be used in subroutines:
+
+    my sub get_book ($key) as Hash of Array of Recipe {...}
+
+Alternately, the return type may be specified within the signature:
+
+    my sub get_book ($key --> Hash of Array of Recipe) {...}
+
+There is a slight difference, insofar as the type inferencer will
+ignore a C<as> but pay attention to C<< --> >> or prefix type
+declarations, also known as the C<of> type.  Only the inside of the
+subroutine pays attention to C<as>, and essentially coerces the return
+value to the indicated type, just as if you'd coerced each return expression.
+
+You may also specify the C<of> type as the C<of> trait (with C<returns>
+allowed as a synonym):
+
+    my Hash of Array of Recipe sub get_book ($key) {...}
+    my sub get_book ($key) of Hash of Array of Recipe {...}
+    my sub get_book ($key) returns Hash of Array of Recipe {...}
+
+=head2 Polymorphic types
+
+Anywhere you can use a single type you can use a set of types, for convenience
+specifiable as if it were an "or" junction:
+
+    my Int|Str $error = $val;              # can assign if $val~~Int or $val~~Str
+
+Fancier type constraints may be expressed through a subtype:
+
+    subset Shinola of Any where {.does(DessertWax) and .does(FloorTopping)};
+    if $shimmer ~~ Shinola {...}  # $shimmer must do both interfaces
+
+Since the terms in a parameter could be viewed as a set of
+constraints that are implicitly "anded" together (the variable itself
+supplies type constraints, and C<where> clauses or tree matching just
+add more constraints), we relax this to allow juxtaposition of
+types to act like an "and" junction:
+
+    # Anything assigned to the variable $mitsy must conform
+    # to the type Fish and either the Cat or Dog type...
+    my Cat|Dog Fish $mitsy = new Fish but { Bool.pick ?? .does Cat
+                                                      !! .does Dog };
+
+=head2 Parameter types
+
+Parameters may be given types, just like any other variable:
+
+    sub max (int @array is rw) {...}
+    sub max (@array of int is rw) {...}
+
+=head2 Generic types
+
+Within a declaration, a class variable (either by itself or
+following an existing type name) declares a new type name and takes
+its parametric value from the actual type of the parameter it is
+associated with.  It declares the new type name in the same scope
+as the associated declaration.
+
+    sub max (Num ::X @array) {
+        push @array, X.new();
+    }
+
+The new type name is introduced immediately, so two such types in
+the same signature must unify compatibly if they have the same name:
+
+    sub compare (Any ::T $x, T $y) {
+        return $x eqv $y;
+    }
+
+=head2 Return types
+
+On a scoped subroutine, a return type can be specified before or after
+the name.  We call all return types "return types", but distinguish
+two kinds of return types, the C<as> type and the C<of> type,
+because the C<of> type is normally an "official" named type and
+declares the official interface to the routine, while the C<as>
+type is merely a constraint on what may be returned by the routine
+from the routine's point of view.
+
+    our sub lay as Egg {...}            # as type
+    our Egg sub lay {...}               # of type
+    our sub lay of Egg {...}            # of type
+    our sub lay (--> Egg) {...}         # of type
+
+    my sub hat as Rabbit {...}          # as type
+    my Rabbit sub hat {...}             # of type
+    my sub hat of Rabbit {...}          # of type
+    my sub hat (--> Rabbit) {...}       # of type
+
+If a subroutine is not explicitly scoped, it belongs to the current
+namespace (module, class, grammar, or package), as if it's scoped with
+the C<our> scope modifier. Any return type must go after the name:
+
+    sub lay as Egg {...}                # as type
+    sub lay of Egg {...}                # of type
+    sub lay (--> Egg) {...}             # of type
+
+On an anonymous subroutine, any return type can only go after the C<sub>
+keyword:
+
+    $lay = sub as Egg {...};            # as type
+    $lay = sub of Egg {...};            # of type
+    $lay = sub (--> Egg) {...};         # of type
+
+but you can use a scope modifier to introduce an C<of> prefix type:
+
+    $lay = my Egg sub {...};            # of type
+    $hat = my Rabbit sub {...};         # of type
+
+Because they are anonymous, you can change the C<my> modifier to C<our>
+without affecting the meaning.
+
+The return type may also be specified after a C<< --> >> token within
+the signature.  This doesn't mean exactly the same thing as C<as>.
+The C<of> type is the "official" return type, and may therefore be
+used to do type inferencing outside the sub.  The C<as> type only
+makes the return type available to the internals of the sub so that
+the C<return> statement can know its context, but outside the sub we
+don't know anything about the return value, as if no return type had
+been declared.  The prefix form specifies the C<of> type rather than
+the C<as> type, so the return type of
+
+    my Fish sub wanda ($x) { ... }
+
+is known to return an object of type Fish, as if you'd said:
+
+    my sub wanda ($x --> Fish) { ... }
+
+I<not> as if you'd said
+
+    my sub wanda ($x) as Fish { ... }
+
+It is possible for the C<of> type to disagree with the C<as> type:
+
+    my Squid sub wanda ($x) as Fish { ... }
+
+or equivalently,
+
+    my sub wanda ($x --> Squid) as Fish { ... }
+
+This is not lying to yourself--it's lying to the world.  Having a
+different inner type is useful if you wish to hold your routine to
+a stricter standard than you let on to the outside world, for instance.
+
+=head1 Names and Variables
+
+=over 4
+
+=item *
+
+The C<$Package'var> syntax is gone.  Use C<$Package::var> instead.
+
+=item *
+
+Perl 6 includes a system of B<sigils> to mark the fundamental
+structural type of a variable:
+
+    $   scalar (object)
+    @   ordered array
+    %   unordered hash (associative array)
+    &   code/rule/token/regex
+    ::  package/module/class/role/subset/enum/type/grammar
+    @@  slice view of @
+
+Within a declaration, the C<&> sigil also declares the visibility of the
+subroutine name without the sigil within the scope of the declaration:
+
+    my &func := sub { say "Hi" };
+    func;   # calls &func
+
+Within a signature or other declaration, the C<::> sigil followed by an
+identifier marks a type variable that also declares the visibility
+of a package/type name without the sigil within the scope of the
+declaration.  The first such declaration within a scope is assumed
+to be an unbound type, and takes the actual type of its associated
+argument.  With subsequent declarations in the same scope the use of
+the sigil is optional, since the bare type name is also declared.
+
+A declaration nested within must not use the sigil if it wishes to
+refer to the same type, since the inner declaration would rebind
+the type.  (Note that the signature of a pointy block counts as part
+of the inner block, not the outer block.)
+
+=item *
+
+Sigils indicate overall interface, not the exact type of the bound
+object.  Different sigils imply different minimal abilities.
+
+C<$x> may be bound to any object, including any object that can be
+bound to any other sigil.  Such a scalar variable is always treated as
+a singular item in any kind of list context, regardless of whether the
+object is essentially composite or unitary.  It will not automatically
+dereference to its contents unless placed explicitly in some kind of
+dereferencing context.  In particular, when interpolating into list
+context, C<$x> never expands its object to anything other than the
+object itself as a single item, even if the object is a container
+object containing multiple items.
+
+C<@x> may be bound to an object of the C<Array> class, but it may also
+be bound to any object that does the C<Positional> role, such as a
+C<List>, C<Seq>, C<Range>, C<Buf>, or C<Capture>.  The C<Positional>
+role implies the ability to support C<< postcircumfix:<[ ]> >>.
+
+Likewise, C<%x> may be bound to any object that does the C<Associative>
+role, such as C<Pair>, C<Mapping>, C<Set>, C<Bag>, C<KeyHash>, or
+C<Capture>.  The C<Associative> role implies the ability to support
+C<< postcircumfix:<{ }> >>.
+
+C<&x> may be bound to any object that does the C<Callable> role, such
+as any C<Block> or C<Routine>.  The C<Callable> role implies the ability
+to support C<< postcircumfix:<( )> >>.
+
+C<::x> may be bound to any object that does the C<Abstraction> role,
+such as a typename, package, module, class, role, grammar, or any other
+protoobject with C<.HOW> hooks.  This C<Abstraction> role implies the
+ability to do various symbol table and/or typological manipulations which
+may or may not be supported by any given abstraction.  Mostly though it
+just means that you want to give some abstraction an official name that
+you can then use later in the compilation without any sigil.
+
+In any case, the minimal container role implied by the sigil is
+checked at binding time at the latest, and may fail earlier (such
+as at compile time) if a semantic error can be detected sooner.
+If you wish to bind an object that doesn't yet do the appropriate
+role, you must either stick with the generic C<$> sigil, or mix in
+the appropriate role before binding to a more specific sigil.
+
+An object is allowed to support both C<Positional> and C<Associative>.
+An object that does not support C<Positional> may not be bound directly
+to C<@x>.  However, any construct such as C<%x> that can interpolate
+the contents of such an object into list context can automatically
+construct a list value that may then be bound to an array variable.
+Subscripting such a list does not imply subscripting back into the
+original object.
+
+=item *
+
+Unlike in Perl 5, you may no longer put whitespace between a sigil
+and its following name or construct.
+
+=item *
+
+Ordinary sigils indicate normally scoped variables, either lexical
+or package scoped.  Oddly scoped variables include a secondary sigil
+(a B<twigil>) that indicates what kind of strange scoping the variable
+is subject to:
+
+    $foo        ordinary scoping
+    $.foo       object attribute accessor
+    $^foo       self-declared formal positional parameter
+    $:foo       self-declared formal named parameter
+    $*foo       global variable
+    $+foo       contextual variable
+    $?foo       compiler hint variable
+    $=foo       pod variable
+    $<foo>      match variable, short for $/{'foo'}
+    $!foo       explicitly private attribute (mapped to $foo though)
+
+Most variables with twigils are implicitly declared or assumed to
+be declared in some other scope, and don't need a "my" or "our".
+Attribute variables are declared with C<has>, though.
+
+=item *
+
+Sigils are now invariant.  C<$> always means a scalar variable, C<@>
+an array variable, and C<%> a hash variable, even when subscripting.
+In item context, variables such as C<@array> and C<%hash> simply
+return themselves as C<Array> and C<Hash> objects. (Item context was
+formerly known as scalar context, but we now reserve the "scalar"
+notion for talking about variables rather than contexts, much as
+arrays are disassociated from list context.)
+
+=item *
+
+In string contexts, container objects automatically stringify to
+appropriate (white-space separated) string values.  In numeric
+contexts, the number of elements in the container is returned.
+In boolean contexts, a true value is returned if and only if there
+are any elements in the container.
+
+=item *
+
+To get a Perlish representation of any object, use the C<.perl> method.
+Like the C<Data::Dumper> module in Perl 5, the C<.perl> method will put
+quotes around strings, square brackets around list values, curlies around
+hash values, constructors around objects, etc., so that Perl can evaluate
+the result back to the same object.
+
+=item *
+
+To get a formatted representation of any scalar value, use the
+C<.fmt('%03d')> method to do an implicit C<sprintf> on the value.
+
+To format an array value separated by commas, supply a second argument:
+C<.fmt('%03d', ', ')>.  To format a hash value or list of pairs, include
+formats for both key and value in the first string: C<< .fmt('%s: %s', "\n") >>.
+
+=item *
+
+Subscripts now consistently dereference the container produced by
+whatever was to their left.  Whitespace is not allowed between a
+variable name and its subscript.  However, there are two ways to
+stretch the construct out visually.  Since a subscript is a kind
+of postfix operator, there is a corresponding B<dot> form of each
+subscript (C<@foo.[1]> and C<%bar.{'a'}>) that makes the dereference
+a little more explicit. Constant string subscripts may be placed
+in angles, so C<%bar.{'a'}> may also be written as C<< %bar<a> >>
+or C<< %bar.<a> >>.  Additionally, you may insert extra whitespace
+using the unspace.
+
+=item *
+
+Slicing is specified by the nature of the subscript, not by
+the sigil.
+
+=item *
+
+The context in which a subscript is evaluated is no longer controlled
+by the sigil either.  Subscripts are always evaluated in list context.
+(More specifically, they are evaluated in a variant of list context
+known as I<slice> context, which preserves dimensional information
+so that you can do multi-dimensional slices using semicolons.  However,
+each slice dimension evaluates its sublist in normal list context,
+so functions called as part of a subscript don't see a slice context.
+See S09 for more on slice context.)
+
+If you need to force inner context to item (scalar), we now have convenient
+single-character context specifiers such as + for numbers and ~ for strings:
+
+    $x        =  g();       # item context for g()
+    @x[f()]   =  g();       # list context for f() and g()
+    @x[f()]   = +g();       # list context for f(), numeric item context for g()
+    @x[+f()]  =  g();       # numeric item context for f(), list context for g()
+
+    @x[f()]   =  @y[g()];   # list context for f() and g()
+    @x[f()]   = +@y[g()];   # list context for f() and g()
+    @x[+f()]  =  @y[g()];   # numeric item context for f(), list context for g()
+    @x[f()]   =  @y[+g()];  # list context for f(), numeric item context for g()
+
+    %x{~f()}  =  %y{g()};   # string item context for f(), list context for g()
+    %x{f()}   =  %y{~g()};  # list context for f(), string item context for g()
+
+Sigils used either as functions or as list prefix operators also
+force context, so these also work:
+
+    @x[$(g())]         # item context for g()
+    @x[$ g()]          # item context for g()
+    %x{$(g())}         # item context for g()
+    %x{$ g()}          # item context for g()
+
+But note that these don't do the same thing:
+
+    @x[$g()]           # call function in $g
+    %x{$g()}           # call function in $g
+
+=item *
+
+There is a need to distinguish list assignment from list binding.
+List assignment works much like it does in Perl 5, copying the
+values.  There's a new C<:=> binding operator that lets you bind
+names to C<Array> and C<Hash> objects without copying, in the same way
+as subroutine arguments are bound to formal parameters.  See S06
+for more about binding.
+
+=item *
+
+An argument list may be captured into an object with backslashed parens:
+
+    $args = \(1,2,3,:mice<blind>)
+
+Values in a C<Capture> object are parsed as ordinary expressions, marked as
+invocant, positional, named, and so on.
+
+Like C<List> objects, C<Capture> objects are immutable in the abstract, but
+evaluate their arguments lazily.  Before everything inside a C<Capture> is
+fully evaluated (which happens at compile time when all the arguments are
+constants), the eventual value may well be unknown.  All we know is
+that we have the promise to make the bits of it immutable as they become known.
+
+C<Capture> objects may contain multiple unresolved iterators such as feeds
+or slices.  How these are resolved depends on what they are eventually
+bound to.  Some bindings are sensitive to multiple dimensions while
+others are not.
+
+You may retrieve parts from a C<Capture> object with a prefix sigil operator:
+
+    $args = \3;     # same as "$args = \(3)"
+    $$args;         # same as "$args as Scalar" or "Scalar($args)"
+    @$args;         # same as "$args as Array"  or "Array($args)"
+    %$args;         # same as "$args as Hash"   or "Hash($args)"
+
+When cast into an array, you can access all the positional arguments; into a
+hash, all named arguments; into a scalar, its invocant.
+
+All prefix sigil operators accept one positional argument, evaluated in
+item context as a rvalue.  They can interpolate in strings if called with
+parentheses.  The special syntax form C<$()> translates into C<$( $/ )> 
+to operate on the current match object; the same applies to C<@()> and C<%()>.
+
+C<Capture> objects fill the ecological niche of references in Perl 6.
+You can think of them as "fat" references, that is, references that
+can capture not only the current identity of a single object, but
+also the relative identities of several related objects.  Conversely,
+you can think of Perl 5 references as a degenerate form of C<Capture>
+when you want to refer only to a single item.
+
+=item *
+
+A signature object (C<Signature>) may be created with colon-prefixed parens:
+
+    my ::MySig ::= :(Int, Num, Complex, Status)
+
+Expressions inside the signature are parsed as parameter declarations
+rather than ordinary expressions.  See S06 for more details on the syntax
+for parameters.
+
+Signature objects bound to type variables (as in the example above) may
+be used within other signatures to apply additional type constraints.
+When applied to a C<Capture> argument, the signature allows you to
+take the types of the capture's arguments from C<MySig>, but declare
+the (untyped) variable names yourself via an additional signature
+in parentheses:
+
+    sub foo (Num Dog|Cat $numdog, MySig $a ($i,$j,$k,$mousestatus)) {...}
+    foo($mynumdog, \(1, 2.7182818, 1.0i, statmouse());
+
+=item *
+
+Unlike in Perl 5, the notation C<&foo> merely stands for the C<foo>
+function as a Code object without calling it.  You may call any Code
+object with parens after it (which may, of course, contain arguments):
+
+    &foo($arg1, $arg2);
+
+Whitespace is not allowed before the parens because it is parsed as
+a postfix.  As with any postfix, there is also a corresponding C<.()>
+operator, and you may use the "unspace" form to insert optional
+whitespace and comments between the backslash and either of the
+postfix forms:
+
+    &foo\   ($arg1, $arg2);
+    &foo\   .($arg1, $arg2);
+    &foo\#[
+        embedded comment
+    ].($arg1, $arg2);
+
+=item *
+
+With multiple dispatch, C<&foo> may actually be the name of a set
+of candidate functions (which you can use as if it were an ordinary function).
+However, in that case C<&foo> by itself is not be sufficient to uniquely
+name a specific function.  To do that, the type may be refined by
+using a signature literal as a postfix operator:
+
+    &foo:(Int,Num)
+
+It still just returns a C<Code> object.  A call may also be partially
+applied by using the C<.assuming> method:
+
+    &foo.assuming(1,2,3,:mice<blind>)
+
+
+=item *
+
+Slicing syntax is covered in S09.  A multidimensional
+slice will be done with semicolons between individual slice sublists.
+Each such slice sublist is evaluated lazily.
+
+=item *
+
+To make a slice subscript return something other than values, append an
+appropriate adverb to the subscript.
+
+    @array = <A B>;
+    @array[0,1,2];      # returns 'A', 'B', undef
+    @array[0,1,2] :p;   # returns 0 => 'A', 1 => 'B'
+    @array[0,1,2] :kv;  # returns 0, 'A', 1, 'B'
+    @array[0,1,2] :k;   # returns 0, 1
+    @array[0,1,2] :v;   # returns 'A', 'B'
+
+    %hash = (:a<A>, :b<B>);
+    %hash<a b c>;       # returns 'A', 'B', undef
+    %hash<a b c> :p;    # returns a => 'A', b => 'B'
+    %hash<a b c> :kv;   # returns 'a', 'A', 'b', 'B'
+    %hash<a b c> :k;    # returns 'a', 'b'
+    %hash<a b c> :v;    # returns 'A', 'B'
+
+These adverbial forms all weed out non-existing entries.  You may also
+perform an existence test, which will return true if all the elements
+of the slice exist:
+
+    if %hash<a b c> :exists {...}
+
+likewise,
+
+    my ($a,$b,$c) = %hash<a b c> :delete;
+
+deletes the entries "en passant" while returning them.  (Of course,
+any of these forms also work in the degenerate case of a slice
+containing a single index.)  Note that these forms work by virtue
+of the fact that the subscript is the topmost previous operator.
+You may have to parenthesize or force list context if some other
+operator that is tighter than comma would appear to be topmost:
+
+    1 + (%hash{$x} :delete);
+    $x = (%hash{$x} :delete);
+    ($x) = %hash{$x} :delete;
+
+(The situation does not often arise for the slice modifiers above
+because they are usually used in list context, which operates
+at comma precedence.)
+
+=item *
+
+In numeric context (i.e. when cast into C<Int> or C<Num>), a C<Hash> object
+becomes the number of pairs contained in the hash.  In a boolean context, a
+Hash object is true if there are any pairs in the hash.  In either case,
+any intrinsic iterator would be reset.  (If hashes do carry an intrinsic
+iterator (as they do in Perl 5), there will be a C<.reset> method on the
+hash object to reset the iterator explicitly.)
+
+=item *
+
+Sorting a list of pairs should sort on their keys by default, then
+on their values.  Sorting a list of lists should sort on the first
+elements, then the second elements, etc.  For more on C<sort> see S29.
+
+=item *
+
+Many of the special variables of Perl 5 are going away.  Those that
+apply to some object such as a filehandle will instead be attributes
+of the appropriate object.  Those that are truly global will have
+global alphabetic names, such as C<$*PID> or C<@*ARGS>. 
+
+=item *
+
+Any remaining special variables will be lexically scoped.
+This includes C<$_> and C<@_>, as well as the new C<$/>, which
+is the return value of the last regex match.  C<$0>, C<$1>, C<$2>, etc.,
+are aliases into the C<$/> object.
+
+=item *
+
+The C<$#foo> notation is dead.  Use C<@foo.end> or C<@foo[*-1]> instead.
+(Or C<@foo.shape[$dimension]> for multidimensional arrays.)
+
+=back
+
+=head1 Names
+
+=over 4
+
+=item *
+
+An I<identifier> is composed of an alphabetic character followed by
+any sequence of alphanumeric characters.  The definitions of alphabetic
+and numeric include appropriate Unicode characters.  Underscore is
+always considered alphabetic.  An identifier may also contain isolated
+apostrophes or hyphens provided the next character is alphabetic.
+
+A I<name> is anything that is a legal part of a variable name (not counting
+the sigil).  This includes
+
+    $foo                # simple identifiers
+    $Foo::Bar::baz      # compound identifiers separated by ::
+    $Foo::($bar)::baz   # compound identifiers that perform interpolations
+    $42                 # numeric names
+    $!                  # certain punctuational variables
+
+When not used as a sigil, the semantic function of C<::> within a
+name is to force the preceding portion of the name to be considered
+a package through which the subsequent portion of the name is to
+be located.  If the preceding portion is null, it means the package
+is unspecified and must be searched for according to the nature of
+what follows.  Generally this means that an initial C<::> following the
+main sigil is a no-op on names that are known at compile time, though
+C<::> can also be used to introduce an interpolation (see below).
+Also, in the absence of another sigil, C<::> can serve as its own
+sigil indicating intentional use of a not-yet-declared package name.
+
+Unlike in Perl 5, if a sigil is followed by comma, semicolon, colon,
+or any kind of bracket or whitespace (including Unicode brackets and
+whitespace), it will be taken to be a sigil without a name rather
+than a punctuational variable.  This allows you to use sigils as coercion
+operators:
+
+    print $( foo() )    # foo called in item context
+    print @@( foo() )   # foo called in slice context
+
+The bare sigil is parsed as a list operator in rvalue context, so
+these mean the same thing:
+
+    print $ foo()       # foo called in item context
+    print @@ foo()      # foo called in slice context
+
+In declarative contexts bare sigils may be used as placeholders for
+anonymous variables:
+
+    my ($a, $, $c) = 1..3;
+    print unless (state $)++;
+
+Outside of declarative contexts you may use C<*> for a placeholder:
+
+    ($a, *, $c) = 1..3;
+
+=item *
+
+Ordinary package-qualified names look like in Perl 5:
+
+    $Foo::Bar::baz      # the $baz variable in package Foo::Bar
+
+Sometimes it's clearer to keep the sigil with the variable name, so an
+alternate way to write this is:
+
+    Foo::Bar::<$baz>
+
+This is resolved at compile time because the variable name is a constant.
+
+=item *
+
+The following pseudo-package names are reserved in the first position:
+
+    MY          # Lexical variables declared in the current scope
+    OUR         # Package variables declared in the current package
+    GLOBAL      # Builtin variables and functions
+    PROCESS     # process-related globals
+    OUTER       # Lexical variables declared in the outer scope
+    CALLER      # Contextual variables in the immediate caller's scope
+    CONTEXT     # Contextual variables in any context's scope
+    SUPER       # Package variables declared in inherited classes
+    COMPILING   # Lexical variables in the scope being compiled
+
+Other all-caps names are semi-reserved.  We may add more of them in
+the future, so you can protect yourself from future collisions by using
+mixed case on your top-level packages.  (We promise not to break
+any existing top-level CPAN package, of course.  Except maybe ACME,
+and then only for coyotes.)
+
+=item *
+
+You may interpolate a string into a package or variable name using
+C<::($expr)> where you'd ordinarily put a package or variable name.
+The string is allowed to contain additional instances of C<::>, which
+will be interpreted as package nesting.  You may only interpolate
+entire names, since the construct starts with C<::>, and either ends
+immediately or is continued with another C<::> outside the parens.
+Most symbolic references are done with this notation:
+
+    $foo = "Bar";
+    $foobar = "Foo::Bar";
+    $::($foo)           # package-scoped $Bar
+    $::("MY::$foo")     # lexically-scoped $Bar
+    $::("*::$foo")      # global $Bar
+    $::($foobar)        # $Foo::Bar
+    $::($foobar)::baz   # $Foo::Bar::baz
+    $::($foo)::Bar::baz # $Bar::Bar::baz
+    $::($foobar)baz     # ILLEGAL at compile time (no operator baz)
+
+Note that unlike in Perl 5, initial C<::> doesn't imply global.
+Package names are searched for from inner lexical scopes to outer,
+then from inner packages to outer.  Variable names are searched
+for from inner lexical scopes to outer, but unlike package names
+are looked for in only the current package and the global package.
+
+The global namespace is the last place it looks in either case.
+You must use the C<*> (or C<GLOBAL>) package on the front of the
+string argument to force the search to start in the global namespace.
+
+Use the C<MY> pseudopackage to limit the lookup to the current lexical
+scope, and C<OUR> to limit the scopes to the current package scope.
+
+=item *
+
+When "strict" is in effect (which is the default except for one-liners),
+non-qualified variables (such as C<$x> and C<@y>) are only looked up from
+lexical scopes, but never from package scopes.
+
+To bind package variables into a lexical scope, simply say C<our ($x, @y)>.
+To bind global variables into a lexical scope, predeclare them with C<use>:
+
+    use GLOBAL <$IN $OUT>;
+
+Or just refer to them as C<$*IN> and C<$*OUT>.
+
+=item *
+
+To do direct lookup in a package's symbol table without scanning, treat
+the package name as a hash:
+
+    Foo::Bar::{'&baz'}  # same as &Foo::Bar::baz
+    GLOBAL::<$IN>       # Same as $*IN
+    Foo::<::Bar><::Baz> # same as Foo::Bar::Baz
+
+The C<::> before the subscript is required here, because the C<Foo::Bar{...}>
+syntax is reserved for defining an autovivifiable protoobject along with
+its initialization closure (see S12).
+
+Unlike C<::()> symbolic references, this does not parse the argument
+for C<::>, nor does it initiate a namespace scan from that initial
+point.  In addition, for constant subscripts, it is guaranteed to
+resolve the symbol at compile time.
+
+The null pseudo-package is reserved to mean the same search list as an ordinary
+name search.  That is, the following are all identical in meaning:
+
+    $foo
+    $::{'foo'}
+    ::{'$foo'}
+    $::<foo>
+    ::<$foo>
+
+That is, each of them scans lexical scopes outward, and then the current package scope
+(though the package scope is then disallowed when "strict" is in effect).
+
+As a result of these rules, you can write any arbitrary variable name as either of:
+
+    $::{'!@#$#@'}
+    ::{'$!@#$#@'}
+
+You can also use the C<< ::<> >> form as long as there are no spaces in the name.
+
+=item *
+
+The current lexical symbol table is now accessible through the
+pseudo-package C<MY>.  The current package symbol table is visible as
+pseudo-package C<OUR>.  The C<OUTER> name refers to the C<MY> symbol table
+immediately surrounding the current C<MY>, and C<OUTER::OUTER> is the one
+surrounding that one.
+
+    our $foo = 41;
+    say $::foo;         # prints 41, :: is no-op
+    {
+        my $foo = 42;
+        say MY::<$foo>;         # prints "42"
+        say $MY::foo;           # same thing
+        say $::foo;             # same thing, :: is no-op here
+
+        say OUR::<$foo>;        # prints "41"
+        say $OUR::foo;          # same thing
+
+        say OUTER::<$foo>;      # prints "41" (our $foo is also lexical)
+        say $OUTER::foo;        # same thing
+    }
+
+You may not use any lexically scoped symbol table, either by name or
+by reference, to add symbols to a lexical scope that is done compiling.
+(We reserve the right to relax this if it turns out to be useful though.)
+
+=item *
+
+The C<CALLER> package refers to the lexical scope of the (dynamically
+scoped) caller.  The caller's lexical scope is allowed to hide any
+variable except C<$_> from you.  In fact, that's the default, and a
+lexical variable must have the trait "C<is context>" to be
+visible via C<CALLER>.  (C<$_>, C<$!> and C<$/> are always
+contextual.) If the variable is not visible in the caller, it returns
+failure.  Variables whose names are visible at the point of the call but that
+come from outside that lexical scope are controlled by the scope
+in which they were originally declared.
+Hence the visibility of C<< CALLER::<$+foo> >> is determined where
+C<$+foo> is actually declared, not by the caller's scope.  Likewise
+C<< CALLER::CALLER::<$x> >> depends only on the declaration of C<$x>
+visible in your caller's caller.
+
+Any lexical declared with the C<is context> trait is by default
+considered readonly outside the current lexical scope.  You may
+add a trait argument of C<< <rw> >> to allow called routines to
+modify your value.  C<$_>, C<$!>, and C<$/> are C<< context<rw> >>
+by default.  In any event, your lexical scope can always access the
+variable as if it were an ordinary C<my>; the restriction on writing
+applies only to called subroutines.
+
+=item *
+
+The C<CONTEXT> pseudo-package is just like C<CALLER> except that
+it starts in the current dynamic scope and from there
+scans outward through all dynamic scopes until it finds a
+contextual variable of that name in that context's lexical scope.
+(Use of C<$+FOO> is equivalent to C<< CONTEXT::<$FOO> >> or C<< $CONTEXT::FOO >>.)
+If after scanning all the lexical scopes of each dynamic scope,
+there is no variable of that name, it looks in the C<*> package.
+If there is no variable in the C<*> package and the variable is
+a scalar, it then looks in C<%*ENV> for the identifier of the variable,
+that is, in the environment variables passed to program.  If the
+value is not found there, it returns failure.  Unlike C<CALLER>,
+C<CONTEXT> will see a contextual variable that is declared in
+the current scope, however it will not be writeable via C<CONTEXT> unless
+declared "C<< is context<rw> >>", even if the variable itself is
+modifiable in that scope.  (If it is, you should just use the bare
+variable itself to modify it.)  Note that C<$+_> will always see
+the C<$_> in the current scope, not the caller's scope.  You may
+use C<< CALLER::<$+foo> >> to bypass a contextual definition of C<$foo>
+in your current context, such as to initialize it with the outer
+contextual value:
+
+    my $foo is context = CALLER::<$+foo>;
+
+The C<CONTEXT> package is only for internal overriding of contextual
+information, modelled on how environmental variables work among
+processes.  Despite the fact that the C<CONTEXT> package reflects the
+current process's environment variables, at least where those are not
+hidden by lower-level declarations, the C<CONTEXT> package should not
+be considered isomorphic to the current set of environment variables.
+Subprocesses are passed only the global C<%*ENV> values.  They do
+not see any lexical variables or their values, unless you copy those
+values into C<%*ENV> to change what subprocesses see:
+
+    temp %*ENV{LANG} = $+LANG;          # may be modified by parent
+    system "greet";
+
+=item *
+
+There is no longer any special package hash such as C<%Foo::>.  Just
+subscript the package object itself as a hash object, the key of which
+is the variable name, including any sigil.  The package object can
+be derived from a type name by use of the C<::> postfix operator:
+
+    MyType::<$foo>
+    MyType.::.{'$foo'}          # same thing with dots
+    MyType\ ::\ {'$foo'}        # same thing with unspaces
+
+(Directly subscripting the type with either square brackets or curlies
+is reserved for various generic type-theoretic operations.  In most other
+matters type names and package names are interchangeable.)
+
+Typeglobs are gone.  Use binding (C<:=> or C<::=>) to do aliasing.
+Individual variable objects are still accessible through the
+hash representing each symbol table, but you have to include the
+sigil in the variable name now: C<MyPackage::{'$foo'}> or the
+equivalent C<< MyPackage::<$foo> >>.
+
+=item *
+
+Truly global variables live in the C<*> package: C<$*UID>, C<%*ENV>.
+(The C<*> may be omitted if you import the name from the C<GLOBAL>
+package.)  C<$*foo> is short for C<$*::foo>, suggesting that the
+variable is "wild carded" into every package.
+
+=item *
+
+For an ordinary Perl program running by itself, the C<GLOBAL> and
+C<PROCESS> namespaces are considered synonymous.  However, in certain
+situations (such as shared hosting under a webserver), the actual
+process may contain multiple virtual processes, each running its own
+"main" code.  In this case, the C<GLOBAL> namespace holds variables
+that properly belong to the individual virtual process, while the
+C<PROCESS> namespace holds variables that properly belong to the actual
+process as a whole.  From the viewpoint of the C<GLOBAL> namespace
+there is little difference, since process variables that normally
+appear in C<GLOBAL> are automatically imported from C<PROCESS>.
+However, the process as a whole may place restrictions on the
+mutability of process variables as seen by the individual subprocesses.
+Also, individual subprocesses may not create new process variables.
+If the process wishes to grant subprocesses the ability to communicate
+via the C<PROCESS> namespace, it must supply a writeable variable
+to all the subprocesses granted that privilege.
+
+When these namespaces are so distinguished, the C<*> shortcut always refers
+to C<GLOBAL>.  There is no twigil shortcut for C<PROCESS>.
+
+=item *
+
+Standard input is C<$*IN>, standard output is C<$*OUT>, and standard error
+is C<$*ERR>.  The magic command-line input handle is C<$*ARGS>.
+The arguments themselves come in C<@*ARGS>.  See also "Declaring a MAIN
+subroutine" in S06.
+
+=item *
+
+Magical file-scoped values live in variables with a C<=> secondary
+sigil.  C<$=DATA> is the name of your C<DATA> filehandle, for instance.
+All pod structures are available through C<%=POD> (or some such).
+As with C<*>, the C<=> may also be used as a package name: C<$=::DATA>.
+
+=item *
+
+Magical lexically scoped values live in variables with a C<?> secondary
+sigil.  These are all values that are known to the compiler, and may
+in fact be dynamically scoped within the compiler itself, and only
+appear to be lexically scoped because dynamic scopes of the compiler
+resolve to lexical scopes of the program.  All C<$?> variables are considered
+constants, and may not be modified after being compiled in.  The user
+is also allowed to define or (redefine) such constants:
+
+    constant $?TABSTOP = 4;     # assume heredoc tabs mean 4 spaces
+
+(Note that the constant declarator always evaluates its initialization
+expression at compile time.)
+
+C<$?FILE> and C<$?LINE> are your current file and line number, for
+instance.  C<?> is not a shortcut for a package name like C<*> is.
+Instead of C<$?OUTER::SUB> you probably want to write C<< OUTER::<$?SUB> >>.
+Within code that is being run during the compile, such as C<BEGIN> blocks, or
+macro bodies, or constant initializers, the compiler variables must be referred
+to as (for instance) C<< COMPILING::<$?LINE> >> if the bare C<$?LINE> would
+be taken to be the value during the compilation of the currently running
+code rather than the eventual code of the user's compilation unit.  For
+instance, within a macro body C<$?LINE> is the line within the macro
+body, but C<< COMPILING::<$?LINE> >> is the line where the macro was invoked.
+See below for more about the C<COMPILING> pseudo package.
+
+Here are some possibilities:
+
+    $?FILE      Which file am I in?
+    $?LINE      Which line am I at?
+    $?PARSER    Which Perl grammar was used to parse this statement?
+    $?LANG      Which Perl parser should embedded closures parse with?
+    &?ROUTINE   Which routine am I in?
+    @?ROUTINE   Which nested routines am I in?
+    &?BLOCK     Which block am I in?
+    @?BLOCK     Which nested blocks am I in?
+    $?LABEL     Which innermost block label am I in?
+    @?LABEL     Which nested block labels am I in?
+
+All the nested C<@?> variables are ordered from the innermost to the
+outermost, so C<@?BLOCK[0]> is always the same as C<&?BLOCK>.
+
+The following return objects that contain all pertinent info:
+
+    $?OS        Which operating system am I compiled for?
+    $?DISTRO    Which OS distribution am I compiling under
+    $?VM        Which virtual machine am I compiling under
+    $?XVM       Which virtual machine am I cross-compiling for
+    $?PERL      Which Perl am I compiled for?
+    $?PACKAGE   Which package am I in?
+    @?PACKAGE   Which nested packages am I in?
+    $?MODULE    Which module am I in?
+    @?MODULE    Which nested modules am I in?
+    $?CLASS     Which class am I in? (as variable)
+    @?CLASS     Which nested classes am I in?
+    $?ROLE      Which role am I in? (as variable)
+    @?ROLE      Which nested roles am I in?
+    $?GRAMMAR   Which grammar am I in?
+    @?GRAMMAR   Which nested grammars am I in?
+
+It is relatively easy to smartmatch these constant objects
+against pairs to check various attributes such as name,
+version, or authority:
+
+    given $?VM {
+        when :name<Parrot> :ver(v2) { ... }
+        when :name<CLOS>            { ... }
+        when :name<SpiderMonkey>    { ... }
+        when :name<JVM> :ver(v6.*)  { ... }
+    }
+
+Matches of constant pairs on constant objects may all be resolved at
+compile time, so dead code can be eliminated by the optimizer.
+
+Note that some of these things have parallels in the C<*> space at run time:
+
+    $*OS        Which OS I'm running under
+    $*DISTRO    Which OS distribution I'm running under
+    $*VM        Which VM I'm running under
+    $*PERL      Which Perl I'm running under
+
+You should not assume that these will have the same value as their
+compile-time cousins.
+
+=item *
+
+While C<$?> variables are constant to the run time, the compiler
+has to have a way of changing these values at compile time without
+getting confused about its own C<$?> variables (which were frozen in
+when the compile-time code was itself compiled).  The compiler can
+talk about these compiler-dynamic values using the C<COMPILING> pseudopackage.
+
+References to C<COMPILING> variables are automatically hoisted into the
+context currently being compiled.  Setting or temporizing a C<COMPILING>
+variable sets or temporizes the incipient C<$?> variable in the
+surrounding lexical context that is being compiled.  If nothing in
+the context is being compiled, an exception is thrown.
+
+    $?FOO // say "undefined";   # probably says undefined
+    BEGIN { COMPILING::<$?FOO> = 42 }
+    say $?FOO;                  # prints 42
+    {
+        say $?FOO;              # prints 42
+        BEGIN { temp COMPILING::<$?FOO> = 43 } # temporizes to *compiling* block
+        say $?FOO;              # prints 43
+        BEGIN { COMPILING::<$?FOO> = 44 }
+        say $?FOO;              # prints 44
+        BEGIN { say COMPILING::<$?FOO> }        # prints 44, but $?FOO probably undefined
+    }
+    say $?FOO;                  # prints 42 (left scope of temp above)
+    $?FOO = 45;                 # always an error
+    COMPILING::<$?FOO> = 45;    # an error unless we are compiling something
+
+Note that C<< CALLER::<$?FOO> >> might discover the same variable
+as C<COMPILING::<$?FOO>>, but only if the compiling context is the
+immediate caller.  Likewise C<< OUTER::<$?FOO> >> might or might not
+get you to the right place.  In the abstract, C<COMPILING::<$?FOO>>
+goes outwards dynamically until it finds a compiling scope, and so is
+guaranteed to find the "right" C<$?FOO>.  (In practice, the compiler
+hopefully keeps track of its current compiling scope anyway, so no
+scan is needed.)
+
+Perceptive readers will note that this subsumes various "compiler hints"
+proposals.  Crazy readers will wonder whether this means you could
+set an initial value for other lexicals in the compiling scope.  The
+answer is yes.  In fact, this mechanism is probably used by the
+exporter to bind names into the importer's namespace.
+
+=item *
+
+The currently compiling Perl parser is switched by modifying
+C<< COMPILING::<$?PARSER> >>.  Lexically scoped parser changes
+should temporize the modification.  Changes from here to
+end-of-compilation unit can just assign or bind it.  In general,
+most parser changes involve deriving a new grammar and then pointing
+C<< COMPILING::<$?PARSER> >> at that new grammar.  Alternately, the
+tables driving the current parser can be modified without derivation,
+but at least one level of anonymous derivation must intervene from
+the standard Perl grammar, or you might be messing up someone else's
+grammar.  Basically, the current grammar has to belong only to the
+current compiling scope.  It may not be shared, at least not without
+explicit consent of all parties.  No magical syntax at a distance.
+Consent of the governed, and all that.
+
+=item *
+
+It is often convenient to have names that contain arbitrary characters
+or other data structures.  Typically these uses involve situations
+where a set of entities shares a common "short" name, but still needs
+for each of its elements to be identifiable individually.  For
+example, you might use a module whose short name is C<ThatModule>,
+but the complete long name of a module includes its version, naming
+authority, and perhaps even its source language.  Similarly,
+sets of operators work together in various syntactic categories
+with names like C<prefix>, C<infix>, C<postfix>, etc.  The long
+names of these operators, however, often contain characters that
+are excluded from ordinary identifiers.
+
+For all such uses, an identifier followed by a subscript-like adverbial
+form (see below) is considered an I<extended identifier>:
+
+    infix:<+>    # the official name of the operator in $a + $b
+    infix:<*>    # the official name of the operator in $a * $b
+    infix:«<=»   # the official name of the operator in $a <= $b
+    prefix:<+>   # the official name of the operator in +$a
+    postfix:<--> # the official name of the operator in $a--
+
+This name is to be thought of semantically, not syntactically.  That is,
+the bracketing characters used do not count as part of the name; only
+the quoted data matters.  These are all the same name:
+
+    infix:<+>
+    infix:<<+>>
+    infix:«+»
+    infix:['+']
+
+Despite the appearance as a subscripting form, these names are resolved
+not at run time but at compile time.  The pseudo-subscripts need not
+be simple scalars.  These are extended with the same two-element list:
+
+    infix:<?? !!>
+    infix:['??','!!']
+
+An identifier may be extended with multiple named identifier
+extensions, in which case the names matter but their order does not.
+These name the same module:
+
+    use ThatModule:ver<2.7.18.28.18>:auth<Somebody>
+    use ThatModule:auth<Somebody>:ver<2.7.18.28.18>
+
+Adverbial syntax will be described more fully later.
+
+=back
+
+=head1 Literals
+
+=over 4
+
+=item *
+
+A single underscore is allowed only between any two digits in a
+literal number, where the definition of digit depends on the radix.
+Underscores are not allowed anywhere else in any numeric literal,
+including next to the radix point or exponentiator, or at the beginning
+or end.
+
+=item *
+
+Initial C<0> no longer indicates octal numbers by itself.  You must use
+an explicit radix marker for that.  Pre-defined radix prefixes include:
+
+    0b          base 2, digits 0..1
+    0o          base 8, digits 0..7
+    0d          base 10, digits 0..9
+    0x          base 16, digits 0..9,a..f (case insensitive)
+
+=item *
+
+The general radix form of a number involves prefixing with the radix
+in adverbial form:
+
+    :10<42>             same as 0d42 or 42
+    :16<DEAD_BEEF>      same as 0xDEADBEEF
+    :8<177777>          same as 0o177777 (65535)
+    :2<1.1>             same as 0b1.1 (0d1.5)
+
+Extra digits are assumed to be represented by C<a>..C<z> and C<A>..C<Z>, so you
+can go up to base 36.  (Use C<A> and C<B> for base twelve, not C<T> and C<E>.)
+Alternately you can use a list of digits in decimal:
+
+    :60[12,34,56]       # 12 * 3600 + 34 * 60 + 56
+    :100[3,'.',14,16]   # pi
+
+Any radix may include a fractional part.  A dot is never ambiguous
+because you have to tell it where the number ends:
+
+    :16<dead_beef.face> # fraction
+    :16<dead_beef>.face # method call
+
+=item *
+
+Only base 10 (in any form) allows an additional exponentiator starting
+with 'e' or 'E'.  All other radixes must either rely on the constant folding
+properties of ordinary multiplication and exponentiation, or supply the
+equivalent two numbers as part of the string, which will be interpreted
+as they would outside the string, that is, as decimal numbers by default:
+
+    :16<dead_beef> * 16**8
+    :16<dead_beef*16**8>
+
+It's true that only radixes that define C<e> as a digit are ambiguous that
+way, but with any radix it's not clear whether the exponentiator should
+be 10 or the radix, and this makes it explicit:
+
+    0b1.1e10                    ILLEGAL, could be read as any of:
+
+    :2<1.1> * 2 ** 10           1536
+    :2<1.1> * 10 ** 10          15,000,000,000
+    :2<1.1> * :2<10> ** :2<10>  6
+
+So we write those as
+
+    :2<1.1*2**10>               1536
+    :2<1.1*10**10>              15,000,000,000
+    :2«1.1*:2<10>**:2<10>»      6
+
+The generic string-to-number converter will recognize all of these
+forms (including the * form, since constant folding is not available
+to the run time).  Also allowed in strings are leading plus or minus,
+and maybe a trailing Units type for an implied scaling.  Leading and
+trailing whitespace is ignored.  Note also that leading C<0> by itself
+I<never> implies octal in Perl 6.
+
+Any of the adverbial forms may be used as a function:
+
+    :2($x)      # "bin2num"
+    :8($x)      # "oct2num"
+    :10($x)     # "dec2num"
+    :16($x)     # "hex2num"
+
+Think of these as setting the default radix, not forcing it.  Like Perl
+5's old C<oct()> function, any of these will recognize a number starting
+with a different radix marker and switch to the other radix.  However,
+note that the C<:16()> converter function will interpret leading C<0b>
+or C<0d> as hex digits, not radix switchers.
+
+=item *
+
+Characters indexed by hex numbers can be interpolated into strings
+by introducing with C<"\x">, followed by either a bare hex number
+(C<"\x263a">) or a hex number in square brackets (C<"\x[263a]">).
+Similarly, C<"\o12"> and C<"\o[12]"> interpolate octals--but generally
+you should be using hex in the world of Unicode.  Multiple characters
+may be specified within any of the bracketed forms by separating the
+numbers with comma: C<"\x[41,42,43]">.  You must use the bracketed
+form to disambiguate if the unbracketed form would "eat" too many
+characters, because all of the unbracketed forms eat as many characters
+as they think look like digits in the radix specified.  None of these
+notations work in normal Perl code.  They work only in interpolations
+and regexes and the like.
+
+The old C<\123> form is now illegal, as is the C<\0123> form.
+Only C<\0> remains, and then only if the next character is not in
+the range C<'0'..'7'>.  Octal characters must use C<\o> notation.
+Note also that backreferences are no longer represented by C<\1>
+and the like--see S05.
+
+=item *
+
+The C<qw/foo bar/> quote operator now has a bracketed form: C<< <foo bar> >>.
+When used as a subscript it performs a slice equivalent to C<{'foo','bar'}>.
+Elsewhere it is equivalent to a parenthesisized list of strings:
+C<< ('foo','bar') >>.  Since parentheses are generally reserved just for
+precedence grouping, they merely autointerpolate in list context.  Therefore
+
+    @a = 1, < x y >, 2;
+
+is equivalent to:
+
+    @a = 1, ('x', 'y'), 2;
+
+which is the same as:
+
+    @a = 1, 'x', 'y', 2;
+
+In item context, though, the implied parentheses are not removed, so
+
+    $a = < a b >;
+
+is equivalent to:
+
+    $a = ('a', 'b');
+
+which, because the list is assigned to a scalar, is autopromoted into
+an Array object:
+
+    $a = ['a', 'b'];
+
+Likewise, if bound to a scalar parameter, C<< <a b> >> will be
+treated as a single list object, but if bound to a slurpy parameter,
+it will auto-flatten.
+
+But note that under the parenthesis-rewrite rule, a single value will
+still act like a scalar value.  These are all the same:
+
+    $a = < a >;
+    $a = ('a');
+    $a = 'a';
+
+And if bound to a scalar parameter, no list is constructed.
+To force a single value to become a list object in item context,
+you should use C<< ['a'] >> for clarity as well as correctness.
+
+Much like the relationship between single quotes and double quotes, single
+angles do not interpolate while double angles do.  The double angles may
+be written either with French quotes, C<«$foo @bar[]»>, or
+with "Texas" quotes, C<<< <<$foo @bar[]>> >>>, as the ASCII workaround.
+The implicit split is done after interpolation, but respects quotes
+in a shell-like fashion, so that C<«'$foo' "@bar[]"»> is guaranteed to
+produce a list of two "words" equivalent to C<< ('$foo', "@bar[]") >>.
+C<Pair> notation is also recognized inside C<«...»> and such "words" are
+returned as C<Pair> objects.
+
+Colon pairs (but not arrow pairs) are recognized within double angles.
+In addition, the double angles allow for comments beginning with C<#>.
+These comments work exactly like ordinary comments in Perl code.
+That is, C<#> at beginning of line is always a line-end comment,
+otherwise a following bracket sequence implies an inline comment;
+also, unlike in the shells, any literal C<#> must be quoted, even
+ones without whitespace in front of them, but note that this comes
+more or less for free with a colon pair like C<< :char<#x263a> >>.
+
+=item *
+
+There is now a generalized adverbial form of Pair notation.  The
+following table shows the correspondence to the "fatarrow" notation:
+
+    Fat arrow           Adverbial pair  Paren form
+    =========           ==============  ==========
+    a => 1              :a
+    a => 0              :!a
+    a => 0              :a(0)
+    a => $x             :a($x)
+    a => 'foo'          :a<foo>         :a(<foo>)
+    a => <foo bar>      :a<foo bar>     :a(<foo bar>)
+    a => «$foo @bar»    :a«$foo @bar»   :a(«$foo @bar»)
+    a => {...}          :a{...}         :a({...})
+    a => [...]          :a[...]         :a([...])
+    a => $a             :$a
+    a => @a             :@a
+    a => %a             :%a
+    a => $$a            :$$a
+    a => @$$a           :@$$a (etc.)
+    a => %foo<a>        %foo<a>:p
+
+The fatarrow construct may be used only where a term is expected
+because it's considered an expression in its own right, since the
+fatarrow itself is parsed as a normal infix operator (even when
+autoquoting an identifier on its left).  Because the left side is a
+general expression, the fatarrow form may be used to create a Pair
+with I<any> value as the key.  On the other hand, when used as above
+to generate C<Pair> objects, the adverbial forms are restricted to
+the use of identifiers as keys.  You must use the fatarrow form to
+generate a C<Pair> where the key is not an identifier.
+
+Despite that restriction, it's possible for other things to
+come between a colon and its brackets; however, all of the possible
+non-identifier adverbial keys are reserved for special syntactical
+forms.  Perl 6 currently recognizes decimal numbers and the null key.
+In the following table the first and second columns do I<not> mean
+the same thing:
+
+    Simple pair         DIFFERS from    which means
+    ===========         ============    ===========
+    2 => <101010>       :2<101010>      radix literal 0b101010
+    8 => <123>          :8<123>         radix literal 0o123
+    16 => <deadbeef>    :16<deadbeef>   radix literal 0xdeadbeef
+    16 => $somevalue    :16($somevalue) radix conversion function
+    '' => $x            :($x)           arglist or signature literal
+    '' => ($x,$y)       :($x,$y)        arglist or signature literal
+    '' => <x>           :<x>            identifier extension
+    '' => «x»           :«x»            identifier extension
+    '' => [$x,$y]       :[$x,$y]        identifier extension
+    '' => { .say }      :{ .say }       adverbial block
+
+All of the adverbial forms (including the normal ones with
+identifier keys) are considered special tokens and are recognized
+in various positions in addition to term position.  In particular,
+when used where an infix would be expected they modify the previous
+topmost operator that is tighter in precedence than "loose unary"
+(see S03):
+
+    1 .. 100 :by(3)     # count to 100 by threes
+
+Within declarations the adverbial form is used to rename parameter declarations:
+
+    sub foo ( :externalname($myname) ) {...}
+
+Adverbs modify the meaning of various quoting forms:
+
+    q:x 'cat /etc/passwd'
+
+When appended to an identifier (that is, in postfix position),
+the adverbial syntax is used to generate unique variants of that
+identifier; this syntax is used for naming operators such as C<<
+infix:<+> >> and multiply-dispatched grammatical rules such as
+C<statement_control:if>.  When so used, the adverb is considered an
+integral part of the name, so C<< infix:<+> >> and C<< infix:<-> >>
+are two different operators.  Likewise C<< prefix:<+> >> is different
+from C<< infix:<+> >>.  (The notation also has the benefit of grouping
+distinct identifiers into easily accessible sets; this is how the
+standard Perl 6 grammar knows the current set of infix operators,
+for instance.)
+
+Either fatarrow or adverbial pair notation may be used to pass
+named arguments as terms to a function or method.  After a call with
+parenthesized arguments, only the adverbial syntax may be used to pass
+additional arguments.  This is typically used to pass an extra block:
+
+    find($directory) :{ when not /^\./ }
+
+This just naturally falls out from the preceding rules because the
+adverbial block is in operator position, so it modifies the "find
+operator".  (Parens aren't considered an operator.)
+
+Note that (as usual) the C<{...}> form (either identifier-based
+or special) can indicate either a closure or a hash depending on
+the contents.  It does I<not> always indicate a subscript despite
+being parsed as one.  (The function to which it is passed can I<use>
+the value as a subscript if it chooses, however.)
+
+Note also that the C<< <a b> >> form is not a subscript and is
+therefore equivalent not to C<.{'a','b'}> but rather to C<('a','b')>.
+Bare C<< <a> >> turns into C<('a')> rather than C<('a',)>.  (However,
+as with the other bracketed forms, the value may end up being used
+as a subscript depending on context.)
+
+Two or more adverbs can always be strung together without intervening
+punctuation anywhere a single adverb is acceptable.  When used as
+named arguments in an argument list, you I<may> put comma between,
+because they're just ordinary named arguments to the function, and
+a fatarrow pair would work the same.  However, this comma is allowed
+only when the first pair occurs where a term is expected.  Where an
+infix operator is expected, the adverb is always taken as modifying
+the nearest preceding operator that is not hidden within parentheses,
+and if you string together multiple such pairs, you may not put commas
+between, since that would cause subsequent pairs to look like terms.
+(The fatarrow form is not allowed at all in operator position.)
+See S06 for the use of adverbs as named arguments.
+
+The negated form (C<:!a>) and the sigiled forms (C<:$a>, C<:@a>,
+C<:%a>) never take an argument and don't care what the next character
+is.  They are considered complete.  These forms require an identifier
+to serve as the key.
+
+For identifiers that take a numeric argument, it is allowed to
+abbreviate, for example, C<:sweet(16)> to C<:16sweet>.  (This is
+distinguishable from the :16<deadbeef> form, which never has an
+alphabetic character following the number.)  Only literal decimal
+numbers may be swapped this way.
+
+The other forms of adverb (including the bare C<:a> form) I<always>
+look for an immediate bracketed argument, and will slurp it up.
+If that's not intended, you must use whitespace between the adverb and
+the opening bracket.  The syntax of individual adverbs is the same
+everywhere in Perl 6.  There are no exceptions based on whether an
+argument is wanted or not.  (There is a minor exception for quote and
+regex adverbs, which accept I<only> parentheses as their bracketing
+operator, and ignore other brackets, which must be placed in parens
+if desired.  See "Paren form" in the table above.)
+
+Except as noted above, the parser always
+looks for the brackets.  Despite not indicating a true subscript,
+the brackets are similarly parsed as postfix operators.  As postfixes
+the brackets may be separated from their initial C<:foo> with either
+unspace or dot (or both), but nothing else.
+
+Regardless of syntax, adverbs used as named arguments (in either term
+or infix position) generally show up as optional named parameters to
+the function in question--even if the function is an operator or macro.
+The function in question neither knows nor cares how weird the original
+syntax was.
+
+=item *
+
+In addition to C<q> and C<qq>, there is now the base form C<Q> which does
+I<no> interpolation unless explicitly modified to do so.  So C<q> is really
+short for C<Q:q> and C<qq> is short for C<Q:qq>.  In fact, all quote-like
+forms derive from C<Q> with adverbs:
+
+    q//         Q :q //
+    qq//        Q :qq //
+    rx//        Q :regex //
+    s///        Q :subst ///
+    tr///       Q :trans ///
+
+Adverbs such as C<:regex> change the language to be parsed by switching
+to a different parser.  This can completely change the interpretation
+of any subsequent adverbs as well as the quoted material itself.
+
+    q:s//       Q :q :scalar //
+    rx:s//      Q :regex :sigspace //
+
+=item *
+
+Generalized quotes may now take adverbs:
+
+    Short       Long            Meaning
+    =====       ====            =======
+    :x          :exec           Execute as command and return results
+    :w          :words          Split result on words (no quote protection)
+    :ww         :quotewords     Split result on words (with quote protection)
+    :q          :single         Interpolate \\, \q and \' (or whatever)
+    :qq         :double         Interpolate with :s, :a, :h, :f, :c, :b
+    :s          :scalar         Interpolate $ vars
+    :a          :array          Interpolate @ vars
+    :h          :hash           Interpolate % vars
+    :f          :function       Interpolate & calls
+    :c          :closure        Interpolate {...} expressions
+    :b          :backslash      Interpolate \n, \t, etc. (implies :q at least)
+    :to         :heredoc        Parse result as heredoc terminator
+                :regex          Parse as regex
+                :subst          Parse as substitution
+                :trans          Parse as transliteration
+                :code           Quasiquoting
+
+You may omit the first colon by joining an initial C<Q>, C<q>, or C<qq> with
+a single short form adverb, which produces forms like:
+
+    qw /a b c/;                         # P5-esque qw// meaning q:w
+    Qc '...{$x}...';                    # Q:c//, interpolate only closures
+    qqx/$cmd @args[]/                   # equivalent to P5's qx//
+
+(Note that C<qx//> doesn't interpolate.)
+
+If you want to abbreviate further, just define a macro:
+
+    macro qx { 'qq:x ' }          # equivalent to P5's qx//
+    macro qTO { 'qq:x:w:to ' }    # qq:x:w:to//
+    macro quote:<❰ ❱> ($text) { quasi { $text.quoteharder } }
+
+All the uppercase adverbs are reserved for user-defined quotes.
+All Unicode delimiters above Latin-1 are reserved for user-defined quotes.
+
+=item *
+
+A consequence of the previous item is that we can now say:
+
+    %hash = qw:c/a b c d {@array} {%hash}/;
+
+or
+
+    %hash = qq:w/a b c d {@array} {%hash}/;
+
+to interpolate items into a C<qw>.  Conveniently, arrays and hashes
+interpolate with only whitespace separators by default, so the subsequent
+split on whitespace still works out.  (But the built-in C<«...»> quoter
+automatically does interpolation equivalent to C<qq:ww/.../>.  The
+built-in C<< <...> >> is equivalent to C<q:w/.../>.)
+
+=item *
+
+Whitespace is allowed between the "q" and its adverb: C<q :w /.../>.
+
+=item *
+
+For these "q" forms the choice of delimiters has no influence on the
+semantics.  That is, C<''>, C<"">, C<< <> >>, C<«»>, C<``>, C<()>,
+C<[]>, and C<{}> have no special significance when used in place of
+C<//> as delimiters.  There may be whitespace before the
+opening delimiter. (Which is mandatory for parens because C<q()> is
+a subroutine call and C<q:w(0)> is an adverb with arguments).  Other
+brackets may also require whitespace when they would be understood as
+an argument to an adverb in something like C<< q:z<foo>// >>.
+A colon may never be used as the delimiter since it will always be
+taken to mean another adverb regardless of what's in front of it.
+Nor may a C<#> character be used as the delimiter since it is always
+taken as whitespace (specifically, as a comment).
+
+=item *
+
+New quoting constructs may be declared as macros:
+
+    macro quote:<qX> (*%adverbs) {...}
+
+Note: macro adverbs are automatically evaluated at macro call time if
+the adverbs are included in the parse.  If an adverb needs to affect
+the parsing of the quoted text of the macro, then an explicit named
+parameter may be passed on as a parameter to the C<is parsed> subrule,
+or used to select which subrule to invoke.
+
+=item *
+
+You may interpolate double-quotish text into a single-quoted string
+using the C<\qq[...]> construct.  Other "q" forms also work, including
+user-defined ones, as long as they start with "q".  Otherwise you'll
+just have to embed your construct inside a C<\qq[...]>.
+
+=item *
+
+Bare scalar variables always interpolate in double-quotish
+strings.  Bare array, hash, and subroutine variables may I<never> be
+interpolated.  However, any scalar, array, hash or subroutine variable may
+start an interpolation if it is followed by a sequence of one or more bracketed
+dereferencers: that is, any of:
+
+=over 4
+
+=item 1. An array subscript
+
+=item 2. A hash subscript
+
+=item 3. A set of parentheses indicating a function call
+
+=item 4. Any of 1 through 3 in their B<dot> form
+
+=item 5. A method call that includes argument parentheses
+
+=item 6. A sequence of one or more unparenthesized method call, followed by any of 1 through 5
+
+=back
+
+In other words, this is legal:
+
+    "Val = $a.ord.fmt('%x')\n"
+
+and is equivalent to
+
+    "Val = { $a.ord.fmt('%x') }\n"
+
+
+=item *
+
+In order to interpolate an entire array, it's necessary now to subscript
+with empty brackets:
+
+    print "The answers are @foo[]\n"
+
+Note that this fixes the spurious "C<@>" problem in double-quoted email addresses.
+
+As with Perl 5 array interpolation, the elements are separated by a space.
+(Except that a space is not added if the element already ends in some kind
+of whitespace.  In particular, a list of pairs will interpolate with a
+tab between the key and value, and a newline after the pair.)
+
+=item *
+
+In order to interpolate an entire hash, it's necessary to subscript
+with empty braces or angles:
+
+    print "The associations are:\n%bar{}"
+    print "The associations are:\n%bar<>"
+
+Note that this avoids the spurious "C<%>" problem in double-quoted printf formats.
+
+By default, keys and values are separated by tab characters, and pairs
+are terminated by newlines.  (This is almost never what you want, but
+if you want something polished, you can be more specific.)
+
+=item *
+
+In order to interpolate the result of a sub call, it's necessary to include
+both the sigil and parentheses:
+
+    print "The results are &baz().\n"
+
+The function is called in item context.  (If it returns a list anyway,
+that list is interpolated as if it were an array in string context.)
+
+=item *
+
+In order to interpolate the result of a method call without arguments,
+it's necessary to include parentheses or extend the call with something
+ending in brackets:
+
+    print "The attribute is $obj.attr().\n"
+    print "The attribute is $obj.attr<Jan>.\n"
+
+The method is called in item context.  (If it returns a list,
+that list is interpolated as if it were an array.)
+
+It is allowed to have a cascade of argumentless methods as long as
+the last one ends with parens:
+
+    print "The attribute is %obj.keys.sort.reverse().\n"
+
+(The cascade is basically counted as a single method call for the
+end-bracket rule.)
+
+=item *
+
+Multiple dereferencers may be stacked as long as each one ends in
+some kind of bracket:
+
+    print "The attribute is @baz[3](1,2,3){$xyz}<blurfl>.attr().\n"
+
+Note that the final period above is not taken as part of the expression since
+it doesn't introduce a bracketed dereferencer.
+
+=item *
+
+A bare closure also interpolates in double-quotish context.  It may
+not be followed by any dereferencers, since you can always put them
+inside the closure.  The expression inside is evaluated in string item
+context.  You can force list context on the expression using
+the C<list> operator if necessary.
+
+The following means the same as the previous example.
+
+    print "The attribute is { @baz[3](1,2,3){$xyz}<blurfl>.attr }.\n"
+
+The final parens are unnecessary since we're providing "real" code in
+the curlies.  If you need to have double quotes that don't interpolate
+curlies, you can explicitly remove the capability:
+
+    qq:c(0) "Here are { $two uninterpolated } curlies";
+
+or equivalently:
+
+    qq:!c "Here are { $two uninterpolated } curlies";
+
+Alternately, you can build up capabilities from single quote to tell
+it exactly what you I<do> want to interpolate:
+
+    q:s 'Here are { $two uninterpolated } curlies';
+
+=item *
+
+Secondary sigils (twigils) have no influence over whether the primary sigil
+interpolates.  That is, if C<$a> interpolates, so do C<$^a>, C<$*a>,
+C<$=a>, C<$?a>, C<$.a>, etc.  It only depends on the C<$>.
+
+=item *
+
+No other expressions interpolate.  Use curlies.
+
+=item *
+
+A class method may not be directly interpolated.  Use curlies:
+
+    print "The dog bark is {Dog.bark}.\n"
+
+=item *
+
+The old disambiguation syntax:
+
+    ${foo[$bar]}
+    ${foo}[$bar]
+
+is dead.  Use closure curlies instead:
+
+    {$foo[$bar]}
+    {$foo}[$bar]
+
+(You may be detecting a trend here...)
+
+=item *
+
+To interpolate a topical method, use curlies: C<"{.bark}">.
+
+=item *
+
+To interpolate a function call without a sigil, use curlies: C<"{abs $var}">.
+
+=item *
+
+And so on.
+
+=item *
+
+Backslash sequences still interpolate, but there's no longer any C<\v>
+to mean I<vertical tab>, whatever that is...  (C<\v> now matches vertical
+whitespace in a regex.)  Literal character representations are:
+
+    \a          BELL
+    \b          BACKSPACE
+    \t          TAB
+    \n          LINE FEED
+    \f          FORM FEED
+    \r          CARRIAGE RETURN
+    \e          ESCAPE
+
+=item *
+
+There's also no longer any C<\L>, C<\U>, C<\l>, C<\u>, or C<\Q>.
+Use curlies with the appropriate function instead: C<"{ucfirst $word}">.
+
+=item *
+
+You may interpolate any Unicode codepoint by name using C<\c> and
+square brackets:
+
+    "\c[NEGATED DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE]"
+
+Multiple codepoints constituting a single character may be interpolated
+with a single C<\c> by separating the names with comma:
+
+    "\c[LATIN CAPITAL LETTER A, COMBINING RING ABOVE]"
+
+Whether that is regarded as one character or two depends on the
+Unicode support level of the current lexical scope.  It is also
+possible to interpolate multiple codepoints that do not resolve to
+a single character:
+
+    "\c[LATIN CAPITAL LETTER A, LATIN CAPITAL LETTER B]"
+
+[Note: none of the official Unicode character names contains comma.]
+
+You may also put one or more decimal numbers inside the square brackets:
+
+    "\c[13,10]"	# CRLF
+
+Any single decimal number may omit the brackets:
+
+    "\c8"	# backspace
+
+(Within a regex you may also use C<\C> to match a character that is
+not the specified character.)
+
+If the character following C<\c> or C<\C> is neither a left square bracket
+nor a decimal digit,
+the single following character is turned into a control character by
+the usual trick of XORing the 64 bit.  This allows C<\c@> for NULL
+and C<\c?> for DELETE, but note that the ESCAPE character may not be
+represented that way; it must be represented something like:
+
+    \e
+    \c[ESCAPE]
+    \c27
+    \x1B
+    \o33
+
+Obviously C<\e> is preferred when brevity is needed.
+
+=item *
+
+Any character that I<would> start an interpolation in the current
+quote context may be protected from such interpolation by prefixing with
+backslash.  The backslash is always removed in this case.
+
+The treatment of backslashed characters that would I<not> have
+introduced an interpolation varies depending on the type of quote:
+
+=over 4
+
+=item 1.
+
+Any quoting form that includes C<qq> or C<:qq> in its semantic
+derivation (including the normal double quote form) assumes that all
+backslashes are to be considered meaningful.  The meaning depends
+on whether the following character is alphanumeric; if it is, the
+non-interpolating sequence produces a compile-time error.  If the
+character is non-alphanumeric, the backslash is silently removed, on
+the assumption that the string was backslashed using C<quotemeta()>
+or some such.
+
+=item 2.
+
+All other quoting forms (including standard single quotes)
+assume that non-interpolating sequences are to be left unaltered
+because they are probably intended to pass through to the result.
+Backslashes are removed I<only> for the terminating quote or for
+characters that would interpolate if unbackslashed.  (In either case,
+a special exception is made for brackets; if the left bracket would
+interpolate, the right bracket may optionally also be backslashed,
+and if so, the backslash will be removed.  If brackets are used as
+the delimiters, both left and right C<must> be backslashed the same,
+since they would otherwise be counted wrong in the bracket count.)
+
+=back
+
+As a consequence, these all produce the same literal string:
+
+    " \{ this is not a closure } "
+    " \{ this is not a closure \} "
+    q:c / \{ this is not a closure } /
+    q:c / \{ this is not a closure \} /
+    q:c { \{ this is not a closure \} }
+    q { { this is not a closure } }
+    q { \{ this is not a closure \} }
+
+(Of course, matching backslashes is likely to make your syntax
+highlighter a bit happier, along with any other naïve bracket
+counting algorithms...)
+
+=item *
+
+There are no barewords in Perl 6.  An undeclared bare identifier will
+always be taken to mean a subroutine name.  (Class names
+(and other type names) are predeclared, or prefixed with the C<::>
+type sigil when you're declaring a new one.)  A consequence of this
+is that there's no longer any "C<use strict 'subs'>".  Since the syntax
+for method calls is distinguished from sub calls, it is only unrecognized
+sub calls that must be treated specially.
+
+You still must declare your subroutines, but a bareword with an unrecognized
+name is provisionally compiled as a subroutine call, on that assumption that
+such a declaration will occur by the end of the current compilation unit:
+
+    foo;         # provisional call if neither &foo nor ::foo is defined so far
+    foo();       # provisional call if &foo is not defined so far
+    foo($x);     # provisional call if &foo is not defined so far
+    foo($x, $y); # provisional call if &foo is not defined so far
+
+    $x.foo;      # not a provisional call; it's a method call on $x
+    foo $x:;     # not a provisional call; it's a method call on $x
+    foo $x: $y;  # not a provisional call; it's a method call on $x
+
+If a postdeclaration is not seen, the compile fails at C<CHECK> time.
+(You are still free to predeclare subroutines explicitly, of course.)
+The postdeclaration may be in any lexical or package scope that
+could have made the declaration visible to the provisional call had the
+declaration occurred before rather than after the provisional
+call.
+
+This fixup is done only for provisional calls.  If there
+is I<any> real predeclaration visible, it always takes precedence.
+In case of multiple ambiguous postdeclarations, either they must all
+be multis, or a compile-time error is declared and you must predeclare,
+even if one postdeclaration is obviously "closer".  A single
+C<proto> predeclaration may make all postdeclared C<multi> work fine,
+since that's a run-time dispatch, and all multis are effectively
+visible at the point of the controlling C<proto> declaration.
+
+Parsing of a bareword function as a provisional call is always done
+the same way list operators are treated.  If a postdeclaration
+bends the syntax to be inconsistent with that, it is an error of
+the inconsistent signature variety.
+
+If the unrecognized subroutine name is followed by C<< postcircumfix:<( )> >>,
+it is compiled as a provisional function call of the parenthesized form.
+If it is not, it is compiled as a provisional function call of
+the list operator form, which may or may not have an argument list.
+When in doubt, the attempt is made to parse an argument list.  As with
+any list operator, an immediate postfix operator is illegal unless it is a
+form of parentheses, whereas anything following whitespace will be interpreted
+as an argument list if possible.
+
+Based on the signature of the subroutine declaration, there are only
+four ways that an argument list can be parsed:
+
+    Signature           # of expected args
+    ()                  0
+    ($x)                1
+    ($x?)               0..1
+    (anything else)     0..Inf
+
+That is, a standard subroutine call may be parsed only as a 0-arg term
+(or function call), a 1-mandatory-arg prefix operator (or function
+call), a 1-optional-arg term or prefix operator (or function call), or
+an "infinite-arg" list operator (or function call).  A given signature
+might only accept 2 arguments, but the only number distinctions the
+parser is allowed to make is between void, singular and plural;
+checking that number of arguments supplied matches some number
+larger than one must be done as a separate semantic constraint, not
+as a syntactic constraint.  Perl functions never take N arguments
+off of a list and leave the rest for someone else, except for small
+values of N, where small is defined as not more than 1.  You can get
+fancier using macros, but macros I<always> require predeclaration.
+Since the non-infinite-list forms are essentially behaving as macros,
+those forms also require predeclaration.  Only the infinite-list form
+may be postdeclared (and hence used provisionally).
+
+It is illegal for a provisional subroutine call to be followed by a
+colon postfix, since such a colon is allowed only on an indirect object,
+or a method call in dot form.  (It is also allowed on a label when a
+statement is expected.) So for any undeclared identifier "C<foo>":
+
+    foo.bar             # ILLEGAL       -- postfix must use foo().bar
+    foo .bar            # foo($_.bar)   -- no postfix starts with whitespace
+    foo\ .bar           # ILLEGAL       -- must use foo()\ .bar
+    foo++               # ILLEGAL       -- postfix must use foo()++
+    foo 1,2,3           # foo(1,2,3)    -- args always expected after listop
+    foo + 1             # foo(+1)       -- term always expected after listop
+    foo;                # foo();        -- no postfix, but no args either
+    foo:                #   label       -- must be label at statement boundary.
+                                        -- ILLEGAL otherwise
+    foo: bar:           #   two labels in a row, okay
+    .foo:               # $_.foo: 1     -- must be "dot" method with : args
+    .foo(1)             # $_.foo(1)     -- must be "dot" method with () args
+    .foo                # $_.foo()      -- must be "dot" method with no args
+    .$foo:              # $_.$foo: 1    -- indirect "dot" method with : args
+    foo bar: 1          # bar.foo(1)    -- bar must be predecl as class
+                                        -- sub bar allowed here only if 0-ary
+                                        -- otherwise you must say (bar):
+    foo bar 1           # foo(bar(1))   -- both subject to postdeclaration
+                                        -- never taken as indirect object
+    foo $bar: 1         # $bar.foo(1)   -- indirect object even if declared sub
+                                        -- $bar considered one token
+    foo (bar()):        # bar().foo(1)  -- even if foo declared sub
+    foo bar():          # ILLEGAL       -- bar() is two tokens.
+    foo .bar:           # foo(.bar:)    -- colon chooses .bar to listopify
+    foo bar baz: 1      # foo(baz.bar(1)) -- colon controls "bar", not foo.
+    foo (bar baz): 1    # bar(baz()).foo(1) -- colon controls "foo"
+    $foo $bar           # ILLEGAL       -- two terms in a row
+    $foo $bar:          # ILLEGAL       -- use $bar.$foo for indirection
+    (foo bar) baz: 1    # ILLEGAL       -- use $baz.$(foo bar) for indirection
+
+The indirect object colon only ever dominates a simple term, where
+"simple" includes classes and variables and parenthesized expressions,
+but explicitly not method calls, because the colon will bind to a
+trailing method call in preference.  An indirect object that parses as
+more than one token must be placed in parentheses, followed by the colon.
+
+In short, only an identifier followed by a simple term followed by a
+postfix colon is C<ever> parsed as an indirect object, but that form
+will C<always> be parsed as an indirect object regardless of whether
+the identifier is otherwise declared.
+
+=item *
+
+There's also no "C<use strict 'refs'>" because symbolic dereferences
+are now syntactically distinguished from hard dereferences.
+C<@($arrayref)> must now provide an actual array object, while
+C<@::($string)> is explicitly a symbolic reference.  (Yes, this may
+give fits to the P5-to-P6 translator, but I think it's worth it to
+separate the concepts.  Perhaps the symbolic ref form will admit real
+objects in a pinch.)
+
+=item *
+
+There is no hash subscript autoquoting in Perl 6.  Use C<< %x<foo> >>
+for constant hash subscripts, or the old standby C<< %x{'foo'} >>.  (It
+also works to say C<%x«foo»> as long as you realized it's subject to
+interpolation.)
+
+But C<< => >> still autoquotes any bare identifier to its immediate
+left (horizontal whitespace allowed but not comments).  The identifier is not
+subject to keyword or even macro interpretation.  If you say
+
+    $x = do {
+        call_something();
+        if => 1;
+    }
+
+then C<$x> ends up containing the pair C<< ("if" => 1) >>.  Always.
+(Unlike in Perl 5, where version numbers didn't autoquote.)
+
+You can also use the :key($value) form to quote the keys of option
+pairs.  To align values of option pairs, you may use the
+"unspace" postfix forms:
+
+    :longkey\  ($value)
+    :shortkey\ <string>
+    :fookey\   { $^a <=> $^b }
+
+These will be interpreted as
+
+    :longkey($value)
+    :shortkey<string>
+    :fookey{ $^a <=> $^b }
+
+=item *
+
+The double-underscore forms are going away:
+
+    Old                 New
+    ---                 ---
+    __LINE__            $?LINE
+    __FILE__            $?FILE
+    __PACKAGE__         $?PACKAGE
+    __END__             =begin END
+    __DATA__            =begin DATA
+
+The C<=begin END> pod stream is special in that it assumes there's
+no corresponding C<=end END> before end of file.  The C<DATA>
+stream is no longer special--any POD stream in the current file
+can be accessed via a filehandle, named as C<< %=POD{'DATA'} >> and such.
+Alternately, you can treat a pod stream as a scalar via C<$=DATA>
+or as an array via C<@=DATA>.  Presumably a module could read all
+its COMMENT blocks from C<@=COMMENT>, for instance.  Each chunk of
+pod comes as a separate array element.  You have to split it into lines
+yourself.  Each chunk has a C<.range> property that indicates its
+line number range within the source file.
+
+The lexical routine itself is C<&?ROUTINE>; you can get its name with
+C<&?ROUTINE.name>.  The current block is C<&?BLOCK>.  If the block has any
+labels, those shows up in C<&?BLOCK.labels>.  Within the lexical scope of
+a statement with a label, the label is a pseudo-object representing
+the dynamic context of that statement.  (If inside multiple dynamic
+instances of that statement, the label represents the innermost one.)
+When you say:
+
+    next LINE;
+
+it is really a method on this pseudo-object, and
+
+    LINE.next;
+
+would work just as well.  You can exit any labeled block early by saying
+
+    MyLabel.leave(@results);
+
+=item *
+
+Heredocs are no longer written with C<<< << >>>, but with an adverb on
+any other quote construct:
+
+    print qq:to/END/;
+        Give $amount to the man behind curtain number $curtain.
+        END
+
+Other adverbs are also allowed, as are multiple heredocs within the same
+expression:
+
+    print q:c:to/END/, q:to/END/;
+        Give $100 to the man behind curtain number {$curtain}.
+        END
+        Here is a $non-interpolated string
+        END
+
+=item *
+
+Heredocs allow optional whitespace both before and after terminating
+delimiter.  Leading whitespace equivalent to the indentation of the
+delimiter will be removed from all preceding lines.  If a line is
+deemed to have less whitespace than the terminator, only whitespace
+is removed, and a warning may be issued.  (Hard tabs will be assumed
+to be C<< ($?TABSTOP // 8) >> spaces, but as long as tabs and spaces are used consistently
+that doesn't matter.)  A null terminating delimiter terminates on
+the next line consisting only of whitespace, but such a terminator
+will be assumed to have no indentation.  (That is, it's assumed to
+match at the beginning of any whitespace.)
+
+=item *
+
+There are two possible ways to parse heredocs.  One is to look ahead
+for the newline and grab the lines corresponding to the heredoc, and
+then parse the rest of the original line.  This is how Perl 5 does it.
+Unfortunately this suffers from the problem pervasive in Perl 5 of
+multi-pass parsing, which is masked somewhat because there's no way
+to hide a newline in Perl 5.  In Perl 6, however, we can use "unspace"
+to hide a newline, which means that an algorithm looking ahead to find
+the newline must do a full parse (with possible untoward side effects)
+in order to locate the newline.
+
+Instead, Perl 6 takes the one-pass approach, and just lazily queues
+up the heredocs it finds in a line, and waits until it sees a "real"
+newline to look for the text and attach it to the appropriate heredoc.
+The downside of this approach is a slight restriction--you may not use
+the actual text of the heredoc in code that must run before the line
+finishes parsing.  Mostly that just means you can't write:
+
+    BEGIN { say q:to/END/ }
+        Say me!
+        END
+
+You must instead put the entire heredoc into the C<BEGIN>:
+
+    BEGIN {
+        say q:to/END/;
+        Say me!
+        END
+    }
+
+=item *
+
+A version literal is written with a 'v' followed by the version
+number in dotted form.  This always constructs a C<Version> object,
+not a string.  Only integers and certain wildcards are allowed;
+for anything fancier you must coerce a string to a C<Version>:
+
+    v1.2.3                      # okay
+    v1.2.*                      # okay, wildcard version
+    v1.2.3+                     # okay, wildcard version
+    v1.2.3beta                  # illegal
+    Version('1.2.3beta')        # okay
+
+Note though that most places that take a version number in Perl accept
+it as a named argument, in which case saying C<< :ver<1.2.3beta> >> is fine.
+See S11 for more on using versioned modules.
+
+Version objects have a predefined sort order that follows most people's
+intuition about versioning: each sorting position sorts numerically
+between numbers, alphabetically between alphas, and alphabetics in a
+position before numerics.  Missing final positions are assumed to be '.0'.
+Except for '0' itself, numbers ignore leading zeros.  For splitting
+into sort positions, if any alphabetics (including underscore) are
+immediately adjacent to a number, a dot is assumed between them.
+Likewise any non-alphanumeric character is assumed to be equivalent
+to a dot.  So these are all equivalent:
+
+    1.2.1alpha1.0
+    1.2.1alpha1
+    1.2.1.alpha1
+    1.2.1alpha.1
+    1.2.1.alpha.1
+    1.2-1+alpha/1
+
+And these are also equivalent:
+
+    1.2.1_01
+    1.2.1_1
+    1.2.1._1
+    1.2.1_1
+    1.2.1._.1
+    001.0002.0000000001._.00000000001
+    1.2.1._.1.0.0.0.0.0
+
+So these are in sorted version order:
+
+    1.2.0.999
+    1.2.1_01
+    1.2.1_2
+    1.2.1_003
+    1.2.1a1
+    1.2.1.alpha1
+    1.2.1b1
+    1.2.1.beta1
+    1.2.1.gamma
+    1.2.1α1
+    1.2.1β1
+    1.2.1γ
+    1.2.1
+
+Note how the last pair assume that an implicit .0 sorts after anything
+alphabetic, and that alphabetic is defined according to Unicode, not just
+according to ASCII.  The intent of all this is to make sure that prereleases
+sort before releases.  Note also that this is still a subset of the
+versioning schemes seen in the real world.  Modules with such strange
+versions can still be used by Perl since by default Perl imports
+external modules by exact version number.  (See S11.)  Only range
+operations will be compromised by an unknown foreign collation order,
+such as a system that sorts "delta" after "gamma".
+
+=back
+
+=head1 Context
+
+=over 4
+
+=item *
+
+Perl still has the three main contexts: void, item (scalar), and list.
+
+=item *
+
+In addition to undifferentiated items, we also have these item contexts:
+
+    Context     Type    OOtype  Operator
+    -------     ----    ------  --------
+    boolean     bit     Bit     ?
+    integer     int     Int     int
+    numeric     num     Num     +
+    string      buf     Str     ~
+
+There are also various container contexts that require particular kinds of
+containers.
+
+=item *
+
+Unlike in Perl 5, objects are no longer always considered true.
+It depends on the state of their C<.true> property.  Classes get to decide
+which of their values are true and which are false.  Individual objects
+can override the class definition:
+
+    return 0 but True;
+
+=item *
+
+The definition of C<.true> for the most ancestral type (that is, the
+C<Object> type) is equivalent to C<.defined>.  Since protoobjects are
+considered undefined, all protoobjects (including C<Object> itself)
+are false unless the type overrides the definition of C<.true>
+to include undefined values.  Instantiated objects default to true
+unless the class overrides the definition.  Note that if you could
+instantiate an C<Object> it would be considered defined, and thus true.
+(It is not clear that this is allowed, however.)
+
+=item *
+
+In general any container types should return false if they are empty,
+and true otherwise.  This is true of all the standard container types
+except Scalar, which always defers the definition of truth to its
+contents.  Non-container types define truthiness much as Perl 5 does.
+
+Just as with the standard types, user-defined types should feel free
+to partition their defined values into true and false values if such
+a partition makes sense in control flow using boolean contexts, since
+the separate C<.defined> method is always there if you need it.
+
+=back
+
+=head1 Lists
+
+=over 4
+
+=item *
+
+List context in Perl 6 is by default lazy.  This means a list can
+contain infinite generators without blowing up.  No flattening happens
+to a lazy list until it is bound to the signature of a function or
+method at call time (and maybe not even then).  We say that such
+an argument list is "lazily flattened", meaning that we promise to
+flatten the list on demand, but not before.
+
+=item *
+
+There is a "C<list>" operator which imposes a list context on
+its arguments even if C<list> itself occurs in a item context.
+In list context, it flattens lazily.  In an item context, it returns
+the resulting list as a single C<List> object.  (So the C<list> operator
+really does exactly the same thing as putting a list in parentheses with
+at least one comma.  But it's more readable in some situations.)
+
+To force a non-flattening item context, use the "C<item>" operator.
+
+=item *
+
+When evaluating chained operators, if an C<each()> occurs anywhere in that
+chain, the chain will be transformed first into a C<grep>.  That is,
+
+    for 0 <= each(@x) < all(@y) {...}
+
+becomes
+
+    for @x.grep:{ 0 <= $_ < all(@y) } {...}
+
+Because of this, the original ordering C<@x> is guaranteed to be
+preserved in the returned list, and duplicate elements in C<@x> are
+preserved as well.  In particular,
+
+    @result = each(@x) ~~ {...};
+
+is equivalent to
+
+    @result = @x.grep:{...};
+
+However, this I<each() comprehension> is strictly a syntactic transformation,
+so a list computed any other way will not trigger the rewrite:
+
+    @result = (@x = each(@y)) ~~ {...}; # not a comprehension
+
+=item *
+
+The C<|> prefix operator may be used to force "capture" context on its
+argument and I<also> defeat any scalar argument checking imposed by
+subroutine signature declarations.  Any resulting list arguments are
+then evaluated lazily.
+
+=item *
+
+To force non-lazy list flattening, use the C<eager> list operator.
+Don't use it on an infinite list unless you have a machine with
+infinite memory, and are willing to wait a long time.  To expand an
+iterator object to completion, iterate it with C<< prefix:<=> >>
+inside an eager list:
+
+    @lines = eager =$filehandle;    # read all remaining lines
+
+By contrast,
+
+    @lines = =$filehandle;
+
+makes no guarantee about how many lines ahead the iterator has read.
+Iterators appending to a list are allowed to process in batches, even
+when stored within an array.  The array knows that it is extensible,
+and calls the iterator as it needs more elements.  (Counting the elements
+in the array will also force eager completion.)
+
+=item *
+
+A variant of C<eager> is the C<hyper> list operator, which declares
+not only that you want all the values generated now, but that you want
+them badly enough that you don't care what order they're generated in.
+That is, C<eager> requires sequential evaluation of the list, while
+C<hyper> requests (but does not require) parallel evaluation.  In any
+case, it declares that you don't care about the evaluation order.
+(Conjecture: populating a hash from a hyper list of pairs could be done
+as the results come in, such that some keys can be seen even before
+the hyper is done.  Thinking about Map-Reduce algorithms here...)
+
+=item *
+
+Signatures on non-multi subs can be checked at compile time, whereas
+multi sub and method call signatures can only be checked at run time
+(in the absence of special instructions to the optimizer).
+
+This is not a problem for arguments that are arrays or hashes,
+since they don't have to care about their context, but just return
+themselves in any event, which may or may not be lazily flattened.
+
+However, function calls in the argument list can't know their eventual
+context because the method hasn't been dispatched yet, so we don't
+know which signature to check against.  As in Perl 5, list context
+is assumed unless you explicitly qualify the argument with an item
+context operator.
+
+=item *
+
+The C<< => >> operator now constructs C<Pair> objects rather than merely
+functioning as a comma.  Both sides are in item context.
+
+=item *
+
+The C<< .. >> operator now constructs C<Range> objects rather than merely
+functioning as an operator.  Both sides are in item context.
+
+=item *
+
+There is no such thing as a hash list context.  Assignment to a hash
+produces an ordinary list context.  You may assign alternating keys
+and values just as in Perl 5.  You may also assign lists of C<Pair> objects, in
+which case each pair provides a key and a value.  You may, in fact,
+mix the two forms, as long as the pairs come when a key is expected.
+If you wish to supply a C<Pair> as a key, you must compose an outer C<Pair>
+in which the key is the inner C<Pair>:
+
+    %hash = (($keykey => $keyval) => $value);
+
+=item *
+
+The anonymous C<enum> function takes a list of keys or pairs, and adds
+values to any keys that are not already part of a key.  The value added
+is one more than the previous key or pair's value.  This works nicely with
+the new C<qq:ww> form:
+
+    %hash = enum <<:Mon(1) Tue Wed Thu Fri Sat Sun>>;
+    %hash = enum « :Mon(1) Tue Wed Thu Fri Sat Sun »;
+
+are the same as:
+
+    %hash = ();
+    %hash<Mon Tue Wed Thu Fri Sat Sun> = 1..7;
+
+=item *
+
+In contrast to assignment, binding to a hash requires a C<Hash> (or
+C<Pair>) object.  Binding to a "splat" hash requires a list of pairs
+or hashes, and stops processing the argument list when it runs out
+of pairs or hashes.  See S06 for much more about parameter binding.
+
+=back
+
+=head1 Files
+
+=over 4
+
+=item *
+
+Filename globs are no longer done with angle brackets.  Use the C<glob>
+function.
+
+=item *
+
+Input from a filehandle is no longer done with angle brackets.  Instead
+of
+
+    while (<HANDLE>) {...}
+
+you now write
+
+    for =$handle {...}
+
+As a unary prefix operator, you may also apply adverbs to C<=>:
+
+    for =$handle :prompt('$ ') { say $_ + 1 }
+
+or
+
+    for =($handle):prompt('$ ') { say $_ + 1 }
+
+or you may even write it in its functional form, passing the adverbs
+as ordinary named arguments.
+
+    for prefix:<=>($handle, :prompt('$ ')) { say $_ + 1 }
+
+=back
+
+=head1 Properties
+
+=over 4
+
+=item *
+
+Properties work as detailed in S12.  They're actually object
+attributes provided by role mixins.  Compile-time properties applied
+to containers and such still use the C<is> keyword, but are now called
+"traits".  On the other hand, run-time properties are attached to
+individual objects using the C<but> keyword instead, but are still
+called "properties".
+
+=item *
+
+Properties are accessed just like attributes because they are in fact
+attributes of some class or other, even if it's an anonymous singleton
+class generated on the fly for that purpose.  Since "C<rw>" attributes
+behave in all respects as variables, properties may therefore also
+be temporized with C<temp>, or hypotheticalized with C<let>.
+
+=back
+
+=head1 Grammatical Categories
+
+Lexing in Perl 6 is controlled by a system of grammatical categories.
+At each point in the parse, the lexer knows which subset of the
+grammatical categories are possible at that point, and follows the
+longest-token rule across all the active grammatical categories.
+The grammatical categories that are active at any point are specified
+using a regex construct involving a set of magical hashes.  For example,
+the matcher for the beginning of a statement might look like:
+
+    <%statement_control
+    | %scope_declarator
+    | %prefix
+    | %prefix_circumfix_meta_operator
+    | %circumfix
+    | %quote
+    | %term
+    >
+
+(Ordering of grammatical categories within such a construct matters
+only in case of a "tie", in which case the grammatical category that
+is notionally "first" wins.  For instance, given the example above, a
+statement_control is always going to win out over a prefix operator of
+the same name.  And the reason you can't call a function named "if"
+directly as a list operator is because it would be hidden either by
+the statement_control category at the beginning of a statement or by
+the statement_modifier category elsewhere in the statement.  Only the
+C<if(...)> form unambiguously calls an "if" function, and even that
+works only because statement controls and statement modifiers require
+subsequent whitespace, as do list operators.)
+
+Here are the current grammatical categories:
+
+    category:<prefix>                           prefix:<+>
+    circumfix:<[ ]>                             [ @x ]
+    dotty:<.=>                                  $obj.=method
+    infix_circumfix_meta_operator:{'»','«'}     @a »+« @b
+    infix_postfix_meta_operator:<=>             $x += 2;
+    infix_prefix_meta_operator:<!>              $x !~~ 2;
+    infix:<+>                                   $x + $y
+    package_declarator:<role>                   role Foo;
+    postcircumfix:<[ ]>                         $x[$y] or $x.[$y]
+    postfix_prefix_meta_operator:{'»'}          @array »++
+    postfix:<++>                                $x++
+    prefix_circumfix_meta_operator:{'[',']'}    [*]
+    prefix_postfix_meta_operator:{'«'}          -« @magnitudes
+    prefix:<!>                                  !$x (and $x.'!')
+    q_backslash:<\\>                            '\\'
+    qq_backslash:<n>                            "\n"
+    quote_mod:<x>                               q:x/ ls /
+    quote:<qq>                                  qq/foo/
+    regex_assertion:<!>                         /<!before \h>/
+    regex_backslash:<w>                         /\w/ and /\W/
+    regex_metachar:<.>                          /.*/
+    regex_mod_internal:<P5>                     m:/ ... :P5 ... /
+    routine_declarator:<sub>                    sub foo {...}
+    scope_declarator:<has>                      has $.x;
+    sigil:<%>                                   %hash
+    special_variable:<$!>                       $!
+    statement_control:<if>                      if $condition { 1 } else { 2 }
+    statement_mod_cond:<if>                     .say if $condition
+    statement_mod_loop:<for>                    .say for 1..10
+    statement_prefix:<gather>                   gather for @foo { .take }
+    term:<!!!>                                  $x = { !!! }
+    trait_auxiliary:<does>                      my $x does Freezable
+    trait_verb:<handles>                        has $.tail handles <wag>
+    twigil:<?>                                  $?LINE
+    type_declarator:<subset>                    subset Nybble of Int where ^16
+    version:<v>                                 v4.3.*
+
+Any category containing "circumfix" requires two token arguments, supplied
+in slice notation.  Note that many of these names do not represent real
+operators, and you wouldn't be able to call them even though you can name
+them.
+
+=for vim:set expandtab sw=4:
