@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 7 Nov 2008
+  Last Modified: 26 Nov 2008
   Number: 3
-  Version: 146
+  Version: 147
 
 =head1 Overview
 
@@ -244,6 +244,14 @@ How that is subsequently treated depends on its eventual binding.
 Function call with parens:
 
     a(1)
+
+In term position, any identifier followed immediately by a
+parenthesized expression is always parsed as a term representing
+a function call even if that identifier also has a prefix meaning,
+so you never have to worry about precedence in that case.  Hence:
+
+    not($x) + 1         # means (not $x) + 1
+    abs($x) + 1         # means (abs $x) + 1
 
 =item *
 
@@ -2889,10 +2897,6 @@ The unary C<^> operator generates a range from C<0> up to
 one less than its argument.  So C<^4> is short for C<0..^4> or C<0..3>.
 
     for ^4 { say $_ } # 0, 1, 2, 3
-
-If applied to a list, it generates a multidimensional set of subscripts.
-
-    for ^(3,3) { ... } # (0,0)(0,1)(0,2)(1,0)(1,1)(1,2)(2,0)(2,1)(2,2)
 
 If applied to a type name, it indicates the metaclass instance instead,
 so C<^Moose> is short for C<HOW(Moose)> or C<Moose.HOW>.  It still kinda
