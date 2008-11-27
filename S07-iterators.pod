@@ -11,14 +11,14 @@ Synopsis 7: Iterators and Laziness
                 Daniel Ruoso <daniel@ruoso.com>
  Date:          27 Nov 2008
  Last Modified: 27 Nov 2008
- Version:       1
+ Version:       2
 
 =head1 Laziness and Eagerness
 
 As we all know, one of the primary virtues of the Perl programmer is
 laziness.  This is also one of the virtues of Perl itself.  However,
-Perl knows better than to succumb to false laziness, and so is eager
-sometimes, and lazy others.  Perl defines 4 levels of laziness for
+Perl 6 knows better than to succumb to false laziness, and so is eager
+sometimes, and lazy others. Perl 6 defines 4 levels of laziness for
 Iterators:
 
 =over
@@ -46,7 +46,7 @@ Obtain all items, fail in data structures known to be infinite.
 
 It's important to realize that the responsability of determining the
 level of lazyness/eagerness in each operation is external to each lazy
-object, the runtime, depending on which operation is being performed
+object, the runtime, depending on which operation is being performed,
 is going to assume the level of lazyness and perform the needed
 operations to apply that level.
 
@@ -75,7 +75,7 @@ will be eagerly evaluated.
 =item Feed operators: my @a <== @something;
 
 The feed operator is strictly lazy, meaning that no operation should
-be performed before the user requests any element from @a. That's how
+be performed before the user requests any element. That's how
 
   my @a <== grep { ... } <== map { ... } <== grep { ... } <== 1, 2, 3
 
@@ -111,8 +111,7 @@ provides the same lazyness level of the first example.
 
 The iterator role represents the lazy access to a list, walking
 through a data structure (list, tree whatever), feeds (map, grep etc)
-or a stream (mostly for IO). Each time it is called, will return the
-elements produced at that iteration.
+or a stream (mostly for IO).
 
 It's important to realize that the iterator of a list can be accessed
 by the .Iterator() method (but only the runtime will be calling that
@@ -133,7 +132,7 @@ When it runs out of items, it will throw an exception.
 
 =head1 Auxiliary Implementations
 
-Perl's built-ins require that a number of default iterators exist.  
+Perl's built-ins require that a number of auxiliary types.  
 
 =head2 Generic Item Iterator
 
