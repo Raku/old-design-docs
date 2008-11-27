@@ -77,7 +77,7 @@ will be eagerly evaluated.
 The feed operator is strictly lazy, meaning that no operation should
 be performed before the user requests any element from @a. That's how
 
-  my @a <== grep { ... } <== map { ... } <== grep { ... }, 1, 2, 3
+  my @a <== grep { ... } <== map { ... } <== grep { ... } <== 1, 2, 3
 
 is completely lazy, even if 1,2,3 is a fairly small known compact
 list.
@@ -87,7 +87,7 @@ list.
 But it's important to notice that eagerness takes precedence over
 lazyness, meaning that
 
-  my @a = grep { ... } <== map { ... } <== grep { ... }, 1, 2, 3
+  my @a = grep { ... } <== map { ... } <== grep { ... } <== 1, 2, 3
 
 Will be eagerly evaluated, but that is still different from
 
@@ -111,144 +111,51 @@ provides the same lazyness level of the first example.
 
 The iterator role represents the lazy access to a list, walking
 through a data structure (list, tree whatever), feeds (map, grep etc)
-or and, each time it is called, will return one (or more) of the nodes
-from the data structure.
+or a stream (mostly for IO). Each time it is called, will return the
+elements produced at that iteration.
 
-When an iterator runs out of items, it will throw an exception.  
+It's important to realize that the iterator of a list can be accessed
+by the .Iterator() method (but only the runtime will be calling that
+most of the time), and the implemenation of each iterator is private
+to the list and implementation specific.
 
-The iterator role has the following methods:
+This is a minimal API that should allow custom iterator
+implemenations, but this spec should be expanded in the future to
+provide additional API for batch-aware iterators.
 
 =head2 method prefix:<=> {...}
 
-Returns something appropriate depending on the context:
+Returns the items for that iteration. The grouping of elements
+returned in each iteration is visible if this iterator is being used
+to build a slice. While building a List, the items will be flattened.
 
-=head2 method new(Laziness => $laziness, Context => $context) {...}
+When it runs out of items, it will throw an exception.  
 
-Creates the iterator, with appropriate laziness defaults.  
-
-=head2 method SetLaziness($laziness) {...}
-
-Set the Laziness
-
-=head2 method SetContext($context) {...}
-
-Set the Context (intended only for coercions, not user use)
-
-=head2 Iterator Summary
-
-=begin code
-
-role Iterator {
-    has $!laziness;
-    has $!context;
-
-    # enforces item context
-    method FETCH() {...}
-    # returns a list
-    method List() {...}
-    # returns a slice
-    method Slice() {...}
-    # returns the capture of the next iteration
-    method prefix:<=> {
-        given $self.context {
-            when 'Item'  { return self.FETCH() }   # called in item context
-            when 'Slice' { return self.Slice() }   # called in slice context
-            when *       { return self.List()  }   # called in list context (or any other context)
-        }
-    }
-    # Creates a new iterator; can be called with no parameters, and chooses sensible defaults
-    method new(Laziness => $laziness, Context => $context) {
-        if(! $context) {
-            given want {
-                when :($)  { $context = 'Item';  }   # called in item context
-                when :(@@) { $context = 'Slice'; }   # called in slice context
-                when *     { $context = 'List';  }   # called in list context (or any other context)
-            }
-        }
-        $self.context = $context;
-        self.SetLaziness($laziness);
-    }
-    method SetContext($context) {
-        $context ~~ /^(Item|List|Slice)$/) or die "Invalid context $context\n";
-        $self.context = $context;
-	self.SetLaziness();
-    }
-    method SetLaziness($laziness) {
-        if($laziness) {
-            $self.laziness = $laziness;
-        } else {
-            given $self.context {
-                when 'Item' { self.laziness = 'Mostly Lazy';  }
-                when *      { self.laziness = 'Mostly Eager'; }
-            }
-        }
-    }
-}
-
-=end code
-
-=head1 Default Implementations
+=head1 Auxiliary Implementations
 
 Perl's built-ins require that a number of default iterators exist.  
 
-=head2 GenericIterator implementation
+=head2 Generic Item Iterator
 
-This is what is returned by default when an iterator is asked for, but no iterator type is known.  
+Operators like map requires one item at a time as input, therefore
+they can use a generic item iterator to consolidate the access to the
+input iterator, doing additional iterators when an empty capture is
+returned and holding additional values if more than one item is
+returned.
 
-=head2 MapIterator implementation
+=head2 Generic Lazy List
 
-Example call:
+The generic lazy list accepts an iterator as input, and consumes the
+iterator as the elements of the list are accessed but flattening and
+storing the already-evaluated elements.
 
-# this is a good example of loose context information anyway...
-   other_something(| map { ... }, something())
+=head2 Generic Lazy Slice
 
-When the map is initiated(???) this does the following steps in order:
-
-=over 
-
-=item Coerce the return of something to Iterator (returning an Iterator object, which we can call $input_iterator)
-
-=item Coerce the iterator to item context (calls $input_iterator.SetContext() )
-
-=item Create and return a new iterator that holds a reference to both the input iterator and to the map codeblock
-   (lets call this $map_iterator)
-
-=back
-
-When data is requested from the $map_iterator, the following steps are taken:
-
-=over
-
-=item map calls $map_iterator.prefix:<=> and gets the next item (even if that means many iterations or no new iterations in the input data)
-
-=item $map_iterator.prefix:<=> calls $map_iterator.code($item) (the number of arguments is defined by the .arity of the signature, and a call to $input_iterator.prefix:<=> is made to get each argument.)
-
-=item map returns the capture with no context applied (which means that it might contain several or no items)
-
-=back
-
-=begin code
-
-class MapIterator does Iterator {
-  has $.input_iterator;
-  has $.code;
-  method FETCH() {
-    return GenericItemIterator.new(input_iterator => self);
-  }
-  method List() {
-    return GenericLazyList.new(input_iterator => self);
-  }
-  method Slice() {
-    return GenericLazySlice.new(input_iterator => self);
-  }
-  method prefix:<=> {
-    return $.code.(=$.input_iterator);
-  }
-}
-
-=end code
-
-=head2 GrepIterator implementation
+The generic lazy slice accepts an iterator as input, and consumes the
+iterator as the elements of the list are accessed but storing the
+already-evaluated elements as a bi-dimensional list, where the first
+dimension holds each iteration, and the second contains the return of
+each iteration.
 
 =head1 Additions
 
