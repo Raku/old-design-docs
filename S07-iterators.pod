@@ -140,13 +140,23 @@ Operators like map requires one item at a time as input, therefore
 they can use a generic item iterator to consolidate the access to the
 input iterator, doing additional iterators when an empty capture is
 returned and holding additional values if more than one item is
-returned.
+returned. The following code will result in getting a generic item
+iterator:
+
+  my $foo <== @a;
+
+You can later do:
+
+  my $item = =$foo;
 
 =head2 Generic Lazy List
 
 The generic lazy list accepts an iterator as input, and consumes the
 iterator as the elements of the list are accessed but flattening and
-storing the already-evaluated elements.
+storing the already-evaluated elements. To obtain a generic lazy list,
+just do:
+
+  my @a <== @b;
 
 =head2 Generic Lazy Slice
 
@@ -154,7 +164,9 @@ The generic lazy slice accepts an iterator as input, and consumes the
 iterator as the elements of the list are accessed but storing the
 already-evaluated elements as a bi-dimensional list, where the first
 dimension holds each iteration, and the second contains the return of
-each iteration.
+each iteration. To obtain a generic lazy slice, do:
+
+  my @@a <== map { ... }, 1,2,3;
 
 =head1 Additions
 
