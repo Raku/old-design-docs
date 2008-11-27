@@ -1,0 +1,256 @@
+=encoding utf8
+
+=head1 Title
+
+Synopsis 7: Iterators and Laziness
+
+=head1 Version
+
+ Maintainer:    ???
+ Contributions: Tim Nelson <wayland@wayland.id.au>
+                Daniel Ruoso <daniel@ruoso.com>
+ Date:          27 Nov 2008
+ Last Modified: 27 Nov 2008
+ Version:       1
+
+=head1 Laziness and Eagerness
+
+As we all know, one of the primary virtues of the Perl programmer is
+laziness.  This is also one of the virtues of Perl itself.  However,
+Perl knows better than to succumb to false laziness, and so is eager
+sometimes, and lazy others.  Perl defines 4 levels of laziness for
+Iterators:
+
+=over
+
+=item Strictly Lazy
+
+Does not evaluate anything unless explictly required by the user,
+including not traversing non-lazy objects.
+
+=item Mostly Lazy
+
+Try to obtain available items without causing eager evaluation of
+other lazy objects.
+
+=item Mostly Eager
+
+Obtain all items, but does not try to eagerly evaluate when known to
+be infinite.
+
+=item Strictly Eager
+
+Obtain all items, fail in data structures known to be infinite.
+
+=back
+
+It's important to realize that the responsability of determining the
+level of lazyness/eagerness in each operation is external to each lazy
+object, the runtime, depending on which operation is being performed
+is going to assume the level of lazyness and perform the needed
+operations to apply that level.
+
+=head2 The lazyness level of some common operations
+
+=over
+
+=item List Assignment: my @a = @something;
+
+In order to provide p5-like behavior in list assignment, this
+operation is performed in the Mostly Eager level, meaning that if you do
+
+  my @a = grep { ... }, @b;
+
+the grep will be evaluated as long as @b is not infinite.
+
+  my @a = grep { ... }, 1, 2, 3, 4..*
+
+will give grep an infinite list (even if the first elements are
+known), therefore it will also be lazy. On the other hand
+
+  my @a = grep { ... }, 1, 2, 3, 4;
+
+will be eagerly evaluated. 
+
+=item Feed operators: my @a <== @something;
+
+The feed operator is strictly lazy, meaning that no operation should
+be performed before the user requests any element from @a. That's how
+
+  my @a <== grep { ... } <== map { ... } <== grep { ... }, 1, 2, 3
+
+is completely lazy, even if 1,2,3 is a fairly small known compact
+list.
+
+=back
+
+But it's important to notice that eagerness takes precedence over
+lazyness, meaning that
+
+  my @a = grep { ... } <== map { ... } <== grep { ... }, 1, 2, 3
+
+Will be eagerly evaluated, but that is still different from
+
+  my @d = 1,2,3;
+  my @c = grep { ... }, @d;
+  my @b = map { ... }, @c;
+  my @a = grep { ... }, @b;
+
+Because in the first, the processing would be made as a flow, avoiding
+the creation of the intermediary eager lists that the second example
+creates. On the other hand
+
+  my @d <== 1,2,3;
+  my @c <== grep { ... }, @d;
+  my @b <== map { ... }, @c;
+  my @a = grep { ... }, @b;
+
+provides the same lazyness level of the first example.
+
+=head1 The Iterator Role
+
+The iterator role represents the lazy access to a list, walking
+through a data structure (list, tree whatever), feeds (map, grep etc)
+or and, each time it is called, will return one (or more) of the nodes
+from the data structure.
+
+When an iterator runs out of items, it will throw an exception.  
+
+The iterator role has the following methods:
+
+=head2 method prefix:<=> {...}
+
+Returns something appropriate depending on the context:
+
+=head2 method new(Laziness => $laziness, Context => $context) {...}
+
+Creates the iterator, with appropriate laziness defaults.  
+
+=head2 method SetLaziness($laziness) {...}
+
+Set the Laziness
+
+=head2 method SetContext($context) {...}
+
+Set the Context (intended only for coercions, not user use)
+
+=head2 Iterator Summary
+
+=begin code
+
+role Iterator {
+    has $!laziness;
+    has $!context;
+
+    # enforces item context
+    method FETCH() {...}
+    # returns a list
+    method List() {...}
+    # returns a slice
+    method Slice() {...}
+    # returns the capture of the next iteration
+    method prefix:<=> {
+        given $self.context {
+            when 'Item'  { return self.FETCH() }   # called in item context
+            when 'Slice' { return self.Slice() }   # called in slice context
+            when *       { return self.List()  }   # called in list context (or any other context)
+        }
+    }
+    # Creates a new iterator; can be called with no parameters, and chooses sensible defaults
+    method new(Laziness => $laziness, Context => $context) {
+        if(! $context) {
+            given want {
+                when :($)  { $context = 'Item';  }   # called in item context
+                when :(@@) { $context = 'Slice'; }   # called in slice context
+                when *     { $context = 'List';  }   # called in list context (or any other context)
+            }
+        }
+        $self.context = $context;
+        self.SetLaziness($laziness);
+    }
+    method SetContext($context) {
+        $context ~~ /^(Item|List|Slice)$/) or die "Invalid context $context\n";
+        $self.context = $context;
+	self.SetLaziness();
+    }
+    method SetLaziness($laziness) {
+        if($laziness) {
+            $self.laziness = $laziness;
+        } else {
+            given $self.context {
+                when 'Item' { self.laziness = 'Mostly Lazy';  }
+                when *      { self.laziness = 'Mostly Eager'; }
+            }
+        }
+    }
+}
+
+=end code
+
+=head1 Default Implementations
+
+Perl's built-ins require that a number of default iterators exist.  
+
+=head2 GenericIterator implementation
+
+This is what is returned by default when an iterator is asked for, but no iterator type is known.  
+
+=head2 MapIterator implementation
+
+Example call:
+
+# this is a good example of loose context information anyway...
+   other_something(| map { ... }, something())
+
+When the map is initiated(???) this does the following steps in order:
+
+=over 
+
+=item Coerce the return of something to Iterator (returning an Iterator object, which we can call $input_iterator)
+
+=item Coerce the iterator to item context (calls $input_iterator.SetContext() )
+
+=item Create and return a new iterator that holds a reference to both the input iterator and to the map codeblock
+   (lets call this $map_iterator)
+
+=back
+
+When data is requested from the $map_iterator, the following steps are taken:
+
+=over
+
+=item map calls $map_iterator.prefix:<=> and gets the next item (even if that means many iterations or no new iterations in the input data)
+
+=item $map_iterator.prefix:<=> calls $map_iterator.code($item) (the number of arguments is defined by the .arity of the signature, and a call to $input_iterator.prefix:<=> is made to get each argument.)
+
+=item map returns the capture with no context applied (which means that it might contain several or no items)
+
+=back
+
+=begin code
+
+class MapIterator does Iterator {
+  has $.input_iterator;
+  has $.code;
+  method FETCH() {
+    return GenericItemIterator.new(input_iterator => self);
+  }
+  method List() {
+    return GenericLazyList.new(input_iterator => self);
+  }
+  method Slice() {
+    return GenericLazySlice.new(input_iterator => self);
+  }
+  method prefix:<=> {
+    return $.code.(=$.input_iterator);
+  }
+}
+
+=end code
+
+=head2 GrepIterator implementation
+
+=head1 Additions
+
+Please post errors and feedback to perl6-language.  If you are making
+a general laundry list, please separate messages by topic.
