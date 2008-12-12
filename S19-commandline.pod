@@ -1,0 +1,482 @@
+=encoding utf8
+
+=head1 TITLE
+
+DRAFT: Synopsis 19: Command Line Interface
+
+
+=head1 Author
+
+Jerry Gay <jerry.gay@rakudoconsulting.com>
+
+
+=head1 Version
+
+  Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
+  Date: 12 Dec 2008
+  Last Modified: 12 Dec 2008
+  Version: 1
+
+This is a draft document. This document describes the command line interface.
+It has changed extensively from previous versions of Perl in order to increase
+clarity, consistency, and extensibility. Many of the syntax revisions are
+extensions, so you'll find that much of the syntax embedded in your muscle
+memory will still work.
+
+This interface to Perl 6 is special in that it occurs at the intersection of
+the compiler and the operating system's command line shell, and thus is not
+accessed via a consistent syntax everywhere. Perl is born of Unix, and as such
+the syntax presented in this document is expected to work in a Unix-style
+shell. To explore the particularities of other operating systems, see ....
+
+{{ -jg
+need reference to 'porting' chapter or equivalent above
+}}
+
+
+=head1 Command Line Elements
+
+The command line is broken down into two basic elements: a I<compiler>, and
+I<arguments>. Each command line element is whitespace separated, so elements
+containing whitespace must be quoted. The I<compiler> processes the arguments
+and performs the requested actions. It looks something like F</usr/bin/perl6>,
+F<parrot perl6.pbc>, F<rakudo>, and is followed by zero or more I<arguments>.
+Perl 6 does not do any processing of the I<compiler> portion of the command
+line, but it is made available at run-time in the read-only C<$*VM> variable.
+
+Command line I<arguments> are further broken down into I<options> and
+I<values>. Unlike Perl 5, I<options> and I<values> may be intermixed on the
+command line. This mirrors the Perl 6 argument syntax for Routines, which
+allows named and positional parameters to be intermixed. The recommendation
+for parameter ordering applies here as well, with a slight twist: keep all
+command line options together, even though this is not enforced, in order to
+avoid confusion.
+
+
+=head1 Backward (In)compatibility
+
+Muscles have a long memory. You may find yourself typing your favorite Perl 5
+options, even after Christmas arrives. {{TODO}}
+
+=head2 Unchanged Syntactic Features
+
+{{TODO}}
+
+=head2 Removed Syntactic Features
+
+{{ -jg
+need to tell a story about how perl 6 handles the migration from perl 5.
+for example, if -0 is not a valid perl 6 command line option, how does perl 6
+help the user realize and correct the mistake?
+}}
+
+
+=head1 Options and Values
+
+Command line options are parsed using the following rules:
+
+=over 4
+
+=item *
+
+Options are case sensitive. C<-o> and C<-O> are not the same option.
+
+=item *
+
+Single-letter options must not be clustered. C<-ab> never means C<-a -b>
+
+=item *
+
+Options must begin with the following symbols: C<< < -- - + : > >>
+
+=item *
+
+Option names follow Perl 6 identifier naming convention, but C<'>
+is not allowed.
+
+=item *
+
+Options may be negated with C</> or C<!>, for example C<:/name>
+
+=item *
+
+The special option C<--> signals the parser to stop option processing,
+everything afterwards is parsed as a value.
+
+=back
+
+
+Delimited options are a special form of option that are specified by
+delimiters on either end, allowing options to be passed through for later
+processing, and are parsed with the following rules:
+
+=over 4
+
+=item *
+
+The opening delimeter begins with C<++>, the closing delimiter with C<-->.
+
+=item *
+
+Opening and closing delimited option names follow option identifier naming
+convention, defined above.
+
+=item *
+
+Delimited options take an optional parameter using the
+C<++option=param ... --option=param> syntax. This both allows disambiguation
+(in the case where the passthru options need to pass C<--option>), but
+may also be used to direct the compiler to pass the options to a particular
+run-time component. For example, C<++RTS=parser ... --RTS=parser> directs
+the delimited options to the parser (see L</"Option Reference"> below).
+
+=item *
+
+When an optional parameter is given, it must be specified on both the opening
+and closing delimited options.
+
+=item *
+
+If the closing delimiter is omitted, the rest of the command line is consumed.
+
+=item *
+
+The C<--> option has no effect within a delimited option.
+
+=item *
+
+Delimited options cannot be negated.
+
+=back
+
+
+Values are parsed with the following rules:
+
+=over 4
+
+=item *
+
+Values containing whitespace must be enclosed in quotes, for example
+C<-O="spacy val">
+
+=item *
+
+Values are passed to options with the following syntax C<-option=value>
+or C<-option value>. Only the latter syntax may be used with delimited
+options, as the former is reserved for specifying a passthru target.
+
+=item *
+
+Multiple values are passed using commas without intervening whitespace,
+as in C<-option=val1,'val 2',etc>
+
+{{ -jg  S06 allows space after comma, which i think is wrong }}
+
+=back
+
+
+These rules have been quantified in the following grammar, used solely for
+illustration purposes (this is *not* how options will be parsed by any shell).
+
+
+  grammar CommandLineArguments;
+
+  rule TOP {
+      <argument>*
+      '--'?
+      $<rest>=[.*]?
+      [ $ || <panic: 'Syntax error'> ]
+  }
+
+  rule argument { [ <option> | <passthru> | <value> ] {*} }
+
+  token option {
+      [
+        [
+          $<sym>=[ '--' | '-' | '+' | ':' ]
+          $<neg>=[ '!' | '/' ]?
+          <name>
+        ]
+        [ '=' <value> [ ',' <value> ]* ]?
+      ]
+  }
+
+  regex passthru {
+      '++' <indicator> <.ws>
+      $<data>=[.*?]
+      [ '--' $<indicator> || $ ]
+  }
+
+  token indicator { <name> [ '=' <target=name> ]? }
+
+  token name { <.ident> [ '-' <.ident> ]* }
+
+  token value {
+      | (\w+)
+      | \' (<-[\']>*) \'
+      | \" (<-[\"]>*) \"
+  }
+
+
+=head1 Option Categories
+
+Perl's command line options fall into three categories:
+
+=over 4
+
+=item *
+
+B<Mode> flags set the operational mode of the compiler (e.g. I<--doc>, I<-e>).
+Only one mode flag may be specified on the command line.
+
+=item *
+
+B<Dynamic> flags may be set on the command line, via the I<PERL6OPT>
+environment variable, or within a file.
+
+=item *
+
+B<Static> flags may be set only on the command line, and affect the entire
+run of the compiler.
+
+=back
+
+For more on options and their classifications, see section L<Option Reference>.
+
+
+=head1 Option Services
+
+Just because Perl 6 gives you a reasonable default command-line parser doesn't
+mean you don't want to extend it, or replace it with something else entirely.
+The command-line processor is organized into a set of services, each of which
+respond to a set of command-line options. These services live in the
+C<{{TODO}}> namespace, and may be overridden by loading a module with the
+C<--option-parser> option (see below).
+
+{{ TODO more details needed }}
+
+=head1 Option Reference
+
+Perl 6 options, descriptions, categories, and services
+
+=over 4
+
+=item -a
+
+Sets input record separator.
+
+Category: Dynamic
+
+Service: Awk
+
+Notes: Annotates function produced by -n | -p
+
+=item --option-parser file
+
+Add a command-line parsing module.
+
+Category: Static
+
+Service: Option
+
+{{ TODO more details needed }}
+
+=item -c
+
+Check syntax.
+
+Category: Mode
+
+Service: Runtime
+
+Notes: exits early, before MAIN().
+
+=item --doc
+
+perldoc
+
+Category: Mode
+
+Service: Doc
+
+=item -Dletters, -Dnumbers
+
+Set debugging flags.
+
+Category: ?
+
+Service: Debugger
+
+Notes: Should this load the debugger? No idea what should happen if the
+interpeter is built without debugging enabled. There are multiple levels:
+breaking into parrot, enabling flags of perl 6 introspection, enabling a
+perl level debugger. So... which one? Need a debugger spec to guide this.
+
+=item -e commandline
+
+Execute a single-line program.
+
+Category: Mode
+
+Service: Runtime
+
+Notes: Returns a function that's executed unless otherwise modified by awk
+service's -p , -n, -a, -F.
+Actually combines all source from all -e parameters, then compiles when
+there are no more -e. Assigns the generated function to MAIN.
+
+=item -F string
+
+Pattern to split on (used with -a). Accepts unicode strings (as long as your
+shell lets you pass them). Allows passing a closure
+(e.g. -F "{use Text::CSV}"). awk's not better any more :)
+
+Category: Dynamic
+
+Service: Awk
+
+Notes: Substitutes a function for the default function which
+is { split ' ' } or whatever.
+
+=item -h, --help
+
+Print summary of options.
+
+Category: Mode
+
+Service: Usage
+
+=item -I
+
+Prepend directory to @*INC.
+
+Category: Dynamic
+
+Service: Lib
+
+Notes: this is unspecced elsewhere, so may not survive long.
+
+=item -m[-]module, -M[-]module, -M[-]'module ...', -[mM][-]module=arg[,arg]...
+
+use/no module.
+
+Category: Dynamic
+
+Service: Meta
+
+Notes: Maybe this happens before or affects which services are loaded.
+Or maybe there can be a UNIVERSAL service which knows about other services
+and is built into the interpreter. No looking at disk required?
+
+=item -n
+
+Act like awk.
+
+Category: Dynamic
+
+Service: Awk
+
+Notes: Consumes the -e function, returns a new function and assigns to MAIN.
+
+=item -p
+
+Act like sed.
+
+Category: Dynamic
+
+Service: Awk
+
+Notes: Consumes the -e function, returns a new function and assigns to MAIN.
+
+=item ++RTS options --RTS, ++RTS=string options --RTS=string
+
+Send options to the run-time system.
+
+Category: Dynamic
+
+Service: n/a
+
+=item -S
+
+Use path to search for program.
+
+Category: Static
+
+Service: Runtime
+
+=item -v, --version
+
+Display compiler name, version, patchlevel, etc.
+
+Category: Mode
+
+Service: Usage
+
+=item -V
+
+Display configuration details.
+
+Category: Mode
+
+Service: Usage
+
+=back
+
+
+=head1 Run-time System
+
+The run-time system delimited option allows options to be passed to an
+underlying component of Perl. Perl itself does not parse these options, but
+makes them available to run-time components.
+
+{{TODO}}
+
+
+=head1 Environment Variables
+
+{{TODO}}
+
+
+=head1 References
+
+=over 4
+
+=item L<http://perldoc.perl.org/perlrun.html>
+
+=item L<http://search.cpan.org/~jv/Getopt-Long-2.37/lib/Getopt/Long.pm>
+
+=item L<http://search.cpan.org/~dconway/Getopt-Euclid-v0.2.0/lib/Getopt/Euclid.pm>
+
+=item L<http://perlcabal.org/syn/S06.html#Declaring_a_MAIN_subroutine>
+
+=item L<http://search.cpan.org/src/AUDREYT/Perl6-Pugs-6.2.13/docs/Pugs/Doc/Run.pod>
+
+=item L<http://haskell.org/ghc/docs/latest/html/users_guide/using-ghc.html>
+
+=item L<http://java.sun.com/j2se/1.4.2/docs/tooldocs/windows/java.html>
+
+=back
+
+
+=head1 Notes
+
+{{ -jg
+i'd like to be able to adjust the input record separator from command line,
+for instance to specify the equivalent of perl 5's C<$/ = \32768;>. so far,
+i don't have a solution, but perhaps pass a closure that evaluates to an int?
+
+do i need to address any unicode concerns?
+
+loading a switch parsing module by a switch, instead of using the default.
+maybe via ++RTS, since it needs to happen *before* switches are evaluated.
+
+sandboxing? maybe-r
+
+env var? maybe -E
+
+redefining services like -n or -p
+
+-e multiple args or multiple times, to affect later -e's
+}}
+
+=for vim:set expandtab sw=4:
