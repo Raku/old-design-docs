@@ -545,41 +545,41 @@ Live in userland for the time being.
 =head2 Still more or less unorganized stuff
 
 
-### INTERFACE BARRIER ###
-module Blah;
-{
+    ### INTERFACE BARRIER ###
+    module Blah;
+    {
 
-    is atomic;   # contend/maybe/whatever other rollback stuff
-                 # limitation: no external IO (without lethal warnings anyway)
-                 # can't do anything irreversible
+        is atomic;   # contend/maybe/whatever other rollback stuff
+                     # limitation: no external IO (without lethal warnings anyway)
+                     # can't do anything irreversible
 
-    is critical; # free to do anything irreversible
-                 # means "don't interrupt me"
-                 # in system with critical section, no interrupts from
-                 # other threads will happen during execution
-                 # you can't suspend me
+        is critical; # free to do anything irreversible
+                     # means "don't interrupt me"
+                     # in system with critical section, no interrupts from
+                     # other threads will happen during execution
+                     # you can't suspend me
 
-    my $boo is export;
-    $boo = 1;
+        my $boo is export;
+        $boo = 1;
 
-    # We decree that this part forms the static interface
-    # it's run once during initial compilation under the
-    # Separate Compilation doctrine and the syms sealed off
-    # to form part of bytecode syms headers
-    %CALLER::<&blah> = { 1 }; # work - adds to export set
-    die "Eureka!" if %CALLER::<$sym>; # never dies
-
-    # BEGIN { $boo = time };
-
-    sub IMPORT {
-        # VERY DYNAMIC!
-
-        our $i = time;
+        # We decree that this part forms the static interface
+        # it's run once during initial compilation under the
+        # Separate Compilation doctrine and the syms sealed off
+        # to form part of bytecode syms headers
         %CALLER::<&blah> = { 1 }; # work - adds to export set
-        die "Eureka!" if %CALLER::<$sym>; # probes interactively
+        die "Eureka!" if %CALLER::<$sym>; # never dies
+
+        # BEGIN { $boo = time };
+
+        sub IMPORT {
+            # VERY DYNAMIC!
+
+            our $i = time;
+            %CALLER::<&blah> = { 1 }; # work - adds to export set
+            die "Eureka!" if %CALLER::<$sym>; # probes interactively
+        }
     }
-}
-### INTERFACE BARRIER ###
+    ### INTERFACE BARRIER ###
 
 =head2 See also
 
@@ -605,3 +605,4 @@ L<S16/Sockets>
 
 =cut
 
+=for vim:set expandtab sw=4:

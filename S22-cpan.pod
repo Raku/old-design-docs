@@ -532,30 +532,50 @@ This allows nesting of the above expressions
 
 =head3 Shortcomings to that approach, according to vasi:
 
-[4:13PM] vasi: the idea is basically, you have an object to represent the state-of-the-system
-[4:13PM] vasi: (all the packages that are installed, essentially)
-[4:13PM] vasi: and then you say "i have this state, i want to do operation X on it, what's the best way to achieve that?"
-[4:14PM] vasi: so you look at the state and say "what's WRONG with this state, wrt op X?"
-[4:15PM] vasi: and resolve the first wrong thing in every reasonable way, and now you have a list of (state, operations-remaining)
-[4:15PM] vasi: and a slightly smaller list of things wrong
-[4:15PM] vasi: and you keep doing that until nothing is wrong anymore, and you have a final list of states that satisfy all the requirements
-[4:15PM] vasi: then you pick the preferred one of those states, according to some heuristic
-[4:16PM] vasi: The naive approach, "get a list of the packages we need", falls down badly in the face of OR-depends and virtual-packages and conflicts
-[4:16PM] kane: i understand what you just said. how does that make my life better over a simple fifo, shortcircuit approach?
-[4:19PM] vasi: ok, here's a test case that normally fails with the simple approach
-[4:19PM] vasi: i'm using 'Dep' as a binary operator here, so 'a Dep b' means a depends on b
-[4:19PM] vasi: if you have 'parent Dep (child1 AND child2)', 'child1 Dep (grandchild1 OR grandchild2)', 'child2 Conf grandchild1'
-and then you do 'install parent'
-[4:20PM] vasi: the recursive algorithm says 'ok, i need child1...now i need one of gc1 or gc2, let's just pick gc1...now i need child2, oh shite gc1 is bad CRASH"
-[4:20PM] vasi: at least that's what fink does :-)
-[4:20PM] vasi: cuz our dep engine is naive
-[4:20PM] kane: vasi: here's an idea -- as our goal is to be pluggable on all this, so it's possible to swap dep engines around.. wouldn't it be trivial to take the naive version, and up it to the smart one as we go?
-[4:24PM] vasi: you ought to at least architecture the engine so it takes a (state, set-of-operations) set
-[4:24PM] vasi: and then returns a list-of-things-to-do
-[4:24PM] vasi: so that then, it's easy to substitute any system
-[4:25PM] vasi: (and use callbacks for things like user interactions)
-[4:25PM] vasi: The reason we can't just swap in a new dep engine to fink is that the current one is sufficiently useful and has enough side effects, that it would just be too much pain
-[4:26PM] vasi: so don't get yourself stuck in the same situation as we're in
+    [4:13PM] vasi: the idea is basically, you have an object to represent the 
+             state-of-the-system
+    [4:13PM] vasi: (all the packages that are installed, essentially)
+    [4:13PM] vasi: and then you say "i have this state, i want to do operation 
+             X on it, what's the best way to achieve that?"
+    [4:14PM] vasi: so you look at the state and say "what's WRONG with this 
+             state, wrt op X?"
+    [4:15PM] vasi: and resolve the first wrong thing in every reasonable way, 
+             and now you have a list of (state, operations-remaining)
+    [4:15PM] vasi: and a slightly smaller list of things wrong
+    [4:15PM] vasi: and you keep doing that until nothing is wrong anymore, and 
+             you have a final list of states that satisfy all the requirements
+    [4:15PM] vasi: then you pick the preferred one of those states, according 
+             to some heuristic
+    [4:16PM] vasi: The naive approach, "get a list of the packages we need", 
+             falls down badly in the face of OR-depends and virtual-packages and
+             conflicts
+    [4:16PM] kane: i understand what you just said. how does that make my life 
+             better over a simple fifo, shortcircuit approach?
+    [4:19PM] vasi: ok, here's a test case that normally fails with the simple 
+             approach
+    [4:19PM] vasi: i'm using 'Dep' as a binary operator here, so 'a Dep b' means 
+             a depends on b
+    [4:19PM] vasi: if you have 'parent Dep (child1 AND child2)', 'child1 Dep 
+             (grandchild1 OR grandchild2)', 'child2 Conf grandchild1'
+             and then you do 'install parent'
+    [4:20PM] vasi: the recursive algorithm says 'ok, i need child1...now i need 
+             one of gc1 or gc2, let's just pick gc1...now i need child2, oh 
+             shite gc1 is bad CRASH"
+    [4:20PM] vasi: at least that's what fink does :-)
+    [4:20PM] vasi: cuz our dep engine is naive
+    [4:20PM] kane: vasi: here's an idea -- as our goal is to be pluggable on 
+             all this, so it's possible to swap dep engines around.. wouldn't 
+             it be trivial to take the naive version, and up it to the smart 
+             one as we go?
+    [4:24PM] vasi: you ought to at least architecture the engine so it takes 
+             a (state, set-of-operations) set
+    [4:24PM] vasi: and then returns a list-of-things-to-do
+    [4:24PM] vasi: so that then, it's easy to substitute any system
+    [4:25PM] vasi: (and use callbacks for things like user interactions)
+    [4:25PM] vasi: The reason we can't just swap in a new dep engine to fink is 
+             that the current one is sufficiently useful and has enough side 
+             effects, that it would just be too much pain
+    [4:26PM] vasi: so don't get yourself stuck in the same situation as we're in
 
 Vasi wrote a proof of concept for fink, that does this sort of detecting
 (no resolving yet):
@@ -1169,18 +1189,4 @@ language, module, version, origin
     - eg. the CPAN policy source will prioritize anything cpan:
         in (say) modlist
 
-
-
-
-
-# Local variables:
-# c-indentation-style: bsd
-# c-basic-offset: 4
-# indent-tabs-mode: nil
-# End:
-# vim: expandtab shiftwidth=4:
-
-
-
-
-
+=for vim:set expandtab sw=4:
