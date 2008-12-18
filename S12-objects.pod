@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 7 Nov 2008
+  Last Modified: 18 Dec 2008
   Number: 12
-  Version: 65
+  Version: 66
 
 =head1 Overview
 
@@ -1865,7 +1865,7 @@ C<hides Base> instead of C<is Base>.
 
 Metamethods for objects are named with interrogative pronouns in uppercase:
 
-    WHAT        the prototype object of the type, stringifies to short name
+    WHAT        the protoobject of the type, stringifies to short name ~ '()'
     WHICH       the object's identity value
     WHO         the package supporting the object, stringifies to long name
     WHERE       the memory address of the object
@@ -1898,12 +1898,15 @@ In particular, the C<.^> forms will automatically supply the invocant
 as the first argument to methods of the metaclass, while the other
 forms require you to pass this explicitly.
 
+Note that WHAT appends C<()> to indicate emptiness.  Use C<.perl> to get the
+bare name from a protoobject.
+
 In general, use of these in ordinary code should be a red flag that
 Something Very Strange is going on.  (Hence the allcaps.)  Most code
 should use Perl 6's operators that make use of this information
 implicitly.  For instance, instead of
 
-    $obj.WHAT eq 'Dog'
+    $obj.WHAT eq 'Dog()'
     $x.WHICH === $y.WHICH
     $obj.WHAT.bless(%args)
 
