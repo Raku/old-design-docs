@@ -30,8 +30,8 @@ the syntax presented in this document is expected to work in a Unix-style
 shell. To explore the particularities of other operating systems, see ....
 
 {{ -jg
-need reference to 'porting' chapter or equivalent above
-}}
+need reference to 'porting' chapter or equivalent above -- S25?
+}
 
 
 =head1 Command Line Elements
@@ -56,7 +56,7 @@ avoid confusion.
 =head1 Backward (In)compatibility
 
 Muscles have a long memory. You may find yourself typing your favorite Perl 5
-options, even after Christmas arrives. {{TODO}}
+options, even after Christmas has arrived. {{TODO}}
 
 =head2 Unchanged Syntactic Features
 
@@ -87,7 +87,7 @@ Single-letter options must not be clustered. C<-ab> never means C<-a -b>
 
 =item *
 
-Options must begin with the following symbols: C<< < -- - + : > >>
+Options must begin with one of the following symbols: C<< < -- - + : > >>
 
 =item *
 
@@ -170,8 +170,6 @@ options, as the former is reserved for specifying a passthru target.
 Multiple values are passed using commas without intervening whitespace,
 as in C<-option=val1,'val 2',etc>
 
-{{ -jg  S06 allows space after comma, which i think is wrong }}
-
 =back
 
 
@@ -241,7 +239,8 @@ run of the compiler.
 
 =back
 
-For more on options and their classifications, see section L<Option Reference>.
+For more on options and their classifications, see section
+L</"Option Reference">.
 
 
 =head1 Option Services
@@ -390,7 +389,7 @@ Notes: Consumes the -e function, returns a new function and assigns to MAIN.
 
 =item ++RTS options --RTS, ++RTS=string options --RTS=string
 
-Send options to the run-time system.
+Send options to the run-time system. See L</"Run-time System"> below.
 
 Category: Dynamic
 
@@ -425,16 +424,52 @@ Service: Usage
 
 =head1 Run-time System
 
-The run-time system delimited option allows options to be passed to an
-underlying component of Perl. Perl itself does not parse these options, but
-makes them available to run-time components.
+The run-time system delimited option (C<++RTS ... --RTS> or
+C<++RTS=string ... --RTS=string>) allows options to be passed to an underlying
+component of Perl. Perl itself does not parse these options, but makes them
+available to run-time components.
 
-{{TODO}}
+the C<=string> variation allows for disabmiguation when the run-time system
+also allows the parsing of an option named C<--RTS>. For example,
+C<perl ++RTS=outer -a :b +C --RTS foo bar --RTS=outer>
+makes sure the run-time system receives C<-a :b +C --RTS foo bar>.
+
+Additionally, some implementations may use this variation to pass arguments
+to particular subsystems. For example, Rakudo Perl may choose to implement
+C<perl ++RTS=parrot --runcore=gc-debug -t 7 --RTS=parrot ++RTS=PGE --disable-keepall --optimize --RTS=PGE>
+to mean C<--runcore=gc-debug -t 7> gets passed to parrot, and
+C<--disable-keepall --optimize> gets passed to PGE.
+
+{{ -jg
+should certain string prefixes or perhaps uppercase strings be reserved
+for this purpose?
+}}
 
 
 =head1 Environment Variables
 
-{{TODO}}
+Environment variables may be used to the same effect as command-line
+arguments.
+
+=over 4
+
+=item PATH
+
+Used in executing subprocesses, and for finding the program if the -S switch
+is used.
+
+=item PERL6LIB
+
+A list of directories in which to look for Perl library files.
+
+Note: this is speculative, as library loading is not yet specified.
+
+=item PERL6OPT
+
+Default command-line arguments. Arguments found here are prepended to the
+list of arguments provided on the command-line.
+
+=back
 
 
 =head1 References
