@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 18 Dec 2008
+  Last Modified: 19 Dec 2008
   Number: 12
-  Version: 66
+  Version: 67
 
 =head1 Overview
 
@@ -265,7 +265,7 @@ or more succinctly but less readably:
 
     $obj.$($foo ?? &bar !! &baz)(1,2,3)
 
-The variable must contain a Code object, that is, a closure of some
+The variable must contain a C<Callable> object (usually of type C<Code>), that is, a closure of some
 sort.  Regardless of whether the closure was defined as a method or
 a sub or a block, the closure is called directly without any class
 dispatch; from the closure's point of view, however, it is always
@@ -306,14 +306,22 @@ Instead of a scalar variable, an array variable may also be used:
 
     $obj.@candidates(1,2,3)
 
-As with the scalar variant, each array element must be a Code object,
-but the list is treated as a list of candidates to call.  Note also that
-the 
+As with the scalar variant, string method names are not allowed, only
+C<Callable> objects, The list is treated as a list of candidates to
+call.  After the first successful call the rest of the candidates are
+discarded.  Failure of the current candidate is indicated by calling
+C<nextwith> or C<nextsame> (see L</Calling sets of methods> below).
+
+Note also that the 
 
     $obj.$candidates(1,2,3)
 
-form may dispatch to a list of candidates if $candidates is a special
-C<Code> object representing a partial dispatch to a list of candidates.
+form may dispatch to a list of candidates if C<$candidates> is either
+a list or a special C<Code> object representing a partial dispatch to a
+list of candidates.  If C<$candidates> (or any element of C<@candidates>)
+is a List or Array object it is expanded out recursively until C<Callable>
+candidates are found.  The call fails if it hits a candidate that is
+neither C<Callable> nor expandable.
 
 Another form of indirection relies on the fact that operators are named
 using a variant on hash subscript notation, which gives you these forms:
