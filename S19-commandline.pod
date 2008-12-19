@@ -27,11 +27,8 @@ This interface to Perl 6 is special in that it occurs at the intersection of
 the compiler and the operating system's command line shell, and thus is not
 accessed via a consistent syntax everywhere. Perl is born of Unix, and as such
 the syntax presented in this document is expected to work in a Unix-style
-shell. To explore the particularities of other operating systems, see ....
-
-{{ -jg
-need reference to 'porting' chapter or equivalent above -- S25?
-}
+shell. To explore the particularities of other operating systems, see
+L<Synopsis 25|S25-portability> (TBD).
 
 
 =head1 Command Line Elements
@@ -100,8 +97,9 @@ Options may be negated with C</> or C<!>, for example C<:/name>
 
 =item *
 
-The special option C<--> signals the parser to stop option processing,
-everything afterwards is parsed as a value.
+The special option C<--> signals the parser to stop option processing.
+Arguments following C<--> are always parsed as a list of values, even if
+they look like valid options.
 
 =back
 
@@ -277,6 +275,10 @@ Add a command-line parsing module.
 Category: Static
 
 Service: Option
+
+Notes: When this option is parsed, it immediately triggers an action that
+could affect the remainder of the parse. Therefore, it's a good idea to put
+this option/value pair as early as possible in the argument list.
 
 {{ TODO more details needed }}
 
@@ -502,14 +504,9 @@ i don't have a solution, but perhaps pass a closure that evaluates to an int?
 
 do i need to address any unicode concerns?
 
-loading a switch parsing module by a switch, instead of using the default.
-maybe via ++RTS, since it needs to happen *before* switches are evaluated.
-
 sandboxing? maybe-r
 
 env var? maybe -E
-
-redefining services like -n or -p
 
 -e multiple args or multiple times, to affect later -e's
 }}
