@@ -31,6 +31,8 @@ shell. To explore the particularities of other operating systems, see
 L<Synopsis 25|S25-portability> (TBD).
 
 
+[my notes/conjectures below are all in square brackets  --TimToady]
+
 =head1 Command Line Elements
 
 The command line is broken down into two basic elements: a I<compiler>, and
@@ -41,6 +43,18 @@ F<parrot perl6.pbc>, F<rakudo>, and is followed by zero or more I<arguments>.
 Perl 6 does not do any processing of the I<compiler> portion of the command
 line, but it is made available at run-time in the read-only C<$*VM> variable.
 
+[ It seems wrong to call this a I<compiler> when (from the Unix point
+of view) it's just a program to run, and the compilation may have
+happened long ago.  Maybe I<program> or I<processor> instead.  Which
+phases are invoked may well depend on the nature of the file that is
+specified as a program to be interpreted, as well as the requested
+form of output.]
+
+[ $*VM is certainly wrong for the original compiler.  It would have to
+be $?VM, though that may be wrong too.  One could imagine a particular
+compiler that ran on multiple VMs, in which case some other variable
+would be needed to indicate the original compiler.]
+
 Command line I<arguments> are further broken down into I<options> and
 I<values>. Unlike Perl 5, I<options> and I<values> may be intermixed on the
 command line. This mirrors the Perl 6 argument syntax for Routines, which
@@ -48,6 +62,8 @@ allows named and positional parameters to be intermixed. The recommendation
 for parameter ordering applies here as well, with a slight twist: keep all
 command line options together, even though this is not enforced, in order to
 avoid confusion.
+
+[ This policy may be counter-intuitive to current comand-line cultures. ]
 
 
 =head1 Backward (In)compatibility
@@ -82,6 +98,11 @@ Options are case sensitive. C<-o> and C<-O> are not the same option.
 
 Single-letter options must not be clustered. C<-ab> never means C<-a -b>
 
+[Some systems allow clustering of - options but not of -- options.  Obviously
+such systems disallow multicharacter - options and require --foo instead of
+-foo.  Another option is to allow :a:b as a form of bundling since that's
+unambiguous from a p6 point of view.]
+
 =item *
 
 Options must begin with one of the following symbols: C<< < -- - + : > >>
@@ -95,11 +116,18 @@ is not allowed.
 
 Options may be negated with C</> or C<!>, for example C<:/name>
 
+[:/name reminds me more of an end tag than a negated, but I see
+why you want it, given the history of history characters...interestingly,
+:0name has the same effect in current p6, since we generalized :3x
+and such.]
+
 =item *
 
 The special option C<--> signals the parser to stop option processing.
 Arguments following C<--> are always parsed as a list of values, even if
 they look like valid options.
+
+[Distinguish here from --foo options?  "...with no identifier" or some such]
 
 =back
 
@@ -108,11 +136,13 @@ Delimited options are a special form of option that are specified by
 delimiters on either end, allowing options to be passed through for later
 processing, and are parsed with the following rules:
 
+[ s/for later processing/to specified subsystems/ would be clearer, I think. ]
+
 =over 4
 
 =item *
 
-The opening delimeter begins with C<++>, the closing delimiter with C<-->.
+The opening delimiter begins with C<++>, the closing delimiter with C<-->.
 
 =item *
 
@@ -128,10 +158,27 @@ may also be used to direct the compiler to pass the options to a particular
 run-time component. For example, C<++RTS=parser ... --RTS=parser> directs
 the delimited options to the parser (see L</"Option Reference"> below).
 
+[This seems a bit bogus insofar as --RTS=parser is still officially
+ambiguous with switches inside.  Plus it's not at all clear why this
+isn't just ++PARSER ... --PARSER.  What's the parser got to do with
+the run-time system?
+
+Other options that keep the metasyntax further away from ordinary switch
+syntax:
+
+    :+PARSER ... :-PARSER
+    ++BEGIN=PARSER ... ++END=PARSER
+    ++PARSER ... ++/PARSER
+
+The last one having reverberations of html tags.  But in any case
+I think I like the consistent ++ escape for metasyntax.]
+
 =item *
 
 When an optional parameter is given, it must be specified on both the opening
 and closing delimited options.
+
+[To me this just means you allow names with = in the middle.]
 
 =item *
 
@@ -141,11 +188,20 @@ If the closing delimiter is omitted, the rest of the command line is consumed.
 
 The C<--> option has no effect within a delimited option.
 
+[How do you know?  That's up to the subprocessor, surely?  What if they
+want to treat the rest of the arguments as data even if they happen
+to start with '--'?  I think what you mean is that it does not suppress
+searching for the closer.]
+
 =item *
 
 Delimited options cannot be negated.
 
 =back
+
+[From the P6 viewpoint, these options should probably be shoved into
+context variables and be invisible to MAIN except as %+OPTS<PARSER>
+or @+PARSER_ARGS or some such.]
 
 
 Values are parsed with the following rules:
@@ -167,6 +223,10 @@ options, as the former is reserved for specifying a passthru target.
 
 Multiple values are passed using commas without intervening whitespace,
 as in C<-option=val1,'val 2',etc>
+
+[Again, -option instead of --option makes it very difficult to detect
+the attempt to use P5 options.  This is probably why GNU rules require
+-- on long options.  We should consider doing the same.]
 
 =back
 
@@ -225,15 +285,30 @@ Perl's command line options fall into three categories:
 B<Mode> flags set the operational mode of the compiler (e.g. I<--doc>, I<-e>).
 Only one mode flag may be specified on the command line.
 
+[Again, we might be long gone from the "compiler" here, so a better word
+is needed.]
+
 =item *
 
 B<Dynamic> flags may be set on the command line, via the I<PERL6OPT>
 environment variable, or within a file.
 
+[What file?  We need to be Very Careful not to delegate the identity of
+the current language to anything outside of P6.  I would very much hate
+to see anything resembling a .perl6rc file.]
+
 =item *
 
 B<Static> flags may be set only on the command line, and affect the entire
 run of the compiler.
+
+[s/comiler/whatever/]
+
+[I think this Static/Dynamic distinction is rather meaningless and
+confusing.  Certain commitments will be made by certain phases of
+compilation/linking/running, and every switch is dynamic before the
+commitment, static after.  And Mode flags are just the ones that
+commit so fast they exclude alternatives, seems like...]
 
 =back
 
@@ -252,6 +327,10 @@ C<--option-parser> option (see below).
 
 {{ TODO more details needed }}
 
+[Would like to see a use case for this mechanism.  The whole Services
+concept seems very nebulous, especially when you start giving services
+names like "Awk"..."Autoloop" would be more meaningful.]
+
 =head1 Option Reference
 
 Perl 6 options, descriptions, categories, and services
@@ -268,6 +347,8 @@ Service: Awk
 
 Notes: Annotates function produced by -n | -p
 
+[confusingly different from p5's -a switch, which turns on autosplit.]
+
 =item --option-parser file
 
 Add a command-line parsing module.
@@ -282,6 +363,9 @@ this option/value pair as early as possible in the argument list.
 
 {{ TODO more details needed }}
 
+[maybe more like ++CMD --your_ad_here ++/CMD]
+
+
 =item -c
 
 Check syntax.
@@ -292,6 +376,13 @@ Service: Runtime
 
 Notes: exits early, before MAIN().
 
+[exits long before MAIN(), at CHECK time.  Also, not exclusive
+with other "Modes".  All it does is suppress running.]
+
+[idea; maybe switches like -c should be documented to
+desugar to ++COMPILER --CHECK_compiles_ok ++/COMPILER or whatever.
+This might help clarify which "pass" commits to the value.]
+
 =item --doc
 
 perldoc
@@ -299,6 +390,8 @@ perldoc
 Category: Mode
 
 Service: Doc
+
+[++COMPILER --CHECK_compiles_ok --CHECK_dump_perldoc ++/COMPILER]
 
 =item -Dletters, -Dnumbers
 
@@ -313,6 +406,9 @@ interpeter is built without debugging enabled. There are multiple levels:
 breaking into parrot, enabling flags of perl 6 introspection, enabling a
 perl level debugger. So... which one? Need a debugger spec to guide this.
 
+[little rhyme or reason to the p5 flags here, so maybe we can dehuffmanize
+debugging switches and hold -D in reserve.]
+
 =item -e commandline
 
 Execute a single-line program.
@@ -325,6 +421,10 @@ Notes: Returns a function that's executed unless otherwise modified by awk
 service's -p , -n, -a, -F.
 Actually combines all source from all -e parameters, then compiles when
 there are no more -e. Assigns the generated function to MAIN.
+
+[Not really a Mode in the sense you've defined it, but an input
+redirection of a vaguely here-docish flavor.  You could combine it
+with -c or --doc for instance, so not exclusive.]
 
 =item -F string
 
@@ -339,6 +439,9 @@ Service: Awk
 Notes: Substitutes a function for the default function which
 is { split ' ' } or whatever.
 
+[here it's assuming the original -a behavior, not what is
+specced for -a above.]
+
 =item -h, --help
 
 Print summary of options.
@@ -346,6 +449,8 @@ Print summary of options.
 Category: Mode
 
 Service: Usage
+
+[++CMD --printhelp --exit ++/CMD or some such]
 
 =item -I
 
@@ -356,6 +461,10 @@ Category: Dynamic
 Service: Lib
 
 Notes: this is unspecced elsewhere, so may not survive long.
+
+[at best, @*INC will only be the user's ad hoc libraries.  The API for
+searching the standard lib will not be defined in terms of @*INC so that
+we can enforce the standard library policies laid out in S11.]
 
 =item -m[-]module, -M[-]module, -M[-]'module ...', -[mM][-]module=arg[,arg]...
 
@@ -369,6 +478,11 @@ Notes: Maybe this happens before or affects which services are loaded.
 Or maybe there can be a UNIVERSAL service which knows about other services
 and is built into the interpreter. No looking at disk required?
 
+[I have no idea what you're talking about here...these switch are in
+the same category as -n and -p; they imply additional wrapping of
+the given code with extra "use" directives.  The syntax could probably
+use some refactoring though.]
+
 =item -n
 
 Act like awk.
@@ -378,6 +492,10 @@ Category: Dynamic
 Service: Awk
 
 Notes: Consumes the -e function, returns a new function and assigns to MAIN.
+
+[has nothing to do with -e or MAIN]
+
+[more like ++PARSER --prelude=Perl6_loop_noprint ++/PARSER]
 
 =item -p
 
@@ -389,6 +507,10 @@ Service: Awk
 
 Notes: Consumes the -e function, returns a new function and assigns to MAIN.
 
+[has nothing to do with -e or MAIN]
+
+[more like ++PARSER --prelude=Perl6_loop_print ++/PARSER]
+
 =item ++RTS options --RTS, ++RTS=string options --RTS=string
 
 Send options to the run-time system. See L</"Run-time System"> below.
@@ -396,6 +518,8 @@ Send options to the run-time system. See L</"Run-time System"> below.
 Category: Dynamic
 
 Service: n/a
+
+[You may have noticed I like just ++string ... ++/string now :) ]
 
 =item -S
 
@@ -405,6 +529,9 @@ Category: Static
 
 Service: Runtime
 
+[you need a story for when the first argument is treated as
+the program name. e.g. when you *don't* use -e to supply the program.]
+
 =item -v, --version
 
 Display compiler name, version, patchlevel, etc.
@@ -413,6 +540,11 @@ Category: Mode
 
 Service: Usage
 
+[maybe wants to propagate -v to ++CMD, ++PARSER, ++RTS, and any
+other known subsystems?]
+
+[or maybe -v is ++TOWHOMITMAYCONCERN --print_version_and_exit]
+
 =item -V
 
 Display configuration details.
@@ -420,6 +552,8 @@ Display configuration details.
 Category: Mode
 
 Service: Usage
+
+[likewise]
 
 =back
 
@@ -431,10 +565,16 @@ C<++RTS=string ... --RTS=string>) allows options to be passed to an underlying
 component of Perl. Perl itself does not parse these options, but makes them
 available to run-time components.
 
+[Note that with my proposed system you can still nest without the artificial =:
+    ++RTS ++GC -generational ++/GC ++/RTS
+]
+
 the C<=string> variation allows for disabmiguation when the run-time system
 also allows the parsing of an option named C<--RTS>. For example,
 C<perl ++RTS=outer -a :b +C --RTS foo bar --RTS=outer>
 makes sure the run-time system receives C<-a :b +C --RTS foo bar>.
+
+[perl ++RTS -a :b +C --RTS ++/RTS]
 
 Additionally, some implementations may use this variation to pass arguments
 to particular subsystems. For example, Rakudo Perl may choose to implement
@@ -442,10 +582,27 @@ C<perl ++RTS=parrot --runcore=gc-debug -t 7 --RTS=parrot ++RTS=PGE --disable-kee
 to mean C<--runcore=gc-debug -t 7> gets passed to parrot, and
 C<--disable-keepall --optimize> gets passed to PGE.
 
+[perl ++PARROT --runcore=gc-debug -t 7 ++/PARROT ++PGE --disable-keepall --optimize ++/PGE>
+
 {{ -jg
 should certain string prefixes or perhaps uppercase strings be reserved
 for this purpose?
 }}
+
+[doesn't seem very necessary, if we make sure ++ has its own namespace.  currently
+that namespace is quite barren.  we wouldn't even necessarily need to enforce uppercase,
+since
+
+    perl ++parrot --runcore=gc-debug -t 7 ++/parrot ++pge --disable-keepall --optimize ++/pge
+
+is just about as readable, especially if written:
+
+    perl ++parrot --runcore=gc-debug -t 7 ++/parrot \
+        ++pge --disable-keepall --optimize ++/pge \
+        foo bar baz
+
+
+or some such.]
 
 
 =head1 Environment Variables
@@ -465,6 +622,9 @@ is used.
 A list of directories in which to look for Perl library files.
 
 Note: this is speculative, as library loading is not yet specified.
+
+[except insofar as S11 mandates various behaviors incompatible with
+mere directory probing...]
 
 =item PERL6OPT
 
@@ -502,13 +662,42 @@ i'd like to be able to adjust the input record separator from command line,
 for instance to specify the equivalent of perl 5's C<$/ = \32768;>. so far,
 i don't have a solution, but perhaps pass a closure that evaluates to an int?
 
+[this should try to use whatever option does the same thing to a new
+filehandle when S16 is further developed.]
+
 do i need to address any unicode concerns?
+
+[You can try "all command line arguments are assumed to be in unicode
+unless proven otherwise" and see how well it flies. :)  but this starts
+to get into filenames-are-blobs kind of issues...maybe we need a way
+of marking arguments as needing to be encoded into a Buf.  but for sanity
+we must try to settle on unicode as the default expectation.  I hope POSIX
+dies before Perl 6 does...]
+
+loading a switch parsing module by a switch, instead of using the default.
+maybe via ++RTS, since it needs to happen *before* switches are evaluated.
+
+[suggest ++CMD --use_cmd_module ++/CMD]
 
 sandboxing? maybe-r
 
+[need a -T story too; gotta have tainting even if we don't do sandboxing]
+
 env var? maybe -E
 
+[could be posed in terms of substituting a different prelude]
+
 -e multiple args or multiple times, to affect later -e's
+
+[suggest sticking to p5 policy that each -e represents one input line with
+an implicit \n on the end]
+
+[-o for separately compiled output, .pbc or .so or .jar or .exe or whatever?]
+
+[some variant of -o that requests a particular output format without
+having to specify an extension, or even if a filename if sent to
+stdout.  maybe -O=pbc -o=myfilename or some such.  ]
+
 }}
 
 =for vim:set expandtab sw=4:
