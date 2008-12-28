@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 2 Nov 2004
-  Last Modified: 8 Oct 2008
+  Last Modified: 27 Dec 2008
   Number: 13
-  Version: 11
+  Version: 12
 
 =head1 Overview
 
@@ -47,20 +47,23 @@ There is no longer any special C<use overload> syntax separate from the
 declarations of the C<multi> routines themselves.  To overload an
 existing built-in sub, say something like:
 
-    multi sub *uc (TurkishStr $s) {...}
+    multi sub uc (TurkishStr $s) {...}
 
-Now if you call C<uc()> on any Turkish string, it will call your function
-rather than the built-in one.  Putting the C<multi> into the C<*>
-namespace makes it show up in everyone's packages, but as long as no one
-else defines a version of C<uc> on C<TurkishStr>, there's no collision.
+A multi is automatically exported if goverened by a proto that is exported.
+It may also be explicitly exported:
+
+    multi sub uc (TurkishStr $s) is exported {...}
+
+Now if you call C<uc()> on any Turkish string, it will call your
+function rather than the built-in one.
 
 The types of the parameters are included in the I<longname> of any C<multi>
 sub or method.  So if you want to overload string concatenation for Arabic
 strings so you can handle various ligatures, you can say:
 
-    multi sub *infix:<~>(ArabicStr $s1, ArabicStr $s2) {...}
-    multi sub *infix:<~>(Str $s1, ArabicStr $s2) {...}
-    multi sub *infix:<~>(ArabicStr $s1, Str $s2) {...}
+    multi sub infix:<~>(ArabicStr $s1, ArabicStr $s2) {...}
+    multi sub infix:<~>(Str $s1, ArabicStr $s2) {...}
+    multi sub infix:<~>(ArabicStr $s1, Str $s2) {...}
 
 The C<use overload> syntax had one benefit over Perl 6's syntax in that
 it was easy to alias several different operators to the same service
@@ -91,11 +94,9 @@ except that there really is only one body.  If you declared a C<state>
 variable within the body, for instance, there would only be one
 of them.
 
-Note the lack of C<*> on the definitions above.  That means this definition
-of addition is syntactically in effect only within the scope in which
-C<< infix:<+> >> is defined or imported.  Similar constraints apply
-to lexically scoped multi subs.  Generally you want to put your multi
-subs into the C<*> space, however, so that they work everywhere.
+A multi is in effect only within the scope in which it is defined or
+imported.  Generally you want to put your multi subs into a package
+that will be imported wherever they are needed.
 
 When you use the multiple signature syntax, the alternate signatures
 must all bind the same set of formal variable names, though they

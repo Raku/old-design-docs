@@ -13,9 +13,9 @@ Allison Randal <al@shadowed.net>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 21 Mar 2003
-  Last Modified: 21 Nov 2008
+  Last Modified: 27 Dec 2008
   Number: 6
-  Version: 97
+  Version: 98
 
 
 This document summarizes Apocalypse 6, which covers subroutines and the
@@ -259,42 +259,35 @@ indicate that something is missing whichever way you take it.
 =head2 Globally scoped subroutines
 
 Subroutines and variables can be declared in the global namespace, and are
-thereafter visible everywhere in a program.
+thereafter visible everywhere in a program via the GLOBAL package.  They
+may be made directly visible by importation.
 
-Global subroutines and variables are normally referred to by prefixing
-their identifiers with C<*> (short for "C<GLOBAL::>").   The C<*>
-is required on the declaration unless the C<GLOBAL> namespace can be
-inferred some other way, but the C<*> may be omitted on use if the
-reference is unambiguous:
+Global subroutines and variables are normally referred to use of the C<*> twigil
+(short for "C<GLOBAL::>").
 
     $*next_id = 0;
-    sub *saith($text)  { print "Yea verily, $text" }
+    sub GLOBAL::saith($text)  { print "Yea verily, $text" }
 
     module A {
-        my $next_id = 2;    # hides any global or package $next_id
-        saith($next_id);    # print the lexical $next_id;
-        saith($*next_id);   # print the global $next_id;
+        my $next_id = 2;     # hides any global or package $next_id
+        &*saith($next_id);   # print the lexical $next_id;
+        &*saith($*next_id);  # print the global $next_id;
     }
 
     module B {
-        saith($next_id);    # Unambiguously the global $next_id
+        use GLOBAL <$next_id>;
+        &*saith($next_id);    # Unambiguously the global $next_id
     }
 
-However, under stricture (the default for most code), the C<*> is required
-on variable references.  It's never required on sub calls, and in fact,
-the syntax
+=head2 Dynamically scoped subroutines
 
-    $x = *saith($y);
+Similarly, you may define contextual subroutines:
 
-is illegal, because a C<*> where a term is expected is always parsed
-as the "whatever" token.  If you really want to use a C<*>, you must
-also use the sigil along with the twigil:
+    my sub myfunc ($x) is context { ... }
 
-    $x = &*saith($y);
+This may then be invoked via the syntax for contextual variables:
 
-Only the name is installed into the C<GLOBAL> package by C<*>.  To define
-subs completely within the scope of the C<GLOBAL> namespace you should
-use "C<package GLOBAL {...}>" around the declaration.
+    &+myfunc(42);
 
 =head2 Lvalue subroutines
 
