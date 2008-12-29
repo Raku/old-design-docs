@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 27 Dec 2008
+  Last Modified: 29 Dec 2008
   Number: 2
-  Version: 145
+  Version: 146
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -809,14 +809,17 @@ indicating the desire to create a function of a single unknown, so:
 
     * - 1
 
-produces a result similar to:
+produces a function of a single argument:
 
     { $^x - 1 }
 
-except that the result is still of type C<Whatever>.
+This closure is of type C<Code>, not C<Whatever>, so that constructs can distinguish
+via multiple dispatch:
 
-A value of type C<Whatever> may therefore be called as a function of
-one argument.  The bare C<*> form therefore represents the identify function:
+    1,2,3 ... *
+    1,2,3 ... *+1
+
+The bare C<*> form may also be called as a function, and represents the identify function:
 
     *(42) == 42
     (* + 1)(42) == 43
