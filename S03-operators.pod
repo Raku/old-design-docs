@@ -2256,9 +2256,9 @@ the ability to say C<$x.'foo'> does not imply that C<$x'foo'> will work.)
 The postfix interpretation of an operator may be overridden by
 use of a quoted method call, which calls the prefix form instead.
 So C<x().!> is always the postfix operator, but C<x().'!'> will always
-call C<!x()>.  In particular, you can say things like C<$array.'@'>.
-and C<$fh.'='>, which
-because of the quotes will not be confused lexically with C<$fh.=new>.
+call C<!x()>.  In particular, you can say things like C<$array.'@'>
+and C<$fh.'='>, which will not be confused lexically with C<$fh.=new>
+due to the quotes.
 
 =item *
 
@@ -2302,8 +2302,8 @@ ASCII representation of a number.
 
 =item *
 
-C<x> splits into two operators: C<x> (which concatenates repetitions 
-of a string to produce a single string), and C<xx> (which creates a list of 
+C<x> splits into two operators: C<x> (which concatenates repetitions
+of a string to produce a single string), and C<xx> (which creates a list of
 repetitions of a list or item).  C<"foo" xx *> represents an arbitrary
 number of copies, useful for initializing lists.  The left side of
 an C<xx> is evaluated only once.  (To call a block repeatedly, use a C<map>
@@ -2650,9 +2650,8 @@ result:
      (1|2|3) + 4;                            # 5|6|7
      (1|2) + (3&4);                          # (4|5) & (5|6)
 
-Note how when two junctions are applied through an operator, the result
-is a junction representing the operator applied to each combination of
-values.
+Note how the result is a junction representing the operator applied to each
+combination of values, when two junctions are applied through an operator.
 
 Junctions come with the functional variants C<any>, C<all>, C<one>, and C<none>.
 
@@ -2771,7 +2770,7 @@ returns C<Order::Increase>, C<Order::Same>, or C<Order::Decrease>
 
 =item *
 
-The C<leg> operator (less than, equal, or greater) is defined
+The C<leg> operator (less than, equal or greater than) is defined
 in terms of C<cmp>, so C<$a leg $b> is now defined as C<~$a cmp ~$b>.
 The sort operator still defaults to C<cmp> rather than C<leg>.  The
 C<< <=> >> operator's semantics are unchanged except that it returns
@@ -2878,7 +2877,7 @@ is short for something like:
 
     @array[0..^@array], @array[*-1] xx *
 
-An empty Range cannot be iterated; it returns a C<Failure> instead.  An empty
+An empty range cannot be iterated; it returns a C<Failure> instead.  An empty
 range still has a defined min and max, but the min is greater than the max.
 
 If a range is generated using a magical autoincrement, it stops if the magical
@@ -2927,7 +2926,7 @@ generally overloaded to do something sensible on C<Range> objects.
 In particular, multiplicative operators not only multiply the endpoints
 but also the "by" of the C<Range> object:
 
-    (1..11:by(2)) * 5           # same as 5..55:by(10) 
+    (1..11:by(2)) * 5           # same as 5..55:by(10)
     5,15,25,35,45,45,55
 
 Conjecture: non-linear functions might even produce non-uniform "by" values!
@@ -3341,7 +3340,7 @@ or with leftward feeds as:
              <== grep { /^ \d+ $/ }
              <== @data;
 
-Either form more clearly indicates the flow of data.  See S06 for 
+Either form more clearly indicates the flow of data.  See S06 for
 more of the (less-than-obvious) details on these two operators.
 
 =head1 Meta operators
