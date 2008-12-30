@@ -15,7 +15,7 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
   Last Modified: 30 Dec 2008
-  Version: 4
+  Version: 5
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
@@ -328,88 +328,65 @@ Perl 6 options, descriptions, categories, and services
 
 =over 4
 
-=item -a
+=item --autosplit, -a
 
 Turns on autosplit mode.
-
-Category: Dynamic
 
 Service: Autoloop
 
 Notes: Annotates function produced by -n | -p
 
-[confusingly different from p5's -a switch, which turns on autosplit.]
+=item ++argsproc [options, values] ++/argsproc
 
-=item --option-parser file
+{{TODO don't like this name, but don't like ++cmd either}}
 
-Add a command-line parsing module.
-
-Category: Static
+Add a command-line processor.
 
 Service: Option
 
 Notes: When this option is parsed, it immediately triggers an action that
 could affect the remainder of the parse. Therefore, it's a good idea to put
-this option/value pair as early as possible in the argument list.
+this option as early as possible in the argument list.
 
-{{ TODO more details needed }}
-
-[maybe more like ++CMD --your_ad_here ++/CMD]
+{{TODO more details needed}}
 
 
-=item -c
+=item --check-syntax, -c
 
-Check syntax.
-
-Category: Mode
+Check syntax, then exit.
 
 Service: Runtime
 
-Notes: exits early, before MAIN().
-
-[exits long before MAIN(), at CHECK time.  Also, not exclusive
-with other "Modes".  All it does is suppress running.]
-
-[idea; maybe switches like -c should be documented to
-desugar to ++COMPILER --CHECK_compiles_ok ++/COMPILER or whatever.
-This might help clarify which "pass" commits to the value.]
+Notes: Desugars to C<++compiler '--CHECK{ compiles_ok(); exit; }' ++/compiler>
 
 =item --doc
 
 perldoc
 
-Category: Mode
-
 Service: Doc
 
-[++COMPILER --CHECK_compiles_ok --CHECK_dump_perldoc ++/COMPILER]
+Notes: Desugars to
+C<++compiler '--CHECK{ compiles_ok(); }' '--CHECK{ dump_perldoc(); }' ++/compiler>
 
-=item -Dletters, -Dnumbers
+{{TODO what do i pass to dump_perldoc? C<$+ARGS>, maybe?}}
+
+=item ++debugger [switches, flags] ++/debugger
 
 Set debugging flags.
 
-Category: ?
-
 Service: Debugger
 
-Notes: Should this load the debugger? No idea what should happen if the
-interpeter is built without debugging enabled. There are multiple levels:
-breaking into parrot, enabling flags of perl 6 introspection, enabling a
-perl level debugger. So... which one? Need a debugger spec to guide this.
+Notes: At least it's a start. Need a debugger spec for more.
 
-[little rhyme or reason to the p5 flags here, so maybe we can dehuffmanize
-debugging switches and hold -D in reserve.]
+=item --execute, -e commandline
 
-=item -e commandline
-
-Execute a single-line program.
-
-Category: Mode
+Execute a single-line program. Multiple C<-e> options may be chained together,
+each one representing an input line with an implicit newline at the end.
 
 Service: Runtime
 
-Notes: Returns a function that's executed unless otherwise modified by awk
-service's -p , -n, -a, -F.
+Notes: Returns a function that's executed unless otherwise modified by
+Autoloop service's -p , -n, -a, -F.
 Actually combines all source from all -e parameters, then compiles when
 there are no more -e. Assigns the generated function to MAIN.
 
@@ -417,37 +394,33 @@ there are no more -e. Assigns the generated function to MAIN.
 redirection of a vaguely here-docish flavor.  You could combine it
 with -c or --doc for instance, so not exclusive.]
 
-=item -F string
+=item --execute-lax, -e6
+
+Execute in lax mode, without strictures and warnings enabled.
+See L<Synopsis 11|S11-modules.pod/"Forcing Perl 6"> for details.
+
+Service: Runtime
+
+=item --autoloop-split, -F [string, closure, etc]
 
 Pattern to split on (used with -a). Accepts unicode strings (as long as your
 shell lets you pass them). Allows passing a closure
-(e.g. -F "{use Text::CSV}"). awk's not better any more :)
-
-Category: Dynamic
+(e.g. -F "{use Text::CSV}"). Awk's not better any more :)
 
 Service: Autoloop
 
 Notes: Substitutes a function for the default function which
 is { split ' ' } or whatever.
 
-[here it's assuming the original -a behavior, not what is
-specced for -a above.]
+=item --help, -h
 
-=item -h, --help
-
-Print summary of options.
-
-Category: Mode
+Print summary of options. Desugars to C<++cmd --print-help --exit ++/cmd>.
 
 Service: Usage
 
-[++CMD --printhelp --exit ++/CMD or some such]
-
-=item -I
+=item --include, -I
 
 Prepend directory to @*INC.
-
-Category: Dynamic
 
 Service: Lib
 
@@ -459,9 +432,9 @@ we can enforce the standard library policies laid out in S11.]
 
 =item -m[-]module, -M[-]module, -M[-]'module ...', -[mM][-]module=arg[,arg]...
 
-use/no module.
+{{TODO needs new or extended syntax}}
 
-Category: Dynamic
+use/no module.
 
 Service: Meta
 
@@ -474,60 +447,53 @@ the same category as -n and -p; they imply additional wrapping of
 the given code with extra "use" directives.  The syntax could probably
 use some refactoring though.]
 
-=item -n
+=item --autoloop-no-print, -n
 
 Act like awk.
 
-Category: Dynamic
-
 Service: Autoloop
 
-Notes: Consumes the -e function, returns a new function and assigns to MAIN.
+Notes: Desugars to C<++parser --prelude=Perl6-autoloop-no-print ++/parser>.
 
-[has nothing to do with -e or MAIN]
+=item --output-format, -O [format]
 
-[more like ++PARSER --prelude=Perl6_loop_noprint ++/PARSER]
+Specify the file format for the output file requested with C<--output-file>.
+Defaults to 'exe', which represents the target platform's idea of an
+executable. Other valid values are implementation-specific, so consult the
+documentation for your compiler toolchain.
 
-=item -p
+=item --output-file, -o [filename]
+
+Compile to a file, rather than run immediately. If no filename is specified,
+STDOUT is used. Specify the output format with C<--output-format>.
+
+=item autoloop-print, -p
 
 Act like sed.
 
-Category: Dynamic
-
 Service: Autoloop
 
-Notes: Consumes the -e function, returns a new function and assigns to MAIN.
+Notes: Desugars to C<++parser --prelude=Perl6-autoloop-print ++/parser>.
 
-[has nothing to do with -e or MAIN]
-
-[more like ++PARSER --prelude=Perl6_loop_print ++/PARSER]
-
-=item ++RTS options --RTS, ++RTS=string options --RTS=string
-
-Send options to the run-time system. See L</"Run-time System"> below.
-
-Category: Dynamic
-
-Service: n/a
-
-[You may have noticed I like just ++string ... ++/string now :) ]
-
-=item -S
+=item --search-path, -S
 
 Use path to search for program.
-
-Category: Static
 
 Service: Runtime
 
 [you need a story for when the first argument is treated as
 the program name. e.g. when you *don't* use -e to supply the program.]
 
-=item -v, --version
+=item --taint, -T
+
+Turns on "taint" checking. See L<...> for details.
+
+Notes: Commits very early. Recommend putting this option as early on the
+command-line as possible.
+
+=item --version, -v
 
 Display program name, version, patchlevel, etc.
-
-Category: Mode
 
 Service: Usage
 
@@ -536,11 +502,11 @@ other known subsystems?]
 
 [or maybe -v is ++TOWHOMITMAYCONCERN --print_version_and_exit]
 
-=item -V
+{{TODO}}
+
+=item --verbose-config, -V
 
 Display configuration details.
-
-Category: Mode
 
 Service: Usage
 
@@ -672,23 +638,9 @@ maybe via ++RTS, since it needs to happen *before* switches are evaluated.
 
 sandboxing? maybe-r
 
-[need a -T story too; gotta have tainting even if we don't do sandboxing]
-
 env var? maybe -E
 
 [could be posed in terms of substituting a different prelude]
-
--e multiple args or multiple times, to affect later -e's
-
-[suggest sticking to p5 policy that each -e represents one input line with
-an implicit \n on the end]
-
-[-o for separately compiled output, .pbc or .so or .jar or .exe or whatever?]
-
-[some variant of -o that requests a particular output format without
-having to specify an extension, or even if a filename if sent to
-stdout.  maybe -O=pbc -o=myfilename or some such.  ]
-
 }}
 
 =for vim:set expandtab sw=4:
