@@ -15,7 +15,7 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
   Last Modified: 30 Dec 2008
-  Version: 2
+  Version: 3
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
@@ -80,6 +80,10 @@ avoid confusion.
 
 [ This policy may be counter-intuitive to current comand-line cultures. ]
 
+{{ 'ack' is a notable exception to the old rule, and i like the freedom.
+besides, perl 6 is about looking forward, and creating a new culture. :)
+on the other hand, i won't fight to keep this if it doesn't get support. }}
+
 
 =head1 Backward (In)compatibility
 
@@ -88,7 +92,7 @@ options, even after Christmas has arrived. {{TODO}}
 
 =head2 Unchanged Syntactic Features
 
-{{TODO}}
+{{TODO short names, bundling, etc}}
 
 =head2 Removed Syntactic Features
 
@@ -107,20 +111,25 @@ Command line options are parsed using the following rules:
 
 =item *
 
+Options must begin with one of the following symbols: C<< < -- - + : > >>.
+
+=item *
+
 Options are case sensitive. C<-o> and C<-O> are not the same option.
 
 =item *
 
-Single-letter options must not be clustered. C<-ab> never means C<-a -b>
-
-[Some systems allow clustering of - options but not of -- options.  Obviously
-such systems disallow multicharacter - options and require --foo instead of
--foo.  Another option is to allow :a:b as a form of bundling since that's
-unambiguous from a p6 point of view.]
+All options have a multi-character, descriptive name for increased clarity.
+Multi-character option names always begin with C<-->, C<+>, or C<:>.
 
 =item *
 
-Options must begin with one of the following symbols: C<< < -- - + : > >>
+Common options have a short, one-character name for speed.
+Single-character names always begin with C<->.
+
+=item *
+
+Single-letter options may be clustered. C<-ab> means C<-a -b>.
 
 =item *
 
@@ -136,28 +145,31 @@ why you want it, given the history of history characters...interestingly,
 :0name has the same effect in current p6, since we generalized :3x
 and such.]
 
+{{ dunno how TIMTOWTDI i want to get here, so i haven't changed the text
+above, but have standardized on C</> below. }}
+
 =item *
 
 The special option C<--> signals the parser to stop option processing.
-Arguments following C<--> are always parsed as a list of values, even if
-they look like valid options.
-
-[Distinguish here from --foo options?  "...with no identifier" or some such]
+Arguments following a bare C<--> (with no identifier) are always parsed as
+a list of values, even if they look like valid options.
 
 =back
 
 
 Delimited options are a special form of option that are specified by
-delimiters on either end, allowing options to be passed through for later
-processing, and are parsed with the following rules:
-
-[ s/for later processing/to specified subsystems/ would be clearer, I think. ]
+delimiters on either end, allowing options to be passed through to specified
+subsystems, and are parsed with the following rules:
 
 =over 4
 
 =item *
 
-The opening delimiter begins with C<++>, the closing delimiter with C<-->.
+The opening and closing delimiters begin with two or more plus characters,
+for example C<++>. You'll usually use two plus characters, but more are
+allowed to disambiguate (more below).
+
+{{TODO put more below, or refer to somewhere with more}}
 
 =item *
 
@@ -166,47 +178,12 @@ convention, defined above.
 
 =item *
 
-Delimited options take an optional parameter using the
-C<++option=param ... --option=param> syntax. This both allows disambiguation
-(in the case where the passthru options need to pass C<--option>), but
-may also be used to direct the program to pass the options to a particular
-run-time component. For example, C<++RTS=parser ... --RTS=parser> directs
-the delimited options to the parser (see L</"Option Reference"> below).
-
-[This seems a bit bogus insofar as --RTS=parser is still officially
-ambiguous with switches inside.  Plus it's not at all clear why this
-isn't just ++PARSER ... --PARSER.  What's the parser got to do with
-the run-time system?
-
-Other options that keep the metasyntax further away from ordinary switch
-syntax:
-
-    :+PARSER ... :-PARSER
-    ++BEGIN=PARSER ... ++END=PARSER
-    ++PARSER ... ++/PARSER
-
-The last one having reverberations of html tags.  But in any case
-I think I like the consistent ++ escape for metasyntax.]
-
-=item *
-
-When an optional parameter is given, it must be specified on both the opening
-and closing delimited options.
-
-[To me this just means you allow names with = in the middle.]
-
-=item *
-
 If the closing delimiter is omitted, the rest of the command line is consumed.
 
 =item *
 
-The C<--> option has no effect within a delimited option.
-
-[How do you know?  That's up to the subprocessor, surely?  What if they
-want to treat the rest of the arguments as data even if they happen
-to start with '--'?  I think what you mean is that it does not suppress
-searching for the closer.]
+Inside a delimited option, the C<--> option does not suppress searching for
+the closing delimiter.
 
 =item *
 
@@ -217,6 +194,8 @@ Delimited options cannot be negated.
 [From the P6 viewpoint, these options should probably be shoved into
 context variables and be invisible to MAIN except as %+OPTS<PARSER>
 or @+PARSER_ARGS or some such.]
+
+{{TODO %+OPTS it is. explain this.}}
 
 
 Values are parsed with the following rules:
@@ -230,18 +209,13 @@ C<-O="spacy val">
 
 =item *
 
-Values are passed to options with the following syntax C<-option=value>
-or C<-option value>. Only the latter syntax may be used with delimited
-options, as the former is reserved for specifying a passthru target.
+Values are passed to options with the following syntax C<--option=value>
+or C<--option value>.
 
 =item *
 
 Multiple values are passed using commas without intervening whitespace,
-as in C<-option=val1,'val 2',etc>
-
-[Again, -option instead of --option makes it very difficult to detect
-the attempt to use P5 options.  This is probably why GNU rules require
--- on long options.  We should consider doing the same.]
+as in C<--option=val1,'val 2',etc>
 
 =back
 
@@ -249,6 +223,7 @@ the attempt to use P5 options.  This is probably why GNU rules require
 These rules have been quantified in the following grammar, used solely for
 illustration purposes (this is *not* how options will be parsed by any shell).
 
+{{TODO update to current, move to non-published helper doc}}
 
   grammar CommandLineArguments;
 
@@ -309,18 +284,20 @@ environment variable, or within a file.
 the current language to anything outside of P6.  I would very much hate
 to see anything resembling a .perl6rc file.]
 
+{{ TODO clarify that i mean "source file" here and not an rc-like file }}
+
 =item *
 
 B<Static> flags may be set only on the command line, and affect the entire
 run of the program.
-
-[s/comiler/whatever/]
 
 [I think this Static/Dynamic distinction is rather meaningless and
 confusing.  Certain commitments will be made by certain phases of
 compilation/linking/running, and every switch is dynamic before the
 commitment, static after.  And Mode flags are just the ones that
 commit so fast they exclude alternatives, seems like...]
+
+{{TODO very well, i'll shift the design to be more dynamic here}}
 
 =back
 
@@ -342,6 +319,8 @@ C<--option-parser> option (see below).
 [Would like to see a use case for this mechanism.  The whole Services
 concept seems very nebulous, especially when you start giving services
 names like "Awk"..."Autoloop" would be more meaningful.]
+
+{{rename done}}
 
 =head1 Option Reference
 
@@ -572,8 +551,10 @@ Service: Usage
 
 =head1 Run-time System
 
-The run-time system delimited option (C<++RTS ... --RTS> or
-C<++RTS=string ... --RTS=string>) allows options to be passed to an underlying
+{{TODO total rewrite needed}}
+
+The run-time system delimited option (C<++RTS ... ++/RTS> or
+C<++RTS=string ... ++/RTS=string>) allows options to be passed to an underlying
 component of Perl. Perl itself does not parse these options, but makes them
 available to run-time components.
 
@@ -581,16 +562,14 @@ available to run-time components.
     ++RTS ++GC -generational ++/GC ++/RTS
 ]
 
-the C<=string> variation allows for disabmiguation when the run-time system
-also allows the parsing of an option named C<--RTS>. For example,
-C<perl ++RTS=outer -a :b +C --RTS foo bar --RTS=outer>
+The C<=string> variation allows for disabmiguation when the run-time system
+also allows the parsing of an option named C<++RTS>. For example,
+C<perl ++RTS=outer -a :b +C --RTS foo bar ++/RTS=outer>
 makes sure the run-time system receives C<-a :b +C --RTS foo bar>.
-
-[perl ++RTS -a :b +C --RTS ++/RTS]
 
 Additionally, some implementations may use this variation to pass arguments
 to particular subsystems. For example, Rakudo Perl may choose to implement
-C<perl ++RTS=parrot --runcore=gc-debug -t 7 --RTS=parrot ++RTS=PGE --disable-keepall --optimize --RTS=PGE>
+C<perl ++RTS=parrot --runcore=gc-debug -t 7 ++/RTS=parrot ++RTS=PGE --disable-keepall --optimize ++/RTS=PGE>
 to mean C<--runcore=gc-debug -t 7> gets passed to parrot, and
 C<--disable-keepall --optimize> gets passed to PGE.
 
