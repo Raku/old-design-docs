@@ -14,17 +14,43 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
 
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
-  Last Modified: 12 Dec 2008
-  Version: 1
+  Last Modified: 30 Dec 2008
+  Version: 2
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
 clarity, consistency, and extensibility. Many of the syntax revisions are
-extensions, so you'll find that much of the syntax embedded in your muscle
-memory will still work.
+extensions, so you'll find that much of the Perl 5 syntax embedded in your
+muscle memory will still work.
+
+Notable features described in the sections below include:
+
+=over 4
+
+=item *
+
+A much smarter default command-line processor in the core
+
+=item *
+
+All options have a long, descriptive name for increased clarity
+
+=item *
+
+Common options have a short, single-letter name, and allow bundling
+
+=item *
+
+Extended option syntax provides the ability to set boolean true/false
+
+=item *
+
+New C<++> metasyntax allows options to be passed through to subsystems
+
+=back
 
 This interface to Perl 6 is special in that it occurs at the intersection of
-the compiler and the operating system's command line shell, and thus is not
+the program and the operating system's command line shell, and thus is not
 accessed via a consistent syntax everywhere. Perl is born of Unix, and as such
 the syntax presented in this document is expected to work in a Unix-style
 shell. To explore the particularities of other operating systems, see
@@ -35,25 +61,14 @@ L<Synopsis 25|S25-portability> (TBD).
 
 =head1 Command Line Elements
 
-The command line is broken down into two basic elements: a I<compiler>, and
+The command line is broken down into two basic elements: a I<program>, and
 I<arguments>. Each command line element is whitespace separated, so elements
-containing whitespace must be quoted. The I<compiler> processes the arguments
+containing whitespace must be quoted. The I<program> processes the arguments
 and performs the requested actions. It looks something like F</usr/bin/perl6>,
 F<parrot perl6.pbc>, F<rakudo>, and is followed by zero or more I<arguments>.
-Perl 6 does not do any processing of the I<compiler> portion of the command
-line, but it is made available at run-time in the read-only C<$*VM> variable.
-
-[ It seems wrong to call this a I<compiler> when (from the Unix point
-of view) it's just a program to run, and the compilation may have
-happened long ago.  Maybe I<program> or I<processor> instead.  Which
-phases are invoked may well depend on the nature of the file that is
-specified as a program to be interpreted, as well as the requested
-form of output.]
-
-[ $*VM is certainly wrong for the original compiler.  It would have to
-be $?VM, though that may be wrong too.  One could imagine a particular
-compiler that ran on multiple VMs, in which case some other variable
-would be needed to indicate the original compiler.]
+Perl 6 does not do any processing of the I<program> portion of the command
+line, but it is made available at run-time in the read-only C<$?PROGRAM>
+variable.
 
 Command line I<arguments> are further broken down into I<options> and
 I<values>. Unlike Perl 5, I<options> and I<values> may be intermixed on the
@@ -154,7 +169,7 @@ convention, defined above.
 Delimited options take an optional parameter using the
 C<++option=param ... --option=param> syntax. This both allows disambiguation
 (in the case where the passthru options need to pass C<--option>), but
-may also be used to direct the compiler to pass the options to a particular
+may also be used to direct the program to pass the options to a particular
 run-time component. For example, C<++RTS=parser ... --RTS=parser> directs
 the delimited options to the parser (see L</"Option Reference"> below).
 
@@ -282,11 +297,8 @@ Perl's command line options fall into three categories:
 
 =item *
 
-B<Mode> flags set the operational mode of the compiler (e.g. I<--doc>, I<-e>).
+B<Mode> flags set Perl's operational mode (e.g. I<--doc>, I<-e>).
 Only one mode flag may be specified on the command line.
-
-[Again, we might be long gone from the "compiler" here, so a better word
-is needed.]
 
 =item *
 
@@ -300,7 +312,7 @@ to see anything resembling a .perl6rc file.]
 =item *
 
 B<Static> flags may be set only on the command line, and affect the entire
-run of the compiler.
+run of the program.
 
 [s/comiler/whatever/]
 
@@ -534,7 +546,7 @@ the program name. e.g. when you *don't* use -e to supply the program.]
 
 =item -v, --version
 
-Display compiler name, version, patchlevel, etc.
+Display program name, version, patchlevel, etc.
 
 Category: Mode
 
