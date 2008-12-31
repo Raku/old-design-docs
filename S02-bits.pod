@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 29 Dec 2008
+  Last Modified: 30 Dec 2008
   Number: 2
-  Version: 146
+  Version: 147
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -813,7 +813,7 @@ produces a function of a single argument:
 
     { $^x - 1 }
 
-This closure is of type C<Code>, not C<Whatever>, so that constructs can distinguish
+This closure is of type C<Code:($)>, not C<Whatever>, so that constructs can distinguish
 via multiple dispatch:
 
     1,2,3 ... *
@@ -824,18 +824,43 @@ The bare C<*> form may also be called as a function, and represents the identify
     *(42) == 42
     (* + 1)(42) == 43
 
-Note that the final element of an array is subscripted as C<@a[*-1]>,
-which means that when the subscripting operation calls the C<Whatever>
-object, it supplies an argument indicating the number of elements in
-(that dimension of) the array.  See S09.
+But note that this is I<not> what is happening above, or
 
-A variant of C<*> is the C<**> term.  It is generally understood to
-be a multidimension form of C<*> when that makes sense.
+    1,2,3 ... *
 
-Other uses for C<*> will doubtless suggest themselves over time.  These
-can be given meaning via the MMD system, if not the compiler.  In general
-a C<Whatever> should be interpreted as maximizing the degrees of freedom
-in a dwimmey way, not as a nihilistic "don't care anymore--just shoot me".
+would end up meaning:
+
+    1,2,3,3,3,3,3,3...
+
+The C<...> operator is instead dispatching bare C<*> to a routine that
+does dwimmery, and in this case decides to supply a function { * + 1 }.
+
+The final element of an array is subscripted as C<@a[*-1]>,
+which means that when the subscripting operation discovers a C<Code>
+object for a subscript, it calls it and supplies an argument indicating
+the number of elements in (that dimension of) the array.  See S09.
+
+A variant of C<*> is the C<**> term, which is of type C<HyperWhatever>.
+It is generally understood to be a multidimension form of C<*> when
+that makes sense.  When modified by an operator that would turn C<*>
+into a function of one argument, C<**> instead turns into a function
+with a slurpy argument, of type C<Code:(*@)>.  That is:
+
+    * - 1    means                -> $x { $x - 1 }
+    ** - 1   means   -> *@x { map -> $x { $x - 1 }, @x }
+
+Therefore C<@array[^**]> represents C<< @array[{ map { ^* }, @_ }] >>,
+that is to say, every element of the array, no matter how many dimensions.
+(However, C<@array[**]> means the same thing because (as with C<...>
+above), the subscript operator will interpret bare C<**> as meaning
+all the subscripts, not the list of dimension sizes.  The meaning of
+C<Whatever> is always controlled by its immediate context.)
+
+Other uses for C<*> and C<**> will doubtless suggest themselves
+over time.  These can be given meaning via the MMD system, if not
+the compiler.  In general a C<Whatever> should be interpreted as
+maximizing the degrees of freedom in a dwimmy way, not as a nihilistic
+"don't care anymore--just shoot me".
 
 =back
 
