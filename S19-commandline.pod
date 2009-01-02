@@ -15,7 +15,7 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
   Last Modified: 2 Jan 2009
-  Version: 7
+  Version: 8
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
@@ -318,17 +318,16 @@ Perl 6 options, descriptions, and services.
     Bool :a($autosplit),
     Bool :c($check-syntax),
     Bool :$doc,
-    :e($execute),
-    :$execute-lax,  #TODO fix illegal -e6 syntax. -6? not legal. -x? hrmm
+         :e($execute),
     Bool :F($autoloop-split),
     Bool :h($help),
-    :I(@include),
+         :I(@include),
     #TODO -M,
     Bool :n($autoloop-no-print),
-    :O($output-format) = 'exe',
-    :o($output-file) = $*OUT,
+         :O($output-format) = 'exe',
+         :o($output-file) = $*OUT,
     Bool :p($autoloop-print),
-    :S(@search-path),
+         :S(@search-path),
     Bool :T($taint),
     Bool :v($version),
     Bool :V($verbose-config),
@@ -393,6 +392,10 @@ Notes: At least it's a start. Need a debugger spec for more.
 Execute a single-line program. Multiple C<-e> options may be chained together,
 each one representing an input line with an implicit newline at the end.
 
+If you wish to run in lax mode, without strictures and warnings enabled,
+your first -e on the command line should be passed a value of '6', like C<-e6>.
+See L<Synopsis 11|S11-modules.pod/"Forcing Perl 6"> for details.
+
 Service: Runtime
 
 Notes: Returns a function that's executed unless otherwise modified by
@@ -403,13 +406,6 @@ there are no more -e. Assigns the generated function to MAIN.
 [Not really a Mode in the sense you've defined it, but an input
 redirection of a vaguely here-docish flavor.  You could combine it
 with -c or --doc for instance, so not exclusive.]
-
-=item --execute-lax, -e6
-
-Execute in lax mode, without strictures and warnings enabled.
-See L<Synopsis 11|S11-modules.pod/"Forcing Perl 6"> for details.
-
-Service: Runtime
 
 =item --autoloop-split, -F [string, closure, etc]
 
