@@ -2735,15 +2735,17 @@ and hence is available at any later time as C<$?USAGE>.
 Common Unix command-line conventions are mapped onto the capture
 as follows:
 
-    Assuming C<-n> is the shortname for C<--name>,
+    Assuming C<-n> is the short name for C<--name>,
     On command line...         $*ARGS capture gets...
 
+    # Short names
     -n                         :name
     -n=value                   :name<value>
     -n="spacy value"           :name«'spacy value'»
     -n='spacy value'           :name«'spacy value'»
     -n=val1,'val 2',etc        :name«val1 'val 2' etc»
 
+    # Long names
     --name                     :name            # only if declared Bool
     --name=value               :name<value>     # don't care
     --name value               :name<value>     # only if not declared Bool
@@ -2756,15 +2758,16 @@ as follows:
     --name val1 'val 2' etc    :name«val1 'val 2' etc» # only if declared @
     --                                 # end named argument processing
 
-    +name                      :!name
-    +name=value                :name<value> but False
-    +name="spacy value"        :name«'spacy value'» but False
-    +name='spacy value'        :name«'spacy value'» but False
-    +name=val1,'val 2',etc     :name«val1 'val 2' etc» but False
+    # Negation
+    --/name                    :!name
+    --/name=value              :name<value> but False
+    --/name="spacy value"      :name«'spacy value'» but False
+    --/name='spacy value'      :name«'spacy value'» but False
+    --/name=val1,'val 2',etc   :name«val1 'val 2' etc» but False
 
+    # Native
     :name                      :name
-    :!name                     :!name   # potential conflict with ! histchar
-    :/name                     :!name   # potential workaround?
+    :/name                     :!name
     :name=value                :name<value>
     :name="spacy value"        :name«'spacy value'»
     :name='spacy value'        :name«'spacy value'»

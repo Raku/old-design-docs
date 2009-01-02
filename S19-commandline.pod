@@ -29,7 +29,7 @@ Notable features described in the sections below include:
 
 =item *
 
-A much smarter default command-line processor in the core
+A smart default command-line processor in the core
 
 =item *
 
@@ -111,7 +111,7 @@ Command line options are parsed using the following rules:
 
 =item *
 
-Options must begin with one of the following symbols: C<< < -- - + : > >>.
+Options must begin with one of the following symbols: C<< < -- - : > >>.
 
 =item *
 
@@ -120,7 +120,7 @@ Options are case sensitive. C<-o> and C<-O> are not the same option.
 =item *
 
 All options have a multi-character, descriptive name for increased clarity.
-Multi-character option names always begin with C<-->, C<+>, or C<:>.
+Multi-character option names always begin with C<--> or C<:>.
 
 =item *
 
@@ -138,15 +138,7 @@ is not allowed.
 
 =item *
 
-Options may be negated with C</> or C<!>, for example C<:/name>
-
-[:/name reminds me more of an end tag than a negated, but I see
-why you want it, given the history of history characters...interestingly,
-:0name has the same effect in current p6, since we generalized :3x
-and such.]
-
-{{ dunno how TIMTOWTDI i want to get here, so i haven't changed the text
-above, but have standardized on C</> below. }}
+Options may be negated with C</>, for example C<--/name>, C<:/name>, C<-/n>.
 
 =item *
 
@@ -239,8 +231,8 @@ illustration purposes (this is *not* how options will be parsed by any shell).
   token option {
       [
         [
-          $<sym>=[ '--' | '-' | '+' | ':' ]
-          $<neg>=[ '!' | '/' ]?
+          $<sym>=[ '--' | '-' | ':' ]
+          $<neg>=[ '/' ]?
           <name>
         ]
         [ '=' <value> [ ',' <value> ]* ]?
