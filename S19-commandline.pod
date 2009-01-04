@@ -14,8 +14,8 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
 
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
-  Last Modified: 2 Jan 2009
-  Version: 8
+  Last Modified: 3 Jan 2009
+  Version: 9
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
@@ -203,50 +203,6 @@ Multiple values are passed using commas without intervening whitespace,
 as in C<--option=val1,'val 2',etc>
 
 =back
-
-
-These rules have been quantified in the following grammar, used solely for
-illustration purposes (this is *not* how options will be parsed by any shell).
-
-{{TODO update to current, move to non-published helper doc}}
-
-  grammar CommandLineArguments;
-
-  rule TOP {
-      <argument>*
-      '--'?
-      $<rest>=[.*]?
-      [ $ || <panic: 'Syntax error'> ]
-  }
-
-  rule argument { [ <option> | <passthru> | <value> ] {*} }
-
-  token option {
-      [
-        [
-          $<sym>=[ '--' | '-' | ':' ]
-          $<neg>=[ '/' ]?
-          <name>
-        ]
-        [ '=' <value> [ ',' <value> ]* ]?
-      ]
-  }
-
-  regex passthru {
-      '++' <indicator> <.ws>
-      $<data>=[.*?]
-      [ '--' $<indicator> || $ ]
-  }
-
-  token indicator { <name> [ '=' <target=name> ]? }
-
-  token name { <.ident> [ '-' <.ident> ]* }
-
-  token value {
-      | (\w+)
-      | \' (<-[\']>*) \'
-      | \" (<-[\"]>*) \"
-  }
 
 
 =head1 Option Categories
