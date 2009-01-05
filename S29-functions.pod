@@ -190,6 +190,22 @@ order.  For equivalence the list is reduced as if using [&&].
 
 =head1 Function Packages
 
+=head2 Object
+
+Every object conforms to the type C<Object>. The following methods are thusly
+available on every object.
+
+=over
+
+=item perl
+
+ our Str multi method perl (Object $o)
+
+Returns a perlish representation of the object, so that calling C<eval>
+on the returned string reproduces the object as good as possible.
+
+=back
+
 =head2 Any
 
 The following are defined in the C<Any> role:
@@ -206,6 +222,27 @@ using criteria C<$by> or C<@by> for comparisons. C<@by> differs
 from C<$by> in that each criterion is applied, in order,
 until a non-zero (equivalent) result is achieved.
 
+=item can
+
+ our Bool multi method can ($self:, Str $method)
+
+If there is a multi method of name C<$method> that can be called on
+C<$self>, then closure is return has C<$self> bound to the position
+of the invocant.
+
+Otherwise an undefined value is returned.
+
+=item clone
+
+ our multi method clone (::T $self --> T)
+ our multi method clone (::T $self, *%attributes --> T)
+
+The first variant retuns  an independent copy of C<$o> that is equivlant
+to C<$o>.
+
+The second variant does the same, but any named arguments override an
+attribute during the cloning process.
+
 =item cmp
 
  our Order multi sub cmp (Ordering @by, $a, $b)
@@ -218,6 +255,19 @@ C<$by> or C<@by> for comparisons. C<@by> differs from C<$by>
 in that each criterion is applied, in order, until a non-zero
 (tie) result is achieved.  If the values are not comparable,
 returns a proto C<Order> object that is undefined.
+
+=item does
+
+ our Bool multi method does ($self:, $type)
+
+Returns C<True> if and only if C<$self> conforms to type C<$type>.
+
+=item isa
+
+ our Bool multi method isa ($self:, $type)
+
+Returns true if a the invocant an instance of class C<$type>, or 
+of a subset type or a derived class (through inheritance) of C<$type>.
 
 =back
 
