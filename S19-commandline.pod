@@ -209,65 +209,6 @@ as in C<--option=val1,'val 2',etc>
 =back
 
 
-=head1 Option Categories
-
-Perl's command line options fall into three categories:
-
-=over 4
-
-=item *
-
-B<Mode> flags set Perl's operational mode (e.g. I<--doc>, I<-e>).
-Only one mode flag may be specified on the command line.
-
-=item *
-
-B<Dynamic> flags may be set on the command line, via the I<PERL6OPT>
-environment variable, or within a file.
-
-[What file?  We need to be Very Careful not to delegate the identity of
-the current language to anything outside of P6.  I would very much hate
-to see anything resembling a .perl6rc file.]
-
-{{ TODO clarify that i mean "source file" here and not an rc-like file }}
-
-=item *
-
-B<Static> flags may be set only on the command line, and affect the entire
-run of the program.
-
-[I think this Static/Dynamic distinction is rather meaningless and
-confusing.  Certain commitments will be made by certain phases of
-compilation/linking/running, and every switch is dynamic before the
-commitment, static after.  And Mode flags are just the ones that
-commit so fast they exclude alternatives, seems like...]
-
-{{TODO very well, i'll shift the design to be more dynamic here}}
-
-=back
-
-For more on options and their classifications, see section
-L</"Option Reference">.
-
-
-=head1 Option Services
-
-Just because Perl 6 gives you a reasonable default command-line parser doesn't
-mean you don't want to extend it, or replace it with something else entirely.
-The command-line processor is organized into a set of services, each of which
-respond to a set of command-line options. These services live in the
-C<{{TODO}}> namespace, and may be overridden by loading a module with the
-C<--option-parser> option (see below).
-
-{{ TODO more details needed }}
-
-[Would like to see a use case for this mechanism.  The whole Services
-concept seems very nebulous, especially when you start giving services
-names like "Awk"..."Autoloop" would be more meaningful.]
-
-{{rename done}}
-
-
 =head1 Option Reference
 
 Perl 6 options, descriptions, and services.
@@ -301,17 +242,11 @@ Perl 6 options, descriptions, and services.
 
 Turns on autosplit mode.
 
-Service: Autoloop
-
-Notes: Annotates function produced by -n | -p
-
 =item ++ARGSPROC [options, values] ++/ARGSPROC
 
 {{TODO don't like this name, but don't like ++CMD either}}
 
 Add a command-line processor.
-
-Service: Option
 
 Notes: When this option is parsed, it immediately triggers an action that
 could affect the remainder of the parse. Therefore, it's a good idea to put
@@ -324,15 +259,11 @@ this option as early as possible in the argument list.
 
 Check syntax, then exit.
 
-Service: Runtime
-
 Notes: Desugars to C<++COMPILER -e 'CHECK{ compiles_ok(); exit; }' ++/COMPILER>
 
 =item --doc
 
 perldoc
-
-Service: Doc
 
 Notes: Desugars to
 C<++COMPILER -e 'CHECK{ compiles_ok(); dump_perldoc(); }' ++/COMPILER>
@@ -342,8 +273,6 @@ C<++COMPILER -e 'CHECK{ compiles_ok(); dump_perldoc(); }' ++/COMPILER>
 =item ++DEBUGGER [switches, flags] ++/DEBUGGER
 
 Set debugging flags.
-
-Service: Debugger
 
 Notes: At least it's a start. Need a debugger spec for more.
 
@@ -356,24 +285,11 @@ If you wish to run in lax mode, without strictures and warnings enabled,
 your first -e on the command line should be passed a value of '6', like C<-e6>.
 See L<Synopsis 11|S11-modules.pod/"Forcing Perl 6"> for details.
 
-Service: Runtime
-
-Notes: Returns a function that's executed unless otherwise modified by
-Autoloop service's -p , -n, -a, -F.
-Actually combines all source from all -e parameters, then compiles when
-there are no more -e. Assigns the generated function to MAIN.
-
-[Not really a Mode in the sense you've defined it, but an input
-redirection of a vaguely here-docish flavor.  You could combine it
-with -c or --doc for instance, so not exclusive.]
-
 =item --autoloop-split, -F [string, closure, etc]
 
 Pattern to split on (used with -a). Accepts unicode strings (as long as your
 shell lets you pass them). Allows passing a closure
 (e.g. -F "{use Text::CSV}"). Awk's not better any more :)
-
-Service: Autoloop
 
 Notes: Substitutes a function for the default function which
 is { split ' ' } or whatever.
@@ -382,13 +298,9 @@ is { split ' ' } or whatever.
 
 Print summary of options. Desugars to C<++CMD --print-help --exit ++/CMD>.
 
-Service: Usage
-
 =item --include, -I
 
 Prepend directory to @*INC.
-
-Service: Lib
 
 Notes: this is unspecced elsewhere, so may not survive long.
 
@@ -402,22 +314,9 @@ we can enforce the standard library policies laid out in S11.]
 
 use/no module.
 
-Service: Meta
-
-Notes: Maybe this happens before or affects which services are loaded.
-Or maybe there can be a UNIVERSAL service which knows about other services
-and is built into the interpreter. No looking at disk required?
-
-[I have no idea what you're talking about here...these switch are in
-the same category as -n and -p; they imply additional wrapping of
-the given code with extra "use" directives.  The syntax could probably
-use some refactoring though.]
-
 =item --autoloop-no-print, -n
 
 Act like awk.
-
-Service: Autoloop
 
 Notes: Desugars to C<++PARSER --prelude=Perl6-autoloop-no-print ++/PARSER>.
 
@@ -436,15 +335,11 @@ STDOUT is used. Specify the output format with C<--output-format>.
 
 Act like sed.
 
-Service: Autoloop
-
 Notes: Desugars to C<++PARSER --prelude=Perl6-autoloop-print ++/PARSER>.
 
 =item --search-path, -S path
 
 Use path to search for script specified on command-line.
-
-Service: Runtime
 
 =item --taint, -T
 
@@ -457,8 +352,6 @@ command-line as possible.
 
 Display program name, version, patchlevel, etc.
 
-Service: Usage
-
 [maybe wants to propagate -v to ++CMD, ++PARSER, ++RTS, and any
 other known subsystems?]
 
@@ -469,8 +362,6 @@ other known subsystems?]
 =item --verbose-config, -V
 
 Display configuration details.
-
-Service: Usage
 
 [likewise]
 
