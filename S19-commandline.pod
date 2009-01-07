@@ -220,15 +220,15 @@ Perl 6 options, descriptions, and services.
     Bool :c($check-syntax),
     Bool :$doc,
          :e($execute),
-    Bool :F($autoloop-split),
+         :F($autoloop-split),
     Bool :h($help),
          :I(@include),
-    #TODO -M,
+         :u($use),
     Bool :n($autoloop-no-print),
          :O($output-format) = 'exe',
          :o($output-file) = $*OUT,
     Bool :p($autoloop-print),
-         :S(@search-path),
+    Bool :S($search-path),
     Bool :T($taint),
     Bool :v($version),
     Bool :V($verbose-config),
@@ -242,128 +242,104 @@ Perl 6 options, descriptions, and services.
 
 Turns on autosplit mode.
 
-=item ++ARGSPROC [options, values] ++/ARGSPROC
+=item ++CMD --command-line-parser *parser* ++/CMD
 
-{{TODO don't like this name, but don't like ++CMD either}}
-
-Add a command-line processor.
-
-Notes: When this option is parsed, it immediately triggers an action that
-could affect the remainder of the parse. Therefore, it's a good idea to put
-this option as early as possible in the argument list.
-
-{{TODO more details needed}}
-
+Add a command-line processor.  When this option is parsed, it immediately
+triggers an action that affects or replaces the the command-line parser.
+Therefore, it's a good idea to put this option as early as possible in the
+argument list.
 
 =item --check-syntax, -c
 
-Check syntax, then exit.
-
-Notes: Desugars to C<++COMPILER -e 'CHECK{ compiles_ok(); exit; }' ++/COMPILER>
+Check syntax, then exit.  Desugars to C<-e 'CHECK{ compiles_ok(); exit; }'>.
 
 =item --doc
 
-perldoc
+Lookup Perl documentation in Pod format.  Desugars to
+C<-e 'CHECK{ compiles_ok(); dump_perldoc(); }'>. C<$+ARGS> contains the
+arguments passed to C<perl6>, and is available at C<CHECK> time, so
+C<dump_perldoc()> can respond to command-line options.
 
-Notes: Desugars to
-C<++COMPILER -e 'CHECK{ compiles_ok(); dump_perldoc(); }' ++/COMPILER>
+=item ++DEBUGGER [*switches*, *flags*] ++/DEBUGGER
 
-{{TODO what do i pass to dump_perldoc? C<$+ARGS>, maybe?}}
+Set debugging switches and flags.
 
-=item ++DEBUGGER [switches, flags] ++/DEBUGGER
+Note: This is speculative, for lack of a debugger specification.
 
-Set debugging flags.
+=item --execute, -e *line*
 
-Notes: At least it's a start. Need a debugger spec for more.
-
-=item --execute, -e commandline
-
-Execute a single-line program. Multiple C<-e> options may be chained together,
+Execute a single-line program.  Multiple C<-e> options may be chained together,
 each one representing an input line with an implicit newline at the end.
 
 If you wish to run in lax mode, without strictures and warnings enabled,
 pass a value of '6' to the first -e on the command line, like C<-e6>.
 See L<Synopsis 11|S11-modules.pod/"Forcing Perl 6"> for details.
 
-=item --autoloop-split, -F [string, closure, etc]
+=item --autoloop-split, -F *expression*
 
-Pattern to split on (used with -a). Accepts unicode strings (as long as your
-shell lets you pass them). Allows passing a closure
-(e.g. -F "{use Text::CSV}"). Awk's not better any more :)
-
-Notes: Substitutes a function for the default function which
-is { split ' ' } or whatever.
+Pattern to split on (used with -a).  Substitutes an expression for the default
+split function, which is C<{split ' '}>.  Accepts unicode strings (as long as
+your shell lets you pass them).  Allows passing a closure
+(e.g. -F "{use Text::CSV}").  Awk's not better any more :)
 
 =item --help, -h
 
-Print summary of options. Desugars to C<++CMD --print-help --exit ++/CMD>.
+Print summary of options.  Desugars to C<++CMD --print-help --exit ++/CMD>.
 
-=item --include, -I
+=item --include, -I *directory*[,*directory*[,...]]
 
-Prepend directory to @*INC.
+Prepend directories to @*INC, for searching ad hoc libraries.  Searching the
+standard library follows the policies laid out in L<S11-modules>.
 
-Notes: this is unspecced elsewhere, so may not survive long.
+=item --use, -u *module*
 
-[at best, @*INC will only be the user's ad hoc libraries.  The API for
-searching the standard lib will not be defined in terms of @*INC so that
-we can enforce the standard library policies laid out in S11.]
+C<--use *module*> and C<-u *module*> desugars to C<-e 'use *module*'>.
+Specify version info and import symbols by appending info to the module name:
 
-=item -m[-]module, -M[-]module, -M[-]'module ...', -[mM][-]module=arg[,arg]...
+  -u'Sense:ver<1.2.1>:auth<cpan:JRANDOM> <common @horse>'
 
-{{TODO needs new or extended syntax}}
-
-use/no module.
+You'll need the quotes so your shell doesn't complain about redirection.
+There is no special command-line syntax for C<'no *module*>, use C<-e>.
 
 =item --autoloop-no-print, -n
 
-Act like awk.
+Act like awk.  Desugars to
+C<++PARSER --prelude=Perl6-autoloop-no-print ++/PARSER>.
 
-Notes: Desugars to C<++PARSER --prelude=Perl6-autoloop-no-print ++/PARSER>.
-
-=item --output-format, -O format
+=item --output-format, -O *format*
 
 Specify the file format for the output file requested with C<--output-file>.
 This option is implementation-specific, so consult the documentation for your
 Perl 6 implementation.
 
-=item --output-file, -o [filename]
+=item --output-file, -o [*filename*]
 
-Compile to a file, rather than run immediately. If no filename is specified,
-STDOUT is used. Specify the output format with C<--output-format>.
+Compile to a file, rather than run immediately.  If no filename is specified,
+STDOUT is used.  Specify the output format with C<--output-format>.
 
 =item --autoloop-print, -p
 
-Act like sed.
+Act like sed.  Desugars to
+C<++PARSER --prelude=Perl6-autoloop-print ++/PARSER>.
 
-Notes: Desugars to C<++PARSER --prelude=Perl6-autoloop-print ++/PARSER>.
+=item --search-path, -S
 
-=item --search-path, -S path
-
-Use path to search for script specified on command-line.
+Use PATH environment variable to search for script specified on command-line.
 
 =item --taint, -T
 
-Turns on "taint" checking. See L<...> for details.
-
-Notes: Commits very early. Recommend putting this option as early on the
-command-line as possible.
+Turns on "taint" checking. See L<Synopsis 23|S23-security.pod> for details.
+Commits very early.  Put this option as early on the command-line as possible.
 
 =item --version, -v
 
-Display program name, version, patchlevel, etc.
-
-[maybe wants to propagate -v to ++CMD, ++PARSER, ++RTS, and any
-other known subsystems?]
-
-[or maybe -v is ++TOWHOMITMAYCONCERN --print_version_and_exit]
-
-{{TODO}}
+Display program name, version, patchlevel, etc.  Desugars to
+C<++CMD -v ++/CMD ++PARSER -v ++/PARSER ++DEBUGGER -v ++/DEBUGGER>.
 
 =item --verbose-config, -V
 
-Display configuration details.
-
-[likewise]
+Display configuration details.  Desugars to
+C<++CMD -V ++/CMD ++PARSER -V ++/PARSER ++DEBUGGER -V ++/DEBUGGER>.
 
 =back
 
