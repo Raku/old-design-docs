@@ -372,51 +372,28 @@ C<++CMD -V ++/CMD ++PARSER -V ++/PARSER ++DEBUGGER -V ++/DEBUGGER>.
 =back
 
 
-=head1 Run-time System
+=head1 Metasyntactic Options
 
-{{TODO total rewrite needed}}
+Metasyntactic options are a subset of delimited options used to pass arguments
+to an underlying component of Perl. Perl itself does not parse these options,
+but makes them available to run-time components via the C<%+META-ARGS> context
+variable.
 
-The run-time system delimited option (C<++RTS ... ++/RTS> or
-C<++RTS=string ... ++/RTS=string>) allows options to be passed to an underlying
-component of Perl. Perl itself does not parse these options, but makes them
-available to run-time components.
+Standard in Perl 6 are three underlying components, C<CMD>, C<PARSER>,
+and C<DEBUGGER>.  Implementations may expose other components via this
+interface, so consult the documentation for your Perl 6 implementation.
 
-[Note that with my proposed system you can still nest without the artificial =:
-    ++RTS ++GC -generational ++/GC ++/RTS
-]
+{{TODO more description and examples}}
 
-The C<=string> variation allows for disabmiguation when the run-time system
-also allows the parsing of an option named C<++RTS>. For example,
-C<perl ++RTS=outer -a :b +C --RTS foo bar ++/RTS=outer>
-makes sure the run-time system receives C<-a :b +C --RTS foo bar>.
+  On command line...                   Subsystem gets...
+   ++X a -b  ++/X                      a -b
 
-Additionally, some implementations may use this variation to pass arguments
-to particular subsystems. For example, Rakudo Perl may choose to implement
-C<perl ++RTS=parrot --runcore=gc-debug -t 7 ++/RTS=parrot ++RTS=PGE --disable-keepall --optimize ++/RTS=PGE>
-to mean C<--runcore=gc-debug -t 7> gets passed to parrot, and
-C<--disable-keepall --optimize> gets passed to PGE.
+  # Nested options
+  +++X a -b   ++X -c ++/X -d e +++/X   a -b ++X -c ++/X -d e
 
-[perl ++PARROT --runcore=gc-debug -t 7 ++/PARROT ++PGE --disable-keepall --optimize ++/PGE>
-
-{{ -jg
-should certain string prefixes or perhaps uppercase strings be reserved
-for this purpose?
-}}
-
-[doesn't seem very necessary, if we make sure ++ has its own namespace.  currently
-that namespace is quite barren.  we wouldn't even necessarily need to enforce uppercase,
-since
-
-    perl ++parrot --runcore=gc-debug -t 7 ++/parrot ++pge --disable-keepall --optimize ++/pge
-
-is just about as readable, especially if written:
-
-    perl ++parrot --runcore=gc-debug -t 7 ++/parrot \
-        ++pge --disable-keepall --optimize ++/pge \
-        foo bar baz
-
-
-or some such.]
+  # More than once
+   ++X a -b  ++/X -c  ++X -d e  ++/X   a -b -d e
+  +++X a -b +++/X -c  ++X -d e  ++/X   a -b -d e
 
 
 =head1 Environment Variables
