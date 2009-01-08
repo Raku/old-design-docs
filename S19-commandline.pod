@@ -14,8 +14,8 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
 
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
-  Last Modified: 7 Jan 2009
-  Version: 11
+  Last Modified: 8 Jan 2009
+  Version: 12
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
@@ -81,7 +81,13 @@ special C<-> option if you wish to pass arguments to a script read from STDIN.
 =head1 Backward (In)compatibility
 
 Muscles have a long memory. You may find yourself typing your favorite Perl 5
-options, even after Christmas has arrived. {{TODO}}
+options, even after Christmas has arrived.  As you'll see below, common
+options are provided which behave similarly.  Less common options, however,
+may not be available or may have changed syntax.  If you provide Perl with
+unrecognized command-line syntax, Perl gives you a friendly error message.
+If the unrecognized syntax is a valid Perl 5 option, Perl provides helpful
+suggestions to allow you to perform the same action using the current syntax.
+
 
 =head2 Unchanged Syntactic Features
 
@@ -120,13 +126,94 @@ different semantics, so see L</"Option Reference"> below for the details.
 
 =back
 
+
 =head2 Removed Syntactic Features
 
-{{ -jg
-need to tell a story about how perl 6 handles the migration from perl 5.
-for example, if -0 is not a valid perl 6 command line option, how does perl 6
-help the user realize and correct the mistake?
-}}
+Some Perl 5 command-line features are no longer available, either because
+there's a new and different way to do it in Perl 6, or because they're
+no longer relevant.  Here's a breakdown of what's been removed:
+
+=over 4
+
+=item -0 *octal/hex*
+
+Sets input record separator.  Missing due to lack of specification in
+L<Synopsis 16|S16-io>.  There is a comment about this in the L</"Notes">
+section at the end of this document.
+
+=item -C *number/list*
+
+Control unicode features.  Perl 6 has unicode semantics, and assumes a
+UTF-8 command-line interface (until proven otherwise, at which point this
+functionality may be readdressed).
+
+=item -d, -dt, -d:foo, -D, etc.
+
+Debugging commands.  Replaced with the C<++DEBUGGER> metasyntactic option.
+
+=item -E *line*
+
+Execute a line of code, with all features enabled.  This is specific to
+Perl 5.10, and not relevant to Perl 6.
+
+=item -i *extension*
+
+Modify files in-place.  Haven't thought about it enough to add yet, but
+I'm certain it has a strong following. {{TODO review decision here}}
+
+=item -l
+
+Enable automatic line-ending processing.  This is the default behavior.
+
+=item -M *module*, -m *module*, etc.
+
+use/no module.  Replaced by C<--use>.
+
+=item -P
+
+Obsolete.  Removed.
+
+=item -s
+
+Enable rudimentary switch parsing.  By default, Perl 6 parses the
+arguments passed to a script using the rules defined in this document,
+rendering this switch obsolete.
+
+=item -t
+
+Enable taint warnings mode.  Taint mode needs more thought, but it's
+much more likely that the C<-T> switch will take options rather than
+use a second command-line flag for similar behavior.
+
+=item -u
+
+Obsolete.  Removed.
+
+=item -U
+
+Allow unsafe operations.  This is extremely dangerous and infrequently
+used, and doesn't deserve its own command-line option.
+
+=item -w
+
+Enable warnings.  This is the default behavior.
+
+=item -W
+
+Enable all warnings.  This is infrequently used, and doesn't deserve its
+own command-line option.
+
+=item -x
+
+Run program embedded in ASCII text.  Infrequently used, and doesn't
+deserve its own command-line option.
+
+=item -X
+
+Disable all warnings.  This is infrequently used, and doesn't deserve its
+own command-line option.
+
+=back
 
 
 =head1 Options and Values
