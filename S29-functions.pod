@@ -1757,19 +1757,41 @@ context knows its normalization preferences, and every bytes context
 also knows its encoding preferences. (These are knowable in the
 lexical scope via the $?NF and $?ENC compile-time constants).)
 
-=item list
-
- our List multi list ( *@list )
-
-Forces List Context on it's arguments, and returns them.
-
-
 =item item
 
  our Item multi item ( $item )
 
 Forces generic Item context on its argument, and returns it.
 
+=item list
+
+ our List multi list ( *@list )
+
+Forces List Context on it's arguments, and returns them.
+
+=item slice
+
+ our List multi slice ( *@list )
+
+Forces the argument list to be evaluated in slice context.
+(Slices are considered to be potentially multidimensional in Perl 6.)
+A list of C<Capture>s will be transformed into a list of lists.
+Equivalent to C<@@()> (except that empty C<@@()> means C<@@($/)>, while
+empty C<slice()> means a null slice).
+
+=item hash
+
+The C<hash> contextualizer
+
+ our Hash multi hash ( *@list )
+
+Forces the argument list to be evaluated in hash context.
+The expression is evaluated in list context (flattening any C<Capture>s),
+then a hash will be created from the list, taken as a list of C<Pair>s.
+(Any element in the list that is not a C<Pair> will pretend to be a key
+and grab the next value in the list as its value.)  Equivalent to
+C<%()> (except that empty C<%()> means C<%($/)>, while
+empty C<hash()> means an empty hash).
 
 =item :16, :8, :2, :10
 
