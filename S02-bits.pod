@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 30 Dec 2008
+  Last Modified: 8 Jan 2009
   Number: 2
-  Version: 147
+  Version: 148
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -954,8 +954,6 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Set         Unordered collection of values that allows no duplicates
     Bag         Unordered collection of values that allows duplicates
     Junction    Set with additional behaviors
-    Pair        A single key-to-value association
-    Mapping     Set of Pairs with no duplicate keys
     Signature   Function parameters (left-hand side of a binding)
     Capture     Function call arguments (right-hand side of a binding)
     Blob        An undifferentiated mass of bits
@@ -982,6 +980,8 @@ because they can be wrapped in place.)
     KeyHash     Perl hash that autodeletes values matching default
     KeySet      KeyHash of Bool (does Set in list/array context)
     KeyBag      KeyHash of UInt (does Bag in list/array context)
+    Pair        A single key-to-value association
+    Mapping     Set of Pairs with no duplicate keys
     Buf         Perl buffer (a stringish array of memory locations)
     IO          Perl filehandle
     Routine     Base class for all wrappable executable objects
@@ -1033,6 +1033,12 @@ used as a C<Hash> (that is, when used as an C<Array> or list or C<Bag>
 object) a C<KeyBag> behaves as a C<Bag> of its keys, with each key
 replicated the number of times specified by its corresponding value.
 (Use C<.kv> or C<.pairs> to suppress this behavior in list context.)
+
+As with C<Hash> types, C<Pair> and C<Mapping> are mutable in their
+values but not in their keys.  (A key can be a reference to a mutable
+object, but cannot change its C<.WHICH> identity.  In contrast,
+the value may be rebound to a different object, just as a hash
+element may.)
 
 =head2 Value types
 
