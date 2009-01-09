@@ -15,7 +15,7 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
   Last Modified: 8 Jan 2009
-  Version: 12
+  Version: 13
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
@@ -510,12 +510,11 @@ is used.
 
 =item PERL6LIB
 
-A list of directories in which to look for Perl library files.
+A list of directories in which to look for ad hoc Perl library files.
 
-Note: this is speculative, as library loading is not yet specified.
-
-[except insofar as S11 mandates various behaviors incompatible with
-mere directory probing...]
+Note: this is speculative, as library loading is not yet specified,
+except insofar as S11 mandates various behaviors incompatible with
+mere directory probing.
 
 =item PERL6OPT
 
@@ -548,15 +547,13 @@ list of arguments provided on the command-line.
 
 =head1 Notes
 
-{{ -jg
-i'd like to be able to adjust the input record separator from command line,
-for instance to specify the equivalent of perl 5's C<$/ = \32768;>. so far,
-i don't have a solution, but perhaps pass a closure that evaluates to an int?
+I'd like to be able to adjust the input record separator from command line,
+for instance to specify the equivalent of perl 5's C<$/ = \32768;>. So far,
+I don't have a solution, but perhaps pass a closure that evaluates to an Int?
+This should try to use whatever option does the same thing to a new
+filehandle when S16 is further developed.
 
-[this should try to use whatever option does the same thing to a new
-filehandle when S16 is further developed.]
-
-do i need to address any unicode concerns?
+Do I need to address any unicode concerns?
 
 [You can try "all command line arguments are assumed to be in unicode
 unless proven otherwise" and see how well it flies. :)  but this starts
@@ -565,16 +562,9 @@ of marking arguments as needing to be encoded into a Buf.  but for sanity
 we must try to settle on unicode as the default expectation.  I hope POSIX
 dies before Perl 6 does...]
 
-loading a switch parsing module by a switch, instead of using the default.
-maybe via ++RTS, since it needs to happen *before* switches are evaluated.
+Sandboxing? maybe-r
 
-[suggest ++CMD --use_cmd_module ++/CMD]
-
-sandboxing? maybe-r
-
-env var? maybe -E
-
-[could be posed in terms of substituting a different prelude]
-}}
+Env var? maybe -E.
+Could be posed in terms of substituting a different prelude.
 
 =for vim:set expandtab sw=4:
