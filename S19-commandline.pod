@@ -276,9 +276,7 @@ subsystems, and are parsed with the following rules:
 
 The opening and closing delimiters begin with two or more plus characters,
 for example C<++>.  You'll usually use two plus characters, but more are
-allowed to avoid ambiguity.
-
-{{TODO put more below, or refer to somewhere with more}}
+allowed to avoid ambiguity when nesting delimited options.
 
 =item *
 
@@ -311,7 +309,24 @@ and are invisible to C<MAIN()> except as C<< %+OPTS<name> >>.  For example:
   ++PARSER --prelude=Perl6-autoloop-no-print ++/PARSER
 
 is available inside your script as C<< %+OPTS<PARSER> >>, and contains
-C<--prelude=Perl6-autoloop-no-print>.
+C<--prelude=Perl6-autoloop-no-print>.  Since eager matching is used, if you
+need to pass something like:
+
+  ++foo -bar ++foo baz ++/foo ++/foo
+
+you'll end up with
+
+  %+OPTS<foo> = '-bar ++foo baz';
+
+which is probably not what you wanted. Instead, add extra C<+> characters
+
+  +++foo -bar ++foo baz ++/foo +++/foo
+
+which will give you
+
+  %+OPTS<foo> = '-bar ++foo baz ++/foo';
+
+allowing you to properly nest delimited options.
 
 
 Values are parsed with the following rules:
