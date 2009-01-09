@@ -275,8 +275,8 @@ subsystems, and are parsed with the following rules:
 =item *
 
 The opening and closing delimiters begin with two or more plus characters,
-for example C<++>. You'll usually use two plus characters, but more are
-allowed to disambiguate (more below).
+for example C<++>.  You'll usually use two plus characters, but more are
+allowed to avoid ambiguity.
 
 {{TODO put more below, or refer to somewhere with more}}
 
@@ -296,15 +296,22 @@ the closing delimiter.
 
 =item *
 
+Eager matching semantics are used, so the first closing delimeter found
+completes the match.
+
+=item *
+
 Delimited options cannot be negated.
 
 =back
 
-[From the P6 viewpoint, these options should probably be shoved into
-context variables and be invisible to MAIN except as %+OPTS<PARSER>
-or @+PARSER_ARGS or some such.]
+These options are made available in context variables matching their name,
+and are invisible to C<MAIN()> except as C<< %+OPTS<name> >>.  For example:
 
-{{TODO %+OPTS it is. explain this.}}
+  ++PARSER --prelude=Perl6-autoloop-no-print ++/PARSER
+
+is available inside your script as C<< %+OPTS<PARSER> >>, and contains
+C<--prelude=Perl6-autoloop-no-print>.
 
 
 Values are parsed with the following rules:
