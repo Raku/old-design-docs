@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 26 Nov 2008
+  Last Modified: 13 Jan 2009
   Number: 3
-  Version: 147
+  Version: 148
 
 =head1 Overview
 
@@ -3018,10 +3018,10 @@ as a default because the more specific types listed above it didn't match.
 
     Hash      Hash      hash keys same set      $_.keys === X.keys
     Set       Hash      hash keys same set      $_ === X.keys
-    Array     Hash      hash slice existence    X.contains(any @$_)
+    Array     Hash      hash slice existence    X.{any @$_}:exists
     Regex     Hash      hash key grep           any(X.keys).match($_)
-    Scalar    Hash      hash entry existence    X.contains($_)
-    Any       Hash      hash slice existence    X.contains(any @$_)
+    Scalar    Hash      hash entry existence    X.{$_}:exists
+    Any       Hash      hash slice existence    X.{any @$_}:exists
 
     Str       Regex     string pattern match    .match(X)
     Hash      Regex     hash key "boolean grep" .any.match(X)
@@ -3179,9 +3179,9 @@ Various proposed-but-deprecated smartmatch behaviors may be easily
     Array   Seq    array contains seq     *,X,*
     Array   Seq    array ends with seq    *,X
     Hash    Str    hash element truth     .{X}
-    Hash    Str    hash key existence     .contains(X)
+    Hash    Str    hash key existence     .{X}:exists
     Hash    Num    hash element truth     .{X}
-    Hash    Num    hash key existence     .contains(X)
+    Hash    Num    hash key existence     .{X}:exists
     Buf     Int    buffer contains int    .match(X)
     Str     Char   string contains char   .match(X)
     Str     Str    string contains string .match(X)
@@ -3189,14 +3189,14 @@ Various proposed-but-deprecated smartmatch behaviors may be easily
     Str     Array  array contains string  X.any
     Num     Array  array contains number  X.any
     Scalar  Array  array contains object  X.any
-    Hash    Array  hash slice exists      .contains(X.all) .contains(X.any)
-    Set     Set    subset relation        .contains(X)
-    Set     Hash   subset relation        .contains(X)
-    Any     Set    subset relation        .Set.contains(X)
-    Any     Hash   subset relation        .Set.contains(X)
-    Any     Set    superset relation      X.contains($_)
-    Any     Hash   superset relation      X.contains($_)
-    Any     Set    sets intersect         .contains(X.any)
+    Hash    Array  hash slice exists      .{X.all}:exists .{X.any}:exists
+    Set     Set    subset relation        .{X}:exists
+    Set     Hash   subset relation        .{X}:exists
+    Any     Set    subset relation        .Set.{X}:exists
+    Any     Hash   subset relation        .Set.{X}:exists
+    Any     Set    superset relation      X.{$_}:exists
+    Any     Hash   superset relation      X.{$_}:exists
+    Any     Set    sets intersect         .{X.any}:exists
     Set     Array  subset relation        X,*          # (conjectured)
     Array   Regex  match array as string  .Cat.match(X)  cat(@$_).match(X)
 
