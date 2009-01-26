@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 13 Jan 2009
+  Last Modified: 24 Jan 2009
   Number: 3
-  Version: 148
+  Version: 149
 
 =head1 Overview
 
@@ -33,7 +33,7 @@ each level:
     L  Method postfix    .meth .+ .? .* .() .[] .{} .<> .«» .:: .= .^ .:
     N  Autoincrement     ++ --
     R  Exponentiation    **
-    L  Symbolic unary    ! + - ~ ? | +^ ~^ ?^ \ ^ =
+    L  Symbolic unary    ! + - ~ ? | +^ ~^ ?^ ^ =
     L  Multiplicative    * / % +& +< +> ~& ~< ~> ?& div mod
     L  Additive          + - +| +^ ~| ~^ ?| ?^
     L  Replication       x xx
@@ -48,9 +48,9 @@ each level:
     R  Conditional       ?? !! ff fff
     R  Item assignment   = := ::= => += -= **= xx= .=
     L  Loose unary       true not :by(2)
-    X  Comma operator    , p5=>
+    X  Comma operator    , p5=> :
     X  List infix        Z minmax X X~X X*X XeqvX ...
-    R  List prefix       : print push say die map substr ... [+] [*] any $ @
+    R  List prefix       print push say die map substr ... [+] [*] any $ @
     X  Loose and         and andthen
     X  Loose or          or xor orelse
     X  Sequencer         <==, ==>, <<==, ==>>
@@ -82,7 +82,7 @@ are either consistently prefix or postfix.)
 
 Note that list associativity (X) only works between identical operators.
 If two different list-associative operators have the same precedence,
-they are assumed to be left-associative with respect to each other.
+they are assumed to be right-associative with respect to each other.
 For example, the C<X> cross operator and the C<Z> zip operator both
 have a precedence of "list infix", but:
 
@@ -90,10 +90,10 @@ have a precedence of "list infix", but:
 
 is parsed as:
 
-    (@a X @b) Z @c
+    @a X (@b Z @c)
 
 Similarly, if the only implementation of a list-associative operator
-is binary, it will be treated as left associative.
+is binary, it will be treated as right associative.
 
 If you don't see your favorite operator above, the following
 sections cover all the operators in precedence order.  Basic operator
@@ -666,18 +666,6 @@ C<< prefix:<?^> >>, boolean bitwise negation
     ?^$x
 
 Coerces to boolean and then flips the bit.  (Same as C<!>.)
-
-=item *
-
-C<< prefix:<\> >>, Capture constructor
-
-    \$x
-    \@x
-    \%x
-    \($invocant: $pos1, $pos2, :named($arg))
-
-Defers the contextualization of its argument or arguments till it is
-bound into some other context.
 
 =item *
 
@@ -1557,6 +1545,71 @@ longer come in via C<@_>.  You can either name your formal parameters
 explicitly if there is an explicit signature, or pull them out of C<%_>
 rather than C<@_> if there is no explicit signature.
 
+=item *
+
+C<< infix:<:> >>, the invocant marker
+
+    say $*OUT: "howdy, world"
+    say($*OUT: "howdy, world")
+    push @array: 1,2,3
+    push(@array: 1,2,3)
+    \($object: 1,2,3, :foo, :!bar)
+
+The colon operator parses just like a comma, but marks the argument to its left as an
+invocant, which has the effect of turning what would otherwise be a function
+call into a method call.  It may only be used on the first argument of
+an argument list or capture, and will fail to parse if used in any other position.
+When used within a capture, it is not yet know what signature the capture will
+be bound to; if bound to a non-method's signature, the invocant merely turns
+into the first positional argument, as if the colon had been a comma.
+
+To avoid confusion with other colon forms, the colon infix operator
+must be followed by whitespace or a terminator.  It may optionally
+have whitespace in front of it.
+
+Note: distinguish this infix operator from the colon in
+
+    @array.push: 1,2,3
+    @array.push(1,2,3): 4,5,6
+    push(@array, 1,2,3): 4,5,6
+
+which is a special form that turns an ordinary function or method
+call into a list operator.  The special form is recognized only after
+a dotty method call, or after the right parenthesis of a method or
+function call.  The special form does not allow intervening whitespace,
+but requires whitespace before the next argument.  In all other
+cases a colon will be parsed as the start of an adverb if possible,
+or otherwise the invocant marker (the infix described above).
+
+Another way to think of it is that the special colon is allowed to
+add listop arguments to a parenthesized argument list only after
+the right parenthesis of that argument list, with the proviso that
+you're allowed to shorten C<.foo(): 1,2,3> down to C<.foo: 1,2,3>.
+(But only for method calls, since ordinary functions don't need the
+colon in the first place to turn into a listop, just whitespace.
+If you try to extend a function name with a colon, it's likely
+to be taken as a label.)
+
+    foo $obj.bar: 1,2,3     # special, means foo($obj.bar(1,2,3))
+    foo $obj.bar(): 1,2,3   # special, means foo($obj.bar(1,2,3))
+    foo $obj.bar(1): 2,3    # special, means foo($obj.bar(1,2,3))
+    foo $obj.bar(1,2): 3    # special, means foo($obj.bar(1,2,3))
+    foo($obj.bar): 1,2,3    # special, means foo($obj.bar, 1,2,3)
+    foo($obj.bar, 1): 2,3   # special, means foo($obj.bar, 1,2,3)
+    foo($obj.bar, 1,2): 3   # special, means foo($obj.bar, 1,2,3)
+    foo $obj.bar : 1,2,3    # infix:<:>, means $obj.bar.foo(1,2,3)
+    foo ($obj.bar): 1,2,3   # infix:<:>, means $obj.bar.foo(1,2,3)
+    foo $obj.bar:1,2,3      # syntax error
+    foo $obj.bar :1,2,3     # syntax error
+    foo $obj.bar :baz       # adverb, means foo($obj.bar(:baz))
+    foo ($obj.bar) :baz     # adverb, means foo($obj.bar, :baz)
+    foo $obj.bar:baz        # extended identifier, foo( $obj.'bar:baz' )
+    foo $obj.infix:<+>      # extended identifier, foo( $obj.'infix:<+>' )
+    foo: 1,2,3              # label at statement start, else infix
+
+The moral of the story is, if you don't know how the colon is
+going to bind, use whitespace or parentheses to make it clear.
+
 =back
 
 =head2 List infix precedence
@@ -1824,18 +1877,6 @@ If it cannot determine this, it is allowed to use all your
 memory, and then some.  C<:)>
 
 Assignment to a hash is not lazy (probably).
-
-=item *
-
-C<< infix:<:> >>, the invocant marker
-
-    say $*OUT: "howdy, world"
-
-The colon operator turns method calls and contextualizers into
-list operators.  It's not really a general operator; much like list
-assignment, it takes a special syntax on the left side and turns it
-into a list operator over the list on the right.  See L</Invocant
-marker>.
 
 =item *
 
@@ -2336,7 +2377,8 @@ object known at compile time not to have negative subscripts.)
 
 =item *
 
-The unary backslash operator captures its arguments, and returns an
+The unary backslash operator is not really an operator, but a special noun form.
+It "captures" its argument or arguments, and returns an
 object representing those arguments.  You can I<dereference> this object
 in several ways to retrieve different parts of the arguments; see the
 definition of C<Capture> in S02 for details.  (No whitespace is allowed
