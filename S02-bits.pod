@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 8 Jan 2009
+  Last Modified: 26 Jan 2009
   Number: 2
-  Version: 148
+  Version: 149
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1413,7 +1413,12 @@ To get a Perlish representation of any object, use the C<.perl> method.
 Like the C<Data::Dumper> module in Perl 5, the C<.perl> method will put
 quotes around strings, square brackets around list values, curlies around
 hash values, constructors around objects, etc., so that Perl can evaluate
-the result back to the same object.
+the result back to the same object.  The C<.perl> method will return
+a representation of the object on the assumption that, if the code is
+reparsed at some point, it will be used to regenerate the object as a
+scalar in item context.  If you wish to interpolate the regenerated
+object in a list context, it may be necessary to use C<<prefix:<|> >>
+to force interpolation.
 
 =item *
 
