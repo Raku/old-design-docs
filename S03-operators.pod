@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 24 Jan 2009
+  Last Modified: 27 Jan 2009
   Number: 3
-  Version: 149
+  Version: 150
 
 =head1 Overview
 
@@ -1472,7 +1472,7 @@ does the C<==> carefully, while
     $a < 1 && $b == 2 :carefully
 
 does the C<&&> carefully because C<&&> is of
-tighter precedence than "loose unary".  Use
+tighter precedence than "comma".  Use
 
     $a < 1 && ($b == 2 :carefully)
 
@@ -3400,7 +3400,7 @@ bitwise C<¬> operator, you'd have to add the C<+¬>, C<~¬>, and C<?¬>
 operators yourself.  Similarly, the carets that exclude the endpoints
 on ranges are there by convention only.
 
-In contrast to that, Perl 6 has five standard metaoperators for
+In contrast to that, Perl 6 has six standard metaoperators for
 turning a given existing operator into a related operator that is
 more powerful (or at least differently powerful).  These differ from a
 mere naming convention in that Perl automatically generates these new
@@ -3483,8 +3483,9 @@ does not, it will simply be initialized with the value of C<$f>.
 
 =head2 Negated relational operators
 
-Any infix relational operator may be transformed into its negative
-by prefixing with C<!>.  A couple of these have traditional shortcuts:
+Any infix relational operator returning type C<Bool> may be transformed
+into its negative by prefixing with C<!>.  A couple of these have
+traditional shortcuts:
 
     Full form   Shortcut
     ---------   --------
@@ -3505,6 +3506,23 @@ To avoid visual confusion with the C<!!> operator, you may not modify
 any operator already beginning with C<!>.
 
 The precedence of any negated operator is the same as the base operator.
+
+Note that logical operators such as C<||> and C<^^> do not return a Bool,
+but rather one of the operands.
+
+=head2 Reversed comparison operators
+
+Any infix comparison operator returning type C<Order> may be transformed into its reversed sense
+by prefixing with C<->.
+
+    -cmp
+    -leg
+    -<=>
+
+To avoid confusion with the C<-=> operator, you may not modify
+any operator already beginning with C<=>.
+
+The precedence of any reversed operator is the same as the base operator.
 
 =head2 Hyper operators
 
