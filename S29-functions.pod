@@ -14,8 +14,8 @@ Synopsis 29: Builtin Functions
                 Carl Mäsak <cmasak@gmail.com>
                 Moritz Lenz <moritz@faui2k3.org>
  Date:          12 Mar 2005
- Last Modified: 24 Jan 2009
- Version:       38
+ Last Modified: 26 Jan 2009
+ Version:       39
 
 The document is a draft.
 
@@ -121,7 +121,7 @@ Used to supply a test to match against. Assume C<~~> will be used against it.
  subset Comparator   of Code where { .sig === :(Any, Any --> Int ) };
  subset OrderingPair of Pair where { .left ~~ KeyExtractor && .right ~~ Comparator };
 
- subset Ordering where Signature | KeyExtractor | Comparator | OrderingPair;
+ subset Ordering where Signature | KeyExtractor | Comparator | OrderingPair | Whatever;
 
 Used to handle comparisons between things.  Generally this
 ends up in functions like C<cmp()>, C<eqv()>, C<sort()>,
@@ -156,6 +156,13 @@ ordering you must compare with C<leg> instead.)
 Internally the result of the KeyExtractor on a value should
 be cached.
 
+Note that it is very easy to generate a simple C<KeyExtractor>
+using C<~*> for strings and C<+*> for numbers, since with most
+simple operators C<*> returns a closure of one argument.
+
+    @sorted = sort +*, @unsorted;  #ascending numeric
+    @sorted = sort -*, @unsorted;  #descending numeric
+
 =item OrderingPair
 
 A combination of the two methods above, for when one wishes
@@ -176,6 +183,12 @@ For ordering the list of positional parameter comparisons is
 reduced as if using [||] but all comparisons do not need to be
 performed if an early one determines an increasing or decreasing
 order.  For equivalence the list is reduced as if using [&&].
+
+=item Whatever
+
+An ordering of C<*> does the default comparison for the operator:
+
+    @sorted = sort *, @unsorted;
 
 =back
 
@@ -950,7 +963,7 @@ single list.
  our Array multi method sort( @values: Ordering $by = &infix:<cmp> )
 
  our List multi sort( Ordering @by,  *@values )
- our List multi sort( Ordering $by = &infix:<cmp>, *@values )
+ our List multi sort( Ordering $by, *@values )
 
 Returns C<@values> sorted, using criteria C<$by> or C<@by> for
 comparisons. C<@by> differs from C<$by> in that each criterion is
@@ -984,7 +997,7 @@ C<is canonicalized(&lc)>.)
  our Array multi method min( @values: Ordering $by = &infix:<cmp> )
 
  our List multi min( Ordering @by,  *@values )
- our List multi min( Ordering $by = &infix:<cmp>, *@values )
+ our List multi min( Ordering $by,  *@values )
 
 Returns the earliest (i.e., lowest index) minimum element
 of C<@values> , using criteria C<$by> or C<@by> for
@@ -998,6 +1011,9 @@ adjust the case, sign, or other order sensitivity of C<cmp>.
 is used as an C<Ordering> then sort-specific traits such as C<is
 canonicalized($how)> are allowed on the positional elements.
 
+For a C<min> function that does not require an ordering, see the
+C<[min]> reduction operator.
+
 =item max
 
  our Array multi method max( @values: *&by )
@@ -1005,7 +1021,7 @@ canonicalized($how)> are allowed on the positional elements.
  our Array multi method max( @values: Ordering $by = &infix:<cmp> )
 
  our List multi max( Ordering @by,  *@values )
- our List multi max( Ordering $by = &infix:<cmp>, *@values )
+ our List multi max( Ordering $by,  *@values )
 
 Returns the earliest (i.e., lowest index) maximum element
 of C<@values> , using criteria C<$by> or C<@by> for
@@ -1019,10 +1035,13 @@ adjust the case, sign, or other order sensitivity of C<cmp>.
 is used as an C<Ordering> then sort-specific traits such as C<is
 canonicalized($how)> are allowed on the positional elements.
 
+For a C<max> function that does not require an ordering, see the
+C<[max]> reduction operator.
+
 =item any
 
- our Junction multi method any( @values: ) is export
- our Junction multi any( @values ) is export
+ our Junction multi method any( @values: )
+ our Junction multi any( *@values ) is export
 
 Returns a junction with all the values of the list C<|>-ed together. The
 junction will only match against another value if at least one of the
@@ -1030,8 +1049,8 @@ values in the list matches.
 
 =item all
 
- our Junction multi method all( @values: ) is export
- our Junction multi all( @values ) is export
+ our Junction multi method all( @values: )
+ our Junction multi all( *@values ) is export
 
 Returns a junction with all the values of the list C<&>-ed together. The
 junction will only match against another value if all of the values in the
@@ -1039,8 +1058,8 @@ list match.
 
 =item one
 
- our Junction multi method one( @values: ) is export
- our Junction multi one( @values ) is export
+ our Junction multi method one( @values: )
+ our Junction multi one( *@values ) is export
 
 Returns a junction with all the values of the list C<^>-ed together. The
 junction will only match against another value if exactly one of the values
@@ -1048,8 +1067,8 @@ in the list matches.
 
 =item none
 
- our Junction multi method none( @values: ) is export
- our Junction multi none( @values ) is export
+ our Junction multi method none( @values: )
+ our Junction multi none( *@values ) is export
 
 Returns a junction which will only match against another value if none of
 the values in the list matches.
