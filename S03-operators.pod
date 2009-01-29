@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 27 Jan 2009
+  Last Modified: 29 Jan 2009
   Number: 3
-  Version: 150
+  Version: 151
 
 =head1 Overview
 
@@ -49,7 +49,7 @@ each level:
     R  Item assignment   = := ::= => += -= **= xx= .=
     L  Loose unary       true not :by(2)
     X  Comma operator    , p5=> :
-    X  List infix        Z minmax X X~X X*X XeqvX ...
+    X  List infix        Z minmax X X~ X* Xeqv ...
     R  List prefix       print push say die map substr ... [+] [*] any $ @
     X  Loose and         and andthen
     X  Loose or          or xor orelse
@@ -1697,9 +1697,9 @@ and you'd never get to 'b'.
 
 Cross hyperoperators
 
-    @files X~X '.' X~X @extensions
-    1..10 X*X 1..10
-    @x XeqvX @y
+    @files X~ '.' X~ @extensions
+    1..10 X* 1..10
+    @x Xeqv @y
     etc.
 
 See L</Cross operators>.
@@ -3507,20 +3507,23 @@ any operator already beginning with C<!>.
 
 The precedence of any negated operator is the same as the base operator.
 
+The operator
+
+    !%
+
+is specially allowed for testing even divisibility by an integer.
+
 Note that logical operators such as C<||> and C<^^> do not return a Bool,
 but rather one of the operands.
 
 =head2 Reversed comparison operators
 
-Any infix comparison operator returning type C<Order> may be transformed into its reversed sense
-by prefixing with C<->.
+Any infix operator may be called with its two arguments reversed
+by prefixing with C<R>.  For instance, to do reversed comparisons:
 
-    -cmp
-    -leg
-    -<=>
-
-To avoid confusion with the C<-=> operator, you may not modify
-any operator already beginning with C<=>.
+    Rcmp
+    Rleg
+    R<=>
 
 The precedence of any reversed operator is the same as the base operator.
 
@@ -3964,22 +3967,22 @@ reduction of C<< infix:<x> >>.  This is deemed to be an insignificant problem.
 =head2 Cross operators
 
 The final metaoperator is the cross metaoperator.  It is formed syntactically
-by placing an infix operator between two C<X> characters.  It applies the
+by placing an infix operator after the C<X> character.  It applies the
 modified operator across all groupings of its list arguments as returned
 by the ordinary C<< infix:<X> >> operator.  All
 cross operators are of list infix precedence, and are list associative.
 
 The string concatenating form is:
 
-    <a b> X~X <1 2>           #  'a1', 'a2', 'b1', 'b2'
+    <a b> X~ <1 2>           #  'a1', 'a2', 'b1', 'b2'
 
-The C<X~X> operator desugars to something like:
+The C<X~> operator desugars to something like:
 
-    [~]«( <a b> X,X <1 2> )  #  'a1', 'a2', 'b1', 'b2'
+    [~]«( <a b> X, <1 2> )  #  'a1', 'a2', 'b1', 'b2'
 
-The list concatenating form, C<X,X>, when used like this:
+The list concatenating form, C<X,>, when used like this:
 
-    <a b> X,X 1,2 X,X <x y>
+    <a b> X, 1,2 X, <x y>
 
 produces
 
@@ -3998,15 +4001,15 @@ C<X> operator described earlier.
 For the general form, any existing, non-mutating infix operator
 may be used.
 
-    1,2 X*X 3,4               # 3,4,6,8
+    1,2 X* 3,4               # 3,4,6,8
 
 (Note that C<< <== >> and C<< ==> >> are considered mutating, as well as
 all assignment operators.)
 
 If the underlying operator is non-associating, so is the metaoperator:
 
-    @a XcmpX @b XcmpX @c       # ILLEGAL
-    @a XeqX @b XeqX @c         # ok
+    @a Xcmp @b Xcmp @c       # ILLEGAL
+    @a Xeq @b Xeq @c         # ok
 
 In fact, though the C<X> operators are all list associative
 syntactically, the underlying operator is always applied with its
@@ -4019,43 +4022,36 @@ Multidimensional lists should be handled properly.
 
 =head2 Nesting of metaoperators
 
-In order to match operators by the longest-token rule, the
-compiler pregenerates various metaforms based on existing operators.
-Unfortunately, with nesting metaoperators there are an infinite number
-of metaforms, so we arbitrarily say that no metacircumfix form is
-pregenerated that uses the same grammatical category more than once.
-Therefore forms like C<[+=]> and C<»!===«> and C<X*X=> are generated,
-but not forms like C<»X*X«> or C<X«*»X> or C<<< <<+=>>= >>>.
-You do get C<[X*X]>,
-though, because reduction is prefix_circumfix_meta_operator while
-cross operators are infix_circumfix_meta_operator.
+Constructs containing metaoperators are considered "metatokens",
+by which we mean that they are not subject to ordinary longest-token
+matching rules, although their components are.  Like ordinary
+tokens, however, metaoperators do not allow whitespace between
+their subparts.
 
-This use-each-category-once limitation is not a great hardship since
-you can define your own infix operators.  Suppose you say
+Any ordinary infix operator may be enclosed in square brackets
+with the same meaning.  You may therefore use square brackets
+within a metaoperator to disambiguate sequences that might
+otherwise be misinterpreted, or to force a particular order
+of application when there are multiple metaoperators in the metatoken:
 
-    &infix:<xp> ::= &infix:<X*X>;
+    @a [X+]= @b
+    @a X[+=] @b
 
-After this you can use C<XxpX>, C<[xp]>, and C<[«xp»=]«> as if C<xp>
-were a built-in.  Not that any of those necessarily make sense...
+Any infix function may be referred to as a noun either by the normal long
+form or a short form using square brackets directly after the C<&> sigil:
 
-The compiler is not actually required to pregenerate the metaform
-tokens as long as it can guarantee the same semantics, that is,
-that it follows the longest-token rule across all syntax categories
-active at that spot in the parse.  This could be achieved by use
-of a DFA parser (or exhaustive NFA matcher) to guarantee longest
-match of the generatable forms, for instance, followed by a check
-to make sure it is not trumped by an even longer "hardwired" token.
-Suppose the user were to define, say, C<< infix:<XxX!#@$> >> or
-C<< statement_modifier:<XxXfor> >>; those hardwired forms must take
-precedence over the C<XxX> operator even if the metaform DFA only
-knows how to recognize the C<XxX> part.
+    &infix:<+>
+    &[+]
 
-Note that the maximum possible token length is bounded by the sum
-of the maximum lengths of each metacategory, so an enumerated solution
-is always possible, though perhaps not practical.  It's also the case
-that no metaform is allowed to contain whitespace, so a solution
-that starts at the length of the current "word" and works down is also
-possible.
+This is convenient for function application:
+
+    1,1 ... &[+]           # fibonacci series
+    sort &[R<=>], @list    # reversed, numerically
+
+There is no corresponding form for unary operators, but those may
+usually be constructed by applying an operator to C<*>:
+
+    sort +*, @list        # sort numerically
 
 =head1 Declarators
 
