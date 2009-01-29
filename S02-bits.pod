@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 26 Jan 2009
+  Last Modified: 28 Jan 2009
   Number: 2
-  Version: 149
+  Version: 150
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1752,23 +1752,31 @@ This is resolved at compile time because the variable name is a constant.
 
 =item *
 
-The following pseudo-package names are reserved in the first position:
+The following pseudo-package names are reserved at the front of a name:
 
-    MY          # Lexical variables declared in the current scope
-    OUR         # Package variables declared in the current package
-    GLOBAL      # Builtin variables and functions
-    PROCESS     # process-related globals
-    OUTER       # Lexical variables declared in the outer scope
-    CALLER      # Contextual variables in the immediate caller's scope
-    CONTEXT     # Contextual variables in any context's scope
-    SUPER       # Package variables declared in inherited classes
-    COMPILING   # Lexical variables in the scope being compiled
+    MY          # Lexical symbols declared in the current scope
+    OUR         # Package symbols declared in the current package
+    FILE        # Lexical symbols in this file's outermost scope
+    PERL        # Lexical symbols in the standard "perlude"
+    GLOBAL      # Interpreter-wide package symbols
+    PROCESS     # Process-related globals (superglobals)
+    SUPER       # Package symbols declared in inherited classes
+    COMPILING   # Lexical symbols in the scope being compiled
+
+The following relative names are also reserved but may be used
+anywhere in a name:
+
+    OUTER       # Lexical symbols declared in the outer scope
+    CALLER      # Contextual symbols in the immediate caller's scope
+    CONTEXT     # Contextual symbols in any context's scope
 
 Other all-caps names are semi-reserved.  We may add more of them in
 the future, so you can protect yourself from future collisions by using
 mixed case on your top-level packages.  (We promise not to break
 any existing top-level CPAN package, of course.  Except maybe ACME,
 and then only for coyotes.)
+
+Note that FILE::OUTER is usually, but not always PERL.
 
 =item *
 
