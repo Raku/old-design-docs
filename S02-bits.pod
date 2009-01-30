@@ -50,7 +50,10 @@ Recognize that a reduce operator is not really beginning a C<[...]> composer.
 =item *
 
 In the abstract, Perl is written in Unicode, and has consistent Unicode
-semantics regardless of the underlying text representations.
+semantics regardless of the underlying text representations.  By default
+Perl presents Unicode in "NFG" formation, where each grapheme counts as
+one character.  A grapheme is what the novice user would think of as a
+character in their normal everyday life, including any diacritics.
 
 =item *
 
@@ -63,7 +66,7 @@ line numbers matches what your editor thinks about Unicode lines.
 Unicode horizontal whitespace is counted as whitespace, but it's better
 not to use thin spaces where they will make adjoining tokens look like
 a single token.  On the other hand, Perl doesn't use indentation as syntax,
-so you are free to use any whitespace anywhere that whitespace makes sense.
+so you are free to use any amount of whitespace anywhere that whitespace makes sense.
 Comments always count as whitespace.
 
 =item *
@@ -103,7 +106,7 @@ mappings introduced in the future.
 =item *
 
 POD sections may be used reliably as multiline comments in Perl 6.
-Unlike in Perl 5, POD syntax now requires that C<=begin comment>
+Unlike in Perl 5, POD syntax now lets you use C<=begin comment>
 and C<=end comment> delimit a POD block correctly without the need
 for C<=cut>.  (In fact, C<=cut> is now gone.)  The format name does
 not have to be C<comment> -- any unrecognized format name will do
@@ -117,7 +120,8 @@ and C<=end> combined.  As with C<=begin> and C<=end>, a comment started
 in code reverts to code afterwards.
 
 Since there is a newline before the first C<=>, the POD form of comment
-counts as whitespace equivalent to a newline.
+counts as whitespace equivalent to a newline.  See S26 for more on
+embedded documentation.
 
 =item *
 
@@ -130,7 +134,7 @@ All other uses of C<#> are interpreted as single-line comments that
 work just as in Perl 5, starting with a C<#> character and
 ending at the subsequent newline.  They count as whitespace equivalent
 to newline for purposes of separation.  Unlike in Perl 5, C<#>
-may not be used as the delimiter in quoting constructs.
+may I<not> be used as the delimiter in quoting constructs.
 
 =item *
 
@@ -336,8 +340,8 @@ may occur after a term.  If a given token may be interpreted as
 either a postfix operator or an infix operator, the infix operator
 requires space before it.  Postfix operators may never have intervening
 space, though they may have an intervening dot.  If further separation
-is desired, an embedded comment may be used as described above, as long
-as no whitespace occurs outside the embedded comment.
+is desired, an unspace or embedded comment may be used as described above, as long
+as no whitespace occurs outside the unspace or embedded comment.
 
 For instance, if you were to add your own C<< infix:<++> >> operator,
 then it must have space before it. The normal autoincrementing
@@ -345,6 +349,8 @@ C<< postfix:<++> >> operator may never have space before it, but may
 be written in any of these forms:
 
     $x++
+
+    $x\++
 
     $x.++
 
@@ -417,7 +423,7 @@ C<42.> with just a trailing dot.  You must instead say either C<42>
 or C<42.0>.  In other words, a dot following a number can only be a
 decimal point if the following character is a digit.  Otherwise the
 postfix dot will be taken to be the start of some kind of method call
-syntax, whether long-dotty or not.  (The C<.123> form with a leading
+syntax.  (The C<.123> form with a leading
 dot is still allowed however when a term is expected, and is equivalent
 to C<0.123> rather than C<$_.123>.)
 
