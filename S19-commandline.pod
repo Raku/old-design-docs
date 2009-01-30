@@ -65,7 +65,7 @@ The command line is broken down into two basic elements: a I<program>, and
 I<arguments>. Each command line element is whitespace separated, so elements
 containing whitespace must be quoted. The I<program> processes the arguments
 and performs the requested actions. It looks something like F</usr/bin/perl6>,
-F<parrot perl6.pbc>, F<rakudo>, and is followed by zero or more I<arguments>.
+F<parrot perl6.pbc>, or F<rakudo>, and is followed by zero or more I<arguments>.
 Perl 6 does not do any processing of the I<program> portion of the command
 line, but it is made available at run-time in the read-only C<$?PROGRAM>
 variable.
@@ -77,14 +77,18 @@ script for Perl to execute, followed by arguments for that script. If no
 values remain, Perl 6 reads the script from STDIN--you must specify the
 special C<-> option if you wish to pass arguments to a script read from STDIN.
 
+=for consideration
+[This seems a bit misleading; in p5think - is actually the name of STDIN
+if you open it as a filename for reading.  See p5's open. --law]
+
 
 =head1 Backward (In)compatibility
 
 You may find yourself typing your favorite Perl 5 options, even after
 Christmas has arrived.  As you'll see below, common options are provided
 which behave similarly.  Less common options, however, may not be available
-or may have changed syntax.  If you provide Perl with unrecognized command-
-line syntax, Perl gives you a friendly error message.  If the unrecognized
+or may have changed syntax.  If you provide Perl with unrecognized command-line
+syntax, Perl gives you a friendly error message.  If the unrecognized
 syntax is a valid Perl 5 option, Perl provides helpful suggestions to allow
 you to perform the same action using the current syntax.
 
@@ -111,13 +115,13 @@ Many command-line options behave similarly, for example:
   -a                                   Autosplit
   -c                                   Check syntax
   -e *line*                            Execute
-  -F *expression*                      Specify autosplit value
-  -h                                   Display help
+  -F *expression*                      Specify autosplit field separator
+  -h                                   Display help and exit
   -I *directory*[,*directory*[,...]]   Add include paths
   -n                                   Act like awk
   -p                                   Act like sed
   -S                                   Search PATH for script
-  -T                                   Taint mode
+  -T                                   Enable taint mode
   -v                                   Display version info
   -V                                   Display verbose config info
 
@@ -179,6 +183,11 @@ Enable rudimentary switch parsing.  By default, Perl 6 parses the
 arguments passed to a script using the rules defined in this document,
 rendering this switch obsolete.
 
+=for consideration
+[This is a bit misleading, insofar as the script's switches are generally
+parsed by the signature suppied by the user in the MAIN routine,
+as in S06. --law]
+
 =item -t
 
 Enable taint warnings mode.  Taint mode needs more thought, but it's
@@ -208,6 +217,9 @@ own command-line option.
 Run program embedded in ASCII text.  Infrequently used, and doesn't
 deserve its own command-line option.
 
+=for consideration
+[but there's no other way to get that functionality if we ever want it. --law]
+
 =item -X
 
 Disable all warnings.  This is infrequently used, and doesn't deserve its
@@ -228,6 +240,12 @@ Command line options are parsed using the following rules:
 =item *
 
 Options must begin with one of the following symbols: C<< < -- - : > >>.
+
+=for consideration
+[That you are using < ... > P6 syntax as meta notation is not clear.
+Reads as if < and > are also allowed.  Suggest
+    'C<-->', 'C<->', or 'C<:>'
+instead.  --law]
 
 =item *
 
@@ -253,7 +271,11 @@ appear only in the final position of the cluster.
 
 Options may be negated with C</>, for example C<--/name>, C<:/name>, C<-/n>.
 Each single-letter option in a cluster must be negated separately
- (e.g. C<-a/n/o> is the same as C<-a -/n -/o>.)
+(e.g. C<-a/n/o> is the same as C<-a -/n -/o>.)
+
+=for consideration
+[I'd just outlaw clustering of negatives as too confusing visually.
+Most options are (or should be) born false anyway, so the need is minimal. --law]
 
 =item *
 
@@ -272,6 +294,12 @@ a list of values, even if they look like valid options.
 Delimited options are a special form of option that are specified by
 delimiters on either end, allowing options to be passed through to specified
 subsystems, and are parsed with the following rules:
+
+=for consideration
+Delimited options allow you to transparently pass one or more options through to
+a subsystem, as specified by the special options that delimit those options.
+They are parsed according to the following rules:
+
 
 =over 4
 
@@ -293,7 +321,8 @@ If the closing delimiter is omitted, the rest of the command line is consumed.
 =item *
 
 Inside a delimited option, the C<--> option does not suppress searching for
-the closing delimiter.
+the closing delimiter.  That is, only the rest of the arguments within
+the delimiters are treated as values.
 
 =item *
 
@@ -302,7 +331,9 @@ completes the match.
 
 =item *
 
-Delimited options cannot be negated.
+Delimited options cannot be negated.  However, the final delimiter takes
+a slash indicating the termination of the delimited processing, much
+like a closing HTML tag.
 
 =back
 
@@ -341,15 +372,24 @@ Values are parsed with the following rules:
 Values containing whitespace must be enclosed in quotes, for example
 C<-O="spacy val">
 
+=for consideration
+[everyone's gonna wonder if spacy is a typo... --law]
+
 =item *
 
 Values are passed to options with the following syntax C<--option=value>
 or C<--option value>.
 
+=for consideration
+[swap the last two entries. --law]
+
 =item *
 
 Multiple values are passed using commas without intervening whitespace,
 as in C<--option=val1,'val 2',etc>
+
+=for consideration
+[what about multiple instances of --option? --law]
 
 =back
 
@@ -387,6 +427,9 @@ Perl 6 options, descriptions, and services.
 
 Turns on autosplit mode.
 
+=for consideration
+[what does it split to?  @F like P5?  Or should we switch to @_? --law]
+
 =item ++CMD --command-line-parser *parser* ++/CMD
 
 Add a command-line processor.  When this option is parsed, it immediately
@@ -414,6 +457,9 @@ Set debugging switches and flags.
 
 Note: This is speculative, for lack of a debugger specification.
 
+=for consideration
+[a bit unweildy for common use. ++DEB maybe?  -law]
+
 =item --execute, -e *line*
 
 Execute a single-line program.  Multiple C<-e> options may be chained together,
@@ -422,6 +468,9 @@ each one representing an input line with an implicit newline at the end.
 If you wish to run in lax mode, without strictures and warnings enabled,
 pass a value of '6' to the first -e on the command line, like C<-e6>.
 See L<Synopsis 11|S11-modules/"Forcing Perl 6"> for details.
+
+=for consideration
+[doesn't work without a semicolon! (unless we special case it) --law]
 
 =item --autoloop-split, -F *expression*
 
@@ -465,6 +514,9 @@ Perl 6 implementation.
 
 Compile to a file, rather than run immediately.  If no filename is specified,
 STDOUT is used.  Specify the output format with C<--output-format>.
+
+=for consideration
+[perhaps -o is unnecessary if -O implies STDOUT.  --law]
 
 =item --autoloop-print, -p
 
@@ -573,6 +625,9 @@ for instance to specify the equivalent of perl 5's C<$/ = \32768;>. So far,
 I don't have a solution, but perhaps pass a closure that evaluates to an Int?
 This should try to use whatever option does the same thing to a new
 filehandle when S16 is further developed.
+
+=for consideration
+[probably a setter method on $*IN of some sort?  --law]
 
 Sandboxing? maybe-r
 
