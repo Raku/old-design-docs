@@ -14,8 +14,8 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
 
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
-  Last Modified: 9 Jan 2009
-  Version: 15
+  Last Modified: 1 Feb 2009
+  Version: 16
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
@@ -324,10 +324,10 @@ like a closing HTML tag.
 These options are made available in context variables matching their name,
 and are invisible to C<MAIN()> except as C<< %+OPTS<name> >>.  For example:
 
-  ++PARSER --prelude=Perl6-autoloop-no-print ++/PARSER
+  ++PARSER --setting=Perl6-autoloop-no-print ++/PARSER
 
 is available inside your script as C<< %+OPTS<PARSER> >>, and contains
-C<--prelude=Perl6-autoloop-no-print>.  Since eager matching is used, if you
+C<--setting=Perl6-autoloop-no-print>.  Since eager matching is used, if you
 need to pass something like:
 
   ++foo -bar ++foo baz ++/foo ++/foo
@@ -478,7 +478,7 @@ There is no special command-line syntax for C<'no *module*>, use C<-e>.
 =item --autoloop-no-print, -n
 
 Act like awk.  Desugars to
-C<++PARSER --prelude=Perl6-autoloop-no-print ++/PARSER>.
+C<++PARSER --setting=Perl6-autoloop-no-print ++/PARSER>.
 
 =item --output-format, -O *format*
 
@@ -497,7 +497,14 @@ STDOUT is used.  Specify the output format with C<--output-format>.
 =item --autoloop-print, -p
 
 Act like sed.  Desugars to
-C<++PARSER --prelude=Perl6-autoloop-print ++/PARSER>.
+C<++PARSER --setting=Perl6-autoloop-print ++/PARSER>.
+
+=item --language, -L *dsl*
+
+Set the domain specific language for parsing the script file.  (That is,
+specify the I<setting> (often known as the prelude) for the program.)
+C<++PARSER --setting=*dsl* ++/PARSER>.
+
 
 =item --search-path, -S
 
@@ -608,6 +615,6 @@ filehandle when S16 is further developed.
 Sandboxing? maybe-r
 
 Env var? maybe -E.
-Could be posed in terms of substituting a different prelude.
+Could be posed in terms of substituting a different setting.
 
 =for vim:set expandtab sw=4:

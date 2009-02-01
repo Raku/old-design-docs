@@ -1763,7 +1763,8 @@ The following pseudo-package names are reserved at the front of a name:
     MY          # Lexical symbols declared in the current scope
     OUR         # Package symbols declared in the current package
     FILE        # Lexical symbols in this file's outermost scope
-    PERL        # Lexical symbols in the standard "perlude"
+    PERL        # Lexical symbols in the standard setting
+    LANG        # Lexical symbols in current dsl (usually PERL)
     GLOBAL      # Interpreter-wide package symbols
     PROCESS     # Process-related globals (superglobals)
     SUPER       # Package symbols declared in inherited classes
@@ -1779,10 +1780,15 @@ anywhere in a name:
 Other all-caps names are semi-reserved.  We may add more of them in
 the future, so you can protect yourself from future collisions by using
 mixed case on your top-level packages.  (We promise not to break
-any existing top-level CPAN package, of course.  Except maybe ACME,
+any existing top-level CPAN package, of course.  Except maybe C<ACME>,
 and then only for coyotes.)
 
-Note that FILE::OUTER is usually, but not always, PERL.
+The C<LANG> scope is equivalent to C<FILE::OUTER>.  For a standard Perl
+program C<LANG> is the same as C<PERL>, but various startup options
+(such as C<-n> or C<-p>) can put you into a domain specific language,
+in which case C<PERL> remains the scope of the standard language,
+while C<LANG> represents the scope defining the DSL that functions
+as the setting of the current file.
 
 =item *
 
