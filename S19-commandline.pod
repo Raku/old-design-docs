@@ -37,7 +37,7 @@ All options have a long, descriptive name for increased clarity
 
 =item *
 
-Common options have a short, single-letter name, and allow clustering
+Common options have a short, single-character name, and allow clustering
 
 =item *
 
@@ -101,11 +101,11 @@ Several features have not changed from Perl 5, including:
 
 =item *
 
-The most common options have a single-letter short name
+The most common options have a single-character short name
 
 =item *
 
-Single-letter options may be clustered with the same syntax and semantics
+Single-character options may be clustered with the same syntax and semantics
 
 =item *
 
@@ -239,13 +239,7 @@ Command line options are parsed using the following rules:
 
 =item *
 
-Options must begin with one of the following symbols: C<< < -- - : > >>.
-
-=for consideration
-[That you are using < ... > P6 syntax as meta notation is not clear.
-Reads as if < and > are also allowed.  Suggest
-    'C<-->', 'C<->', or 'C<:>'
-instead.  --law]
+Options must begin with one of the following symbols: C<-->, C<->, or C<:>.
 
 =item *
 
@@ -263,24 +257,20 @@ Single-character names always begin with C<->.
 
 =item *
 
-Single-letter options may be clustered. C<-ab> means C<-a -b>. When a
-single-letter option which requires a value is clustered, the option may
+Single-character options may be clustered. C<-ab> means C<-a -b>. When a
+single-character option which requires a value is clustered, the option may
 appear only in the final position of the cluster.
 
 =item *
 
 Options may be negated with C</>, for example C<--/name>, C<:/name>, C<-/n>.
-Each single-letter option in a cluster must be negated separately
-(e.g. C<-a/n/o> is the same as C<-a -/n -/o>.)
-
-=for consideration
-[I'd just outlaw clustering of negatives as too confusing visually.
-Most options are (or should be) born false anyway, so the need is minimal. --law]
+Negated single-character options cannot appear in a cluster.  In practice,
+negated options are rare anyway, as most boolean options default to False.
 
 =item *
 
 Option names follow Perl 6 identifier naming convention, except C<'> is not
-allowed, and single-letter options may be any letter or number.
+allowed, and single-character options may be any character or number.
 
 =item *
 
@@ -291,15 +281,9 @@ a list of values, even if they look like valid options.
 =back
 
 
-Delimited options are a special form of option that are specified by
-delimiters on either end, allowing options to be passed through to specified
-subsystems, and are parsed with the following rules:
-
-=for consideration
 Delimited options allow you to transparently pass one or more options through to
 a subsystem, as specified by the special options that delimit those options.
 They are parsed according to the following rules:
-
 
 =over 4
 
@@ -369,27 +353,19 @@ Values are parsed with the following rules:
 
 =item *
 
-Values containing whitespace must be enclosed in quotes, for example
-C<-O="spacy val">
-
-=for consideration
-[everyone's gonna wonder if spacy is a typo... --law]
-
-=item *
-
 Values are passed to options with the following syntax C<--option=value>
 or C<--option value>.
 
-=for consideration
-[swap the last two entries. --law]
+=item *
+
+Values containing whitespace must be enclosed in quotes, for example
+C<-O="spacey value">
 
 =item *
 
 Multiple values are passed using commas without intervening whitespace,
-as in C<--option=val1,'val 2',etc>
-
-=for consideration
-[what about multiple instances of --option? --law]
+as in C<--option=val1,'val 2',etc>, or by specifying multiple instances
+of the option, as in C<--option=val1 --option='val 2'>.
 
 =back
 
