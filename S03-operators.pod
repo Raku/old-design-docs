@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 29 Jan 2009
+  Last Modified: 2 Feb 2009
   Number: 3
-  Version: 151
+  Version: 152
 
 =head1 Overview
 
@@ -3748,26 +3748,6 @@ corresponding infix operator, probably by currying:
     &prefix:<[*]> ::= &reduce.assuming(&infix:<*>, 1);
     &prefix:<[**]> ::= &reducerev.assuming(&infix:<**>);
 
-As a special form of name, the non-prefix notation, as in
-
-    proto [foo] (*@args) {
-        ...
-    }
-
-or
-
-    &[foo] ::= ...
-
-defines both the C<[foo]> reduce operator and the C<foo> infix operator.
-Where appropriate, use of the infix form may be optimized like this:
-
-    # Original          # Optimized
-    $a foo $b           # [foo] $a, $b
-    $a foo $b foo $c    # [foo] $a, $b, $c
-
-(Note that any infix generated with C<::=> will default to the precedence
-of C<+>.  When that is not desired you must use C<is equiv>.  See S06.)
-
 If the reduction operator is defined separately from the infix operator,
 it must associate the same way as the operator used:
 
@@ -4047,6 +4027,9 @@ This is convenient for function application:
 
     1,1 ... &[+]           # fibonacci series
     sort &[R<=>], @list    # reversed, numerically
+
+The C<&[op]> form always refers to a binary function of the operator,
+even if it is underlyingly defined as a variadic list-associative operator.
 
 There is no corresponding form for unary operators, but those may
 usually be constructed by applying an operator to C<*>:
