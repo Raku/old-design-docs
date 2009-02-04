@@ -15,15 +15,107 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Version:       18
 
 This is a draft document. Many of these functions will work as in Perl
-5, except we're trying to rationalize everything into packages.  For
+5, except we're trying to rationalize everything into roles.  For
 now you can assume most of the important functions will automatically
 be in the * namespace.  However, with IO operations in particular,
 many of them are really methods on an IO handle, and if there is a
 corresponding global function, it's merely an exported version of
 the method.
 
-As a starting point, you can help by finding the official Perl 5 documentation
-for these functions and copying it here. 
+=head1 Roles
+
+The functionality of IO objects is broken down into several roles,
+which should identify the features each object supports.
+
+=head2 IO
+
+The base role only tags that this is an IO object for more generic
+purposes. It doesn't specify any methods or attributes.
+
+=head2 IO::Readable
+
+This role provides unbuffered read access to the data stream.
+
+=over
+
+=item method Int read($buf is rw, int $length)
+
+Tries to read $lenght bytes and store in $buf. The contents of $buf
+are replaced and the actual number of bytes read is returned. A return
+of 0 means end of file. It might return unthrown failures, to be
+specified by each IO implementation.
+
+=back
+
+=head2 IO::Writeable
+
+This role provides unbuffered write access to the data stream.
+
+=over
+
+=item method Int write($buf, int $length)
+
+Tries to write $length bytes of $buf. The actual number of bytes
+written is returned. It might return unthrown failures, to be
+specified by each IO implementation.
+
+=back
+
+=head2 IO::FileDescriptor
+
+This role indicates that this object actually represents an open file
+descriptor in the os level.
+
+=over
+
+=item has int $.fileno
+
+File descriptors are always native integers, conforming to C89.
+
+=back
+
+=head2 IO::Closeable
+
+This role indicates that this object can be closed.
+
+=over
+
+=item method Bool close()
+
+returns True on success, but might return an unthrown failure.
+
+=back
+
+=head2 IO::Buffered
+
+Indicates that this object performs buffering. The management of the
+buffer is completely implementation specific.
+
+=item method Bool flush()
+
+Flushes the buffers associated with this object.
+
+=item has Bool $.autoflush is rw
+
+Forces this object to keep its buffers empty
+
+=head2 IO::POSIX
+
+Indicates that this object can perform standard posix IO operations.
+
+=over
+
+=item method IO dup()
+
+=item has Bool $.blocking is rw
+
+=item method Bool flock(:$r,:$w)
+
+=item method Bool funlock()
+
+=item ...
+
+=back
 
 =head1 Filehandles, files, and directories
 
