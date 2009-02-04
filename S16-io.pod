@@ -38,9 +38,9 @@ This role provides unbuffered read access to the data stream.
 
 =over
 
-=item method Int read($buf is rw, int $length)
+=item method Int read($buf is rw, Int $length)
 
-Tries to read $lenght bytes and store in $buf. The contents of $buf
+Tries to read $length bytes and store in $buf. The contents of $buf
 are replaced and the actual number of bytes read is returned. A return
 of 0 means end of file. It might return unthrown failures, to be
 specified by each IO implementation.
@@ -53,7 +53,7 @@ This role provides unbuffered write access to the data stream.
 
 =over
 
-=item method Int write($buf, int $length)
+=item method Int write($buf, Int $length)
 
 Tries to write $length bytes of $buf. The actual number of bytes
 written is returned. It might return unthrown failures, to be
@@ -101,7 +101,8 @@ Forces this object to keep its buffers empty
 
 =head2 IO::POSIX
 
-Indicates that this object can perform standard posix IO operations.
+Indicates that this object can perform standard posix IO
+operations. It implies IO::Readable and IO::Writeable.
 
 =over
 
@@ -114,6 +115,108 @@ Indicates that this object can perform standard posix IO operations.
 =item method Bool funlock()
 
 =item ...
+
+=back
+
+=head2 IO::Encoded
+
+This is a generic role for encoded data streams.
+
+=over
+
+=item has $.encoding is rw
+=item has $.locale is rw
+
+Encoding and locale are required for sane conversions.
+
+=item has $.input_record_separator is rw
+
+This regulates how "readline" behaves.
+
+=item has $.output_record_separator is rw
+
+This regulates how say and print(%hash) behaves.
+
+=item has $.input_field_separator is rw
+
+This regulates how "readfield" behaves.
+
+=item has $.output_field_separator is rw
+
+This regulates how print(@arr), say(@arr), print(%hash) and
+say(%hash) behave.
+
+=item has $.input_escape is rw
+
+This allows the definition of a escape character, which should be used
+by readline and readfield.
+
+=item has $.output_escape is rw
+
+This allows the definition of a escape character, which should be used
+by say and print to preserve the record/field semantics.
+
+
+=back
+
+=head2 IO::Readable::Encoded
+
+This role provides encoded access to a readable data stream, implies
+IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
+
+=over
+
+=item method Str readline
+
+Reads the stream before it finds a $.input_record_separator and
+returns it (including the separator). If $.input_escape is set, it
+should pay attention to that.
+
+=item method Str readfield
+
+Reads the stream before it finds a $.input_field_separator and returns
+it (including the separator). If a readfield finds a
+$.input_record_separator it skips it and reads the next field. If
+$.input_escape is set, it should pay attention to that.
+
+=item method Str getc
+
+Reads the next character in the set $.encoding according to the
+$.locale.
+
+=cut
+
+=head2 IO::Writeable::Encoded
+
+This role provides encoded access to a writeable data stream, implies
+IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
+
+=over
+
+=item method Bool print(Str $str)
+=item method Bool say(Str $str)
+
+Sends $str to the data stream doing proper encoding conversions. Say
+sends an additional $.output_record_separator. This should also
+convert "\n" to the desired $.output_record_separator.
+
+=item method Bool print(Array @arr)
+=item method Bool say(Array @arr)
+
+Sends each element of @arr separated by $.output_field_separator. Say
+should add an additional $.output_record_separator. If an element
+contains the $.output_record_separator or the
+$.output_field_seaparator and a $.output_escape is defined, it should
+do the escaping.
+
+=item method Bool print(Hash %hash)
+=item method Bool say(Hash %hash)
+
+Sends each pair of the hash separated by $.output_record_separator,
+with key and value separated by $.output_field_separator. If one of
+those contains a $.output_record_separator or a
+$.output_field_seaparator and $.output_escape is set, it should do the
+escaping.
 
 =back
 
