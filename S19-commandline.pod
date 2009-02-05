@@ -15,7 +15,7 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
   Last Modified: 4 Feb 2009
-  Version: 20
+  Version: 21
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
@@ -378,14 +378,14 @@ Perl 6 options, descriptions, and services.
          :I(@include),
          :L($language),
     Bool :n($autoloop-no-print),
-         :O($output-format) = 'exe',
-         :o($output-file) = $*OUT,
+         :O($output-format),
     Bool :p($autoloop-print),
     Bool :S($search-path),
     Bool :T($taint),
          :u($use),
     Bool :v($version),
     Bool :V($verbose-config),
+    Bool :X($extract-from-text),
   );
 
 =head2 Reference
@@ -453,15 +453,11 @@ Prepend directories to @*INC, for searching ad hoc libraries.  Searching the
 standard library follows the policies laid out in
 L<Synopsis 11|S11-modules>.
 
-=item --use, -u *module*
+=item --language, -L *dsl*
 
-C<--use *module*> and C<-u *module*> desugars to C<-e 'use *module*'>.
-Specify version info and import symbols by appending info to the module name:
-
-  -u'Sense:ver<1.2.1>:auth<cpan:JRANDOM> <common @horse>'
-
-You'll need the quotes so your shell doesn't complain about redirection.
-There is no special command-line syntax for C<'no *module*>, use C<-e>.
+Set the domain specific language for parsing the script file.  (That is,
+specify the I<setting> (often known as the prelude) for the program.)
+C<++PARSER --setting=*dsl* ++/PARSER>.
 
 =item --autoloop-no-print, -n
 
@@ -470,29 +466,14 @@ C<++PARSER --setting=Perl6-autoloop-no-print ++/PARSER>.
 
 =item --output-format, -O *format*
 
-Specify the file format for the output file requested with C<--output-file>.
-This option is implementation-specific, so consult the documentation for your
-Perl 6 implementation.
-
-=item --output-file, -o [*filename*]
-
-Compile to a file, rather than run immediately.  If no filename is specified,
-STDOUT is used.  Specify the output format with C<--output-format>.
-
-=for consideration
-[perhaps -o is unnecessary if -O implies STDOUT.  --law]
+Emit compiler output to STDOUT in the specified format, rather than invoking
+the compiled code immediately. This option is implementation-specific, so
+consult the documentation for your Perl 6 implementation for further details.
 
 =item --autoloop-print, -p
 
 Act like sed.  Desugars to
 C<++PARSER --setting=Perl6-autoloop-print ++/PARSER>.
-
-=item --language, -L *dsl*
-
-Set the domain specific language for parsing the script file.  (That is,
-specify the I<setting> (often known as the prelude) for the program.)
-C<++PARSER --setting=*dsl* ++/PARSER>.
-
 
 =item --search-path, -S
 
@@ -502,6 +483,16 @@ Use PATH environment variable to search for script specified on command-line.
 
 Turns on "taint" checking. See L<Synopsis 23|S23-security> for details.
 Commits very early.  Put this option as early on the command-line as possible.
+
+=item --use, -u *module*
+
+C<--use *module*> and C<-u *module*> desugars to C<-e 'use *module*'>.
+Specify version info and import symbols by appending info to the module name:
+
+  -u'Sense:ver<1.2.1>:auth<cpan:JRANDOM> <common @horse>'
+
+You'll need the quotes so your shell doesn't complain about redirection.
+There is no special command-line syntax for C<'no *module*>, use C<-e>.
 
 =item --version, -v
 
