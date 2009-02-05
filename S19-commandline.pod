@@ -15,7 +15,7 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
   Last Modified: 4 Feb 2009
-  Version: 17
+  Version: 18
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
@@ -369,20 +369,21 @@ Perl 6 options, descriptions, and services.
 =head2 Synopsis
 
   multi sub perl6(
-    Bool :a($autosplit),
+    Bool :a($autoloop-split),
     Bool :c($check-syntax),
     Bool :$doc,
          :e($execute),
-         :F($autoloop-split),
+         :F($autoloop-delim),
     Bool :h($help),
          :I(@include),
-         :u($use),
+         :L($language),
     Bool :n($autoloop-no-print),
          :O($output-format) = 'exe',
          :o($output-file) = $*OUT,
     Bool :p($autoloop-print),
     Bool :S($search-path),
     Bool :T($taint),
+         :u($use),
     Bool :v($version),
     Bool :V($verbose-config),
   );
@@ -391,12 +392,13 @@ Perl 6 options, descriptions, and services.
 
 =over 4
 
-=item --autosplit, -a
+=item --autoloop-split, -a
 
-Turns on autosplit mode.
+When used with C<-n> or C<-p>, implicitly splits input on whitespace
+(by default) and assigns the result to C<@_> within the loop produced
+by the C<-n> or C<-p>.
 
-=for consideration
-[what does it split to?  @F like P5?  Or should we switch to @_? --law]
+An alternate delimiter may be specified with C<--autoloop-delim>, a.k.a. C<-F>.
 
 =item ++CMD --command-line-parser *parser* ++/CMD
 
@@ -440,7 +442,7 @@ See L<Synopsis 11|S11-modules/"Forcing Perl 6"> for details.
 =for consideration
 [doesn't work without a semicolon! (unless we special case it) --law]
 
-=item --autoloop-split, -F *expression*
+=item --autoloop-delim, -F *expression*
 
 Pattern to split on (used with -a).  Substitutes an expression for the default
 split function, which is C<{split ' '}>.  Accepts unicode strings (as long as
