@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 1 Feb 2009
+  Last Modified: 6 Feb 2009
   Number: 2
-  Version: 151
+  Version: 152
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -512,7 +512,7 @@ Constraints and container types can be used together:
     # and is implemented by the MyScalar class
     my Int $x is MyScalar;
 
-Note that C<$x> is also initialized to C<::Int>.  See below for more on this.
+Note that C<$x> is also initialized to the C<Int> protoobject.  See below for more on this.
 
 =item *
 
@@ -525,11 +525,17 @@ It merely assigns an undefined C<Dog> prototype object to C<$spot>:
     $spot.defined;          # False
     say $spot;              # "Dog"
 
-Any class name used as a value by itself is an undefined instance of
-that class's prototype, or I<protoobject>.  See S12 for more on that.
-(Any type name in rvalue context is parsed as a list operator
-indicating a typecast, but an argumentless one of these degenerates
-to a typecast of undef, producing the protoobject.)
+Any type name used as a value is an undefined instance of
+that type's prototype object, or I<protoobject>.  See S12 for more on that.
+Any type name in rvalue context is parsed as a single protoobject value and
+expects no arguments following it.  However, a protoobject responds to the function
+call interface, so you may use the name of a protoobject with parentheses as if it
+were a function, and any argument supplied to the call is coerced
+to the type indicated by the protoobject.  If there is no argument
+in the parentheses, the protoobject returns itself:
+
+    my $type = Num;             # protoobject as a value
+    $num = $type($string)       # coerce to Num
 
 To get a real C<Dog> object, call a constructor method such as C<new>:
 
@@ -1760,22 +1766,26 @@ This is resolved at compile time because the variable name is a constant.
 
 The following pseudo-package names are reserved at the front of a name:
 
-    MY          # Lexical symbols declared in the current scope
-    OUR         # Package symbols declared in the current package
-    FILE        # Lexical symbols in this file's outermost scope
-    PERL        # Lexical symbols in the standard setting
-    LANG        # Lexical symbols in current DSL (usually PERL)
-    GLOBAL      # Interpreter-wide package symbols
-    PROCESS     # Process-related globals (superglobals)
-    SUPER       # Package symbols declared in inherited classes
+    MY          # Symbols in the current lexical scope (aka $?SCOPE)
+    OUR         # Symbols in the current package (aka $?PACKAGE)
+    CORE        # Outermost lexical scope, definition of standard Perl
+    GLOBAL      # Interpreter-wide package symbols, really CORE::GLOBAL
+    PROCESS     # Process-related globals (superglobals), CORE::PROCESS
     COMPILING   # Lexical symbols in the scope being compiled
+    CALLER      # Contextual symbols in the immediate caller's lexical scope
+    CONTEXT     # Contextual symbols in my or any caller's lexical scope
 
 The following relative names are also reserved but may be used
 anywhere in a name:
 
-    OUTER       # Lexical symbols declared in the outer scope
-    CALLER      # Contextual symbols in the immediate caller's scope
-    CONTEXT     # Contextual symbols in any context's scope
+    OUTER       # Symbols in the next outer lexical scope
+    UNIT        # Symbols in the outermost lexical scope of compilation unit
+    SETTING     # Lexical symbols in the unit's DSL (usually CORE)
+    PARENT      # Symbols in this package's parent package (or lexical scope)
+
+The following is reserved at the beginning of method names in method calls:
+
+    SUPER       # Package symbols declared in inherited classes
 
 Other all-caps names are semi-reserved.  We may add more of them in
 the future, so you can protect yourself from future collisions by using
@@ -1783,13 +1793,23 @@ mixed case on your top-level packages.  (We promise not to break
 any existing top-level CPAN package, of course.  Except maybe C<ACME>,
 and then only for coyotes.)
 
-The C<LANG> scope is equivalent to C<FILE::OUTER>.  For a standard Perl
-program C<LANG> is the same as C<PERL>, but various startup options
-(such as C<-n> or C<-p>) can put you into a domain specific language,
-in which case C<PERL> remains the scope of the standard language,
-while C<LANG> represents the scope defining the DSL that functions
+The file's scope is known as C<UNIT>, but there are one or more
+lexical scopes outside of that corresponding to the linguistic setting
+(often known as the prelude in other cultures).  Hence, the C<SETTING>
+scope is equivalent to C<UNIT::OUTER>.  For a standard Perl program
+C<SETTING> is the same as C<CORE>, but various startup options (such
+as C<-n> or C<-p>) can put you into a domain specific language,
+in which case C<CORE> remains the scope of the standard language,
+while C<SETTING> represents the scope defining the DSL that functions
 as the setting of the current file.  See also the C<-L>/C<--language>
 switch described in L<S19-commandline>.
+
+Note that, since the C<UNIT> of an eval is the eval string itself,
+the C<SETTING> of an eval is the language in effect at the point
+of the eval, not the language in effect at the top of the file.
+(You may, however, use C<OUTER::SETTING> to get the setting of the
+code that is executing the eval.)  In more traditional terms, the
+normal program is functioning as the "prelude" of the eval.
 
 =item *
 
@@ -2077,6 +2097,7 @@ The following return objects that contain all pertinent info:
     $?VM        Which virtual machine am I compiling under
     $?XVM       Which virtual machine am I cross-compiling for
     $?PERL      Which Perl am I compiled for?
+    $?SCOPE     Which lexical scope am I in?
     $?PACKAGE   Which package am I in?
     @?PACKAGE   Which nested packages am I in?
     $?MODULE    Which module am I in?
