@@ -14,8 +14,8 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
 
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
-  Last Modified: 4 Feb 2009
-  Version: 21
+  Last Modified: 8 Feb 2009
+  Version: 22
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
@@ -158,7 +158,7 @@ Debugging commands.  Replaced with the C<++BUG> metasyntactic option.
 =item -E *line*
 
 Execute a line of code, with all features enabled.  This is specific to
-Perl 5.10, and not relevant to Perl 6.
+Perl 5.10, and not relevant to Perl 6, where C<-e> performs this function.
 
 =item -i *extension*
 
@@ -180,19 +180,14 @@ Obsolete.  Removed.
 =item -s
 
 Enable rudimentary switch parsing.  By default, Perl 6 parses the
-arguments passed to a script using the rules defined in this document,
-rendering this switch obsolete.
-
-=for consideration
-[This is a bit misleading, insofar as the script's switches are generally
-parsed by the signature suppied by the user in the MAIN routine,
-as in S06. --law]
+arguments passed to a script using the signature suppied by the user
+in the MAIN routine (see L<S06-subroutines/"Declaring a MAIN subroutine">).
 
 =item -t
 
 Enable taint warnings mode.  Taint mode needs more thought, but it's
 much more likely that the C<-T> switch will take options rather than
-use a second command-line flag for similar behavior.
+use a second command-line flag to implement related behavior.
 
 =item -u
 
@@ -218,9 +213,6 @@ Disable all warnings.  This is infrequently used, and doesn't deserve its
 own command-line option.
 
 =back
-
-{{TODO for the removed Perl 5 options, address how the same functionality
-can be expressed with the command-line syntax}}
 
 
 =head1 Options and Values
@@ -528,15 +520,13 @@ Standard in Perl 6 are three underlying components, C<CMD>, C<PARSER>,
 and C<BUG>.  Implementations may expose other components via this
 interface, so consult the documentation for your Perl 6 implementation.
 
-{{TODO more description and examples}}
-
   On command line...                   Subsystem gets...
    ++X a -b  ++/X                      a -b
 
   # Nested options
   +++X a -b   ++X -c ++/X -d e +++/X   a -b ++X -c ++/X -d e
 
-  # More than once
+  # More than once (both are valid, but the second form is preferred)
    ++X a -b  ++/X -c  ++X -d e  ++/X   a -b -d e
   +++X a -b +++/X -c  ++X -d e  ++/X   a -b -d e
 
