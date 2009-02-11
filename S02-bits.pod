@@ -1390,8 +1390,7 @@ is subject to:
     $.foo       object attribute accessor
     $^foo       self-declared formal positional parameter
     $:foo       self-declared formal named parameter
-    $*foo       global variable
-    $+foo       contextual variable
+    $*foo       contextualizable global variable
     $?foo       compiler hint variable
     $=foo       pod variable
     $<foo>      match variable, short for $/{'foo'}
@@ -1925,25 +1924,25 @@ by reference, to add symbols to a lexical scope that is done compiling.
 
 The C<CALLER> package refers to the lexical scope of the (dynamically
 scoped) caller.  The caller's lexical scope is allowed to hide any
-variable except C<$_> from you.  In fact, that's the default, and a
+user-defined variable from you.  In fact, that's the default, and a
 lexical variable must have the trait "C<is context>" to be
 visible via C<CALLER>.  (C<$_>, C<$!> and C<$/> are always
 contextual.) If the variable is not visible in the caller, it returns
 failure.  Variables whose names are visible at the point of the call but that
 come from outside that lexical scope are controlled by the scope
-in which they were originally declared.
-Hence the visibility of C<< CALLER::<$+foo> >> is determined where
-C<$+foo> is actually declared, not by the caller's scope.  Likewise
-C<< CALLER::CALLER::<$x> >> depends only on the declaration of C<$x>
-visible in your caller's caller.
+in which they were originally declared as contextual.
+Hence the visibility of C<< CALLER::<$*foo> >> is determined where
+C<$*foo> is actually declared, not by the caller's scope (unless that's where
+it happens to be declared).  Likewise C<< CALLER::CALLER::<$x> >>
+depends only on the declaration of C<$x> visible in your caller's caller.
 
 Any lexical declared with the C<is context> trait is by default
 considered readonly outside the current lexical scope.  You may
 add a trait argument of C<< <rw> >> to allow called routines to
 modify your value.  C<$_>, C<$!>, and C<$/> are C<< context<rw> >>
-by default.  In any event, your lexical scope can always access the
-variable as if it were an ordinary C<my>; the restriction on writing
-applies only to called subroutines.
+by default.  In any event, the declaring scope can always access the
+variable as if it were an ordinary variable; the restriction on writing
+applies only to access via the C<*> twigil.
 
 =item *
 
@@ -1951,36 +1950,58 @@ The C<CONTEXT> pseudo-package is just like C<CALLER> except that
 it starts in the current dynamic scope and from there
 scans outward through all dynamic scopes until it finds a
 contextual variable of that name in that context's lexical scope.
-(Use of C<$+FOO> is equivalent to C<< CONTEXT::<$FOO> >> or C<< $CONTEXT::FOO >>.)
+(Use of C<$*FOO> is equivalent to C<< CONTEXT::<$FOO> >> or C<< $CONTEXT::FOO >>.)
 If after scanning all the lexical scopes of each dynamic scope,
-there is no variable of that name, it looks in the C<*> package.
-If there is no variable in the C<*> package and the variable is
-a scalar, it then looks in C<%*ENV> for the identifier of the variable,
+there is no variable of that name, it looks in the C<GLOBAL> package followed
+by the C<PROCESS> package.
+If there is no such package variable,
+it then looks in C<CONTEXT::<%ENV> for the identifier of the variable,
+which, if not overridden in a dynamic scope, finds C<< PROCESS::<%ENV> >>,
 that is, in the environment variables passed to program.  If the
-value is not found there, it returns failure.  Unlike C<CALLER>,
-C<CONTEXT> will see a contextual variable that is declared in
+value is not found there, it returns failure.  If the variable is
+of the form C<$*FOO>, the complete environment value is returned.  If it
+is of the form C<@*FOO> the string will be split either on colons or
+semicolons as appropriate to the current operating system.  Usage of
+the C<%*FOO> form is currently undefined.
+
+Unlike C<CALLER>, C<CONTEXT> will see a contextual variable that is declared in
 the current scope, however it will not be writeable via C<CONTEXT> unless
 declared "C<< is context<rw> >>", even if the variable itself is
 modifiable in that scope.  (If it is, you should just use the bare
-variable itself to modify it.)  Note that C<$+_> will always see
+variable itself to modify it.)  Note that C<$*_> will always see
 the C<$_> in the current scope, not the caller's scope.  You may
-use C<< CALLER::<$+foo> >> to bypass a contextual definition of C<$foo>
+use C<< CALLER::<$*foo> >> to bypass a contextual definition of C<$foo>
 in your current context, such as to initialize it with the outer
 contextual value:
 
-    my $foo is context = CALLER::<$+foo>;
+    my $foo is context = CALLER::<$*foo>;
 
-The C<CONTEXT> package is only for internal overriding of contextual
+The C<temp> maybe used on a contextual variable to perform a similar operation:
+
+    temp $*foo;
+
+The main difference is that by default it initializes the new
+C<$*foo> with its previous value, rather than the caller's value.
+The temporized contextual variable takes its read/write policy from
+the previous C<$*foo> container.
+
+The C<CONTEXT> package is primarily for internal overriding of contextual
 information, modelled on how environmental variables work among
 processes.  Despite the fact that the C<CONTEXT> package reflects the
-current process's environment variables, at least where those are not
-hidden by lower-level declarations, the C<CONTEXT> package should not
-be considered isomorphic to the current set of environment variables.
-Subprocesses are passed only the global C<%*ENV> values.  They do
-not see any lexical variables or their values, unless you copy those
-values into C<%*ENV> to change what subprocesses see:
+current process's environment variables individually where those are not
+hidden by lower-level declarations, the actual set of environment variables
+that will be passed to subprocesses is taken from the C<%*ENV> variable.
+Hence you must override that variable itself to influence what is
+passed to subprocesses.  That is,
 
-    temp %*ENV{LANG} = $+LANG;          # may be modified by parent
+    temp $*LANG = "ja_JP.utf8";   # WRONG
+    run "greet";
+
+does not set the LANG environment variable for the greet program.  Instead
+you should make a private copy of the environment and modify that:
+
+    temp %*ENV;
+    %*ENV<LANG> = "ja_JP.utf8";   # ok
     run "greet";
 
 =item *
@@ -1988,11 +2009,9 @@ values into C<%*ENV> to change what subprocesses see:
 There is no longer any special package hash such as C<%Foo::>.  Just
 subscript the package object itself as a hash object, the key of which
 is the variable name, including any sigil.  The package object can
-be derived from a type name by use of the C<::> postfix operator:
+be derived from a type name by use of the C<::> postfix:
 
     MyType::<$foo>
-    MyType.::.{'$foo'}          # same thing with dots
-    MyType\ ::\ {'$foo'}        # same thing with unspaces
 
 (Directly subscripting the type with either square brackets or curlies
 is reserved for various generic type-theoretic operations.  In most other

@@ -14,8 +14,8 @@ Jerry Gay <jerry.gay@rakudoconsulting.com>
 
   Maintainer: Jerry Gay <jerry.gay@rakudoconsulting.com>
   Date: 12 Dec 2008
-  Last Modified: 8 Feb 2009
-  Version: 23
+  Last Modified: 11 Feb 2009
+  Version: 24
 
 This is a draft document. This document describes the command line interface.
 It has changed extensively from previous versions of Perl in order to increase
@@ -303,11 +303,11 @@ like a closing HTML tag.
 =back
 
 These options are made available in context variables matching their name,
-and are invisible to C<MAIN()> except as C<< %+OPTS<name> >>.  For example:
+and are invisible to C<MAIN()> except as C<< %*OPTS<name> >>.  For example:
 
   ++PARSER --setting=Perl6-autoloop-no-print ++/PARSER
 
-is available inside your script as C<< %+OPTS<PARSER> >>, and contains
+is available inside your script as C<< %*OPTS<PARSER> >>, and contains
 C<--setting=Perl6-autoloop-no-print>.  Since eager matching is used, if you
 need to pass something like:
 
@@ -315,7 +315,7 @@ need to pass something like:
 
 you'll end up with
 
-  %+OPTS<foo> = '-bar ++foo baz';
+  %*OPTS<foo> = '-bar ++foo baz';
 
 which is probably not what you wanted. Instead, add extra C<+> characters
 
@@ -323,9 +323,12 @@ which is probably not what you wanted. Instead, add extra C<+> characters
 
 which will give you
 
-  %+OPTS<foo> = '-bar ++foo baz ++/foo';
+  %*OPTS<foo> = '-bar ++foo baz ++/foo';
 
 allowing you to properly nest delimited options.
+
+The actual storage location of C<%*OPTS> may be either in C<< PROCESS::<%OPTS> >>
+or C<< GLOBAL::<%OPTS> >>, depending on how the process sets up its interpreters.
 
 
 Values are parsed with the following rules:
@@ -403,7 +406,7 @@ Check syntax, then exit.  Desugars to C<-e 'CHECK{ compiles_ok(); exit; }'>.
 =item --doc
 
 Lookup Perl documentation in Pod format.  Desugars to
-C<-e 'CHECK{ compiles_ok(); dump_perldoc(); }'>. C<$+ARGS> contains the
+C<-e 'CHECK{ compiles_ok(); dump_perldoc(); }'>. C<$*ARGS> contains the
 arguments passed to C<perl6>, and is available at C<CHECK> time, so
 C<dump_perldoc()> can respond to command-line options.
 
@@ -510,7 +513,7 @@ Desugars to C<--PARSER --Perl6-extract-from-text --/PARSER>.
 
 Metasyntactic options are a subset of delimited options used to pass arguments
 to an underlying component of Perl. Perl itself does not parse these options,
-but makes them available to run-time components via the C<%+META-ARGS> context
+but makes them available to run-time components via the C<%*META-ARGS> context
 variable.
 
 Standard in Perl 6 are three underlying components, C<CMD>, C<PARSER>,
