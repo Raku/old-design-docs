@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 2 Feb 2009
+  Last Modified: 12 Feb 2009
   Number: 3
-  Version: 152
+  Version: 153
 
 =head1 Overview
 
@@ -3404,19 +3404,20 @@ In contrast to that, Perl 6 has six standard metaoperators for
 turning a given existing operator into a related operator that is
 more powerful (or at least differently powerful).  These differ from a
 mere naming convention in that Perl automatically generates these new
-metaoperators from user-defined operators as well as from builtins.
+operators from user-defined operators as well as from builtins.
 In fact, you're not generally supposed to define the individual
 metaoperations--their semantics are supposed to be self-evident by
 the transformation of the base operator.
 
-Note: Spaces are never allowed between any metaoperator and the
-operator it's modifying, because all operators including modified
-ones have to be recognized by the Longest-Token Rule, which disallows
-spaces within a token.
+Constructs containing metaoperators are considered "metatokens",
+by which we mean that they are not subject to ordinary longest-token
+matching rules, although their components are.  Like ordinary
+tokens, however, metatokens do not allow whitespace between
+their subparts.
 
-=head2 Assignment metaoperators
+=head2 Assignment metaoperator
 
-These are already familiar to C and Perl programmers.  (Though the
+Assignment operators are already familiar to C and Perl programmers.  (Though the
 C<.=> operator now means to call a mutating method on the object on
 the left, and C<~=> is string concatenation.)  Most non-relational
 infix operators may be turned into their corresponding assignment
@@ -3430,7 +3431,7 @@ by the usual correspondence:
 Existing forms ending in C<=> may not be modified with this metaoperator.
 
 Regardless of the precedence of the base operator, the precedence
-of any assignment metaoperators is forced to be the same as that of
+of any assignment operator is forced to be the same as that of
 ordinary assignment.  If the base operator is tighter than comma,
 the expression is parsed as item assignment.  If the base operator is
 the same or looser than comma, the expression is parsed as a list assignment:
@@ -3716,8 +3717,7 @@ hash value with the same set of keys as the original hash.
 
 =head2 Reduction operators
 
-The fourth metaoperator in Perl 6 is the reduction operator.  Any
-infix operator (except for non-associating operators)
+Any infix operator (except for non-associating operators)
 can be surrounded by square brackets in term position to
 create a list operator that reduces using that operation:
 
@@ -3725,8 +3725,7 @@ create a list operator that reduces using that operation:
     my @a = (5,6);
     [*] @a;           # 5 * 6 = 30
 
-As with all the metaoperators, space is not allowed inside.  The whole
-thing parses as a single token.
+As with all the metaoperators, space is not allowed inside a metatoken.
 
 A reduction operator has the same precedence as a list operator.  In fact,
 a reduction operator really is a list operator, and is invoked as one.
@@ -3946,11 +3945,11 @@ reduction of C<< infix:<x> >>.  This is deemed to be an insignificant problem.
 
 =head2 Cross operators
 
-The final metaoperator is the cross metaoperator.  It is formed syntactically
-by placing an infix operator after the C<X> character.  It applies the
+The cross metaoperator, C<X>, may be followed by any infix operator.
+It applies the
 modified operator across all groupings of its list arguments as returned
 by the ordinary C<< infix:<X> >> operator.  All
-cross operators are of list infix precedence, and are list associative.
+generated cross operators are of list infix precedence, and are list associative.
 
 The string concatenating form is:
 
@@ -3986,7 +3985,7 @@ may be used.
 (Note that C<< <== >> and C<< ==> >> are considered mutating, as well as
 all assignment operators.)
 
-If the underlying operator is non-associating, so is the metaoperator:
+If the underlying operator is non-associating, so is the cross operator:
 
     @a Xcmp @b Xcmp @c       # ILLEGAL
     @a Xeq @b Xeq @c         # ok
@@ -4002,15 +4001,9 @@ Multidimensional lists should be handled properly.
 
 =head2 Nesting of metaoperators
 
-Constructs containing metaoperators are considered "metatokens",
-by which we mean that they are not subject to ordinary longest-token
-matching rules, although their components are.  Like ordinary
-tokens, however, metaoperators do not allow whitespace between
-their subparts.
-
 Any ordinary infix operator may be enclosed in square brackets
 with the same meaning.  You may therefore use square brackets
-within a metaoperator to disambiguate sequences that might
+within a metatoken to disambiguate sequences that might
 otherwise be misinterpreted, or to force a particular order
 of application when there are multiple metaoperators in the metatoken:
 
