@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 24 Apr 2007
+  Last Modified: 12 Feb 2009
   Number: 10
-  Version: 7
+  Version: 8
 
 =head1 Overview
 
@@ -24,11 +24,12 @@ despite never having been written.
 =head1 Packages
 
 As in Perl 5, packages are the basis of modules and classes.  Unlike in
-Perl 5, modules and classes are declared with separate keywords,
-but they're still just packages with extra behaviors.
+Perl 5, modules and classes are declared with distinct keywords,
+but they're still just packages with extra behaviors.  Likewise every
+typename has an associated package namespace, even if unused.
 
-An ordinary package is declared with the C<package> keyword.  It can
-only be used with a block:
+An ordinary package is declared with the C<package> keyword.  Unlike in
+Perl 5, in Perl 6 it can only be used with a block:
 
     package Bar {...}   # block is in package Bar
 
@@ -42,29 +43,27 @@ the file is Perl 5 code.
     package Foo;        # the entire file is Perl 5
     ...
 
-This form is illegal in the middle of a Perl 6 file.
+This form is illegal in a Perl 6 file.  If you wish to have a file-scoped package,
+either use the brace form or declare it with the C<module> keyword instead.
 
 Since there are no barewords in Perl 6, package names must be predeclared,
-or use the sigil-like C<::PackageName> syntax.  The C<::> prefix does not
-imply top-levelness as it does in Perl 5.  (Use C<::*> for that.)
+or use the sigil-like C<::PackageName> syntax to indicate that the type will
+be supplied some other way.  The C<::> prefix does not imply globalness as
+it does in Perl 5.  (Use C<GLOBAL::> for that.)
 
-A bare C<package> declarator declares an C<our> package within the
-current package (or module, or class, or role, or...).  Use C<*>
-or C<GLOBAL::> to declare a global package name.
+A bare C<package> declarator (without an explicit scope declarator
+such as C<my>) declares an C<our> package within the current package
+(or module, or class, or role, or...).  Use C<GLOBAL::> to declare
+a global package name.
 
 To declare a lexically scoped package, use C<my package>.
-Package names are always searched for from innermost scopes to outermost.
-As with an initial C<::>, the presence of a C<::> within the name
-does not imply globalness (unlike in Perl 5).  True globals are always
-in the C<GLOBAL::> namespace, which has the shortcut C<*> where that
-is not ambiguous with "real" operators.
 
-The C<*> namespace is not "main".  The default namespace for the main
-program is C<*Main> in Perl 6.  All files start out being parsed in the C<*>
-package, but switch to some other package scope depending on the first
-declaration.  If that first declaration is not a package variant, then
-the parsing switches to the "C<*main>" package for Perl 5 code and the
-"C<*Main>" package for Perl 6 code.
+All files start out being parsed in the C<GLOBAL>
+package, but may switch to some other package scope depending on the first
+package-ish declaration.  If that first declaration is not a package variant, then
+the parsing switches to the "C<main>" package for Perl 5 code.  Perl 6 code
+stays C<GLOBAL> in that situation.  The mainline code is thus in the
+C<GLOBAL> namespace unless declared otherwise.
 
 Package traits are set using C<is>:
 
@@ -80,6 +79,32 @@ with the
 
 syntax that lets you do a lookup in a particular symbol table.  In this case,
 the key is not parsed for C<::>.  It's just a hash lookup.
+
+=head1 Package nesting
+
+A declaration of any object of the form C<A::B::c> also creates (if needed)
+an empty package C<A>, and an empty package C<B> inside of C<A>, in addition to creating
+C<c> inside of C<B>.  Such empty packages may be subsequently be redeclared as any other
+package-like object (module, class, etc.), and no redeclaration warning will be issued
+for such a redeclaration.  If a parent package already exists, no stub package
+needs to be created, and no declaration of the form C<A::B::c> has anything
+to say about the type of package C<A> or package C<A::B>, since any package variant
+can function as a package for the purposes of naming things.
+
+Apart of package declaration constructs, package names are always searched
+for from the innermost lexical scope to outermost.  If not defined in any
+surrounding lexical scope, the package is searched for from the current
+package up through the containing packages to C<GLOBAL>.  If it is not found,
+a compiler error results.
+
+As with an initial C<::>, the presence of a C<::> within the name
+does not imply globalness (unlike in Perl 5).  True globals are always
+in the C<GLOBAL::> namespace.
+
+The C<PROCESS::> namespace, shared by all interpreters within the process,
+is notionally outside of C<GLOBAL::>, but package searches do not look
+there for anything.  (Contextual variable searches do; C<$*PID> will eventually
+locate C<$PROCESS::PID> if not hidden by an inner context's C<$PID>.)
 
 =head1 Autoloading
 
