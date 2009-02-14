@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 06 Jan 2009
+  Last Modified: 13 Feb 2009
   Number: 11
-  Version: 25
+  Version: 26
 
 =head1 Overview
 
@@ -46,7 +46,7 @@ imply globalness as it does in Perl 5.  (Use C<GLOBAL::> for that.)
 
 A bare (unscoped) C<module> declarator declares a nested C<our> module
 name within the current package.  However, at the start of the file,
-the current package is C<*>, so the first such declaration in the
+the current package is C<GLOBAL>, so the first such declaration in the
 file is automatically global.
 
 You can use C<our module> to explicitly
@@ -56,23 +56,23 @@ Module names are always searched for from innermost scopes to outermost.
 As with an initial C<::>, the presence of a C<::> within the name
 does not imply globalness (unlike in Perl 5).
 
-The C<::*> namespace is not "main".  The default namespace for the
-main program is C<::*Main>, which it switches to from * as soon as
-it sees the first declaration, if that declaration doesn't set the
-package name.  (Putting C<module Main;> at the top of your program
+The default namespace for the main program is C<GLOBAL>. 
+(Putting C<module GLOBAL;> at the top of your program
 is redundant, except insofar as it tells Perl that the code is Perl
 6 code and not Perl 5 code.  But it's better to say "use v6" for that.)
-
-But note that if you say
-
-    use v6;
-    module Foo {...}
-
-you've just created Main::Foo, not *Foo.
 
 Module traits are set using C<is>:
 
     module Foo is bar {...}
+
+An anonymous module make be created with either of:
+
+    module {...}
+    module :: {...}
+
+The second form is useful if you need to apply a trait:
+
+    module :: is bar {...}
 
 =head1 Exportation
 
@@ -133,14 +133,14 @@ Importing via C<use> binds into the current lexical scope by default
 
 You can be explicit about the desired namespace:
 
-    use Sense :MY<common> :OUR<@horse> :GLOBAL<$warming>;
+    use Sense :MY<common> :OUR<@horse> :CONTEXT<$sensitive>;
 
 That's pretty much equivalent to:
 
     use Sense;
-    my &common ::= &Sense::common;
-    our @horse ::= @Sense::horse;
-    $*warming  ::= $Sense::warming;
+    my &common ::= Sense::<&common>;
+    our @horse ::= Sense::<@horse>;
+    $*sensitive ::= Sense::<$sensitive>
 
 It is also possible to re-export the imported symbols:
 
@@ -187,7 +187,7 @@ to the package scope instead:
 You may also import symbols from the various pseudo-packages listed in S02.
 They behave as if all their symbols are in the C<:ALL> export list:
 
-    use GLOBAL <$IN $OUT $ERR>;
+    use CONTEXT <$IN $OUT $ERR>;
     require CALLER <$x $y>;
 
     # Same as:
@@ -195,7 +195,7 @@ They behave as if all their symbols are in the C<:ALL> export list:
     #     my ($x, $y) := ($CALLER::x, $CALLER::y)
 
 As pseudo-packages are always already preloaded, C<use> and C<require> will
-never attempt to load, for example, C<GLOBAL.pm> from an external source.
+never attempt to load, for example, C<CALLER.pm> from an external source.
 
 =head1 Versioning
 

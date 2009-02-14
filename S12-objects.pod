@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 21 Jan 2009
+  Last Modified: 12 Feb 2009
   Number: 12
-  Version: 68
+  Version: 69
 
 =head1 Overview
 
@@ -74,10 +74,12 @@ Use composition and/or delegation to change the representation.
 
 Since there are no barewords in Perl 6, bare class names must be
 predeclared.  You can predeclare a stub class and fill it in later
-just as you would a subroutine.  Alternately, you can define a local
-class or type variable using the C<::> type sigil.  In an rvalue
-context the C<::> prefix is a no-op, but in a declarational context,
-it binds a new type name within its declared scope.
+just as you would a subroutine.
+
+You can force interpretation of a name as a class or type name using
+the C<::> prefix.  In an rvalue context the C<::> prefix is a no-op,
+but in a declarational context, it binds a new type name within the
+declaration's scope along with anything else being declared by the declaration.
 
 Without a C<my> or other scoping declarator, a bare C<class>
 declarator declares an C<our> declarator, that is, a name within
@@ -151,6 +153,14 @@ A private class can be declared using C<my>; most privacy issues are
 handled with lexical scoping in Perl 6.  The fact that importation
 is lexical by default also means that any names your class imports
 are also private by default.
+
+In an anonymous class declaration, C<::> by itself may represent the
+anonymous class name if desired:
+
+    class {...}                # ok
+    class is Mammal {...}      # WRONG
+    class :: is Mammal {...}   # ok
+    class { is Mammal; ...}    # also ok
 
 =head1 Methods
 
@@ -1128,7 +1138,7 @@ class composition time.  This means that if two roles bring in the
 same crony, there's no conflict--it's just as if the class pulled in
 the crony role itself and the respective roles didn't.  A role may
 never conflict with itself regardless of its method of incorporation.
-A role that brings in two conflicting crony roles *may* resolve them
+A role that brings in two conflicting crony roles I<may> resolve them
 as if it were a class.  This solution is accepted by the class unless
 the class supplies its own solution.  If two different roles resolve
 the same crony conflict two different ways, those roles are themselves
@@ -1428,11 +1438,11 @@ These capture control if C<MyBase> wants to capture control of how it gets
 used by any class or container.  But usually you can just let it call
 the generic defaults:
 
-    multi *trait_auxiliary:is(Class $base, Class $class; $arg?) {...}
+    multi trait_auxiliary:is(Class $base, Class $class; $arg?) {...}
 
 which adds C<$base> to the "isa" list of C<$class>, or
 
-    multi *trait_auxiliary:is(Class $tied, Any $container; $arg?) {...}
+    multi trait_auxiliary:is(Class $tied, Any $container; $arg?) {...}
 
 which sets the "tie" type of the container to the implementation type
 in C<$tied>.
@@ -1443,7 +1453,7 @@ or "C<should>", or "C<does>".  We call these helping verbs "trait
 auxiliaries". Here's "C<will>", which (being syntactic sugar) merely
 delegates to back to "is":
 
-    multi sub *trait_auxiliary:will($trait, $container; &arg) {
+    multi sub trait_auxiliary:will($trait, $container; &arg) {
         trait_auxiliary:is($trait, $container, &arg);
     }
 
