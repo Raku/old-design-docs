@@ -821,9 +821,14 @@ indicating the desire to create a function of a single unknown, so:
 
 produces a function of a single argument:
 
-    { $^x - 1 }
+    { $_ - 1 }
 
-This closure is of type C<Code:($)>, not C<Whatever>, so that constructs can distinguish
+Likewise, the single dispatcher recognizes C<*.meth> and returns C<{ $_.meth }>,
+so it can be used where patterns are expected:
+
+    @primes = grep *.prime, 2..*;
+
+These closures are of type C<Code:($)>, not C<Whatever>, so that constructs can distinguish
 via multiple dispatch:
 
     1,2,3 ... *
