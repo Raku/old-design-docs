@@ -10,9 +10,10 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Author:        Largely, the authors of the related Perl 5 docs.
  Maintainer:    Larry Wall <larry@wall.org>
  Contributions: Mark Stosberg <mark@summersault.com>
+                Tim Nelson <wayland@wayland.id.au>
  Date:          12 Sep 2006
- Last Modified: 1 May 2007
- Version:       18
+ Last Modified: 14 Feb 2009
+ Version:       19
 
 This is a draft document. Many of these functions will work as in Perl
 5, except we're trying to rationalize everything into roles.  For
@@ -21,6 +22,21 @@ be in the * namespace.  However, with IO operations in particular,
 many of them are really methods on an IO handle, and if there is a
 corresponding global function, it's merely an exported version of
 the method.
+
+=head1 Default IO handles
+
+In Perl 6, there are the I<standard> handles, and the I<default> handles.  
+
+The I<standard> ones are our old familiar friends (with new names).  Standard input is 
+C<$*IN>, standard output is C<$*OUT>, and standard error is C<$*ERR>.  
+
+However, the I<default> ones replace the Perl 5 $| variable with three new variables.  
+At the start of the program, the default handles (C<$*DEFIN>, C<$*DEFOUT>, and 
+C<$*DEFERR>) are aliased to the standard handles, but may be temporarily or permanently 
+rebound to some other file handle.  
+
+Many of the roles and functions below will operate on the default handles.  To set all 3 
+at once, do C<($*DEFIN, $*DEFOUT, $*DEFERR) ::= ($*IN, $*OUT, $*ERR)>.  
 
 =head1 Roles
 
@@ -127,6 +143,21 @@ operations. It implies IO::Readable and IO::Writeable.
 
 =back
 
+=head2 IO::Seekable
+
+=over
+
+=item method Bool eoi()
+
+Returns true if it's the end of the input (ie. end of file or whatever), returns false if 
+not, returns undef if we can't say for certain.  
+
+=item IO.seek
+
+=item IO.tell
+
+=back
+
 =head2 IO::Encoded
 
 This is a generic role for encoded data streams.
@@ -165,7 +196,6 @@ by readline and readfield.
 This allows the definition of a escape character, which should be used
 by say and print to preserve the record/field semantics.
 
-
 =back
 
 =head2 IO::Readable::Encoded
@@ -202,12 +232,33 @@ or the undefined value at end of file, or if there was an error (in
 the latter case C<$!> is set). The C<:async> flag lets the call
 return an undefined value if no character is immediately available.
 
-=cut
+=item IO.lines
+
+    our List multi method lines (IO $handle:) is export;
+    our List multi lines (Str $filename);
+
+Returns all the lines of a file as a (lazy) List regardless of context.
+See also C<slurp>.
+
+=item IO.slurp
+
+    our Item multi method slurp (IO $handle: *%opts) is export;
+    our Item multi slurp (Str $filename, *%opts);
+
+Slurps the entire file into a Str or Buf regardless of context.
+(See also C<lines>.)  Whether a Str or Buf is returned depends on
+the options.
+
+=back
 
 =head2 IO::Writeable::Encoded
 
 This role provides encoded access to a writeable data stream, implies
 IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
+
+If these are called in their non-object form, they operate on C<$*DEFOUT>, except in the 
+case of warn(), which operates on C<$*DEFERR>.  The form with leading dot prints C<$_> to 
+the appropriate default handle unless an explicit filehandle is supplied.
 
 =over
 
@@ -248,11 +299,6 @@ an object that supports I/O.  Indirect objects in Perl 6 must always
 be followed by a colon, and any indirect object more complicated than
 a variable should be put into parentheses.
 
-If IO is omitted, prints to C<$*DEFOUT>, which is aliased to C<$*OUT>
-when the program starts but may be temporarily or permanently rebound to
-some other file handle.  The form with leading dot prints C<$_> to C<$*DEFOUT>
-unless an explicit filehandle is supplied.
-
 It is a compiler error to use a bare C<print> without arguments.
 (However, it's fine if you have an explicit argument list that evaluates to
 the empty list at runtime.)
@@ -284,7 +330,15 @@ arguments.
 The function form works as in Perl 5 and always prints to $*DEFOUT.
 The method form uses IO handles, not formats, as objects.
 
+=item warn LIST
+
+=item Str.warn
+
+Prints a warning just like Perl 5, except that it is always sent to
+the object in $*DEFERR, which is just standard error ($*ERR).
+
 =back
+
 
 =head2 IO::Openable
 
@@ -303,7 +357,25 @@ call, a connect(), a listen(), or something similar.
 
 =head2 IO::Socket
 
-role	IO::Socket does IO::POSIX does IO::Openable does IO::Closeable {
+role	IO::Socket  {
+...
+}
+
+=over
+
+=item socket
+
+=item IO.setsockopt
+
+=item IO.shutdown
+
+(should IO::Socket.close() call shutdown, instead of having a different name?)
+
+=back
+
+=head2 IO::Streamable
+
+role	IO::Streamable does IO::POSIX does IO::Openable does IO::Closeable {
 ...
 }
 
@@ -360,7 +432,7 @@ corresponding C<name()> function.
 
 This does file input and output.  
 
-class	IO::File does IO::POSIX does IO::Closeable does IO::Openable {
+class	IO::File does IO::Streamable {
 ...
 }
 
@@ -383,13 +455,19 @@ class	IO::File does IO::POSIX does IO::Closeable does IO::Openable {
 Associate an IO object with an already-open file descriptor,
 presumably passed in from the parent process.
 
+=item open()
+
+ the :binmode option can be passed to open()
+
+=item IO.truncate
+
 =back
 
 =head2	IO::FileSystem
 
 This reads directories, worries about ownership and permissions, and the like.  
 
-class	IO::FileSystem does IO::POSIX does IO::Closeable does IO::Openable {
+class	IO::FileSystem does IO::Streamable {
 ...
 }
 
@@ -604,22 +682,35 @@ It is an error to use bare C<unlink> without arguments.
 
 =back
 
-=head2	IO::Socket::INET
+=head2	IO::Socket::TCP
 
-class	IO::Socket::INET does IO::Socket {
+class	IO::Socket::TCP does IO::Socket does IO::Streamable {
 ...
 }
 
 =over
 
-=item	init
+=item has $.RemoteHost
 
- method Bool init($RemoteHost, $RemotePort, $LocalHost?, $LocalPort?);
+=item has $.RemotePort
 
-=item open($Listen?);
+=item has $.LocalHost
 
-If $Listen is 0, it does a connect().  If $Listen is 1, it does a connect() and a 
-listen().  If $Listen is 2, it does a listen(), but no connect().  
+=item has $.LocalPort
+
+=item method Bool open($Listen?);
+
+If $Listen is 2, it does a listen(), but no connect().  
+If $Listen is any other true value, it does a connect() and a listen().  
+If $Listen is false, it does a connect(), but no listen().
+
+=item method Int read($buf is rw, Int $length)
+
+Does a recv().  
+
+=item method Int write($buf, Int $length)
+
+Does a send().
 
 =item IO.getpeername
 
@@ -629,7 +720,7 @@ listen().  If $Listen is 2, it does a listen(), but no connect().
 
 =head2 IO::Pipe
 
-class	IO::Pipe does IO::POSIX does IO::Closeable does IO::Openable {
+class	IO::Pipe does IO::Streamable {
 ...
 }
 
@@ -682,6 +773,8 @@ reader and writer ends of the pipe.
 
 =item open()
 
+...
+
 =back
 
 =head1 Unfiled
@@ -690,21 +783,7 @@ reader and writer ends of the pipe.
 
 =item IO.fileno
 
-=item IO.flock
-
-=item IO.eof
-
 =item alarm
-
-=item IO.binmode
-
-=item IO.lines
-
-    our List multi method lines (IO $handle:) is export;
-    our List multi lines (Str $filename);
-
-Returns all the lines of a file as a (lazy) List regardless of context.
-See also C<slurp>.
 
 =item prompt
 
@@ -712,47 +791,19 @@ See also C<slurp>.
 
 =item Str.readpipe
 
-=item IO.recv
-
-=item IO.seek
-
-=item IO.send
-
-=item IO.setsockopt
-
-=item IO.shutdown
-
-=item IO.slurp
-
-    our Item multi method slurp (IO $handle: *%opts) is export;
-    our Item multi slurp (Str $filename, *%opts);
-
-Slurps the entire file into a Str or Buf regardless of context.
-(See also C<lines>.)  Whether a Str or Buf is returned depends on
-the options.
-
-=item socket
-
 =item IO.sysread
 
 =item IO.sysseek
 
 =item IO.syswrite
 
-=item IO.tell
-
-=item IO.truncate
-
-=item warn LIST
-
-=item Str.warn
-
-Prints a warning just like Perl 5, except that it is always sent to
-the object in $*DEFERR, which is just standard error ($*ERR).
-
 =back
 
 =head1 Removed functions
+
+=item IO.eof
+
+Gone, see IO::Endable
 
 =item pipe
 
