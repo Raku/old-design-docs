@@ -82,7 +82,16 @@ This role indicates that this object can be closed.
 
 =item method Bool close()
 
-returns True on success, but might return an unthrown failure.
+Closes the file or pipe associated with the object.
+
+Returns True on success, but might return an unthrown failure.  
+Returns true only if IO buffers are successfully flushed and closes the system
+file descriptor.  
+
+You don't have to close IO if you are immediately going to do
+another C<open> on it, because C<open> will close it for you.  (See
+C<open>.)  However, an explicit C<close> on an input file resets the line
+counter (C<$.>), while the implicit close done by C<open> does not.
 
 =back
 
@@ -184,6 +193,15 @@ $.input_escape is set, it should pay attention to that.
 Reads the next character in the set $.encoding according to the
 $.locale.
 
+=item getc
+
+    our Bool method getc (IO $self: Bool :async)
+
+Returns the next character from the input stream attached to IO,
+or the undefined value at end of file, or if there was an error (in
+the latter case C<$!> is set). The C<:async> flag lets the call
+return an undefined value if no character is immediately available.
+
 =cut
 
 =head2 IO::Writeable::Encoded
@@ -218,9 +236,162 @@ those contains a $.output_record_separator or a
 $.output_field_seaparator and $.output_escape is set, it should do the
 escaping.
 
+=item print
+
+    our Bool method print (IO $self: *@LIST)
+    our Bool multi print (*@LIST)
+    our Bool method print (Str $self: IO $io)
+
+Prints a string or a list of strings.  Returns Bool::True if
+successful, Failure otherwise.  The IO handle, if supplied, must be
+an object that supports I/O.  Indirect objects in Perl 6 must always
+be followed by a colon, and any indirect object more complicated than
+a variable should be put into parentheses.
+
+If IO is omitted, prints to C<$*DEFOUT>, which is aliased to C<$*OUT>
+when the program starts but may be temporarily or permanently rebound to
+some other file handle.  The form with leading dot prints C<$_> to C<$*DEFOUT>
+unless an explicit filehandle is supplied.
+
+It is a compiler error to use a bare C<print> without arguments.
+(However, it's fine if you have an explicit argument list that evaluates to
+the empty list at runtime.)
+
+There is are no variables corresponding to Perl 5's C<$,> and
+C<$\> variables.  Use C<join> to interpose separators; use filehandle
+properties to change line endings.
+
+=item say
+
+    our Bool method say (IO $self: *@LIST)
+    our Bool multi say (*@LIST)
+    our Bool method say (Str $self: IO $io)
+
+This is identical to print() except that it auto-appends a newline after
+the final argument.
+
+    Was:    print "Hello, world!\n";
+    Now:    say   "Hello, world!";
+
+As with C<print>, it is a compiler error to use a bare C<say> without
+arguments.
+
+=item printf
+
+    our Bool method printf (IO $self: Str $fmt, *@LIST)
+    our Bool multi printf (Str $fmt, *@LIST)
+
+The function form works as in Perl 5 and always prints to $*DEFOUT.
+The method form uses IO handles, not formats, as objects.
+
+=back
+
+=head2 IO::Openable
+
+This role implies that the object can be connected to, or listened on.
+
+=over 4
+
+=item open
+
+ method Bool open();
+
+Attempts to open the handle.  Depending on the implementation, this could be an open() 
+call, a connect(), a listen(), or something similar.  
+
+=back
+
+=head2 IO::Socket
+
+role	IO::Socket does IO::POSIX does IO::Openable does IO::Closeable {
+...
+}
+
+=over
+
+=item IO.accept
+
+=item IO.bind
+
+=item Socket.pair
+
+    our List of IO method pair(Int $domain, Int $type, Int $protocol)
+
+A wrapper for socketpair(2), returns a pair of IO objects representing the
+reader and writer ends of the socket.
+
+   use Socket;
+   ($r, $w) = Socket.pair(AF_UNIX, SOCK_STREAM, PF_UNSPEC);
+
+
 =back
 
 =head1 Filehandles, files, and directories
+
+=over 4
+
+=item IO.fcntl
+
+Available only as a handle method.
+
+=item IO.ioctl
+
+Available only as a handle method.
+
+=item IO.name
+
+The C<.name> method returns the name of the file/socket/uri the handle
+was opened with, if known.  Returns undef otherwise.  There is no
+corresponding C<name()> function.
+
+=item syscall
+
+=item sysopen
+
+=item umask
+
+=item utime
+
+=back
+
+=head1 Classes
+
+=head2	IO::File
+
+This does file input and output.  
+
+class	IO::File does IO::POSIX does IO::Closeable does IO::Openable {
+...
+}
+
+=over
+
+=item init
+
+ method init(String $filename, $options?);
+ method init(Int $fd);
+
+ # Read
+ $fobj = new IO::File($filename);
+
+ # Write
+ $fobj = new IO::File($filename, :w);
+
+ # Read using file descriptor
+ $fobj = new IO::File($fd);
+
+Associate an IO object with an already-open file descriptor,
+presumably passed in from the parent process.
+
+=back
+
+=head2	IO::FileSystem
+
+This reads directories, worries about ownership and permissions, and the like.  
+
+class	IO::FileSystem does IO::POSIX does IO::Closeable does IO::Openable {
+...
+}
 
 =over 4
 
@@ -371,50 +542,9 @@ successfully changed.
     $mode = '0o644'; chmod $mode, 'foo';     # this is better
     $mode = 0o644;   chmod $mode, 'foo';     # this is best
 
-=item close IO
-
-=item IO.close
-
-Closes the file or pipe associated with the file handle, returning
-true only if IO buffers are successfully flushed and closes the system
-file descriptor.  Closes the currently selected filehandle if the
-argument is omitted.
-
-You don't have to close IO if you are immediately going to do
-another C<open> on it, because C<open> will close it for you.  (See
-C<open>.)  However, an explicit C<close> on an input file resets the line
-counter (C<$.>), while the implicit close done by C<open> does not.
-
-If the file handle came from a piped open, C<close> will additionally
-return false if one of the other system calls involved fails, or if the
-program exits with non-zero status.  (If the only problem was that the
-program exited non-zero, C<$!> will be set to C<0>.)  Closing a pipe
-also waits for the process executing on the pipe to complete, in case you
-want to look at the output of the pipe afterwards, and
-implicitly puts the exit status value of that command into C<$!>.
-
-=item connect
-
- my $fh = connect($hostname, 80);
-
-Attempts to connect to a remote host and returns an IO handle if successful.
-The call fails with an exception if it cannot connect.
-
-=item IO.fcntl
-
-Available only as a handle method.
-
 =item glob
 
-=item IO.ioctl
-
-Available only as a handle method.
-
 =item link
-
-=item IO.listen
-
-Available only as a handle method.
 
 =item lstat
 
@@ -424,27 +554,6 @@ the stat fails, all subsequent tests on the stat buffer also evaluate
 to false.
 
 =item mkdir
-
-=item IO.name
-
-The C<.name> method returns the name of the file/socket/uri the handle
-was opened with, if known.  Returns undef otherwise.  There is no
-corresponding C<name()> function.
-
-=item open
-
-    # Read
-    my $fh = open($filename);
-
-    # Write
-    my $fh = open($filename, :w);
-
-=item IO.fdopen
-
-    our IO method fdopen(Int $fd)
-
-Associate an IO object with an already-open file descriptor,
-presumably passed in from the parent process.
 
 =item IO::Dir::open EXPR
 
@@ -477,12 +586,6 @@ to false.
 
 =item symlink
 
-=item syscall
-
-=item sysopen
-
-=item umask
-
 =item unlink LIST
 X<unlink> X<delete> X<remove> X<rm>
 
@@ -499,162 +602,50 @@ systems.  Use C<rmdir> instead.
 
 It is an error to use bare C<unlink> without arguments.
 
-=item utime
-
 =back
 
-=head1 Input and Output
+=head2	IO::Socket::INET
 
-=over 4
+class	IO::Socket::INET does IO::Socket {
+...
+}
 
-=item getc
+=over
 
-    our Bool method getc (IO $self: Bool :async)
+=item	init
 
-Returns the next character from the input stream attached to IO,
-or the undefined value at end of file, or if there was an error (in
-the latter case C<$!> is set). The C<:async> flag lets the call
-return an undefined value if no character is immediately available.
+ method Bool init($RemoteHost, $RemotePort, $LocalHost?, $LocalPort?);
 
-=item print
+=item open($Listen?);
 
-    our Bool method print (IO $self: *@LIST)
-    our Bool multi print (*@LIST)
-    our Bool method print (Str $self: IO $io)
-
-Prints a string or a list of strings.  Returns Bool::True if
-successful, Failure otherwise.  The IO handle, if supplied, must be
-an object that supports I/O.  Indirect objects in Perl 6 must always
-be followed by a colon, and any indirect object more complicated than
-a variable should be put into parentheses.
-
-If IO is omitted, prints to C<$*DEFOUT>, which is aliased to C<$*OUT>
-when the program starts but may be temporarily or permanently rebound to
-some other file handle.  The form with leading dot prints C<$_> to C<$*DEFOUT>
-unless an explicit filehandle is supplied.
-
-It is a compiler error to use a bare C<print> without arguments.
-(However, it's fine if you have an explicit argument list that evaluates to
-the empty list at runtime.)
-
-There is are no variables corresponding to Perl 5's C<$,> and
-C<$\> variables.  Use C<join> to interpose separators; use filehandle
-properties to change line endings.
-
-=item say
-
-    our Bool method say (IO $self: *@LIST)
-    our Bool multi say (*@LIST)
-    our Bool method say (Str $self: IO $io)
-
-This is identical to print() except that it auto-appends a newline after
-the final argument.
-
-    Was:    print "Hello, world!\n";
-    Now:    say   "Hello, world!";
-
-As with C<print>, it is a compiler error to use a bare C<say> without
-arguments.
-
-=item printf
-
-    our Bool method printf (IO $self: Str $fmt, *@LIST)
-    our Bool multi printf (Str $fmt, *@LIST)
-
-The function form works as in Perl 5 and always prints to $*DEFOUT.
-The method form uses IO handles, not formats, as objects.
-
-=back
-
-=head1 Unfiled
-
-=over 4
-
-=item IO.fileno
-
-=item IO.flock
+If $Listen is 0, it does a connect().  If $Listen is 1, it does a connect() and a 
+listen().  If $Listen is 2, it does a listen(), but no connect().  
 
 =item IO.getpeername
 
-=item IO.eof
-
-=item IO.accept
-
 =item /[get|set][host|net|proto|serv|sock].*/
 
-=item alarm
+=back
 
-=item IO.bind
+=head2 IO::Pipe
 
-=item IO.binmode
+class	IO::Pipe does IO::POSIX does IO::Closeable does IO::Openable {
+...
+}
 
-=item IO.lines
+May also do IO::Readable and IO::Writable, depending on opening method.  
 
-    our List multi method lines (IO $handle:) is export;
-    our List multi lines (Str $filename);
+=over
 
-Returns all the lines of a file as a (lazy) List regardless of context.
-See also C<slurp>.
+=item close()
 
-=item pipe
-
-Gone, see Pipe.pair
-
-=item prompt
-
-    our Str prompt (Str $prompt)
-
-=item IO.read
-
-=item IO.readline
-
-=item Str.readpipe
-
-=item IO.recv
-
-=item IO.seek
-
-=item select(both)
-
-Gone.  (Note: for subsecond sleep, just use sleep with a fractional argument.)
-
-=item IO.send
-
-=item IO.setsockopt
-
-=item IO.shutdown
-
-=item IO.slurp
-
-    our Item multi method slurp (IO $handle: *%opts) is export;
-    our Item multi slurp (Str $filename, *%opts);
-
-Slurps the entire file into a Str or Buf regardless of context.
-(See also C<lines>.)  Whether a Str or Buf is returned depends on
-the options.
-
-=item socket
-
-=item socketpair
-
-Gone, see Socket.pair
-
-=item IO.sysread
-
-=item IO.sysseek
-
-=item IO.syswrite
-
-=item IO.tell
-
-=item IO.truncate
-
-=item warn LIST
-
-=item Str.warn
-
-Prints a warning just like Perl 5, except that it is always sent to
-the object in $*DEFERR, which is just standard error ($*ERR).
+If the file handle came from a piped open, C<close> will additionally
+return false if one of the other system calls involved fails, or if the
+program exits with non-zero status.  (If the only problem was that the
+program exited non-zero, C<$!> will be set to C<0>.)  Closing a pipe
+also waits for the process executing on the pipe to complete, in case you
+want to look at the output of the pipe afterwards, and
+implicitly puts the exit status value of that command into C<$!>.
 
 =item Pipe.to
 
@@ -681,18 +672,99 @@ reader and writer ends of the pipe.
 
    ($r, $w) = Pipe.pair;
 
-=item Socket.pair
+=back
 
-    our List of IO method pair(Int $domain, Int $type, Int $protocol)
+=head1 Calls that operate on the default IO handle
 
-A wrapper for socketpair(2), returns a pair of IO objects representing the
-reader and writer ends of the socket.
+=over
 
-   use Socket;
-   ($r, $w) = Socket.pair(AF_UNIX, SOCK_STREAM, PF_UNSPEC);
+=item close()
 
+=item open()
 
 =back
+
+=head1 Unfiled
+
+=over 4
+
+=item IO.fileno
+
+=item IO.flock
+
+=item IO.eof
+
+=item alarm
+
+=item IO.binmode
+
+=item IO.lines
+
+    our List multi method lines (IO $handle:) is export;
+    our List multi lines (Str $filename);
+
+Returns all the lines of a file as a (lazy) List regardless of context.
+See also C<slurp>.
+
+=item prompt
+
+    our Str prompt (Str $prompt)
+
+=item Str.readpipe
+
+=item IO.recv
+
+=item IO.seek
+
+=item IO.send
+
+=item IO.setsockopt
+
+=item IO.shutdown
+
+=item IO.slurp
+
+    our Item multi method slurp (IO $handle: *%opts) is export;
+    our Item multi slurp (Str $filename, *%opts);
+
+Slurps the entire file into a Str or Buf regardless of context.
+(See also C<lines>.)  Whether a Str or Buf is returned depends on
+the options.
+
+=item socket
+
+=item IO.sysread
+
+=item IO.sysseek
+
+=item IO.syswrite
+
+=item IO.tell
+
+=item IO.truncate
+
+=item warn LIST
+
+=item Str.warn
+
+Prints a warning just like Perl 5, except that it is always sent to
+the object in $*DEFERR, which is just standard error ($*ERR).
+
+=back
+
+=head1 Removed functions
+
+=item pipe
+
+Gone, see Pipe.pair
+
+=item select(both)
+
+Gone.  (Note: for subsecond sleep, just use sleep with a fractional argument.)
+
+=item socketpair
+
+Gone, see Socket.pair
 
 =head1 Additions
 
