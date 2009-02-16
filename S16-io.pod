@@ -63,6 +63,11 @@ are replaced and the actual number of bytes read is returned. A return
 of 0 means end of file. It might return unthrown failures, to be
 specified by each IO implementation.
 
+It is important to realize that this is "raw" read. You're going to
+have plain octets stored in $buf, if this is actually encoded data,
+you're going to need to encode it later, or use a "getc" or other
+IO::Readable::Encoded methods.
+
 =back
 
 =head2 IO::Writeable
@@ -76,6 +81,11 @@ This role provides unbuffered write access to the data stream.
 Tries to write $length bytes of $buf. The actual number of bytes
 written is returned. It might return unthrown failures, to be
 specified by each IO implementation.
+
+It is important to realize that this is "raw" write. $buf should
+contain plain octets that are going to be sent. If $buf contains
+encoded data, you should decode it first, or use "print" or other
+IO::Writeable::Encoded methods.
 
 =back
 
@@ -206,14 +216,11 @@ it (including the separator). If a readfield finds a
 $.input_record_separator it skips it and reads the next field. If
 $.input_escape is set, it should pay attention to that.
 
-=item method Str getc
+=item method Str getc(Int $length? = 1)
 
-Reads the next character in the set $.encoding according to the
-$.locale.
-
-Returns the next character from the input stream attached to IO,
-or the undefined value at end of file, or if there was an error (in
-the latter case C<$!> is set).
+Reads the next $length character in the set $.encoding according to
+the $.locale, or the undefined value at end of file, or if there was
+an error (in the latter case C<$!> is set).
 
 =item IO.lines
 
