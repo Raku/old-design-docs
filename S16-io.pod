@@ -65,7 +65,7 @@ specified by each IO implementation.
 
 It is important to realize that this is "raw" read. You're going to
 have plain octets stored in $buf, if this is actually encoded data,
-you're going to need to encode it later, or use a "getc" or other
+you're going to need to encode it later, or use "getc" or other
 IO::Readable::Encoded methods.
 
 =back
@@ -89,6 +89,221 @@ IO::Writeable::Encoded methods.
 
 =back
 
+=head2 IO::Seekable
+
+=over
+
+=item method Bool eoi()
+
+Returns true if it's the end of the input (ie. end of file or whatever), returns false if 
+not, returns undef if we can't say for certain.  
+
+=item method Bool seek(Int $position)
+
+Position this stream into $position. The meaning of this position is
+always in "octets".
+
+=item method Int tell()
+
+Returns the current raw position in the stream in number of "octets".
+
+=back
+
+=head2 IO::Buffered
+
+Indicates that this object performs buffering. The management of the
+buffer is completely implementation specific.
+
+=over 
+
+=item method Bool flush()
+
+Flushes the buffers associated with this object.
+
+=item method Bool autoflush() is rw
+
+Forces this object to keep its buffers empty
+
+=back
+
+=head2 IO::Streamable
+
+This role represents objects that depend on some external resource,
+which means that data might not be available at request.
+
+=over
+
+=item method Bool blocking() is rw
+
+This allows the user to control wether this object should do a
+blocking wait or immediatly return in the case of not having data
+available.
+
+=back
+
+=head2 IO::Encoded
+
+This is a generic role for encoded data streams.
+
+=over
+
+=item method Str encoding() is rw
+
+=item method Str locale() is rw
+
+Encoding and locale are required for sane conversions.
+
+=back
+
+=head2 IO::Readable::Encoded
+
+This role provides encoded access to a readable data stream, implies
+IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
+
+=over
+
+=item method Str input_record_separator() is rw
+
+This regulates how "readline" behaves.
+
+=item method Str input_field_separator() is rw
+
+This regulates how "readfield" behaves.
+
+=item method Str input_escape() is rw
+
+This allows the definition of a escape character, which should be used
+by readline and readfield.
+
+=item method Str readline()
+
+Reads the stream before it finds a $.input_record_separator and
+returns it (including the separator). If $.input_escape is set, it
+should pay attention to that.
+
+=item method Str readfield()
+
+Reads the stream before it finds a $.input_field_separator and returns
+it (including the separator). If a readfield finds a
+$.input_record_separator it consumes the record separator, but returns
+undef. If $.input_escape is set, it should pay attention to that.
+
+=item method Str getc(Int $length? = 1)
+
+Reads the next $length character in the set $.encoding according to
+the $.locale, or the undefined value at end of file, or if there was
+an error (in the latter case C<$!> is set).
+
+=item our List multi method lines (IO $handle:) is export;
+
+=item our List multi lines (Str $filename);
+
+Returns all the lines of a file as a (lazy) List regardless of context.
+See also C<slurp>.
+
+=item our Item multi method slurp (IO $handle: *%opts) is export;
+
+=item our Item multi slurp (Str $filename, *%opts);
+
+Slurps the entire file into a Str or Buf regardless of context.
+(See also C<lines>.)  Whether a Str or Buf is returned depends on
+the options.
+
+=back
+
+=head2 IO::Writeable::Encoded
+
+This role provides encoded access to a writeable data stream, implies
+IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
+
+If these are called in their non-object form, they operate on C<$*DEFOUT>, except in the 
+case of warn(), which operates on C<$*DEFERR>.  The form with leading dot prints C<$_> to 
+the appropriate default handle unless an explicit filehandle is supplied.
+
+=over
+
+=item method Str output_record_separator() is rw
+
+This regulates how say and print(%hash) behaves.
+
+=item method Str output_field_separator() is rw
+
+This regulates how print(@arr), say(@arr), print(%hash) and
+say(%hash) behave.
+
+=item method Str output_escape() is rw
+
+This allows the definition of a escape character, which should be used
+by say and print to preserve the record/field semantics.
+
+=item method Bool print(Str $str)
+
+=item method Bool say(Str $str)
+
+Sends $str to the data stream doing proper encoding conversions. Say
+sends an additional $.output_record_separator. This should also
+convert "\n" to the desired $.output_record_separator.
+
+=item method Bool print(Array @arr)
+
+=item method Bool say(Array @arr)
+
+Sends each element of @arr separated by $.output_field_separator. Say
+should add an additional $.output_record_separator. If an element
+contains the $.output_record_separator or the
+$.output_field_seaparator and a $.output_escape is defined, it should
+do the escaping.
+
+=item method Bool print(Hash %hash)
+
+=item method Bool say(Hash %hash)
+
+Sends each pair of the hash separated by $.output_record_separator,
+with key and value separated by $.output_field_separator. If one of
+those contains a $.output_record_separator or a
+$.output_field_seaparator and $.output_escape is set, it should do the
+escaping.
+
+=item our Bool method print (IO $self: *@LIST)
+
+=item our Bool multi print (*@LIST)
+
+=item our Bool method print (Str $self: IO $io)
+
+Prints a string or a list of strings.  Returns Bool::True if
+successful, Failure otherwise.  The IO handle, if supplied, must be
+an object that supports I/O.  Indirect objects in Perl 6 must always
+be followed by a colon, and any indirect object more complicated than
+a variable should be put into parentheses.
+
+It is a compiler error to use a bare C<print> without arguments.
+(However, it's fine if you have an explicit argument list that evaluates to
+the empty list at runtime.)
+
+=item say our Bool method say (IO $self: *@LIST)
+
+=item our Bool multi say (*@LIST)
+
+=item our Bool method say (Str $self: IO $io)
+
+This is identical to print() except that it auto-appends a newline after
+the final argument.
+
+    Was:    print "Hello, world!\n";
+    Now:    say   "Hello, world!";
+
+As with C<print>, it is a compiler error to use a bare C<say> without
+arguments.
+
+=item our Bool method printf (IO $self: Str $fmt, *@LIST)
+
+=item our Bool multi printf (Str $fmt, *@LIST)
+
+The function form works as in Perl 5 and always prints to $*DEFOUT.
+The method form uses IO handles, not formats, as objects.
+
+=back
+
 =head2 IO::FileDescriptor
 
 This role indicates that this object actually represents an open file
@@ -96,7 +311,7 @@ descriptor in the os level.
 
 =over
 
-=item has int $.fileno
+=item method int fileno()
 
 File descriptors are always native integers, conforming to C89.
 
@@ -116,246 +331,10 @@ Returns True on success, but might return an unthrown failure.
 Returns true only if IO buffers are successfully flushed and closes the system
 file descriptor.  
 
-You don't have to close IO if you are immediately going to do
-another C<open> on it, because C<open> will close it for you.  (See
-C<open>.)  However, an explicit C<close> on an input file resets the line
-counter (C<$.>), while the implicit close done by C<open> does not.
-
-=back
-
-=head2 IO::Buffered
-
-Indicates that this object performs buffering. The management of the
-buffer is completely implementation specific.
-
-=item method Bool flush()
-
-Flushes the buffers associated with this object.
-
-=item has Bool $.autoflush is rw
-
-Forces this object to keep its buffers empty
-
-=head2 IO::POSIX
-
-Indicates that this object can perform standard posix IO
-operations. It implies IO::Readable and IO::Writeable.
-
-=over
-
-=item method IO dup()
-
-=item has Bool $.blocking is rw
-
-=item method Bool flock(:$r,:$w)
-
-=item method Bool funlock()
-
-=item ...
-
-=back
-
-=head2 IO::Seekable
-
-=over
-
-=item method Bool eoi()
-
-Returns true if it's the end of the input (ie. end of file or whatever), returns false if 
-not, returns undef if we can't say for certain.  
-
-=item IO.seek
-
-=item IO.tell
-
-=back
-
-=head2 IO::Encoded
-
-This is a generic role for encoded data streams.
-
-=over
-
-=item has $.encoding is rw
-=item has $.locale is rw
-
-Encoding and locale are required for sane conversions.
-
-=back
-
-=head2 IO::Readable::Encoded
-
-This role provides encoded access to a readable data stream, implies
-IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
-
-=over
-
-=item has $.input_record_separator is rw
-
-This regulates how "readline" behaves.
-
-=item has $.input_field_separator is rw
-
-This regulates how "readfield" behaves.
-
-=item has $.input_escape is rw
-
-This allows the definition of a escape character, which should be used
-by readline and readfield.
-
-=item method Str readline
-
-Reads the stream before it finds a $.input_record_separator and
-returns it (including the separator). If $.input_escape is set, it
-should pay attention to that.
-
-=item method Str readfield
-
-Reads the stream before it finds a $.input_field_separator and returns
-it (including the separator). If a readfield finds a
-$.input_record_separator it skips it and reads the next field. If
-$.input_escape is set, it should pay attention to that.
-
-=item method Str getc(Int $length? = 1)
-
-Reads the next $length character in the set $.encoding according to
-the $.locale, or the undefined value at end of file, or if there was
-an error (in the latter case C<$!> is set).
-
-=item IO.lines
-
-    our List multi method lines (IO $handle:) is export;
-    our List multi lines (Str $filename);
-
-Returns all the lines of a file as a (lazy) List regardless of context.
-See also C<slurp>.
-
-=item IO.slurp
-
-    our Item multi method slurp (IO $handle: *%opts) is export;
-    our Item multi slurp (Str $filename, *%opts);
-
-Slurps the entire file into a Str or Buf regardless of context.
-(See also C<lines>.)  Whether a Str or Buf is returned depends on
-the options.
-
-=back
-
-=head2 IO::Writeable::Encoded
-
-This role provides encoded access to a writeable data stream, implies
-IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
-
-If these are called in their non-object form, they operate on C<$*DEFOUT>, except in the 
-case of warn(), which operates on C<$*DEFERR>.  The form with leading dot prints C<$_> to 
-the appropriate default handle unless an explicit filehandle is supplied.
-
-=over
-
-=item has $.output_record_separator is rw
-
-This regulates how say and print(%hash) behaves.
-
-=item has $.output_field_separator is rw
-
-This regulates how print(@arr), say(@arr), print(%hash) and
-say(%hash) behave.
-
-=item has $.output_escape is rw
-
-This allows the definition of a escape character, which should be used
-by say and print to preserve the record/field semantics.
-
-=item method Bool print(Str $str)
-=item method Bool say(Str $str)
-
-Sends $str to the data stream doing proper encoding conversions. Say
-sends an additional $.output_record_separator. This should also
-convert "\n" to the desired $.output_record_separator.
-
-=item method Bool print(Array @arr)
-=item method Bool say(Array @arr)
-
-Sends each element of @arr separated by $.output_field_separator. Say
-should add an additional $.output_record_separator. If an element
-contains the $.output_record_separator or the
-$.output_field_seaparator and a $.output_escape is defined, it should
-do the escaping.
-
-=item method Bool print(Hash %hash)
-=item method Bool say(Hash %hash)
-
-Sends each pair of the hash separated by $.output_record_separator,
-with key and value separated by $.output_field_separator. If one of
-those contains a $.output_record_separator or a
-$.output_field_seaparator and $.output_escape is set, it should do the
-escaping.
-
-=item print
-
-    our Bool method print (IO $self: *@LIST)
-    our Bool multi print (*@LIST)
-    our Bool method print (Str $self: IO $io)
-
-Prints a string or a list of strings.  Returns Bool::True if
-successful, Failure otherwise.  The IO handle, if supplied, must be
-an object that supports I/O.  Indirect objects in Perl 6 must always
-be followed by a colon, and any indirect object more complicated than
-a variable should be put into parentheses.
-
-It is a compiler error to use a bare C<print> without arguments.
-(However, it's fine if you have an explicit argument list that evaluates to
-the empty list at runtime.)
-
-There is are no variables corresponding to Perl 5's C<$,> and
-C<$\> variables.  Use C<join> to interpose separators; use filehandle
-properties to change line endings.
-
-=item say
-
-    our Bool method say (IO $self: *@LIST)
-    our Bool multi say (*@LIST)
-    our Bool method say (Str $self: IO $io)
-
-This is identical to print() except that it auto-appends a newline after
-the final argument.
-
-    Was:    print "Hello, world!\n";
-    Now:    say   "Hello, world!";
-
-As with C<print>, it is a compiler error to use a bare C<say> without
-arguments.
-
-=item printf
-
-    our Bool method printf (IO $self: Str $fmt, *@LIST)
-    our Bool multi printf (Str $fmt, *@LIST)
-
-The function form works as in Perl 5 and always prints to $*DEFOUT.
-The method form uses IO handles, not formats, as objects.
-
-=item warn LIST
-
-=item Str.warn
-
-Prints a warning just like Perl 5, except that it is always sent to
-the object in $*DEFERR, which is just standard error ($*ERR).
-
-=back
-
-
-=head2 IO::Openable
-
-This role implies that the object can be connected to, or listened on.
-
-=over 4
-
-=item open
-
- method Bool open();
-
-Attempts to open the handle.  Depending on the implementation, this could be an open() 
-call, a connect(), a listen(), or something similar.  
+Unlike in Perl 5, an IO object is not a special symbol table entry
+neither this object is available magically anywhere else. But as in
+Perl 5, unless stated otherwise, IO::Closeable objects always close
+themselves during destruction
 
 =back
 
@@ -374,16 +353,6 @@ role	IO::Socket  {
 =item IO.shutdown
 
 (should IO::Socket.close() call shutdown, instead of having a different name?)
-
-=back
-
-=head2 IO::Streamable
-
-role	IO::Streamable does IO::POSIX does IO::Openable does IO::Closeable {
-...
-}
-
-=over
 
 =item IO.accept
 
@@ -722,6 +691,25 @@ Does a send().
 
 =back
 
+=head2 IO::POSIX
+
+Indicates that this object can perform standard posix IO
+operations. It implies IO::Readable and IO::Writeable.
+
+=over
+
+=item method IO dup()
+
+=item has Bool $.blocking is rw
+
+=item method Bool flock(:$r,:$w)
+
+=item method Bool funlock()
+
+=item ...
+
+=back
+
 =head2 IO::Pipe
 
 class	IO::Pipe does IO::Streamable {
@@ -805,6 +793,8 @@ reader and writer ends of the pipe.
 
 =head1 Removed functions
 
+=over
+
 =item IO.eof
 
 Gone, see IO::Endable
@@ -820,6 +810,8 @@ Gone.  (Note: for subsecond sleep, just use sleep with a fractional argument.)
 =item socketpair
 
 Gone, see Socket.pair
+
+=back
 
 =head1 Additions
 
