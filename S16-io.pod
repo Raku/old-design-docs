@@ -11,6 +11,7 @@ DRAFT: Synopsis 16: IPC / IO / Signals
  Maintainer:    Larry Wall <larry@wall.org>
  Contributions: Mark Stosberg <mark@summersault.com>
                 Tim Nelson <wayland@wayland.id.au>
+                Daniel Ruoso <daniel@ruoso.com>
  Date:          12 Sep 2006
  Last Modified: 14 Feb 2009
  Version:       19
@@ -170,33 +171,6 @@ This is a generic role for encoded data streams.
 
 Encoding and locale are required for sane conversions.
 
-=item has $.input_record_separator is rw
-
-This regulates how "readline" behaves.
-
-=item has $.output_record_separator is rw
-
-This regulates how say and print(%hash) behaves.
-
-=item has $.input_field_separator is rw
-
-This regulates how "readfield" behaves.
-
-=item has $.output_field_separator is rw
-
-This regulates how print(@arr), say(@arr), print(%hash) and
-say(%hash) behave.
-
-=item has $.input_escape is rw
-
-This allows the definition of a escape character, which should be used
-by readline and readfield.
-
-=item has $.output_escape is rw
-
-This allows the definition of a escape character, which should be used
-by say and print to preserve the record/field semantics.
-
 =back
 
 =head2 IO::Readable::Encoded
@@ -205,6 +179,19 @@ This role provides encoded access to a readable data stream, implies
 IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
 
 =over
+
+=item has $.input_record_separator is rw
+
+This regulates how "readline" behaves.
+
+=item has $.input_field_separator is rw
+
+This regulates how "readfield" behaves.
+
+=item has $.input_escape is rw
+
+This allows the definition of a escape character, which should be used
+by readline and readfield.
 
 =item method Str readline
 
@@ -224,14 +211,9 @@ $.input_escape is set, it should pay attention to that.
 Reads the next character in the set $.encoding according to the
 $.locale.
 
-=item getc
-
-    our Bool method getc (IO $self: Bool :async)
-
 Returns the next character from the input stream attached to IO,
 or the undefined value at end of file, or if there was an error (in
-the latter case C<$!> is set). The C<:async> flag lets the call
-return an undefined value if no character is immediately available.
+the latter case C<$!> is set).
 
 =item IO.lines
 
@@ -262,6 +244,20 @@ case of warn(), which operates on C<$*DEFERR>.  The form with leading dot prints
 the appropriate default handle unless an explicit filehandle is supplied.
 
 =over
+
+=item has $.output_record_separator is rw
+
+This regulates how say and print(%hash) behaves.
+
+=item has $.output_field_separator is rw
+
+This regulates how print(@arr), say(@arr), print(%hash) and
+say(%hash) behave.
+
+=item has $.output_escape is rw
+
+This allows the definition of a escape character, which should be used
+by say and print to preserve the record/field semantics.
 
 =item method Bool print(Str $str)
 =item method Bool say(Str $str)
