@@ -14,14 +14,14 @@ Synopsis 29: Builtin Functions
                 Carl Mäsak <cmasak@gmail.com>
                 Moritz Lenz <moritz@faui2k3.org>
  Date:          12 Mar 2005
- Last Modified: 26 Jan 2009
- Version:       39
+ Last Modified: 16 Feb 2009
+ Version:       40
 
 The document is a draft.
 
 If you read the HTML version, it is generated from the pod in the pugs 
-repository under /docs/Perl6/Spec/Functions.pod so edit it there in the
-SVN repository if you would like to make changes.
+repository under /docs/Perl6/Spec/S29-functions.pod so edit it there in
+the SVN repository if you would like to make changes.
 
 =head1 Notes
 
@@ -2290,6 +2290,28 @@ chroot crypt getlogin /[get|set][pw|gr].*/ kill setpgrp setpriority
 times
 
 ... These are probably going to be part of POSIX, automatically imported to GLOBAL B<if> the platform is the right one
+
+=back
+
+=head1 Junction
+
+All method calls on Junctions autohread if there's no such method in the
+Junction class.
+
+=over 4
+
+=item eigenstates
+
+    our List multi method eigenstates (Junction $j)
+
+Returns an unordered list of the values that constitute the junction (formerly
+called C<.values>). It flattens nested junctions of the same type, so
+C<(1|(2|3)).eigenstate> returns an arbitrary permutation of the list
+C<1, 2, 3>.
+
+This method has a rather unusual name by intention; a more common name might
+cause confusion as it could clash with a method name over which autothreading
+is expected.
 
 =back
 
