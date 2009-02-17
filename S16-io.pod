@@ -68,6 +68,11 @@ have plain octets stored in $buf, if this is actually encoded data,
 you're going to need to encode it later, or use "getc" or other
 IO::Readable::Encoded methods.
 
+=item method Bool is_readable()
+
+Indicates whether socket is actually opened for reading.  Closed sockets
+return false.  
+
 =back
 
 =head2 IO::Writeable
@@ -86,6 +91,11 @@ It is important to realize that this is "raw" write. $buf should
 contain plain octets that are going to be sent. If $buf contains
 encoded data, you should decode it first, or use "print" or other
 IO::Writeable::Encoded methods.
+
+=item method Bool is_writeable()
+
+Indicates whether socket is actually opened for writing.  Closed sockets
+return false.  
 
 =back
 
@@ -411,7 +421,7 @@ class	IO::File does IO::Streamable {
 
 =item init
 
- method init(String $filename, $options?);
+ method init(Str $filename, $options?);
  method init(Int $fd);
 
  # Read
@@ -439,13 +449,23 @@ presumably passed in from the parent process.
 This reads directories, deletes filesystem entries, creates links, and the like.  
 
 class	IO::FileSystem does IO::Streamable {
-	has	IO::FileSystemEntry $cwd;
+	has	IO::FileSystemEntry $.cwd; # Current working directory
+	has	IO::FileSystemEntry $.basepath; # The Unix mount point, or Windows drive letter, or whatever
+	has	Str $.type; # ext3, ntfs, vfat, reiserfs, etc
+	has	Str $.illegal_chars; # ie. /\x0
+	has	Int $.max_path;
 ...
 }
 
 =over 4
 
 =item glob
+
+Returns FileSystemEntry objects
+
+=item find
+
+Returns FileSystemEntry objects
 
 =item link
 
@@ -501,6 +521,8 @@ It is an error to use bare C<unlink> without arguments.
 =head2	IO::FilesystemEntry
 
 class	IO::FileSystemEntry {
+	has	Str $path;
+	has	IO::FileSystemEntryACL @.acls;
 ...
 }
 
@@ -662,7 +684,67 @@ to true, and additional file tests may be performed on the value.  If
 the stat fails, all subsequent tests on the stat buffer also evaluate
 to false.
 
+=item realpath
+
+ method Str realpath();
+
+Gets the real path to the object, resolving softlinks/shortcuts, etc
+
+=item parent
+
+ method IO::FileSystemEntry parent();
+
+=item isSameFile
+
+ method isSameFile(Str $filename);
+
+Test whether the specified filename is the same file as this file.  On a Unix system, 
+this would presumably be done by comparing inode numbers or something.  
+
 =back
+
+=head2	IO::FileSystemEntryACL
+
+This is a basic abstraction; for better control, use the operating-system specific 
+interfaces [not designed yet], over which this is a thin veneer.  
+
+class	IO::FileSystemEntryACL {
+	has	Str $.type; # "User", "Group", "Everyone", ???
+	has	Str $.id; # username or groupname; unused for $type eq "Everyone"
+	has	%.permissions;
+		# Unsupported values may (or may not) throw 
+		# UnsupportedPermission when set or read
+	has	IO::FileSystemEntry $.owningObject;
+...
+}
+
+The permissions used in %permissions are:
+
+=over
+
+=item Readable
+
+Should be supported by all filesystems as an item to read from the hash for the group 
+"Everyone".  
+
+=item Writeable
+
+Should be supported by all filesystems as an item to read from the hash for the group 
+"Everyone".  
+
+=item Executeable
+
+Supported on most Unix systems, anyway
+
+=item Default
+
+An ACL of User,fred,Default sets the user "fred" to be the owner of the file.  This can be 
+done with groups too.  Work on Unix, at least.  
+
+=back
+
+The $.owningObject attribute of FileSystemEntryACL shows what the ACL is set on.  On a 
+Windows system, this can be a parent directory, as permissions are inherited.  
 
 =head2	IO::Socket::TCP
 
