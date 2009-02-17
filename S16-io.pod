@@ -436,9 +436,70 @@ presumably passed in from the parent process.
 
 =head2	IO::FileSystem
 
-This reads directories, worries about ownership and permissions, and the like.  
+This reads directories, deletes filesystem entries, creates links, and the like.  
 
 class	IO::FileSystem does IO::Streamable {
+...
+}
+
+=over 4
+
+=item glob
+
+=item link
+
+=item lstat
+
+Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
+to true, and additional file tests may be performed on the value.  If
+the stat fails, all subsequent tests on the stat buffer also evaluate
+to false.
+
+=item mkdir
+
+=item IO::Dir::open EXPR
+
+  my $dir = IO::Dir::open('.');
+
+Opens a directory named EXPR for processing.  Makes the directory looks like
+a list of autochomped lines, so just use ordinary IO operators after the open.
+
+=item readlink
+
+=item rename
+
+=item rmdir FILENAME
+X<rmdir> X<rd> X<directory, remove>
+
+=item rmdir
+
+Deletes the directory specified by FILENAME if that directory is
+empty.  If it succeeds it returns true, otherwise it returns false and
+sets C<$!> (errno).  If FILENAME is omitted, uses C<$_>.
+
+=item symlink
+
+=item unlink LIST
+X<unlink> X<delete> X<remove> X<rm>
+
+=item unlink
+
+Deletes a list of files.  Returns the number of files successfully
+deleted.
+
+    $cnt = unlink 'a', 'b', 'c';
+
+Be warned that unlinking a directory can inflict damage on your filesystem.
+Finally, using C<unlink> on directories is not supported on many operating
+systems.  Use C<rmdir> instead.
+
+It is an error to use bare C<unlink> without arguments.
+
+=back
+
+=head2	IO::FilesystemEntry
+
+class	IO::FileSystem {
 ...
 }
 
@@ -591,39 +652,6 @@ successfully changed.
     $mode = '0o644'; chmod $mode, 'foo';     # this is better
     $mode = 0o644;   chmod $mode, 'foo';     # this is best
 
-=item glob
-
-=item link
-
-=item lstat
-
-Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
-to true, and additional file tests may be performed on the value.  If
-the stat fails, all subsequent tests on the stat buffer also evaluate
-to false.
-
-=item mkdir
-
-=item IO::Dir::open EXPR
-
-  my $dir = IO::Dir::open('.');
-
-Opens a directory named EXPR for processing.  Makes the directory looks like
-a list of autochomped lines, so just use ordinary IO operators after the open.
-
-=item readlink
-
-=item rename
-
-=item rmdir FILENAME
-X<rmdir> X<rd> X<directory, remove>
-
-=item rmdir
-
-Deletes the directory specified by FILENAME if that directory is
-empty.  If it succeeds it returns true, otherwise it returns false and
-sets C<$!> (errno).  If FILENAME is omitted, uses C<$_>.
-
 =item stat
 
 =item IO.stat
@@ -632,24 +660,6 @@ Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
 to true, and additional file tests may be performed on the value.  If
 the stat fails, all subsequent tests on the stat buffer also evaluate
 to false.
-
-=item symlink
-
-=item unlink LIST
-X<unlink> X<delete> X<remove> X<rm>
-
-=item unlink
-
-Deletes a list of files.  Returns the number of files successfully
-deleted.
-
-    $cnt = unlink 'a', 'b', 'c';
-
-Be warned that unlinking a directory can inflict damage on your filesystem.
-Finally, using C<unlink> on directories is not supported on many operating
-systems.  Use C<rmdir> instead.
-
-It is an error to use bare C<unlink> without arguments.
 
 =back
 
