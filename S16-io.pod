@@ -535,7 +535,7 @@ class	DateTime does Date does Time does Timezone {
 	multi method infix:{'<=>'}(DateTime $self, DateTime $other);
 	multi method infix:{'<=>'}(DateTime $self, Duration $other);
 
-	method	init();
+	method	new(Str $String);
 	method	truncate(Str $to);
 	method	last(Str $type, Str $of);
 	method	toString($format?);
@@ -546,9 +546,9 @@ that use the strftime functions instead.
 
 =over
 
-=item init
+=item new
 
- method init(Str $String) # parser defaults to 'strptime' or something similar
+ method new(Str $String) # parser defaults to 'strptime' or something similar
 	| (Str $parser, Str $String) # $parser = 'strptime'
 	| (Str $parser, Int $Epoch)  # $parser = 'epoch'
 	| (Str $parser, Str $Timezone?) # $parser = 'today' [unless strptime does this]
@@ -594,10 +594,10 @@ class	IO::File does IO::Streamable {
 
 =over
 
-=item init
+=item new
 
- method init(Str $filename, $options?);
- method init(Int $fd);
+ method new(Str $filename, $options?);
+ method new(Int $fd);
 
  # Read
  $fobj = new IO::File($filename);
@@ -811,15 +811,15 @@ Gets the real path to the object, resolving softlinks/shortcuts, etc
 Test whether the specified filename is the same file as this file.  On a Unix system, 
 this would presumably be done by comparing inode numbers or something.  
 
-=item init
+=item new
 
-This is called automatically on object creation; I'm unsure if init is the right name.  
+This is called automatically on object creation.  
 
-multi method init(@pathelements); # new IO::FSNode('home', 'wayland')
-multi method init(String $type, String $path) # new IO::FSNode('Unix', '/home/wayland');
-multi method init(String $path) # new IO::FSNode('/home/wayland');
+multi method new(@pathelements); # new IO::FSNode('home', 'wayland')
+multi method new(String $type, String $path) # new IO::FSNode('Unix', '/home/wayland');
+multi method new(String $path) # new IO::FSNode('/home/wayland');
 
-This last throws an error if "use portable" is used.  
+This last throws an error if "use portable" pragma is used.  
 
 =back
 
@@ -914,9 +914,9 @@ class	IO::Socket::TCP does IO::Socket does IO::Streamable {
 
 =item has $.LocalPort
 
-=item init
+=item new
 
- method Bool init(
+ method Bool new(
 	$RemoteHost, $RemotePort, 
 	$LocalHost?, $LocalPort?, 
 	$Blocking?, 
