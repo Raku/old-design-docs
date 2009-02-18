@@ -54,6 +54,16 @@ purposes. It doesn't specify any methods or attributes.
 
 This role provides unbuffered read access to the data stream.
 
+role	IO::Readable {
+	has	$.isReadable;
+
+	method Int read($buf is rw, Int $length)
+}
+
+When the $.isReadable is set, it tries to change the readability of the filehandle.  This 
+is not always possible, but can be done in a number of cases.  IO::Socket can remove 
+readability by calling shutdown(), for example.  
+
 =over
 
 =item method Int read($buf is rw, Int $length)
@@ -68,16 +78,21 @@ have plain octets stored in $buf, if this is actually encoded data,
 you're going to need to encode it later, or use "getc" or other
 IO::Readable::Encoded methods.
 
-=item method Bool is_readable()
-
-Indicates whether socket is actually opened for reading.  Closed sockets
-return false.  
-
 =back
 
 =head2 IO::Writeable
 
 This role provides unbuffered write access to the data stream.
+
+role	IO::Writeable {
+	has	$.isWriteable;
+
+	method Int write($buf, Int $length)
+}
+
+When the $.isWriteable is set, it tries to change the writeability of the filehandle.  
+This is not always possible, but can be done in a number of cases.  IO::Socket can remove 
+writeability by calling shutdown(), for example.
 
 =over
 
@@ -91,11 +106,6 @@ It is important to realize that this is "raw" write. $buf should
 contain plain octets that are going to be sent. If $buf contains
 encoded data, you should decode it first, or use "print" or other
 IO::Writeable::Encoded methods.
-
-=item method Bool is_writeable()
-
-Indicates whether socket is actually opened for writing.  Closed sockets
-return false.  
 
 =back
 
@@ -356,6 +366,19 @@ reader and writer ends of the socket.
 
  method IO::Socket accept()
 
+=head2 IO::FileDescriptor
+
+This role indicates that this object actually represents an open file
+descriptor in the os level.
+
+=over
+
+=item method int fileno()
+
+File descriptors are always native integers, conforming to C89.
+
+=back
+
 =head2 Tree Roles and Classes
 
 To support the filesystem, it is also useful to define some generic tree roles, which 
@@ -535,7 +558,7 @@ class	DateTime does Date does Time does Timezone {
 	multi method infix:{'<=>'}(DateTime $self, DateTime $other);
 	multi method infix:{'<=>'}(DateTime $self, Duration $other);
 
-	method	new(Str $String);
+	method	new(:$String);
 	method	truncate(Str $to);
 	method	last(Str $type, Str $of);
 	method	toString($format?);
@@ -548,7 +571,7 @@ that use the strftime functions instead.
 
 =item new
 
- method new(Str $String) # parser defaults to 'strptime' or something similar
+ method new(Str :$String) # parser defaults to 'strptime' or something similar
 	| (Str $parser, Str $String) # $parser = 'strptime'
 	| (Str $parser, Int $Epoch)  # $parser = 'epoch'
 	| (Str $parser, Str $Timezone?) # $parser = 'today' [unless strptime does this]
@@ -596,8 +619,8 @@ class	IO::File does IO::Streamable {
 
 =item new
 
- method new(Str $filename, $options?);
- method new(Int $fd);
+ method new(Str :$filename, $options?);
+ method new(Int :$fd);
 
  # Read
  $fobj = new IO::File($filename);
@@ -815,11 +838,17 @@ this would presumably be done by comparing inode numbers or something.
 
 This is called automatically on object creation.  
 
-multi method new(@pathelements); # new IO::FSNode('home', 'wayland')
-multi method new(String $type, String $path) # new IO::FSNode('Unix', '/home/wayland');
-multi method new(String $path) # new IO::FSNode('/home/wayland');
+multi method new(Array of Str :@pathelements);
+multi method new(String :$type, String :$path);
+multi method new(String :$path);
 
 This last throws an error if "use portable" pragma is used.  
+
+Examples:
+
+ $fsnode = new IO::FSNode(pathelements => ['home', 'wayland']);
+ $fsnode = new IO::FSNode(type => 'Unix', path => '/home/wayland');
+ $fsnode = new IO::FSNode(path => '/home/wayland');
 
 =back
 
@@ -916,11 +945,11 @@ class	IO::Socket::TCP does IO::Socket does IO::Streamable {
 
 =item new
 
- method Bool new(
-	$RemoteHost, $RemotePort, 
-	$LocalHost?, $LocalPort?, 
-	$Blocking?, 
-	$NoOpen?
+ method IO::Socket::TCP new(
+	:$RemoteHost, :$RemotePort, 
+	:$LocalHost, :$LocalPort, 
+	:$Blocking, 
+	:$NoOpen
  );
 
 The creation of the object will also open the connection, unless NoOpen is specified.  
@@ -1009,19 +1038,6 @@ reader and writer ends of the pipe.
 =head1 OS-specific classes
 
 =head2 Unix
-
-=head2 IO::FileDescriptor
-
-This role indicates that this object actually represents an open file
-descriptor in the os level.
-
-=over
-
-=item method int fileno()
-
-File descriptors are always native integers, conforming to C89.
-
-=back
 
 =head2 IO::FSNode::Unix
 
@@ -1170,7 +1186,7 @@ Gone.  (Note: for subsecond sleep, just use sleep with a fractional argument.)
 
 =item IO.shutdown()
 
-Gone, see IO::Socket.close()
+Gone, see IO::Socket.close(), $IO::Readable.isReadable, and $IO::Writeable.isWriteable
 
 =item socketpair
 
