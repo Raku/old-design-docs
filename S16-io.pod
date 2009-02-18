@@ -204,21 +204,6 @@ Reads the next $length character in the set $.encoding according to
 the $.locale, or the undefined value at end of file, or if there was
 an error (in the latter case C<$!> is set).
 
-=item our List multi method lines (IO $handle:) is export;
-
-=item our List multi lines (Str $filename);
-
-Returns all the lines of a file as a (lazy) List regardless of context.
-See also C<slurp>.
-
-=item our Item multi method slurp (IO $handle: *%opts) is export;
-
-=item our Item multi slurp (Str $filename, *%opts);
-
-Slurps the entire file into a Str or Buf regardless of context.
-(See also C<lines>.)  Whether a Str or Buf is returned depends on
-the options.
-
 =back
 
 =head2 IO::Writeable::Encoded
@@ -314,19 +299,6 @@ The method form uses IO handles, not formats, as objects.
 
 =back
 
-=head2 IO::FileDescriptor
-
-This role indicates that this object actually represents an open file
-descriptor in the os level.
-
-=over
-
-=item method int fileno()
-
-File descriptors are always native integers, conforming to C89.
-
-=back
-
 =head2 IO::Closeable
 
 This role indicates that this object can be closed.
@@ -350,25 +322,16 @@ themselves during destruction
 
 =head2 IO::Socket
 
-role	IO::Socket  {
+role	IO::Socket {
+	has %.options;
 ...
 }
 
+Accessing the %.options would on Unix be done with getsockopt/setsockopt.
+
 =over
 
-=item socket
-
-=item IO.setsockopt
-
-=item IO.shutdown
-
-(should IO::Socket.close() call shutdown, instead of having a different name?)
-
-=item IO.accept
-
-=item IO.bind
-
-=item Socket.pair
+=item pair
 
     our List of IO method pair(Int $domain, Int $type, Int $protocol)
 
@@ -381,17 +344,88 @@ reader and writer ends of the socket.
 
 =back
 
+=head2 IO::Listening
+
+=item open
+
+ method open()
+
+ Does a bind() and a listen().  
+
+=item accept
+
+ method IO::Socket accept()
+
+=head2 Tree Roles and Classes
+
+To support the filesystem, it is also useful to define some generic tree roles, which 
+could equally well be used for XML or LDAP as well as filesystem representation.  However, 
+while the roles are generic, the comments and documentation in this section refers 
+specifically to filesystems.  
+
+=head3 Tree::Name
+
+ class	Tree::Name {
+	has $.namespace;
+	has $.prefix;
+
+	# Call this for stringifying
+	method fullname()
+ }
+
+ fullname for XML does "$namespace:$prefix"
+
+=head3 Tree::Node
+
+This should be an ancestor role to filesystems, their elements, their attributes, and the 
+like.  
+
+ role	Tree::Node does Array {
+	has Tree::Name $.name; # would usually be File or Directory on a filesystem
+	has $.ownerNode; # This is the IO::FileSystem
+	has $.rootNode; This is the root of the filesystem
+	has $.parent; # Another Tree::Node
+	has @.children handles <Array List Container>; # This is all the child notes
+	has $.path is ro; # Accessor does a getpath
+	has $.depth is ro; # depth from $ownerNode
+
+	method infix:<===>(...)
+	method infix:<==>(...)
+	multi method *infix:</>(Tree::Node @nodes: Matcher $test);
+	multi method postfix:<//>(Tree::Node @parents: Matcher $test);
+	method path(Str $.quitcriteria); # This allows the path call to quit eg. when it 
+		# gets to the filesystem root, instead of the overall root
+ }
+
+Array operations on this are entirely capable of moving files and directories, 
+
+=head3 Tree
+
+ role	Tree does Tree::Node {
+	has Tree::Node $root; # The root directory
+	has Tree::Node $cwn; # The current working directory (node)
+ }
+
+=head3 Tree::Element
+
+ role	Tree::Element does Tree::Node {
+	has %.attributes; # This is all the attributes, including Name
+	has Str $!defaultattributename;
+	method postcircumfix:<{ }>($selector, $node(s)); # Accesses stuff in %attributes
+	method pathelement();
+ }
+
+=head3 Tree::Attribute
+
+ role Tree::Attribute does Tree::Node {
+	has $.value;
+
+        method pathelement();
+ }
+
 =head1 Filehandles, files, and directories
 
 =over 4
-
-=item IO.fcntl
-
-Available only as a handle method.
-
-=item IO.ioctl
-
-Available only as a handle method.
 
 =item IO.name
 
@@ -442,39 +476,36 @@ presumably passed in from the parent process.
 
 =item IO.truncate
 
+=item IO.fcntl
+
+Available only as a handle method.
+
 =back
 
 =head2	IO::FileSystem
 
 This reads directories, deletes filesystem entries, creates links, and the like.  
 
-class	IO::FileSystem does IO::Streamable {
-	has	IO::FileSystemEntry $.cwd; # Current working directory
-	has	IO::FileSystemEntry $.basepath; # The Unix mount point, or Windows drive letter, or whatever
-	has	Str $.type; # ext3, ntfs, vfat, reiserfs, etc
+class	IO::FileSystem does IO::Streamable does Tree {
+	has	Str $.fstype; # ext3, ntfs, vfat, reiserfs, etc
 	has	Str $.illegal_chars; # ie. /\x0
 	has	Int $.max_path;
 ...
 }
 
+It inherits $cwn and $root from Tree.  
+
 =over 4
 
 =item glob
 
-Returns FileSystemEntry objects
+Returns FSNode objects
 
 =item find
 
-Returns FileSystemEntry objects
+Returns FSNode objects
 
 =item link
-
-=item lstat
-
-Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
-to true, and additional file tests may be performed on the value.  If
-the stat fails, all subsequent tests on the stat buffer also evaluate
-to false.
 
 =item mkdir
 
@@ -518,11 +549,10 @@ It is an error to use bare C<unlink> without arguments.
 
 =back
 
-=head2	IO::FilesystemEntry
+=head2	IO::FSNode
 
-class	IO::FileSystemEntry {
-	has	Str $path;
-	has	IO::FileSystemEntryACL @.acls;
+class	IO::FSNode does Tree::Node {
+	has Array of IO::FSNodeACL @.ACLs;
 ...
 }
 
@@ -621,100 +651,33 @@ Or pass multiple tests together in OO style:
   if $filename.TEST(:e,:x) {...}
 
 
-=item chown
-
-    our Int multi chown ($uid = -1, $gid = -1, *@files)
-
-Changes the owner (and group) of a list of files.  The first
-two elements of the list must be the numeric uid and gid, in
-that order.  A value of -1 in either position is interpreted by
-most systems to leave that value unchanged.  Returns the number
-of files successfully changed.
-
-    $count = chown $uid, $gid, ’foo’, ’bar’;
-    chown $uid, $gid, @filenames;
-
-On systems that support C<fchown>, you might pass file handles
-among the files.  On systems that don’t support C<fchown>, passing
-file handles produces a fatal error at run time.
-
-Here’s an example that looks up nonnumeric uids in the passwd
-file:
-
-   $user = prompt "User: ";
-   $pattern = prompt "Files: ";
-
-   ($login,$pass,$uid,$gid) = getpwnam($user)
-       or die "$user not in passwd file";
-
-   @ary = glob($pattern);      # expand filenames
-   chown $uid, $gid, @ary;
-
-On most systems, you are not allowed to change the ownership of
-the file unless you’re the superuser, although you should be
-able to change the group to any of your secondary groups.  On
-insecure systems, these restrictions may be relaxed, but this
-is not a portable assumption.  On POSIX systems, you can detect
-this condition this way:
-
-    use POSIX qw(sysconf _PC_CHOWN_RESTRICTED);
-    $can_chown_giveaway = not sysconf(_PC_CHOWN_RESTRICTED);
-
-=item chmod LIST
-X<chmod> X<permission> X<mode>
-
-Changes the permissions of a list of files.  The first element of the
-list must be the numerical mode, which should probably be an octal
-number, and which definitely should I<not> be a string of octal digits:
-C<0o644> is okay, C<0644> is not.  Returns the number of files
-successfully changed.
-
-    $cnt = chmod 0o755, 'foo', 'bar';
-    chmod 0o755, @executables;
-    $mode = '0644'; chmod $mode, 'foo';      # !!! sets mode to --w----r-T
-    $mode = '0o644'; chmod $mode, 'foo';     # this is better
-    $mode = 0o644;   chmod $mode, 'foo';     # this is best
-
-=item stat
-
-=item IO.stat
-
-Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
-to true, and additional file tests may be performed on the value.  If
-the stat fails, all subsequent tests on the stat buffer also evaluate
-to false.
-
 =item realpath
 
  method Str realpath();
 
 Gets the real path to the object, resolving softlinks/shortcuts, etc
 
-=item parent
+=item === operator
 
- method IO::FileSystemEntry parent();
-
-=item isSameFile
-
- method isSameFile(Str $filename);
+ method infix:<===>(Str $filename);
 
 Test whether the specified filename is the same file as this file.  On a Unix system, 
 this would presumably be done by comparing inode numbers or something.  
 
 =back
 
-=head2	IO::FileSystemEntryACL
+=head2	IO::FSNodeACL
 
 This is a basic abstraction; for better control, use the operating-system specific 
-interfaces [not designed yet], over which this is a thin veneer.  
+interfaces, over which this is a thin veneer.  
 
-class	IO::FileSystemEntryACL {
+class	IO::FSNodeACL {
 	has	Str $.type; # "User", "Group", "Everyone", ???
 	has	Str $.id; # username or groupname; unused for $type eq "Everyone"
 	has	%.permissions;
 		# Unsupported values may (or may not) throw 
 		# UnsupportedPermission when set or read
-	has	IO::FileSystemEntry $.owningObject;
+	has	IO::FSNode $.owningObject;
 ...
 }
 
@@ -734,7 +697,8 @@ Should be supported by all filesystems as an item to read from the hash for the 
 
 =item Executeable
 
-Supported on most Unix systems, anyway
+Supported on most Unix systems, anyway.  Windows should be able to guess when this is 
+read, and throw an exception if written to.  
 
 =item Default
 
@@ -743,8 +707,39 @@ done with groups too.  Work on Unix, at least.
 
 =back
 
-The $.owningObject attribute of FileSystemEntryACL shows what the ACL is set on.  On a 
+The $.owningObject attribute of FSNodeACL shows what the ACL is set on.  On a 
 Windows system, this can be a parent directory, as permissions are inherited.  
+
+=head2	IO::FileNode
+
+ role	IO::FileNode does IO::FSNode {
+...
+ }
+
+=over
+
+=item our List multi method lines (IO $handle:) is export;
+
+=item our List multi lines (Str $filename);
+
+Returns all the lines of a file as a (lazy) List regardless of context.
+See also C<slurp>.
+
+=item our Item multi method slurp (IO $handle: *%opts) is export;
+
+=item our Item multi slurp (Str $filename, *%opts);
+
+Slurps the entire file into a Str or Buf regardless of context.
+(See also C<lines>.)  Whether a Str or Buf is returned depends on
+the options.
+
+=back
+
+=head2	IO::DirectoryNode
+
+ role	IO::DirectoryNode does IO::FSNode {
+...
+ }
 
 =head2	IO::Socket::TCP
 
@@ -762,11 +757,24 @@ class	IO::Socket::TCP does IO::Socket does IO::Streamable {
 
 =item has $.LocalPort
 
-=item method Bool open($Listen?);
+=item init
 
-If $Listen is 2, it does a listen(), but no connect().  
-If $Listen is any other true value, it does a connect() and a listen().  
-If $Listen is false, it does a connect(), but no listen().
+ method Bool init(
+	$RemoteHost, $RemotePort, 
+	$LocalHost?, $LocalPort?, 
+	$Blocking?, 
+	$NoOpen?
+ );
+
+The creation of the object will also open the connection, unless NoOpen is specified.  
+
+=item open
+
+ method open()
+
+If it's not an IO::Listening, it does a connect().
+
+It's intended for the case where the creation of the object didn't do one.  
 
 =item method Int read($buf is rw, Int $length)
 
@@ -779,25 +787,6 @@ Does a send().
 =item IO.getpeername
 
 =item /[get|set][host|net|proto|serv|sock].*/
-
-=back
-
-=head2 IO::POSIX
-
-Indicates that this object can perform standard posix IO
-operations. It implies IO::Readable and IO::Writeable.
-
-=over
-
-=item method IO dup()
-
-=item has Bool $.blocking is rw
-
-=item method Bool flock(:$r,:$w)
-
-=item method Bool funlock()
-
-=item ...
 
 =back
 
@@ -860,11 +849,123 @@ reader and writer ends of the pipe.
 
 =back
 
+=head1 OS-specific classes
+
+=head2 Unix
+
+=head2 IO::FileDescriptor
+
+This role indicates that this object actually represents an open file
+descriptor in the os level.
+
+=over
+
+=item method int fileno()
+
+File descriptors are always native integers, conforming to C89.
+
+=back
+
+=head2 IO::FSNode::Unix
+
+=item chown
+
+    our Int multi chown ($uid = -1, $gid = -1, *@files)
+
+Changes the owner (and group) of a list of files.  The first
+two elements of the list must be the numeric uid and gid, in
+that order.  A value of -1 in either position is interpreted by
+most systems to leave that value unchanged.  Returns the number
+of files successfully changed.
+
+    $count = chown $uid, $gid, ’foo’, ’bar’;
+    chown $uid, $gid, @filenames;
+
+On systems that support C<fchown>, you might pass file handles
+among the files.  On systems that don’t support C<fchown>, passing
+file handles produces a fatal error at run time.
+
+Here’s an example that looks up nonnumeric uids in the passwd
+file:
+
+   $user = prompt "User: ";
+   $pattern = prompt "Files: ";
+
+   ($login,$pass,$uid,$gid) = getpwnam($user)
+       or die "$user not in passwd file";
+
+   @ary = glob($pattern);      # expand filenames
+   chown $uid, $gid, @ary;
+
+On most systems, you are not allowed to change the ownership of
+the file unless you’re the superuser, although you should be
+able to change the group to any of your secondary groups.  On
+insecure systems, these restrictions may be relaxed, but this
+is not a portable assumption.  On POSIX systems, you can detect
+this condition this way:
+
+    use POSIX qw(sysconf _PC_CHOWN_RESTRICTED);
+    $can_chown_giveaway = not sysconf(_PC_CHOWN_RESTRICTED);
+
+=item chmod LIST
+X<chmod> X<permission> X<mode>
+
+Changes the permissions of a list of files.  The first element of the
+list must be the numerical mode, which should probably be an octal
+number, and which definitely should I<not> be a string of octal digits:
+C<0o644> is okay, C<0644> is not.  Returns the number of files
+successfully changed.
+
+    $cnt = chmod 0o755, 'foo', 'bar';
+    chmod 0o755, @executables;
+    $mode = '0644'; chmod $mode, 'foo';      # !!! sets mode to --w----r-T
+    $mode = '0o644'; chmod $mode, 'foo';     # this is better
+    $mode = 0o644;   chmod $mode, 'foo';     # this is best
+
+=item lstat
+
+Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
+to true, and additional file tests may be performed on the value.  If
+the stat fails, all subsequent tests on the stat buffer also evaluate
+to false.
+
+=item stat
+
+=item IO.stat
+
+Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
+to true, and additional file tests may be performed on the value.  If
+the stat fails, all subsequent tests on the stat buffer also evaluate
+to false.
+
+=head2 IO::POSIX
+
+Indicates that this object can perform standard posix IO
+operations. It implies IO::Readable and IO::Writeable.
+
+=over
+
+=item method IO dup()
+
+=item has Bool $.blocking is rw
+
+=item method Bool flock(:$r,:$w)
+
+=item method Bool funlock()
+
+=item ...
+
+=back
+
 =head1 Unfiled
 
 =over 4
 
 =item IO.fileno
+
+=item IO.ioctl
+
+Available only as a handle method.
 
 =item alarm
 
@@ -874,11 +975,7 @@ reader and writer ends of the pipe.
 
 =item Str.readpipe
 
-=item IO.sysread
-
 =item IO.sysseek
-
-=item IO.syswrite
 
 =back
 
@@ -898,9 +995,21 @@ Gone, see Pipe.pair
 
 Gone.  (Note: for subsecond sleep, just use sleep with a fractional argument.)
 
+=item IO.shutdown()
+
+Gone, see IO::Socket.close()
+
 =item socketpair
 
 Gone, see Socket.pair
+
+=item IO.sysread
+
+Gone, see IO::Readable.read()
+
+=item IO.syswrite
+
+Gone, see IO::Writeable.read()
 
 =back
 
