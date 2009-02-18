@@ -430,7 +430,7 @@ Array operations on this are entirely capable of moving files and directories,
 You probably want to use the DateTime object instead.  
 
 role	Date {
-	has Calendar $.calendar;
+	has Calendar $.calendar; # Gregorian, Secular, Julian, etc
 	has NumberName $.year;
 	has NumberName $.month;
 	has NumberName $.dayofmonth;
@@ -694,8 +694,14 @@ It is an error to use bare C<unlink> without arguments.
 
 class	IO::FSNode does Tree::Node {
 	has Array of IO::FSNodeACL @.ACLs;
+	has Hash of %.times;
 ...
 }
+
+The %times has keys that can be eg. ctime, Modification, and Access (and maybe others on 
+other operating systems), and the values are all DateTime objects.  
+
+When .path() is implemented, it should return the path that this was opened with.  
 
 =over 4
 
@@ -804,6 +810,16 @@ Gets the real path to the object, resolving softlinks/shortcuts, etc
 
 Test whether the specified filename is the same file as this file.  On a Unix system, 
 this would presumably be done by comparing inode numbers or something.  
+
+=item init
+
+This is called automatically on object creation; I'm unsure if init is the right name.  
+
+multi method init(@pathelements); # new IO::FSNode('home', 'wayland')
+multi method init(String $type, String $path) # new IO::FSNode('Unix', '/home/wayland');
+multi method init(String $path) # new IO::FSNode('/home/wayland');
+
+This last throws an error if "use portable" is used.  
 
 =back
 
@@ -1102,20 +1118,6 @@ operations. It implies IO::Readable and IO::Writeable.
 
 =over 4
 
-=item IO.name
-
-The C<.name> method returns the name of the file/socket/uri the handle
-was opened with, if known.  Returns undef otherwise.  There is no
-corresponding C<name()> function.
-
-=item sysopen
-
-=item umask
-
-=item utime
-
-=item IO.fileno
-
 =item IO.ioctl
 
 Available only as a handle method.
@@ -1126,9 +1128,15 @@ Available only as a handle method.
 
     our Str prompt (Str $prompt)
 
+    Should there be an IO::Interactive role?  
+
 =item Str.readpipe
 
+=item sysopen
+
 =item IO.sysseek
+
+=item umask
 
 =back
 
@@ -1139,6 +1147,18 @@ Available only as a handle method.
 =item IO.eof
 
 Gone, see IO::Endable
+
+=item IO.fileno
+
+See IO::FileDescriptor
+
+=item IO.name
+
+Changed to .path(), but we haven't gotten around to specifying this on all of them.  
+
+The C<.name> method returns the name of the file/socket/uri the handle
+was opened with, if known.  Returns undef otherwise.  There is no
+corresponding C<name()> function.
 
 =item pipe
 
@@ -1163,6 +1183,10 @@ Gone, see IO::Readable.read()
 =item IO.syswrite
 
 Gone, see IO::Writeable.read()
+
+=item utime
+
+Gone, see %IO::FSNode.times.  
 
 =back
 
