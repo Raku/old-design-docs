@@ -423,25 +423,166 @@ Array operations on this are entirely capable of moving files and directories,
         method pathelement();
  }
 
-=head1 Filehandles, files, and directories
+=head2 Time and Date roles
 
-=over 4
+=head3 Date
 
-=item IO.name
+You probably want to use the DateTime object instead.  
 
-The C<.name> method returns the name of the file/socket/uri the handle
-was opened with, if known.  Returns undef otherwise.  There is no
-corresponding C<name()> function.
+role	Date {
+	has Calendar $.calendar;
+	has NumberName $.year;
+	has NumberName $.month;
+	has NumberName $.dayofmonth;
+	has NumberName $.dayofweek;
+	has NumberName $.dayofyear;
+	has NumberName $.dayofquarter;
+	has NumberName $.quarter;
+	has NumberName $.era; # 'Common', 'Christian', etc
+	has Str $.defaultformat;
 
-=item sysopen
+	method	toString($format);
+	method	isLeapYear();
 
-=item umask
+	multi method DateTime infix:<+>(Date $self, Time $other);
+	multi method DateTime infix:<+>(Date $self, Duration $other);
 
-=item utime
+	multi method infix:<<=>>(Date $self, Date $other);
+	multi method infix:<<=>>(Date $self, Duration $other);
+
+	method	get(Str $type, Str $of);
+	method	last(Str $type, Str $of);
+}
+
+Example:
+
+$date = new Date('2002/01/01');
+$date.month.name(); # January
+$date.month.name('short'); # Jan
+$date.get('day', of => 'year');
+
+$date = new Date('2002/01/01');
+$date.convertcalendar('Chinese');
+$date.year.name(); # Snake
+
+A fair bit of initialisation of the NumberNames for day of the week and month will need to 
+be done.  
+
+$format will naturally need to allow for eras.  
+
+=over
+
+=item 
+
+ method toString($format = 'YYYY/MM/DD');
+
+$format contains things like YYYY/MM/DD or whatever.  
 
 =back
 
+=head3 Time
+
+You probably want to use the DateTime object instead.  
+
+role	Time {
+	has $.hour;
+	has $.minute;
+	has $.second;
+
+	method	toString($format?);
+	# This can't be right; how do we specify this
+	multi method infix:<<=>>(Time $self, Time $other);
+	multi method infix:<<=>>(Time $self, Duration $other);
+}
+
+When created, recognises "today" as a possibility.  
+
 =head1 Classes
+
+=head2 Time and Date classes
+
+=head3 NumberName
+
+ class	NumberName {
+	has $.number;
+
+	method	name($format?) {
+		...
+	}
+ }
+
+=head3 Timezone
+
+role Timezone {
+	has $.number;
+
+	method name($format);
+	method is_dst();
+}
+
+=head3 DateTime
+
+class	DateTime does Date does Time does Timezone {
+	has $.locale;
+	has $.parser;
+	has $.formatter; # Only for output formats
+
+	multi method DateTime infix:<+>(DateTime $self, Duration $other);
+
+	multi method infix:<->(DateTime $self, Duration $other);
+	multi method infix:<->(DateTime $self, Duration $other);
+
+	multi method infix:<<=>>(DateTime $self, DateTime $other);
+	multi method infix:<<=>>(DateTime $self, Duration $other);
+
+	method	init();
+	method	truncate(Str $to);
+	method	last(Str $type, Str $of);
+	method	toString($format?);
+}
+
+All formats are CLDR, although implementations may want to have another set of functions 
+that use the strftime functions instead.  
+
+=over
+
+=item init
+
+ method init(Str $String) # parser defaults to 'strptime' or something similar
+	| (Str $parser, Str $String) # $parser = 'strptime'
+	| (Str $parser, Int $Epoch)  # $parser = 'epoch'
+	| (Str $parser, Str $Timezone?) # $parser = 'today' [unless strptime does this]
+	;
+
+Tries to parse the date and time specified using $parser.  
+
+If $Epoch is passed in instead, then it interprets the time as being in seconds since the 
+epoch (which is determined on a system-by-system basis).
+
+If $parser is 'today', then the current time is gotten.  Timezone would be useful for 
+simulating eg. gmtime().  
+
+=item	truncate
+
+Can be used to truncate a function to the current day, or whatever.  
+
+=item	last
+
+ $date.last('day', of => 'month');
+
+=back
+
+=head3 Duration
+
+=head3	Repetition
+
+This class specifies when a repetitive action (eg. a cron job) happens.  
+
+class	DateTime::Recurring {
+...
+}
+
+Should allow creation from the format that cron uses (ie. */5 * * * * ).  
 
 =head2	IO::File
 
@@ -960,6 +1101,18 @@ operations. It implies IO::Readable and IO::Writeable.
 =head1 Unfiled
 
 =over 4
+
+=item IO.name
+
+The C<.name> method returns the name of the file/socket/uri the handle
+was opened with, if known.  Returns undef otherwise.  There is no
+corresponding C<name()> function.
+
+=item sysopen
+
+=item umask
+
+=item utime
 
 =item IO.fileno
 
