@@ -406,8 +406,9 @@ like.
  role	Tree::Node does Array {
 	has Tree::Name $.name; # would usually be File or Directory on a filesystem
 	has $.ownerNode; # This is the IO::FileSystem
-	has $.rootNode; This is the root of the filesystem
-	has $.parent; # Another Tree::Node
+	has $.rootNode; This is the root of the entire tree
+	has $.parent; # linked with @parents[0] (see below)
+	has @.parents; # Tree::Node array
 	has @.children handles <Array List Container>; # This is all the child notes
 	has $.path is ro; # Accessor does a getpath
 	has $.depth is ro; # depth from $ownerNode
@@ -427,6 +428,8 @@ Array operations on this are entirely capable of moving files and directories,
  role	Tree does Tree::Node {
 	has Tree::Node $root; # The root directory
 	has Tree::Node $cwn; # The current working directory (node)
+	has Bool $can_multiple_parent; # Nodes can have multiple parents
+	has Bool $can_link; # Unix links, Windows shortcuts, etc
  }
 
 =head3 Tree::Element

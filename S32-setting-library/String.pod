@@ -1,0 +1,513 @@
+
+=encoding utf8
+
+=head1 Title
+
+Synopsis 32: Setting Library - Miscellaneous Scalars
+
+=head1 Version
+
+ Author:        Rod Adams <rod@rodadams.net>
+ Maintainer:    Larry Wall <larry@wall.org>
+ Contributions: Aaron Sherman <ajs@ajs.com>
+                Mark Stosberg <mark@summersault.com>
+                Carl Mäsak <cmasak@gmail.com>
+                Moritz Lenz <moritz@faui2k3.org>
+ Date:          19 Mar 2009 abstracted from S29-functions.pod
+ Last Modified: 19 Feb 2009
+ Version:       1
+
+The document is a draft.
+
+If you read the HTML version, it is generated from the pod in the pugs 
+repository under /docs/Perl6/Spec/S32-setting-library/Miscellaneous-scalars.pod 
+so edit it there in the SVN repository if you would like to make changes.
+
+=head1 Str
+
+General notes about strings:
+
+A Str can exist at several Unicode levels at once. Which level you
+interact with typically depends on what your current lexical context has
+declared the "working Unicode level to be". Default is C<Grapheme>.
+[Default can't be C<CharLingua> because we don't go into "language"
+mode unless there's a specific language declaration saying either
+exactly what language we're going into or, in the absence of that, how to
+find the exact language somewhere in the enviroment.]
+
+Attempting to use a string at a level higher it can support is handled
+without warning. The current highest supported level of the string
+is simply mapped Char for Char to the new higher level. However,
+attempting to stuff something of a higher level a lower-level string
+is an error (for example, attempting to store Kanji in a Byte string).
+An explicit conversion function must be used to tell it how you want it
+encoded.
+
+Attempting to use a string at a level lower than what it supports is not
+allowed.
+
+If a function takes a C<Str> and returns a C<Str>, the returned C<Str>
+will support the same levels as the input, unless specified otherwise.
+
+The following are all provided by the C<Str> role:
+
+=over
+
+=item p5chop
+
+ our Char multi method p5chop ( Str  $string is rw: ) is export(:P5)
+ my Char multi p5chop ( Str *@strings is rw ) is export(:P5)
+
+Trims the last character from C<$string>, and returns it. Called with a
+list, it chops each item in turn, and returns the last character
+chopped.
+
+=item chop
+
+ our Str multi method chop ( Str  $string: ) is export
+
+Returns string with one Char removed from the end.
+
+=item p5chomp
+
+ our Int multi method p5chomp ( Str  $string is rw: ) is export(:P5)
+ my Int multi p5chomp ( Str *@strings is rw ) is export(:P5)
+
+Related to C<p5chop>, only removes trailing chars that match C</\n/>. In
+either case, it returns the number of chars removed.
+
+=item chomp
+
+ our Str multi method chomp ( Str $string: ) is export
+
+Returns string with one newline removed from the end.  An arbitrary
+terminator can be removed if the input filehandle has marked the
+string for where the "newline" begins.  (Presumably this is stored
+as a property of the string.)  Otherwise a standard newline is removed.
+
+Note: Most users should just let their I/O handles autochomp instead.
+(Autochomping is the default.)
+
+=item lc
+
+ our Str multi method lc ( Str $string: ) is export
+
+Returns the input string after converting each character to its lowercase
+form, if uppercase.
+
+
+=item lcfirst
+
+ our Str multi method lcfirst ( Str $string: ) is export
+
+Like C<lc>, but only affects the first character.
+
+
+=item uc
+
+ our Str multi method uc ( Str $string: ) is export
+
+Returns the input string after converting each character to its uppercase
+form, if lowercase. This is not a Unicode "titlecase" operation, but a
+full "uppercase".
+
+
+=item ucfirst
+
+ our Str multi method ucfirst ( Str $string: ) is export
+
+Performs a Unicode "titlecase" operation on the first character of the string.
+
+=item normalize
+
+ our Str multi method normalize ( Str $string: Bool :$canonical = Bool::True, Bool :$recompose = Bool::False ) is export
+
+Performs a Unicode "normalization" operation on the string. This involves
+decomposing the string into its most basic combining elements, and potentially
+re-composing it. Full detail on the process of decomposing and
+re-composing strings in a normalized form is covered in the Unicode
+specification Sections 3.7, Decomposition and 3.11,
+Canonical Ordering Behavior of the Unicode Standard, 4.0.
+Additional named parameters are reserved for future Unicode expansion.
+
+For everyday use there are aliases that map to the
+I<Unicode Standard Annex #15: Unicode Normalization Forms> document's
+names for the various modes of normalization:
+
+ our Str multi method nfd ( Str $string: ) is export {
+   $string.normalize(:cononical, :!recompose);
+ }
+ our Str multi method nfc ( Str $string: ) is export {
+   $string.normalize(:canonical, :recompose);
+ }
+ our Str multi method nfkd ( Str $string: ) is export {
+   $string.normalize(:!canonical, :!recompose);
+ }
+ our Str multi method nfkc ( Str $string: ) is export {
+   $string.normalize(:!canonical, :recompose);
+ }
+
+Decomposing a string can be used to compare
+Unicode strings in a binary form, providing that they use the same
+encoding. Without decomposing first, two
+Unicode strings may contain the same text, but not the same byte-for-byte
+data, even in the same encoding.
+The decomposition of a string is performed according to tables
+in the Unicode standard, and should be compatible with decompositions
+performed by any system.
+
+The C<:canonical> flag controls the use of "compatibility decompositions".
+For example, in canonical mode, "ﬁ" is left unaffected because it is
+not a composition. However, in compatibility mode, it will be replaced
+with "fi". Decomposed sequences will be ordered in a canonical way
+in either mode.
+
+The C<:recompose> flag controls the re-composition of decomposed forms.
+That is, a combining sequence will be re-composed into the canonical
+composite where possible.
+
+These de-compositions and re-compositions are performed recursively,
+until there is no further work to be done.
+
+Note that this function is really only applicable when dealing with codepoint
+strings.  Grapheme strings are normally processed at a higher abstraction level
+that is independent of normalization, and are lazily normalized into the
+desired normalization when transferred to lexical scopes or handles that care.
+
+=item samecase
+
+ our Str multi method samecase ( Str $string: Str $pattern ) is export
+
+Has the effect of making the case of the string match the case pattern in C<$pattern>.
+(Used by s:ii/// internally, see L<S05>.)
+
+=item sameaccent
+
+ our Str multi method sameaccent ( Str $string: Str $pattern ) is export
+
+Has the effect of making the case of the string match the accent pattern in C<$pattern>.
+(Used by s:aa/// internally, see L<S05>.)
+
+=item capitalize
+
+ our Str multi method capitalize ( Str $string: ) is export
+
+Has the effect of first doing an C<lc> on the entire string, then performing a
+C<s:g/(\w+)/{ucfirst $1}/> on it.
+
+
+=item length
+
+This word is banned in Perl 6.  You must specify units.
+
+=item chars
+
+ our Int multi method chars ( Str $string: ) is export
+
+Returns the number of characters in the string in the current
+(lexically scoped) idea of what a normal character is, usually graphemes.
+
+=item graphs
+
+ our Int multi method codes ( Str $string: ) is export
+
+Returns the number of graphemes in the string in a language-independent way.
+
+=item codes
+
+ our Int multi method codes ( Str $string: $nf = $?NF) is export
+
+Returns the number of codepoints in the string if it were canonicalized the
+specified way.  Do not confuse codepoints with UTF-16 encoding.  Characters
+above U+FFFF count as a single codepoint.
+
+=item bytes
+
+ our Int multi method bytes ( Str $string: $nf = $?NF, $enc = $?ENC) is export
+
+Returns the number of bytes in the string if it were encoded in the
+specified way.  Note the inequality:
+
+    .bytes("C","UTF-16") * 2 >= .codes("C")
+
+This is caused by the possibility of surrogate pairs, which are counted as one
+codepoint.  However, this problem does not arise for UTF-32:
+
+    .bytes("C","UTF-32") * 4 == .codes("C")
+
+=item index
+
+ our StrPos multi method index( Str $string: Str $substring, StrPos $pos = StrPos(0) ) is export
+
+C<index> searches for the first occurrence of C<$substring> in C<$string>,
+starting at C<$pos>.
+
+The value returned is always a C<StrPos> object.  If the substring
+is found, then the C<StrPos> represents the position of the first
+character of the substring. If the substring is not found, a bare
+C<StrPos> containing no position is returned.  This prototype C<StrPos>
+evaluates to false because it's really a kind of undef.  Do not evaluate
+as a number, because instead of returning -1 it will return 0 and issue
+a warning.
+
+
+=item pack
+
+ our Str multi pack( Str::Encoding $encoding,  Pair *@items )
+ our Str multi pack( Str::Encoding $encoding,  Str $template, *@items )
+ our buf8 multi pack( Pair *@items )
+ our buf8 multi pack( Str $template, *@items )
+
+C<pack> takes a list of pairs and formats the values according to
+the specification of the keys. Alternately, it takes a string
+C<$template> and formats the rest of its arguments according to
+the specifications in the template string. The result is a sequence
+of bytes.
+
+An optional C<$encoding> can be used to specify the character
+encoding to use in interpreting the result as a C<Str>, otherwise the return
+value will simply be a C<buf> containing the bytes generated
+by the template(s) and value(s). Note that no guarantee is made
+in terms of the final, internal representation of the string, only
+that the generated sequence of bytes will be interpreted as a
+string in the given encoding, and a string containing those
+graphemes will be returned. If the sequence of bytes represents
+an invalid string according to C<$encoding>, an exception is generated.
+
+Templates are strings of the form:
+
+  grammar Str::PackTemplate {
+   regex template  { [ <group> | <specifier> <count>? ]* }
+   token group     { \( <template> \) }
+   token specifier { <[aAZbBhHcCsSiIlLnNvVqQjJfdFDpPuUwxX\@]> \!? }
+   token count     { \* |
+             \[ [ \d+ | <specifier> ] \] |
+             \d+ }
+ }
+
+In the pairwise mode, each key must contain a single C<< <group> >> or
+C<< <specifier> >>, and the values must be either scalar arguments or
+arrays.
+
+[ Note: Need more documentation and need to figure out what Perl 5 things
+        no longer make sense. Does Perl 6 need any extra formatting
+        features? -ajs ]
+
+[I think pack formats should be human readable but compiled to an
+internal form for efficiency.  I also think that compact classes
+should be able to express their serialization in pack form if
+asked for it with .packformat or some such.  -law]
+
+=item quotemeta
+
+ our Str multi method quotemeta ( Str $string: ) is export
+
+Returns the input string with all non-"word" characters back-slashed.
+That is, all characters not matching "/[A-Za-z_0-9]/" will be preceded
+by a backslash in the returned string, regardless of any locale settings.
+
+=item rindex
+
+ our StrPos multi method rindex( Str $string: Str $substring, StrPos $pos? ) is export
+
+Returns the position of the last C<$substring> in C<$string>. If C<$pos>
+is specified, then the search starts at that location in C<$string>, and
+works backwards. See C<index> for more detail.
+
+=item split
+
+ our List multi method split ( Str $input: Str $delimiter, Int $limit = * ) is export
+ our List multi method split ( Str $input: Rule $delimiter, Int $limit = * ) is export
+
+String delimiters must not be treated as rules but as constants.  The
+default is no longer S<' '> since that would be interpreted as a constant.
+P5's C<< split('S< >') >> will translate to C<comb>.  Null trailing fields
+are no longer trimmed by default.
+
+The C<split> function no longer has a default delimiter nor a default invocant.
+In general you should use C<comb> to split on whitespace now, or to break
+into individual characters.  See below.
+
+As with Perl 5's C<split>, if there is a capture in the pattern it is
+returned in alternation with the split values.  Unlike with Perl 5,
+multiple such captures are returned in a single Match object.  Also unlike
+Perl 5, the string to be split is always the invocant or first argument.
+A warning should be issued if the string appears to be a short constant
+string and the delimiter does not.
+
+You may also split lists and filehandles.  C<$*ARGS.split(/\n[\h*\n]+/)>
+splits on paragraphs, for instance.  Lists and filehandles are automatically
+fed through C<cat> in order to pretend to be string.  The resulting
+C<Cat> is lazy.  Accessing a filehandle as both a filehandle and as
+a C<Cat> is undefined.
+
+=item comb
+
+ our List multi method comb ( Str $input: Rule $matcher = /\S+/, Int $limit = * ) is export
+
+The C<comb> function looks through a string for the interesting bits,
+ignoring the parts that don't match.  In other words, it's a version
+of split where you specify what you want, not what you don't want.
+By default it pulls out all the words.  Saying
+
+    $string.comb(/pat/, $n)
+
+is equivalent to
+
+    $string.match(rx:global:x(0..$n):c/pat/)
+
+You may also comb lists and filehandles.  C<+$*IN.comb> counts the words on
+standard input, for instance.  C<comb($thing, /./)> returns a list of C<Char>
+from anything that can give you a C<Str>.  Lists and filehandles are
+automatically fed through C<cat> in order to pretend to be string.
+This C<Cat> is also lazy.
+
+If there are captures in the pattern, a list of C<Match> objects (one
+per match) is returned instead of strings.  The unmatched portions
+are never returned.  If the function is combing a lazy structure,
+the return values may also be lazy.  (Strings are not lazy, however.)
+
+=item sprintf
+
+ our Str multi method sprintf ( Str $format: *@args ) is export
+
+This function is mostly identical to the C library sprintf function.
+
+The C<$format> is scanned for C<%> characters. Any C<%> introduces a
+format token. Format tokens have the following grammar:
+
+ grammar Str::SprintfFormat {
+  regex format_token { '%': <index>? <precision>? <modifier>? <directive> }
+  token index { \d+ '$' }
+  token precision { <flags>? <vector>? <precision_count> }
+  token flags { <[ \x20 + 0 \# \- ]>+ }
+  token precision_count { [ <[1..9]>\d* | '*' ]? [ '.' [ \d* | '*' ] ]? }
+  token vector { '*'? v }
+  token modifier { < ll l h m V q L > }
+  token directive { < % c s d u o x e f g X E G b p n i D U O F > }
+ }
+
+Directives guide the use (if any) of the arguments. When a directive
+(other than C<%>) is used, it indicates how the next argument
+passed is to be formatted into the string.
+
+The directives are:
+
+ %   a literal percent sign
+ c   a character with the given codepoint
+ s   a string
+ d   a signed integer, in decimal
+ u   an unsigned integer, in decimal
+ o   an unsigned integer, in octal
+ x   an unsigned integer, in hexadecimal
+ e   a floating-point number, in scientific notation
+ f   a floating-point number, in fixed decimal notation
+ g   a floating-point number, in %e or %f notation
+ X   like x, but using upper-case letters
+ E   like e, but using an upper-case "E"
+ G   like g, but with an upper-case "E" (if applicable)
+ b   an unsigned integer, in binary
+ C   special: invokes the arg as code, see below
+
+Compatibility:
+
+ i   a synonym for %d
+ D   a synonym for %ld
+ U   a synonym for %lu
+ O   a synonym for %lo
+ F   a synonym for %f
+
+Perl 5 (non-)compatibility:
+
+ n   produces a runtime exception (see below)
+ p   produces a runtime exception
+
+The special format directive, C<%C> invokes the target argument as
+code, passing it the result string that has been generated thus
+far and the argument array.
+
+Here's an example of its use:
+
+ sprintf "%d%C is %d digits long",
+    $num,
+    sub($s,@args is rw) {@args[2]=$s.elems},
+    0;
+
+The special directive, C<%n> does not work in Perl 6 because of the
+difference in parameter passing conventions, but the example above
+simulates its effect using C<%C>.
+
+Modifiers change the meaning of format directives. The most important being
+support for complex numbers (a basic type in Perl). Here are all of the
+modifiers and what they modify:
+
+ h interpret integer as native "short" (typically int16)
+ l interpret integer as native "long" (typically int32 or int64)
+ ll interpret integer as native "long long" (typically int64)
+ L interpret integer as native "long long" (typically uint64)
+ q interpret integer as native "quads" (typically int64 or larger)
+ m interpret value as a complex number
+
+The C<m> modifier works with C<d,u,o,x,F,E,G,X,E> and C<G> format
+directives, and the directive applies to both the real and imaginary
+parts of the complex number.
+
+Examples:
+
+ sprintf "%ld a big number, %lld a bigger number, %mf complexity\n",
+	4294967295, 4294967296, 1+2i);
+
+=item fmt
+
+  our Str multi method fmt( Scalar $scalar: Str $format )
+  our Str multi method fmt( List $list: Str $format, Str $separator = ' ' )
+  our Str multi method fmt( Hash $hash: Str $format, Str $separator = "\n" )
+  our Str multi method fmt( Pair $pair: Str $format )
+
+A set of wrappers around C<sprintf>. A call to the scalar version
+C<$o.fmt($format)> returns the result of C<sprintf($format, $o)>. A call to
+the list version C<@a.fmt($format, $sep)> returns the result of
+C<join $sep, map { sprintf($format, $_) }, @a>. A call to the hash version
+C<%h.fmt($format, $sep)> returns the result of
+C<join $sep, map { sprintf($format, $_.key, $_.value) }, %h.pairs>. A call
+to the pair versionC<$p.fmt($format)> returns the result of
+C<sprintf($format, $p.key, $p.value)>.
+
+=item substr
+
+ our Str multi method substr (Str $string: StrPos $start, StrLen $length?) is rw is export
+ our Str multi method substr (Str $string: StrPos $start, StrPos $end?) is rw is export
+ our Str multi method substr (Str $string: StrPos $start, Int $length) is rw is export
+
+C<substr> returns part of an existing string. You control what part by
+passing a starting position and optionally either an end position or length.
+If you pass a number as either the position or length, then it will be used
+as the start or length with the assumtion that you mean "chars" in the
+current Unicode abstraction level, which defaults to graphemes.  A number
+in the 3rd argument is interpreted as a length rather than a position (just
+as in Perl 5).
+
+Here is an example of its use:
+
+ $initials = substr($first_name,0,1) ~ substr($last_name,0,1);
+
+Optionally, you can use substr on the left hand side of an assignment
+like so:
+
+ $string ~~ /(barney)/;
+ substr($string, $0.from, $0.to) = "fred";
+
+If the replacement string is longer or shorter than the matched sub-string,
+then the original string will be dynamically resized.
+
+=item unpack
+
+=back
+
+=head1 Additions
+
+Please post errors and feedback to perl6-language.  If you are making
+a general laundry list, please separate messages by topic.
+
+
+

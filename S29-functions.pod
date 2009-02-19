@@ -196,1473 +196,6 @@ An ordering of C<*> does the default comparison for the operator:
 
 =head1 Function Packages
 
-=head2 Any
-
-The following are defined in the C<Any> role:
-
-=over
-
-=item eqv
-
- our Bool multi sub eqv (Ordering @by, $a, $b)
- our Bool multi sub eqv (Ordering $by = &infix:<eqv>, $a, $b)
-
-Returns a Bool indicating if the parameters are equivalent,
-using criteria C<$by> or C<@by> for comparisons. C<@by> differs
-from C<$by> in that each criterion is applied, in order,
-until a non-zero (equivalent) result is achieved.
-
-=item can
-
- our Callable multi method can ($self:, Str $method)
-
-If there is a multi method of name C<$method> that can be called on
-C<$self>, then a closure is return which has C<$self> bound to the position
-of the invocant.
-
-Otherwise an undefined value is returned.
-
-=item clone
-
- our multi method clone (::T $self --> T)
- our multi method clone (::T $self, *%attributes --> T)
-
-The first variant returns  an independent copy of C<$o> that is equivalent
-to C<$o>.
-
-The second variant does the same, but any named arguments override an
-attribute during the cloning process.
-
-=item cmp
-
- our Order multi sub cmp (Ordering @by, $a, $b)
- our Order multi sub cmp (Ordering $by = &infix:<cmp>, $a, $b)
-
-Returns C<Order::Increase>, or C<Order::Same>, or C<Order::Decrease>
-(which numify to -1, 0, +1 respectively) indicating if paramater C<$a> should
-be ordered before/tied with/after parameter C<$b>, using criteria
-C<$by> or C<@by> for comparisons. C<@by> differs from C<$by>
-in that each criterion is applied, in order, until a non-zero
-(tie) result is achieved.  If the values are not comparable,
-returns a proto C<Order> object that is undefined.
-
-=item does
-
- our Bool multi method does ($self:, $type)
-
-Returns C<True> if and only if C<$self> conforms to type C<$type>.
-
-=item isa
-
- our Bool multi method isa ($self:, $type)
-
-Returns C<True> if a the invocant an instance of class C<$type>, or 
-of a subset type or a derived class (through inheritance) of C<$type>.
-
-=item perl
-
- our Str multi method perl ( Object $o: ) is export
-
-Returns a perlish representation of the object, so that calling C<eval>
-on the returned string reproduces the object as accurately as possible.
-
-=item warn
-
- our multi method warn ( Object $o: ) is export
-
-Prints a warning to C<$*DEFERR>, which is usually bound to C<$*ERR>. See
-C<Synopsis 16: IPC / IO / Signals> for details.
-
-=back
-
-=head2 Num
-
-The following are all defined in the C<Num> role:
-
-B<API document>: L<Num>
-
-C<Num> provides a number of constants in addition to the basic
-mathematical functions. To get these constants, you must request
-them:
-
- use Num :constants;
-
-or use the full name, e.g. C<Num::pi>.
-
-=over
-
-=item succ
-
- our Num multi method succ ( Num $x: ) is export
- out Int multi method succ ( Int $x: ) is export
-
-Returns the successor of C<$x>. This method is used by C<< prefix:<++> >> and
-C<< postfix:<++> >> to increment the value in a container.
-
-=item pred
-
- our Num multi method pred ( Num $x: ) is export
- our Int multi method pred ( Int $x: ) is export
-
-Returns the predeccessor of C<$x>. This method is used by C<< prefix:<--> >>
-and C<< postfix:<--> >> to decrement the value in a container.
-
-=item abs
-
- our Num multi method abs ( Num $x: ) is export
-
-Absolute Value.
-
-=item floor
-
- our Int multi method floor ( Num $x: ) is export
-
-Returns the highest integer not greater than C<$x>.
-
-=item ceiling
-
- our Int multi method ceiling ( Num $x: ) is export
-
-Returns the lowest integer not less than C<$x>.
-
-=item round
-
- our Int multi method round ( Num $x: ) is export
-
-Returns the nearest integer to C<$x>.  The algorithm is C<floor($x + 0.5)>.
-(Other rounding algorithms will be given extended names beginning with "round".)
-
-=item truncate
-
- our Int multi method truncate ( Num $x: ) is export
- our Int multi method int ( Num $x: ) is export
-
-Returns the closest integer to C<$x> whose absolute value is not greater
-than the absolute value of C<$x>.  (In other words, just chuck any
-fractional part.)  This is the default rounding function used by an
-C<int()> cast, for historic reasons.  But see Int constructor above
-for a rounded version.
-
-=item exp
-
- our Num multi method exp ( Num $exponent: Num :$base = Num::e ) is export
-
-Performs similar to C<$base ** $exponent>. C<$base> defaults to the
-constant I<e>.
-
-=item log
-
- our Num multi method log ( Num $x: Num :$base = Num::e ) is export
-
-Logarithm of base C<$base>, default Natural. Calling with C<$x == 0> is an
-error.
-
-=item log10
-
- our Num multi method log10 (Num $x:) is export
-
-A base C<10> logarithm, othewise identical to C<log>.
-
-=item rand
-
- our Num method rand ( Num $x: )
- our Num term:<rand>
-
-Pseudo random number in range C<< 0 ..^ $x >>.  That is, C<0> is
-theoretically possible, while C<$x> is not.  The C<rand> function
-is 0-ary and always produces a number from C<0..^1>.  In any case,
-for picking a random integer you probably want to use something like
-C<(1..6).pick> instead.
-
-=item sign
-
- our Int multi method sign ( Num $x: ) is export
-
-Returns 1 when C<$x> is greater than 0, -1 when it is less than 0, 0 when it
-is equal to 0, or undefined when the value passed is undefined.
-
-=item srand
-
- multi method srand ( Num $seed: )
- multi srand ( Num $seed = default_seed_algorithm())
-
-Seed the generator C<rand> uses. C<$seed> defaults to some combination
-of various platform dependent characteristics to yield a non-deterministic seed.
-Note that you get one C<srand()> for free when you start a Perl program, so
-you I<must> call C<srand()> yourself if you wish to specify a deterministic seed
-(or if you wish to be differently nondeterministic).
-
-=item sqrt
-
- our Num multi method sqrt ( Num $x: ) is export
-
-Returns the square root of the parameter.
-
-=item roots
-
-  (in Num) method roots (Num $x: Int $n --> List of Num) is export
-
-Returns a list of all C<$n>th (complex) roots of C<$x>
-
-=item cis
-
-    our Complex multi method cis (Num $angle:) is export
-
-Returns 1.unpolar($angle)
-
-=item unpolar
-
-    our Complex multi method unpolar (Num $mag: Num $angle) is export
-
-Returns a complex number specified in polar coordinates.  Angle is in radians.
-
-=item i
-
- our Num multi method i ( Num $x: )
-
-Returns a complex number representing the parameter multiplied by the imaginary
-unit C<i>.
-
-=back
-
-
-=head2 Complex
-
-=over 4
-
-=item polar
-
-    our Seq multi method polar (Complex $nim:) is export
-
-Returns (magnitude, angle) corresponding to the complex number.
-The magnitude is non-negative, and the angle in the range C<-π ..^ π>.
-
-=back
-
-=head2 The :Trig tag
-
-The following are also defined in C<Num> but not exported without a C<:Trig>
-tag.  (Which installs their names into C<Num::Trig>, as it happens.)
-
-=over 4
-
-=item I<Standard Trig Functions>
-
- Num multi method func ( Num  $x: $base = 'radians' ) is export(:Trig)
-
-where I<func> is one of:
-sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
-acotan, sinh, cosh, tanh, asinh, acosh, atanh, sech, cosech, cotanh,
-asech, acosech, acotanh.
-
-Performs the various trigonometric functions.
-
-Option C<$base> is used to declare how you measure your angles.
-Given the value of an arc representing a single full revolution.
-
- $base      Result
- ----       -------
- /:i ^r/    Radians  (2*pi)
- /:i ^d/    Degrees  (360)
- /:i ^g/    Gradians (400)
- Num        Units of 1 revolution.
-
-Note that module currying can be used within a lexical scope to specify
-a consistent base so you don't have to supply it with every call:
-
- my module Trig ::= Num::Trig.assuming(:base<degrees>);
-
-This overrides the default of "radians".
-
-=item atan2
-
- our Num multi method atan2 ( Num $y: Num $y = 1 )
- our Num multi atan2 ( Num $y, Num $x = 1 )
-
-This second form of C<atan> computes the arctangent of C<$y/$x>, and takes
-the quadrant into account. Otherwise behaves as other trigonometric functions.
-
-=back
-
-=head2 Bool
-
-=over 4
-
-=item succ
-
- our Bool multi method succ ( Bool $b: ) is export
-
-Returns C<Bool::True>.
-
-=item pred
-
- our Bool multi method pred ( Bool $b: ) is export
-
-Returns C<Bool::False>.
-
-=back
-
-=head2 Scalar
-
-B<API document>: L<Scalar>
-
-C<Scalar> provides the basic tools for operating on undifferentiated
-scalar variables. All of the following are exported by default.
-
-=over
-
-=item defined
-
-  our Bool multi defined ( Any $thing )
-  our Bool multi defined ( Any $thing, ::role )
-
-C<defined> returns true if the parameter has a value and that value is
-not the undefined value (per C<undef>), otherwise false is returned.
-
-Same as Perl 5, only takes extra optional argument to ask if value is defined
-with respect to a particular role:
-
-  defined($x, SomeRole);
-
-A value may be defined according to one role and undefined according to another.
-Without the extra argument, defaults to the definition of defined supplied by
-the type of the object.
-
-=item undefine
-
-  our multi undefine( Any $thing )
-
-Takes any variable as a parameter and attempts to "remove" its
-definition. For simple scalar variables this means assigning
-the undefined value to the variable. For objects, this is equivalent
-to invoking their undefine method. For arrays, hashes and other
-complex data, this might require emptying the structures associated
-with the object.
-
-In all cases, calling C<undefine> on a variable
-should place the object in the same state as if it was just
-declared.
-
-=item undef
-
-  constant Scalar Scalar::undef
-
-Returns the undefined scalar object. C<undef> has no value at
-all, but for historical compatibility, it will numify to C<0>
-and stringify to the empty string, potentially generating a
-warning in doing so. There are two ways to determine if a
-value equal to undef: the C<defined> function (or method) can
-be called or the C<//> (or C<orelse>) operator can be used.
-
-C<undef> is also considered to be false in a boolean context.
-Such a conversion does not generate a warning.
-
-Perl 5's unary C<undef> function is renamed C<undefine> to avoid
-confusion with the value C<undef> (which is always 0-ary now).
-
-=back
-
-=head2 Container
-
-=over
-
-=item cat
-
- our Cat multi cat( *@@list )
-
-C<cat> reads arrays serially rather than in parallel as C<zip> does. It
-returns all of the elements of the containers that were passed to it
-like so:
-
- cat(@a;@b;@c);
-
-Typically, you could just write C<(@a,@b,@c)>, but sometimes
-it's nice to be explicit about that:
-
- @foo := [[1,2,3],[4,5,6]]; say cat([;] @foo); # 1,2,3,4,5,6
-
-In addition, a C<Cat> in item context emulates the C<Str> interface lazily.
-
-=item roundrobin
-
- our List multi roundrobin( *@@list )
-
-C<roundrobin> is very similar to C<zip>.  The difference is that
-C<roundrobin> will not stop on lists that run out of elements but
-simply skip any undefined value:
-
- my @a = 1;
- my @b = 1..2;
- my @c = 1..3;
- for roundrobin( @a; @b; @c ) -> $x { ... }
-
-will get the following values for C<$x>: C<1, 1, 1, 2, 2, 3>
-
-=item zip
-
- our List of Capture multi zip ( *@@list )
- our List of Capture multi infix:<Z> ( *@@list )
-
-zip takes any number of arrays and returns one tuple for every index.
-This is easier to read in an example:
-
- for zip(@a;@b;@c) -> $nth_a, $nth_b, $nth_c {
-   ...
- }
-
-Mnemonic: the input arrays are "zipped" up like a zipper.
-
-The C<zip> function defaults to stopping as soon as any of its lists
-is exhausted.  This behavior may be modified by conceptually extending
-any short list using C<*>, which replicates the final element.
-
-If all lists are potentially infinite, an evaluation in C<eager>
-context will automatically fail as soon as it can be known that all
-sublists in the control of iterators of infinite extent, such as
-indefinite ranges or arbitrary replication.  If it can be known at
-compile time, a compile-time error results.
-
-C<Z> is an infix equivalent for zip:
-
- for @a Z @b Z @c -> $a, $b, $c {...}
-
-In C<@@> context a List of Array is returned instead of flat list.
-
-=back
-
-=head2 Array
-
-All these methods are defined in the C<Array> role/class.
-
-=over
-
-=item shape
-
- our Capture method shape (@array: ) is export
-
-Returns the declared shape of the array, as described in S09.
-
-=item end
-
- our Any method end (@array: ) is export
-
-Returns the final subscript of the first dimension; for a one-dimensional
-array this simply the index of the final element.  For fixed dimensions
-this is the declared maximum subscript.  For non-fixed dimensions (undeclared
-or explicitly declared with C<*>), the index of the actual last element is used.
-
-=item elems
-
- our Int method elems (@array: ) is export
-
-Returns the length of the array counted in elements.  (Sparse array
-types should return the actual number of elements, not the distance
-between the maximum and minimum elements.)
-
-=item delete
-
- our List method delete (@array : *@indices ) is export
-
-Sets elements specified by C<@indices> in the invocant to a
-non-existent state, as if they never had a value. Deleted elements at
-the end of an Array shorten the length of the Array, unless doing so
-would violate an C<is shape()> definition.
-
-C<@indices> is interpreted the same way as subscripting is in terms of
-slices and multidimensionality. See Synopsis 9 for details.
-
-Returns the value(s) previously held in deleted locations.
-
-An unary form is expected. See C<Hash::delete>.
-
-
-=item exists
-
- our Bool method exists (@array : Int *@indices )
-
-True if the specified Array element has been assigned to. This
-is not the same as being defined.
-
-Supplying a different number of indices than invocant has dimensions is
-an error.
-
-A unary form is expected. See C<Hash::delete>.
-
-
-=item pop
-
- our Scalar multi method pop ( @array: ) is export
-
-Remove the last element of C<@array> and return it.
-
-=item push
-
- our Int multi method push ( @array: *@values ) is export
-
-Add to the end of C<@array>, all of the subsequent arguments.
-
-=item shift
-
- our Scalar multi method shift ( @array:  ) is export
-
-Remove the first element from C<@array> and return it.
-
-=item splice
-
- our List multi method splice( @array is rw: Int $offset = 0, Int $size?, *@values ) is export
-
-C<splice> fills many niches in array-management, but its fundamental behavior
-is to remove zero or more elements from an array and replace them with a
-new (and potentially empty) list. This operation can shorten or lengthen
-the target array.
-
-C<$offset> is the index of the array element to start with. It defaults
-to C<0>.
-
-C<$size> is the number of elements to remove from C<@array>. It defaults
-to removing the rest of the array from C<$offset> on.
-
-The slurpy list of values (if any) is then inserted at C<$offset>.
-
-Calling splice with a traditional parameter list, you must define C<$offset>
-and C<$size> if you wish to pass a replacement list of values. To avoid
-having to pass these otherwise optional parameters, use the piping operator(s):
-
- splice(@array,10) <== 1..*;
-
-which replaces C<@array[10]> and all subsequent elements with an infinite
-series starting at C<1>.
-
-This behaves similarly to Perl 5's C<splice>.
-
-If C<@array> is multidimensional, C<splice> operates only on the first
-dimension, and works with Array References.
-
-C<splice> returns the list of deleted elements in list context, and a
-reference to a list of deleted elements in scalar context.
-
-
-=item unshift
-
- our Int multi method unshift ( @array: *@values ) is export
-
-C<unshift> adds the values onto the start of the C<@array>.
-
-=item keys
-
-=item kv
-
-=item pairs
-
-=item values
-
- our List multi method keys ( @array: Matcher *@indextests ) is export
- our List multi method kv ( @array: Matcher *@indextests ) is export
- our List multi method pairs  (@array: Matcher *@indextests ) is export
- our List multi method values ( @array: Matcher *@indextests ) is export
-
-Iterates the elements of C<@array>, in order.
-
-If C<@indextests> are provided, only elements whose indices match
-C<$index ~~ any(@indextests)> are iterated.
-
-What is returned at each element of the iteration varies with function.
-C<values> returns the value of the associated element; C<kv> returns
-a 2 element list in (index, value) order, C<pairs> a C<Pair(index, value)>.
-
-C<@array> is considered single dimensional. If it is in fact multi-dimensional,
-the values returned will be array references to the sub array.
-
-In Scalar context, they all return the count of elements that would have
-been iterated.
-
-=back
-
-
-
-=head2 List
-
-The following are defined in the C<List> role/class:
-
-=over
-
-=item cat
-
- our Cat multi cat ( @values )
-
-Returns a C<Cat> object, a concatenated version of the list that does the C<Str>
-interface, but generates the string lazily to the extent permitted
-by the pattern of access to the string.  Its two primary uses are
-matching against an array of strings and doing the equivalent of a
-C<join('')>, except that C<join> is always eager.  However, a C<Cat>
-in an interpolative context is also effectively eager, since the
-interpolator needs to know the string length.  List context is lazy,
-though, so a C<cat> of a C<cat> is also lazy, and in fact, you just
-get a flat cat because C<cat> in a list context is a no-op.  The C<Cat>
-interface also lets you interrogate the object at a particular string
-position without actually stringifying the element; the regex engine
-can make use of this to match a tree node, for instance, without
-serializing the entire subtree.
-
-Accessing a filehandle as both a filehandle and as a C<Cat> is undefined,
-because lazy objects are not required to be as lazy as possible, but may
-instead choose to precalculate values in semi-eager batches to maximize
-cache hits.
-
-=item classify
-
- our List of Pair multi method classify ( @values: Matcher $test )
- our List of Pair multi classify ( Matcher $test, *@values )
-
-C<classify> takes a list or array of values and returns a lazily evaluated
-list comprised of pairs whose values are arrays of values from the
-input list,
-and whose keys are the return value of the C<$test>, when passed that
-value. For example:
-
-  @list = (1, 2, 3, 4);
-  (:@even, :@odd) := classify { $_ % 2 ?? 'odd' !! 'even' }, @list;
-
-In this example, @even will contain all even numbers from C<@list>
-and C<@odd> will contain all odd numbers from C<@list>.
-
-To simply transform a list into a hash of arrays:
-
-  %cars_by_color = classify { .color }, @cars;
-  red_car_owners(%cars_by_color<red>.map:{.owner});
-
-=item grep
-
- our List multi method grep ( @values: Matcher $test )
- our List multi grep ( Matcher $test, *@values )
-
-C<grep> takes a list or array of values and returns a lazily evaluated
-list comprised of all of the values from the original list for which
-the C<$test> smart-matches as true.
-
-Here is an example of its use:
-
- @friends = grep { .is_friend }, @coworkers;
-
-This takes the array C<@coworkers>, checks every element to see
-which ones return true for the C<.is_friend> method, and returns
-the resulting list to store into C<@friends>.
-
-Note that, unlike in Perl 5, a comma is required after the C<Matcher>
-in the multi form.
-
-=item first
-
- our Item multi method first ( @values: Matcher $test )
- our Item multi first ( Matcher $test, *@values )
-
-C<first> works exactly like C<grep> but returns only the first matching value.
-
-=item pick
-
- our List multi method pick ( @values: Int $num = 1, Bool :$repl )
- our List multi method pick ( @values: Whatever, Bool :$repl )
- our List multi pick ( Int $num, Bool :$repl, *@values )
- our List multi pick ( Whatever, Bool :$repl, *@values )
-
-C<pick> takes a list or array of values and returns a random
-selection of elements from the list (without replacement unless
-C<:repl> is indicated).  When selecting without replacement if C<*>
-is specified as the number (or if the number of elements in
-the list is less than the specified number), all the available
-elements are returned in random order:
-
-    @team = @volunteers.pick(5);
-    @shuffled = @deck.pick(*);
-
-When selecting with replacement the specified number of picks
-are provided.  In this case C<*> would provide an infinite list
-of random picks from C<@values>:
-
-    @byte = (0,1).pick(8, :repl);
-    for (1..20).pick(*, :repl) -> $die_roll { ... }
-
-=item join
-
- our Str multi method join ( @values: Str $separator = ' ' )
- our Str multi join ( Str $separator = ' ', *@values )
-
-C<join> returns a single string comprised of all of the elements
-of C<@values>, separated by C<$separator>.
-
-Given an empty list, C<join> returns the empty string.
-
-The separator defaults to a single space.  To join with no separator,
-you can use the C<[~]> reduce operator.  The C<cat> function also
-effectively does a concatenation with no separator.
-
-=item map
-
- our List of Capture multi method map ( @values: Code *&expression )
- our List of Capture multi map ( Code $expression, *@values )
-
-C<map> returns a lazily evaluated list which is comprised of
-the return value of the expression, evaluated once for every
-one of the C<@values> that are passed in.
-
-Here is an example of its use:
-
- @addresses = map { %addresses_by_name<$_> }, @names;
-
-Here we take an array of names, and look each name up in
-C<%addresses_by_name> in order to build the corresponding
-list of addresses.
-
-If the expression returns no values or multiple values, then the
-resulting list may not be the same length as the number of values
-that were passed. For example:
-
- @factors = map { prime_factors($_) }, @composites;
-
-The actual return value is a multislice containing one slice per
-map iteration.  In most contexts these slices are flattened into a
-single list.
-
-=item reduce
-
- our Item multi method reduce ( @values: Code *&expression )
- our Item multi reduce ( Code $expression ;; *@values ) {
-   my $res;
-   for @values -> $cur {
-     FIRST {$res = $cur; next;}
-     $res = &$expression($res, $cur);
-   }
-   $res;
- }
-
-
-=item reverse
-
- role Hash {
-     our Hash multi method reverse ( %hash: ) is export {
-       (my %result){%hash.values} = %hash.keys;
-       %result;
-     }
- }
-
- our List multi method reverse ( @values: ) is export
- our List multi reverse ( *@values ) {
-    gather {
-        1 while take pop @values;
-    }
- }
-
- role Str {
-     our Str multi method reverse ( $str: ) is export {
-        $str.split('').reverse.join;
-     }
- }
-
-=item sort
-
- our Array multi method sort( @values: *&by )
- our Array multi method sort( @values: Ordering @by )
- our Array multi method sort( @values: Ordering $by = &infix:<cmp> )
-
- our List multi sort( Ordering @by,  *@values )
- our List multi sort( Ordering $by, *@values )
-
-Returns C<@values> sorted, using criteria C<$by> or C<@by> for
-comparisons. C<@by> differs from C<$by> in that each criterion is
-applied, in order, until a non-zero (tie) result is achieved.
-
-If C<$by> is a code object of arity zero or one, it is applied on each item
-of C<@values>, and C<@values> is sorted by comparing the result values with
-C<< &infix:<cmp> >> (Schwartzian Transform).
-
-C<Ordering> is as described in L<"Type Declarations">.  Any
-C<Ordering> may receive either or both of the mixins C<descending>
-and C<canon(Code $how)> to reverse the order of sort, or
-to adjust the case, sign, or other order sensitivity of C<cmp>.
-(Mixins are applied to values using C<but>.)  If a C<Signature>
-is used as an C<Ordering> then sort-specific traits such as C<is
-canon($how)> are allowed on the positional elements.
-
-If all criteria are exhausted when comparing two elements, sort should
-return them in the same relative order they had in C<@values>.
-
-To sort an array in place use the C<.=sort> mutator form.
-
-See L<http://www.nntp.perl.org/group/perl.perl6.language/16578>
-for more details and examples (with C<is insensitive> meaning
-C<is canonicalized(&lc)>.)
-
-=item min
-
- our Array multi method min( @values: *&by )
- our Array multi method min( @values: Ordering @by )
- our Array multi method min( @values: Ordering $by = &infix:<cmp> )
-
- our List multi min( Ordering @by,  *@values )
- our List multi min( Ordering $by,  *@values )
-
-Returns the earliest (i.e., lowest index) minimum element
-of C<@values> , using criteria C<$by> or C<@by> for
-comparisons. C<@by> differs from C<$by> in that each criterion
-is applied, in order, until a non-zero (tie) result is achieved.
-
-C<Ordering> is as described in L<"Type Declarations">.  Any
-C<Ordering> may receive the mixin C<canonicalized(Code $how)> to
-adjust the case, sign, or other order sensitivity of C<cmp>.
-(Mixins are applied to values using C<but>.)  If a C<Signature>
-is used as an C<Ordering> then sort-specific traits such as C<is
-canonicalized($how)> are allowed on the positional elements.
-
-For a C<min> function that does not require an ordering, see the
-C<[min]> reduction operator.
-
-=item max
-
- our Array multi method max( @values: *&by )
- our Array multi method max( @values: Ordering @by )
- our Array multi method max( @values: Ordering $by = &infix:<cmp> )
-
- our List multi max( Ordering @by,  *@values )
- our List multi max( Ordering $by,  *@values )
-
-Returns the earliest (i.e., lowest index) maximum element
-of C<@values> , using criteria C<$by> or C<@by> for
-comparisons. C<@by> differs from C<$by> in that each criterion
-is applied, in order, until a non-zero (tie) result is achieved.
-
-C<Ordering> is as described in L<"Type Declarations">.  Any
-C<Ordering> may receive the mixin C<canonicalized(Code $how)> to
-adjust the case, sign, or other order sensitivity of C<cmp>.
-(Mixins are applied to values using C<but>.)  If a C<Signature>
-is used as an C<Ordering> then sort-specific traits such as C<is
-canonicalized($how)> are allowed on the positional elements.
-
-For a C<max> function that does not require an ordering, see the
-C<[max]> reduction operator.
-
-=item any
-
- our Junction multi method any( @values: )
- our Junction multi any( *@values ) is export
-
-Returns a junction with all the values of the list C<|>-ed together. The
-junction will only match against another value if at least one of the
-values in the list matches.
-
-=item all
-
- our Junction multi method all( @values: )
- our Junction multi all( *@values ) is export
-
-Returns a junction with all the values of the list C<&>-ed together. The
-junction will only match against another value if all of the values in the
-list match.
-
-=item one
-
- our Junction multi method one( @values: )
- our Junction multi one( *@values ) is export
-
-Returns a junction with all the values of the list C<^>-ed together. The
-junction will only match against another value if exactly one of the values
-in the list matches.
-
-=item none
-
- our Junction multi method none( @values: )
- our Junction multi none( *@values ) is export
-
-Returns a junction which will only match against another value if none of
-the values in the list matches.
-
-=back
-
-=head2 Hash
-
-The following are defined in the C<Hash> role.
-
-=over 4
-
-=item :delete
-
- our List  method :delete ( %hash: *@keys )
- our Scalar method :delete ( %hash: $key ) is default
-
-Deletes the elements specified by C<$key> or C<$keys> from the invocant.
-returns the value(s) that were associated to those keys:
-
-    @deleted = %foo.:delete{ @keys }
-
-
-=item exists
-
- our Bool method :exists ( %hash: $key )
-
-True if invocant has an element whose key matches C<$key>, false
-otherwise.
-
-See also Code::exists to determine if a function has been declared.
-(Use defined() to determine whether the function body is defined.
-A body of ... counts as undefined.)
-
-=item keys
-
-=item kv
-
-=item pairs
-
-=item values
-
- multi Int|List keys ( %hash ; Matcher *@keytests )
- multi Int|List kv ( %hash ; Matcher *@keytests )
- multi Int|(List of Pair) pairs  (%hash ; Matcher *@keytests )
- multi Int|List values ( %hash ; Matcher *@keytests )
-
-Iterates the elements of C<%hash> in no apparent order, but the order
-will be the same between successive calls to these functions, as long as
-C<%hash> doesn't change.
-
-If C<@keytests> are provided, only elements whose keys evaluate
-C<$key ~~ any(@keytests)> as true are iterated.
-
-What is returned at each element of the iteration varies with function.
-C<keys> only returns the key; C<values> the value; C<kv> returns both as
-a 2 element list in (key, value) order, C<pairs> a C<Pair(key, value)>.
-
-Note that C<kv %hash> returns the same as C<zip(keys %hash; values %hash)>
-
-In Scalar context, they all return the count of elements that would have
-been iterated.
-
-The lvalue form of C<keys> is not longer supported. Use the C<.buckets>
-property instead.
-
-=item any
-
- our Junction multi method any( %hash: ) is export
-
-Returns a junction with all the keys of the hash C<|>-ed together. The
-junction will only match against another value if at least one of the 
-keys in the hash matches.
-
-=item all
-
- our Junction multi method all( %hash: ) is export
-
-Returns a junction with all the keys of the hash C<&>-ed together. The 
-junction will only match against another value if all of the keys in the hash
-match.
-
-=item one
-
- our Junction multi method one( %hash: ) is export
-
-Returns a junction with all the keys of the hash C<^>-ed together. The
-junction will only match against another value if exactly one of the keys
-in the hash matches.  
-
-=item none
-
- our Junction multi method none( %hash: ) is export
-
-Returns a junction which will only match against another value if none of 
-the keys in the hash matches.
-
-=back
-
-
-=head2 Str
-
-General notes about strings:
-
-A Str can exist at several Unicode levels at once. Which level you
-interact with typically depends on what your current lexical context has
-declared the "working Unicode level to be". Default is C<Grapheme>.
-[Default can't be C<CharLingua> because we don't go into "language"
-mode unless there's a specific language declaration saying either
-exactly what language we're going into or, in the absence of that, how to
-find the exact language somewhere in the enviroment.]
-
-Attempting to use a string at a level higher it can support is handled
-without warning. The current highest supported level of the string
-is simply mapped Char for Char to the new higher level. However,
-attempting to stuff something of a higher level a lower-level string
-is an error (for example, attempting to store Kanji in a Byte string).
-An explicit conversion function must be used to tell it how you want it
-encoded.
-
-Attempting to use a string at a level lower than what it supports is not
-allowed.
-
-If a function takes a C<Str> and returns a C<Str>, the returned C<Str>
-will support the same levels as the input, unless specified otherwise.
-
-The following are all provided by the C<Str> role:
-
-=over
-
-=item p5chop
-
- our Char multi method p5chop ( Str  $string is rw: ) is export(:P5)
- my Char multi p5chop ( Str *@strings is rw ) is export(:P5)
-
-Trims the last character from C<$string>, and returns it. Called with a
-list, it chops each item in turn, and returns the last character
-chopped.
-
-=item chop
-
- our Str multi method chop ( Str  $string: ) is export
-
-Returns string with one Char removed from the end.
-
-=item p5chomp
-
- our Int multi method p5chomp ( Str  $string is rw: ) is export(:P5)
- my Int multi p5chomp ( Str *@strings is rw ) is export(:P5)
-
-Related to C<p5chop>, only removes trailing chars that match C</\n/>. In
-either case, it returns the number of chars removed.
-
-=item chomp
-
- our Str multi method chomp ( Str $string: ) is export
-
-Returns string with one newline removed from the end.  An arbitrary
-terminator can be removed if the input filehandle has marked the
-string for where the "newline" begins.  (Presumably this is stored
-as a property of the string.)  Otherwise a standard newline is removed.
-
-Note: Most users should just let their I/O handles autochomp instead.
-(Autochomping is the default.)
-
-=item lc
-
- our Str multi method lc ( Str $string: ) is export
-
-Returns the input string after converting each character to its lowercase
-form, if uppercase.
-
-
-=item lcfirst
-
- our Str multi method lcfirst ( Str $string: ) is export
-
-Like C<lc>, but only affects the first character.
-
-
-=item uc
-
- our Str multi method uc ( Str $string: ) is export
-
-Returns the input string after converting each character to its uppercase
-form, if lowercase. This is not a Unicode "titlecase" operation, but a
-full "uppercase".
-
-
-=item ucfirst
-
- our Str multi method ucfirst ( Str $string: ) is export
-
-Performs a Unicode "titlecase" operation on the first character of the string.
-
-=item normalize
-
- our Str multi method normalize ( Str $string: Bool :$canonical = Bool::True, Bool :$recompose = Bool::False ) is export
-
-Performs a Unicode "normalization" operation on the string. This involves
-decomposing the string into its most basic combining elements, and potentially
-re-composing it. Full detail on the process of decomposing and
-re-composing strings in a normalized form is covered in the Unicode
-specification Sections 3.7, Decomposition and 3.11,
-Canonical Ordering Behavior of the Unicode Standard, 4.0.
-Additional named parameters are reserved for future Unicode expansion.
-
-For everyday use there are aliases that map to the
-I<Unicode Standard Annex #15: Unicode Normalization Forms> document's
-names for the various modes of normalization:
-
- our Str multi method nfd ( Str $string: ) is export {
-   $string.normalize(:cononical, :!recompose);
- }
- our Str multi method nfc ( Str $string: ) is export {
-   $string.normalize(:canonical, :recompose);
- }
- our Str multi method nfkd ( Str $string: ) is export {
-   $string.normalize(:!canonical, :!recompose);
- }
- our Str multi method nfkc ( Str $string: ) is export {
-   $string.normalize(:!canonical, :recompose);
- }
-
-Decomposing a string can be used to compare
-Unicode strings in a binary form, providing that they use the same
-encoding. Without decomposing first, two
-Unicode strings may contain the same text, but not the same byte-for-byte
-data, even in the same encoding.
-The decomposition of a string is performed according to tables
-in the Unicode standard, and should be compatible with decompositions
-performed by any system.
-
-The C<:canonical> flag controls the use of "compatibility decompositions".
-For example, in canonical mode, "ﬁ" is left unaffected because it is
-not a composition. However, in compatibility mode, it will be replaced
-with "fi". Decomposed sequences will be ordered in a canonical way
-in either mode.
-
-The C<:recompose> flag controls the re-composition of decomposed forms.
-That is, a combining sequence will be re-composed into the canonical
-composite where possible.
-
-These de-compositions and re-compositions are performed recursively,
-until there is no further work to be done.
-
-Note that this function is really only applicable when dealing with codepoint
-strings.  Grapheme strings are normally processed at a higher abstraction level
-that is independent of normalization, and are lazily normalized into the
-desired normalization when transferred to lexical scopes or handles that care.
-
-=item samecase
-
- our Str multi method samecase ( Str $string: Str $pattern ) is export
-
-Has the effect of making the case of the string match the case pattern in C<$pattern>.
-(Used by s:ii/// internally, see L<S05>.)
-
-=item sameaccent
-
- our Str multi method sameaccent ( Str $string: Str $pattern ) is export
-
-Has the effect of making the case of the string match the accent pattern in C<$pattern>.
-(Used by s:aa/// internally, see L<S05>.)
-
-=item capitalize
-
- our Str multi method capitalize ( Str $string: ) is export
-
-Has the effect of first doing an C<lc> on the entire string, then performing a
-C<s:g/(\w+)/{ucfirst $1}/> on it.
-
-
-=item length
-
-This word is banned in Perl 6.  You must specify units.
-
-=item chars
-
- our Int multi method chars ( Str $string: ) is export
-
-Returns the number of characters in the string in the current
-(lexically scoped) idea of what a normal character is, usually graphemes.
-
-=item graphs
-
- our Int multi method codes ( Str $string: ) is export
-
-Returns the number of graphemes in the string in a language-independent way.
-
-=item codes
-
- our Int multi method codes ( Str $string: $nf = $?NF) is export
-
-Returns the number of codepoints in the string if it were canonicalized the
-specified way.  Do not confuse codepoints with UTF-16 encoding.  Characters
-above U+FFFF count as a single codepoint.
-
-=item bytes
-
- our Int multi method bytes ( Str $string: $nf = $?NF, $enc = $?ENC) is export
-
-Returns the number of bytes in the string if it were encoded in the
-specified way.  Note the inequality:
-
-    .bytes("C","UTF-16") * 2 >= .codes("C")
-
-This is caused by the possibility of surrogate pairs, which are counted as one
-codepoint.  However, this problem does not arise for UTF-32:
-
-    .bytes("C","UTF-32") * 4 == .codes("C")
-
-=item index
-
- our StrPos multi method index( Str $string: Str $substring, StrPos $pos = StrPos(0) ) is export
-
-C<index> searches for the first occurrence of C<$substring> in C<$string>,
-starting at C<$pos>.
-
-The value returned is always a C<StrPos> object.  If the substring
-is found, then the C<StrPos> represents the position of the first
-character of the substring. If the substring is not found, a bare
-C<StrPos> containing no position is returned.  This prototype C<StrPos>
-evaluates to false because it's really a kind of undef.  Do not evaluate
-as a number, because instead of returning -1 it will return 0 and issue
-a warning.
-
-
-=item pack
-
- our Str multi pack( Str::Encoding $encoding,  Pair *@items )
- our Str multi pack( Str::Encoding $encoding,  Str $template, *@items )
- our buf8 multi pack( Pair *@items )
- our buf8 multi pack( Str $template, *@items )
-
-C<pack> takes a list of pairs and formats the values according to
-the specification of the keys. Alternately, it takes a string
-C<$template> and formats the rest of its arguments according to
-the specifications in the template string. The result is a sequence
-of bytes.
-
-An optional C<$encoding> can be used to specify the character
-encoding to use in interpreting the result as a C<Str>, otherwise the return
-value will simply be a C<buf> containing the bytes generated
-by the template(s) and value(s). Note that no guarantee is made
-in terms of the final, internal representation of the string, only
-that the generated sequence of bytes will be interpreted as a
-string in the given encoding, and a string containing those
-graphemes will be returned. If the sequence of bytes represents
-an invalid string according to C<$encoding>, an exception is generated.
-
-Templates are strings of the form:
-
-  grammar Str::PackTemplate {
-   regex template  { [ <group> | <specifier> <count>? ]* }
-   token group     { \( <template> \) }
-   token specifier { <[aAZbBhHcCsSiIlLnNvVqQjJfdFDpPuUwxX\@]> \!? }
-   token count     { \* |
-             \[ [ \d+ | <specifier> ] \] |
-             \d+ }
- }
-
-In the pairwise mode, each key must contain a single C<< <group> >> or
-C<< <specifier> >>, and the values must be either scalar arguments or
-arrays.
-
-[ Note: Need more documentation and need to figure out what Perl 5 things
-        no longer make sense. Does Perl 6 need any extra formatting
-        features? -ajs ]
-
-[I think pack formats should be human readable but compiled to an
-internal form for efficiency.  I also think that compact classes
-should be able to express their serialization in pack form if
-asked for it with .packformat or some such.  -law]
-
-=item pos
-
-There is no C<pos> function in Perl 6 because that would not allow a string
-to be shared among threads.  Generally you want to use C<$/.to> for that now,
-or keep your own position variable as a lexical.
-
-=item quotemeta
-
- our Str multi method quotemeta ( Str $string: ) is export
-
-Returns the input string with all non-"word" characters back-slashed.
-That is, all characters not matching "/[A-Za-z_0-9]/" will be preceded
-by a backslash in the returned string, regardless of any locale settings.
-
-=item rindex
-
- our StrPos multi method rindex( Str $string: Str $substring, StrPos $pos? ) is export
-
-Returns the position of the last C<$substring> in C<$string>. If C<$pos>
-is specified, then the search starts at that location in C<$string>, and
-works backwards. See C<index> for more detail.
-
-=item split
-
- our List multi method split ( Str $input: Str $delimiter, Int $limit = * ) is export
- our List multi method split ( Str $input: Rule $delimiter, Int $limit = * ) is export
-
-String delimiters must not be treated as rules but as constants.  The
-default is no longer S<' '> since that would be interpreted as a constant.
-P5's C<< split('S< >') >> will translate to C<comb>.  Null trailing fields
-are no longer trimmed by default.
-
-The C<split> function no longer has a default delimiter nor a default invocant.
-In general you should use C<comb> to split on whitespace now, or to break
-into individual characters.  See below.
-
-As with Perl 5's C<split>, if there is a capture in the pattern it is
-returned in alternation with the split values.  Unlike with Perl 5,
-multiple such captures are returned in a single Match object.  Also unlike
-Perl 5, the string to be split is always the invocant or first argument.
-A warning should be issued if the string appears to be a short constant
-string and the delimiter does not.
-
-You may also split lists and filehandles.  C<$*ARGS.split(/\n[\h*\n]+/)>
-splits on paragraphs, for instance.  Lists and filehandles are automatically
-fed through C<cat> in order to pretend to be string.  The resulting
-C<Cat> is lazy.  Accessing a filehandle as both a filehandle and as
-a C<Cat> is undefined.
-
-=item comb
-
- our List multi method comb ( Str $input: Rule $matcher = /\S+/, Int $limit = * ) is export
-
-The C<comb> function looks through a string for the interesting bits,
-ignoring the parts that don't match.  In other words, it's a version
-of split where you specify what you want, not what you don't want.
-By default it pulls out all the words.  Saying
-
-    $string.comb(/pat/, $n)
-
-is equivalent to
-
-    $string.match(rx:global:x(0..$n):c/pat/)
-
-You may also comb lists and filehandles.  C<+$*IN.comb> counts the words on
-standard input, for instance.  C<comb($thing, /./)> returns a list of C<Char>
-from anything that can give you a C<Str>.  Lists and filehandles are
-automatically fed through C<cat> in order to pretend to be string.
-This C<Cat> is also lazy.
-
-If there are captures in the pattern, a list of C<Match> objects (one
-per match) is returned instead of strings.  The unmatched portions
-are never returned.  If the function is combing a lazy structure,
-the return values may also be lazy.  (Strings are not lazy, however.)
-
-=item sprintf
-
- our Str multi method sprintf ( Str $format: *@args ) is export
-
-This function is mostly identical to the C library sprintf function.
-
-The C<$format> is scanned for C<%> characters. Any C<%> introduces a
-format token. Format tokens have the following grammar:
-
- grammar Str::SprintfFormat {
-  regex format_token { '%': <index>? <precision>? <modifier>? <directive> }
-  token index { \d+ '$' }
-  token precision { <flags>? <vector>? <precision_count> }
-  token flags { <[ \x20 + 0 \# \- ]>+ }
-  token precision_count { [ <[1..9]>\d* | '*' ]? [ '.' [ \d* | '*' ] ]? }
-  token vector { '*'? v }
-  token modifier { < ll l h m V q L > }
-  token directive { < % c s d u o x e f g X E G b p n i D U O F > }
- }
-
-Directives guide the use (if any) of the arguments. When a directive
-(other than C<%>) is used, it indicates how the next argument
-passed is to be formatted into the string.
-
-The directives are:
-
- %   a literal percent sign
- c   a character with the given codepoint
- s   a string
- d   a signed integer, in decimal
- u   an unsigned integer, in decimal
- o   an unsigned integer, in octal
- x   an unsigned integer, in hexadecimal
- e   a floating-point number, in scientific notation
- f   a floating-point number, in fixed decimal notation
- g   a floating-point number, in %e or %f notation
- X   like x, but using upper-case letters
- E   like e, but using an upper-case "E"
- G   like g, but with an upper-case "E" (if applicable)
- b   an unsigned integer, in binary
- C   special: invokes the arg as code, see below
-
-Compatibility:
-
- i   a synonym for %d
- D   a synonym for %ld
- U   a synonym for %lu
- O   a synonym for %lo
- F   a synonym for %f
-
-Perl 5 (non-)compatibility:
-
- n   produces a runtime exception (see below)
- p   produces a runtime exception
-
-The special format directive, C<%C> invokes the target argument as
-code, passing it the result string that has been generated thus
-far and the argument array.
-
-Here's an example of its use:
-
- sprintf "%d%C is %d digits long",
-    $num,
-    sub($s,@args is rw) {@args[2]=$s.elems},
-    0;
-
-The special directive, C<%n> does not work in Perl 6 because of the
-difference in parameter passing conventions, but the example above
-simulates its effect using C<%C>.
-
-Modifiers change the meaning of format directives. The most important being
-support for complex numbers (a basic type in Perl). Here are all of the
-modifiers and what they modify:
-
- h interpret integer as native "short" (typically int16)
- l interpret integer as native "long" (typically int32 or int64)
- ll interpret integer as native "long long" (typically int64)
- L interpret integer as native "long long" (typically uint64)
- q interpret integer as native "quads" (typically int64 or larger)
- m interpret value as a complex number
-
-The C<m> modifier works with C<d,u,o,x,F,E,G,X,E> and C<G> format
-directives, and the directive applies to both the real and imaginary
-parts of the complex number.
-
-Examples:
-
- sprintf "%ld a big number, %lld a bigger number, %mf complexity\n",
-	4294967295, 4294967296, 1+2i);
-
-=item fmt
-
-  our Str multi method fmt( Scalar $scalar: Str $format )
-  our Str multi method fmt( List $list: Str $format, Str $separator = ' ' )
-  our Str multi method fmt( Hash $hash: Str $format, Str $separator = "\n" )
-  our Str multi method fmt( Pair $pair: Str $format )
-
-A set of wrappers around C<sprintf>. A call to the scalar version
-C<$o.fmt($format)> returns the result of C<sprintf($format, $o)>. A call to
-the list version C<@a.fmt($format, $sep)> returns the result of
-C<join $sep, map { sprintf($format, $_) }, @a>. A call to the hash version
-C<%h.fmt($format, $sep)> returns the result of
-C<join $sep, map { sprintf($format, $_.key, $_.value) }, %h.pairs>. A call
-to the pair versionC<$p.fmt($format)> returns the result of
-C<sprintf($format, $p.key, $p.value)>.
-
-=item substr
-
- our Str multi method substr (Str $string: StrPos $start, StrLen $length?) is rw is export
- our Str multi method substr (Str $string: StrPos $start, StrPos $end?) is rw is export
- our Str multi method substr (Str $string: StrPos $start, Int $length) is rw is export
-
-C<substr> returns part of an existing string. You control what part by
-passing a starting position and optionally either an end position or length.
-If you pass a number as either the position or length, then it will be used
-as the start or length with the assumtion that you mean "chars" in the
-current Unicode abstraction level, which defaults to graphemes.  A number
-in the 3rd argument is interpreted as a length rather than a position (just
-as in Perl 5).
-
-Here is an example of its use:
-
- $initials = substr($first_name,0,1) ~ substr($last_name,0,1);
-
-Optionally, you can use substr on the left hand side of an assignment
-like so:
-
- $string ~~ /(barney)/;
- substr($string, $0.from, $0.to) = "fred";
-
-If the replacement string is longer or shorter than the matched sub-string,
-then the original string will be dynamically resized.
-
-=item unpack
-
-=item vec
-
-Should replace C<vec> with declared buffer/array of C<bit>, C<uint2>,
-C<uint4>, etc.
-
-=back
-
 =head2 Context
 
 =over
@@ -1840,80 +373,6 @@ Replaces Perl 5 C<hex> and C<oct>.
 
 =back
 
-
-=head2 Time
-
-=over
-
-=item gmtime
-
- our Time multi gmtime ( Time $time? )
- our Time multi method gmtime ( Time $time: )
-
-Identical to:
-
- Time::localtime(:$time,:tz<GMT>)
-
-=item localtime
-
- our Time multi localtime ( Time $time?, Time::Zone $tz? )
- our Time multi method localtime ( Time $time: Time::Zone $tz? )
-
-Returns a time object whose default timezone is C<$tz> (or the system's
-default timezone if none is provided).
-
-If used as a function, and no time is provided, the current time is used.
-
-Note that no matter what, C<$time>'s concept of "its timezone" is discarded
-in favor of something new.
-
-=item time
-
- our Time multi time()
-
-Returns a C<Time> object. There are a number of uses for this
-object, all of which can be found in the documentation for C<Time>.
-
-There is, by default, no timezone associated with this Time object, so
-whatever default the system has will take over if timezone-specific
-data is accessed.
-
-=back
-
-=head2 IO
-
-=over 4
-
-=item getc
-
-    our Bool method getc (IO $self: *@LIST)
-
-See C<Synopsis 16: IPC / IO / Signals> for details.
-
-=item print
-
-    our Bool method print (IO $self: *@LIST)
-    our Bool multi print (*@LIST)
-    our Bool method print (Str $self: IO $io)
-
-See C<Synopsis 16: IPC / IO / Signals> for details.
-
-=item say
-
-    our Bool method say (IO $self: *@LIST)
-    our Bool multi say (*@LIST)
-    our Bool method say (Str $self: IO $io)
-
-See C<Synopsis 16: IPC / IO / Signals> for details.
-
-=item printf
-
-    our Bool method printf (IO $self: Str $fmt, *@LIST)
-    our Bool multi printf (Str $fmt, *@LIST)
-
-See C<Synopsis 16: IPC / IO / Signals> for details.
-
-=back
 
 =head2 OS
 
@@ -2203,9 +662,146 @@ C<blocking => False>.
 
 =back
 
-=head2 Obsolete
+=head2 Pending Apocalypse
+
+The following functions are classified by Apocalypse/Synopsis numbers.
 
 =over 4
+
+=item A/S??: OS Interaction
+
+chroot crypt getlogin /[get|set][pw|gr].*/ kill setpgrp setpriority
+times
+
+... These are probably going to be part of POSIX, automatically imported to GLOBAL B<if> the platform is the right one
+
+=back
+
+=head2 Default Functions
+
+These functions are exported into the default namespace
+
+=item all -- see S32-setting-library/Container.pod
+
+=item any -- see S32-setting-library/Container.pod
+
+=item cat -- see S32-setting-library/Container.pod
+
+=item classify -- see S32-setting-library/Container.pod
+
+=item defined -- see S32-setting-library/Scalars.pod
+
+=item grep -- see S32-setting-library/Container.pod
+
+=item first -- see S32-setting-library/Container.pod
+
+=item keys -- see S32-setting-library/Container.pod
+
+=item kv -- see S32-setting-library/Container.pod
+
+=item join -- see S32-setting-library/Container.pod
+
+=item map -- see S32-setting-library/Container.pod
+
+=item max -- see S32-setting-library/Container.pod
+
+=item min -- see S32-setting-library/Container.pod
+
+=item none -- see S32-setting-library/Container.pod
+
+=item one -- see S32-setting-library/Container.pod
+
+=item pairs -- see S32-setting-library/Container.pod
+
+=item print -- see S32-setting-library/IO.pod
+
+=item printf -- see S32-setting-library/IO.pod
+
+=item roundrobin -- see S32-setting-library/Container.pod
+
+=item pick -- see S32-setting-library/Container.pod
+
+=item reduce -- see S32-setting-library/Container.pod
+
+=item reverse -- see S32-setting-library/Container.pod
+
+=item say -- see S32-setting-library/IO.pod
+
+=item shape -- see S32-setting-library/Container.pod
+
+=item sort -- see S32-setting-library/Container.pod
+
+=item srand -- see S32-setting-library/Container.pod
+
+=item undefine -- see S32-setting-library/Scalar.pod
+
+=item uri -- see S32-setting-library/IO.pod
+
+=item values -- see S32-setting-library/Container.pod
+
+=item warn -- see S32-setting-library/Any.pod
+
+=item zip -- see S32-setting-library/Container.pod
+
+=head2 Non-default Functions
+
+These functions which existed in perl5 still exist, but are not part of the default 
+namespace any more.  
+
+=head3 Container
+
+The following functions can now be found in or replaced by something in the Container
+modules.  
+
+delete, exists, pop, push, shift, splice, unshift
+
+=head3 Numeric
+
+The following functions can now be found in or replaced by something in the Numeric
+modules.  
+
+abs, atan2, cos, exp, log, rand, sqrt, sin
+
+=head3 IO
+
+The following functions can now be found in or replaced by something in the IO 
+modules.  
+
+accept, bind, binmode, chdir, chmod, chown, close, closedir, connect
+eof, fcntl, fileno, flock, getc, getsockname, getsockopt, glob, ioctl, link, listen
+lstat, mkdir, open, opendir, pipe, print, printf, read, readdir, readline, readlink
+readpipe, recv, rename, rewinddir, rmdir, say, seek, seekdir, select, send, setsockopt
+shutdown, socket, socketpair, stat, symlink, sysopen, sysread, sysseek
+syswrite, tell, telldir, truncate, umask, unlink
+
+=head3 Temporal
+
+The following functions can now be found in or replaced by something in the Temporal 
+modules.  
+
+gmtime, localtime, time
+
+=head3 String
+
+The following functions can now be found in or replaced by something in the String 
+module.  
+
+chop, chomp, index, lc, lcfirst, pack, quotemeta, rindex, split, sprintf, substr, uc, 
+ucfirst, unpack
+
+=head2 Obsolete Functions
+
+Some of these are obsoleted only as general functions, and are still available by using 
+the right packages.  Others are obsoleted in that they're keywords, rather than functions 
+(these are in their own section, below).  
+
+=over 4
+
+=item %
+
+ $num1 % $num2
+
+Does a floating point modulus operation, i.e. 5.5 % 1 == 0.5 and 5 % 2.5 == 0.
 
 =item dbmopen, dbmclose
 
@@ -2215,16 +811,23 @@ C<blocking => False>.
 
 Dumped. The C<.perl> method fills this role in Perl 6.
 
+=item each
 
-=item format, formline, write
+See .pairs() method, above.  
+
+=item format, formline
 
 See Exegesis 7.
 
+=item length()
 
-=item /[msg|sem|shm].*/
+This word is banned in Perl 6.  You must specify units.  In practise, this probably means 
+you want Str.chars(), although it could be Str.bytes(), or even something else.  See 
+S32-setting-library/String for details.  
 
- use IPC::SysV;
+=item msgctl, msgget, msgrcv, msgsnd
 
+See IPC::SysV
 
 =item local
 
@@ -2234,6 +837,17 @@ Replaced by C<temp> which, unlike C<local>, defaults to not changing the value.
 
 See L<S17/Concurrency>. C<lock> has been replaced by
 C<is atomic>.
+
+=item pos
+
+There is no C<pos> function in Perl 6 because that would not allow a string
+to be shared among threads.  Generally you want to use C<$/.to> for that now,
+or keep your own position variable as a lexical.
+
+=item prototype
+
+ &func.meta.signature;
+ &func.^signature;
 
 =item ref
 
@@ -2249,51 +863,58 @@ performing an C<isa> or C<does> or C<can>, or just C<$var ~~ TYPE>.
 
 Was there a I<good> use for this?
 
-=item prototype
+=item semctl, semget, semop
 
- &func.meta.signature;
- &func.^signature;
+See IPC::SysV;
+
+=item shmctl, shmget, shmread, shmwrite
+
+See IPC::SysV;
 
 =item study
 
 Algorithm was too Anglo-centric.  Could be brought back if generalized somehow.
 
-=item waitpid
-
-C<wait> can now be called with or without an optional process/pid.
-
-=item %
-
- $num1 % $num2
-
-Does a floating point modulus operation, i.e. 5.5 % 1 == 0.5 and 5 % 2.5 == 0.
-
-=back
-
-
-=head2 Pending Apocalypse
-
-The following functions are classified by Apocalypse/Synopsis numbers.
-
-=over 4
-
-=item A/S14: Tied Variables
-
-tie tied untie (now implemented as container classes? my $foo is ....? is tie the meta operation on the container type for 'rebless' - macro tie ( $var, $class, *@args ) { CODE { variable($var).meta.rebless( $class, *@args ) } } )
+=item tie, tied
 
 These are replaced by container types.  The compiler is free to assume
 that any lexical variable is never going to change its container type
 unless some representation is made to that effect in the declaration.
 Note: P5's tied() is roughly replaced by P6's variable().
 
-=item A/S??: OS Interaction
+XXX Examples?  
 
-chroot crypt getlogin /[get|set][pw|gr].*/ kill setpgrp setpriority
-times
+my $foo is ....? is tie 
+the meta operation on the container type for 'rebless' - 
+macro tie ( $var, $class, *@args ) { CODE { variable($var).meta.rebless( $class, *@args ) } } )
 
-... These are probably going to be part of POSIX, automatically imported to GLOBAL B<if> the platform is the right one
+endXXX
+
+=item untie
+
+See notes on "tie", above, but basically these are replaced with container classes.  
+
+=item vec
+
+Should replace C<vec> with declared buffer/array of C<bit>, C<uint2>,
+C<uint4>, etc.
+
+=item waitpid
+
+C<wait> can now be called with or without an optional process/pid.
+
+=item write
+
+See Exegesis 7.
 
 =back
+
+=head3 Keywords
+
+The following were listed in Perl 5's perlfunc, but should now be considered keywords 
+rather than functions.  
+
+last, my, next, no, our, package, return, sub, use
 
 =head1 Junction
 
@@ -2317,10 +938,93 @@ is expected.
 
 =back
 
+=head1 Default Export Questions
+
+Not sure whether these are exported by default or not.  Also, many may no longer exist; if 
+so, they should be entered in the "Obsolete" section.  
+
+=item Signal-related
+
+alarm
+kill
+
+=item OS or library related
+
+chroot
+crypt
+endgrent
+endhostent
+endnetent
+endprotoent
+endpwent
+endservent
+getgrent
+getgrgid
+getgrnam
+gethostbyaddr
+gethostbyname
+gethostent
+getlogin
+getnetbyaddr
+getnetbyname
+getnetent
+getpeername
+getpgrp
+getppid
+getpriority
+getprotobyname
+getprotobynumber
+getprotoent
+getpwent
+getpwnam
+getpwuid
+getservbyname
+getservbyport
+getservent
+setgrent
+sethostent
+setnetent
+setpgrp
+setpriority
+setprotoent
+setpwent
+setservent
+
+=item Flow control
+break
+continue
+redo
+
+=item Other
+bless  -- is this dead?
+caller
+chr
+die
+do
+eval
+exec
+exit
+fork
+goto
+hex
+import
+int
+oct
+ord
+require
+scalar
+sleep
+state
+syscall
+system
+times
+utime
+wait
+wantarray
+
 =head1 Additions
 
 Please post errors and feedback to perl6-language.  If you are making
 a general laundry list, please separate messages by topic.
-
 
 

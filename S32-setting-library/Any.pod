@@ -1,0 +1,111 @@
+
+=encoding utf8
+
+=head1 Title
+
+Synopsis 32: Setting Library - Any
+
+=head1 Version
+
+ Author:        Rod Adams <rod@rodadams.net>
+ Maintainer:    Larry Wall <larry@wall.org>
+ Contributions: Aaron Sherman <ajs@ajs.com>
+                Mark Stosberg <mark@summersault.com>
+                Carl Mäsak <cmasak@gmail.com>
+                Moritz Lenz <moritz@faui2k3.org>
+ Date:          19 Mar 2009 abstracted from S29-functions.pod
+ Last Modified: 19 Feb 2009
+ Version:       1
+
+The document is a draft.
+
+If you read the HTML version, it is generated from the pod in the pugs 
+repository under /docs/Perl6/Spec/S32-setting-library/Any.pod so edit it there in
+the SVN repository if you would like to make changes.
+
+=head1 Any
+
+The following are defined in the C<Any> role:
+
+=over
+
+=item eqv
+
+ our Bool multi sub eqv (Ordering @by, $a, $b)
+ our Bool multi sub eqv (Ordering $by = &infix:<eqv>, $a, $b)
+
+Returns a Bool indicating if the parameters are equivalent,
+using criteria C<$by> or C<@by> for comparisons. C<@by> differs
+from C<$by> in that each criterion is applied, in order,
+until a non-zero (equivalent) result is achieved.
+
+=item can
+
+ our Callable multi method can ($self:, Str $method)
+
+If there is a multi method of name C<$method> that can be called on
+C<$self>, then a closure is return which has C<$self> bound to the position
+of the invocant.
+
+Otherwise an undefined value is returned.
+
+=item clone
+
+ our multi method clone (::T $self --> T)
+ our multi method clone (::T $self, *%attributes --> T)
+
+The first variant returns  an independent copy of C<$o> that is equivalent
+to C<$o>.
+
+The second variant does the same, but any named arguments override an
+attribute during the cloning process.
+
+=item cmp
+
+ our Order multi sub cmp (Ordering @by, $a, $b)
+ our Order multi sub cmp (Ordering $by = &infix:<cmp>, $a, $b)
+
+Returns C<Order::Increase>, or C<Order::Same>, or C<Order::Decrease>
+(which numify to -1, 0, +1 respectively) indicating if paramater C<$a> should
+be ordered before/tied with/after parameter C<$b>, using criteria
+C<$by> or C<@by> for comparisons. C<@by> differs from C<$by>
+in that each criterion is applied, in order, until a non-zero
+(tie) result is achieved.  If the values are not comparable,
+returns a proto C<Order> object that is undefined.
+
+=item does
+
+ our Bool multi method does ($self:, $type)
+
+Returns C<True> if and only if C<$self> conforms to type C<$type>.
+
+=item isa
+
+ our Bool multi method isa ($self:, $type)
+
+Returns C<True> if a the invocant an instance of class C<$type>, or 
+of a subset type or a derived class (through inheritance) of C<$type>.
+
+=item perl
+
+ our Str multi method perl ( Object $o: ) is export
+
+Returns a perlish representation of the object, so that calling C<eval>
+on the returned string reproduces the object as accurately as possible.
+
+=item warn
+
+ our multi method warn ( Object $o: ) is export
+
+Prints a warning to C<$*DEFERR>, which is usually bound to C<$*ERR>. See
+C<Synopsis 16: IPC / IO / Signals> for details.
+
+=back
+
+=head1 Additions
+
+Please post errors and feedback to perl6-language.  If you are making
+a general laundry list, please separate messages by topic.
+
+
+

@@ -1,0 +1,258 @@
+
+=encoding utf8
+
+=head1 Title
+
+Synopsis 32: Setting Library - Numeric
+
+=head1 Version
+
+ Author:        Rod Adams <rod@rodadams.net>
+ Maintainer:    Larry Wall <larry@wall.org>
+ Contributions: Aaron Sherman <ajs@ajs.com>
+                Mark Stosberg <mark@summersault.com>
+                Carl Mäsak <cmasak@gmail.com>
+                Moritz Lenz <moritz@faui2k3.org>
+ Date:          19 Mar 2009 abstracted from S29-functions.pod
+ Last Modified: 19 Feb 2009
+ Version:       1
+
+The document is a draft.
+
+If you read the HTML version, it is generated from the pod in the pugs 
+repository under /docs/Perl6/Spec/S32-setting-library/Numeric.pod so edit it there in
+the SVN repository if you would like to make changes.
+
+=head1 Function Packages
+
+=head2 Bool
+
+=over 4
+
+=item succ
+
+ our Bool multi method succ ( Bool $b: ) is export
+
+Returns C<Bool::True>.
+
+=item pred
+
+ our Bool multi method pred ( Bool $b: ) is export
+
+Returns C<Bool::False>.
+
+=back
+
+=head2 Num
+
+The following are all defined in the C<Num> role:
+
+B<API document>: L<Num>
+
+C<Num> provides a number of constants in addition to the basic
+mathematical functions. To get these constants, you must request
+them:
+
+ use Num :constants;
+
+or use the full name, e.g. C<Num::pi>.
+
+=over
+
+=item succ
+
+ our Num multi method succ ( Num $x: ) is export
+ out Int multi method succ ( Int $x: ) is export
+
+Returns the successor of C<$x>. This method is used by C<< prefix:<++> >> and
+C<< postfix:<++> >> to increment the value in a container.
+
+=item pred
+
+ our Num multi method pred ( Num $x: ) is export
+ our Int multi method pred ( Int $x: ) is export
+
+Returns the predeccessor of C<$x>. This method is used by C<< prefix:<--> >>
+and C<< postfix:<--> >> to decrement the value in a container.
+
+=item abs
+
+ our Num multi method abs ( Num $x: ) is export
+
+Absolute Value.
+
+=item floor
+
+ our Int multi method floor ( Num $x: ) is export
+
+Returns the highest integer not greater than C<$x>.
+
+=item ceiling
+
+ our Int multi method ceiling ( Num $x: ) is export
+
+Returns the lowest integer not less than C<$x>.
+
+=item round
+
+ our Int multi method round ( Num $x: ) is export
+
+Returns the nearest integer to C<$x>.  The algorithm is C<floor($x + 0.5)>.
+(Other rounding algorithms will be given extended names beginning with "round".)
+
+=item truncate
+
+ our Int multi method truncate ( Num $x: ) is export
+ our Int multi method int ( Num $x: ) is export
+
+Returns the closest integer to C<$x> whose absolute value is not greater
+than the absolute value of C<$x>.  (In other words, just chuck any
+fractional part.)  This is the default rounding function used by an
+C<int()> cast, for historic reasons.  But see Int constructor above
+for a rounded version.
+
+=item exp
+
+ our Num multi method exp ( Num $exponent: Num :$base = Num::e ) is export
+
+Performs similar to C<$base ** $exponent>. C<$base> defaults to the
+constant I<e>.
+
+=item log
+
+ our Num multi method log ( Num $x: Num :$base = Num::e ) is export
+
+Logarithm of base C<$base>, default Natural. Calling with C<$x == 0> is an
+error.
+
+=item log10
+
+ our Num multi method log10 (Num $x:) is export
+
+A base C<10> logarithm, othewise identical to C<log>.
+
+=item rand
+
+ our Num method rand ( Num $x: )
+ our Num term:<rand>
+
+Pseudo random number in range C<< 0 ..^ $x >>.  That is, C<0> is
+theoretically possible, while C<$x> is not.  The C<rand> function
+is 0-ary and always produces a number from C<0..^1>.  In any case,
+for picking a random integer you probably want to use something like
+C<(1..6).pick> instead.
+
+=item sign
+
+ our Int multi method sign ( Num $x: ) is export
+
+Returns 1 when C<$x> is greater than 0, -1 when it is less than 0, 0 when it
+is equal to 0, or undefined when the value passed is undefined.
+
+=item srand
+
+ multi method srand ( Num $seed: )
+ multi srand ( Num $seed = default_seed_algorithm())
+
+Seed the generator C<rand> uses. C<$seed> defaults to some combination
+of various platform dependent characteristics to yield a non-deterministic seed.
+Note that you get one C<srand()> for free when you start a Perl program, so
+you I<must> call C<srand()> yourself if you wish to specify a deterministic seed
+(or if you wish to be differently nondeterministic).
+
+=item sqrt
+
+ our Num multi method sqrt ( Num $x: ) is export
+
+Returns the square root of the parameter.
+
+=item roots
+
+  (in Num) method roots (Num $x: Int $n --> List of Num) is export
+
+Returns a list of all C<$n>th (complex) roots of C<$x>
+
+=item cis
+
+    our Complex multi method cis (Num $angle:) is export
+
+Returns 1.unpolar($angle)
+
+=item unpolar
+
+    our Complex multi method unpolar (Num $mag: Num $angle) is export
+
+Returns a complex number specified in polar coordinates.  Angle is in radians.
+
+=item i
+
+ our Num multi method i ( Num $x: )
+
+Returns a complex number representing the parameter multiplied by the imaginary
+unit C<i>.
+
+=back
+
+
+=head2 Complex
+
+=over 4
+
+=item polar
+
+    our Seq multi method polar (Complex $nim:) is export
+
+Returns (magnitude, angle) corresponding to the complex number.
+The magnitude is non-negative, and the angle in the range C<-π ..^ π>.
+
+=back
+
+=head2 The :Trig tag
+
+The following are also defined in C<Num> but not exported without a C<:Trig>
+tag.  (Which installs their names into C<Num::Trig>, as it happens.)
+
+=over 4
+
+=item I<Standard Trig Functions>
+
+ Num multi method func ( Num  $x: $base = 'radians' ) is export(:Trig)
+
+where I<func> is one of:
+sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
+acotan, sinh, cosh, tanh, asinh, acosh, atanh, sech, cosech, cotanh,
+asech, acosech, acotanh.
+
+Performs the various trigonometric functions.
+
+Option C<$base> is used to declare how you measure your angles.
+Given the value of an arc representing a single full revolution.
+
+ $base      Result
+ ----       -------
+ /:i ^r/    Radians  (2*pi)
+ /:i ^d/    Degrees  (360)
+ /:i ^g/    Gradians (400)
+ Num        Units of 1 revolution.
+
+Note that module currying can be used within a lexical scope to specify
+a consistent base so you don't have to supply it with every call:
+
+ my module Trig ::= Num::Trig.assuming(:base<degrees>);
+
+This overrides the default of "radians".
+
+=item atan2
+
+ our Num multi method atan2 ( Num $y: Num $y = 1 )
+ our Num multi atan2 ( Num $y, Num $x = 1 )
+
+This second form of C<atan> computes the arctangent of C<$y/$x>, and takes
+the quadrant into account. Otherwise behaves as other trigonometric functions.
+
+=back
+
+=head1 Additions
+
+Please post errors and feedback to perl6-language.  If you are making
+a general laundry list, please separate messages by topic.
