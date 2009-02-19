@@ -66,35 +66,25 @@ data is accessed.
 
 =head1 Roles
 
-=head2 Time and Date roles
+=head2 Temporal::Date
 
-=head3 Date
+You probably want to use the Temporal::Instant object instead.  
 
-You probably want to use the DateTime object instead.  
+role	Temporal::Date {
+	has Int $.year;
+	has Int $.month;
+	has Int $.day; # Day of month
+	has Int $.dayofweek;
+	has Int $.era; # BC, AD, etc, depending on locale
+	has Str $.defaultformat; # A CLDR-formatted string, for use with toString();
 
-role	Date {
-	has Calendar $.calendar; # Gregorian, Secular, Julian, etc
-	has NumberName $.year;
-	has NumberName $.month;
-	has NumberName $.dayofmonth;
-	has NumberName $.dayofweek;
-	has NumberName $.dayofyear;
-	has NumberName $.dayofquarter;
-	has NumberName $.quarter;
-	has NumberName $.era; # 'Common', 'Christian', etc
-	has Str $.defaultformat;
+	method	toString($format => $.defaultformat);
 
-	method	toString($format);
-	method	isLeapYear();
+	multi method Temporal::Instant infix:<+>(Temporal::Date $self, Temporal::Time $other);
+	multi method Temporal::Instant infix:<+>(Temporal::Date $self, Temporal::Duration $other);
 
-	multi method DateTime infix:<+>(Date $self, Time $other);
-	multi method DateTime infix:<+>(Date $self, Duration $other);
-
-	multi method infix:{'<=>'}(Date $self, Date $other);
-	multi method infix:{'<=>'}(Date $self, Duration $other);
-
-	method	get(Str $type, Str $of);
-	method	last(Str $type, Str $of);
+	multi method infix:{'<=>'}(Temporal::Date $self, Temporal::Date $other);
+	multi method infix:{'<=>'}(Temporal::Date $self, Temporal::Duration $other);
 }
 
 Example:
@@ -102,14 +92,6 @@ Example:
 $date = new Date('2002/01/01');
 $date.month.name(); # January
 $date.month.name('short'); # Jan
-$date.get('day', of => 'year');
-
-$date = new Date('2002/01/01');
-$date.convertcalendar('Chinese');
-$date.year.name(); # Snake
-
-A fair bit of initialisation of the NumberNames for day of the week and month will need to 
-be done.  
 
 $format will naturally need to allow for eras.  
 
@@ -123,60 +105,57 @@ $format contains things like YYYY/MM/DD or whatever.
 
 =back
 
-=head3 Time
+=head2 Temporal::Time
 
-You probably want to use the DateTime object instead.  
+You probably want to use the Temporal::Instant object instead.  
 
-role	Time {
+role	Temporal::Time {
 	has $.hour;
 	has $.minute;
 	has $.second;
 
 	method	toString($format?);
 	# This can't be right; how do we specify this
-	multi method infix:{'<=>'}(Time $self, Time $other);
-	multi method infix:{'<=>'}(Time $self, Duration $other);
+	multi method infix:{'<=>'}(Temporal::Time $self, Temporal::Time $other);
+	multi method infix:{'<=>'}(Temporal::Time $self, Temporal::Duration $other);
 }
 
 When created, recognises "today" as a possibility.  
 
-=head1 Classes
-
-=head2 Time and Date classes
-
-=head3 NumberName
-
- class	NumberName {
-	has $.number;
-
-	method	name($format?) {
-		...
-	}
- }
-
-=head3 Timezone
-
-role Timezone {
+role	Temporal::Timezone {
 	has $.number;
 
 	method name($format);
 	method is_dst();
 }
 
-=head3 DateTime
+role	Temporal::Subsecond {
+	has	$.nanosecond;
+}
 
-class	DateTime does Date does Time does Timezone {
+=head1 Classes
+
+=head2 Temporal::Timezone
+
+=head2 Temporal::Instant
+
+class	Temporal::Instant 
+	does Temporal::Date 
+	does Temporal::Time 
+	does Temporal::Timezone 
+	does Temporal::Subsecond
+{
 	has $.locale;
 	has $.parser;
 	has $.formatter; # Only for output formats
 
-	multi method DateTime infix:<+>(DateTime $self, Duration $other);
+	multi method Temporal::Instant infix:<+>(Temporal::Instant $self, Duration $other);
 
-	multi method infix:<->(DateTime $self, Duration $other);
-	multi method infix:<->(DateTime $self, Duration $other);
+	multi method infix:<->(Temporal::Instant $self, Duration $other);
+	multi method infix:<->(Temporal::Instant $self, Duration $other);
 
-	multi method infix:{'<=>'}(DateTime $self, DateTime $other);
-	multi method infix:{'<=>'}(DateTime $self, Duration $other);
+	multi method infix:{'<=>'}(Temporal::Instant $self, Temporal::Instant $other);
+	multi method infix:{'<=>'}(Temporal::Instant $self, Duration $other);
 
 	method	new(:$String);
 	method	truncate(Str $to);
@@ -215,13 +194,20 @@ Can be used to truncate a function to the current day, or whatever.
 
 =back
 
-=head3 Duration
+=head2 Temporal::Duration
 
-=head3	Repetition
+class	Temporal::Duration 
+	does Temporal::Date 
+	does Temporal::Time 
+	does Temporal::Subsecond
+{
+}
+
+=head2 Temporal::Recurring
 
 This class specifies when a repetitive action (eg. a cron job) happens.  
 
-class	DateTime::Recurring {
+class	Temporal::Recurring {
 ...
 }
 
