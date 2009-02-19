@@ -15,9 +15,10 @@ DRAFT: Synopsis 32: Setting Library - Temporal
                 Moritz Lenz <moritz@faui2k3.org>
                 Tim Nelson <wayland@wayland.id.au>
                 Daniel Ruoso <daniel@ruoso.com>
+                Dave Rolsky <autarch@urth.org>
  Date:          19 Mar 2009 extracted from S29-functions.pod and S16-IO.pod
  Last Modified: 19 Feb 2009
- Version:       1
+ Version:       2
 
 The document is a draft.
 
@@ -31,8 +32,7 @@ the SVN repository if you would like to make changes.
 
 =item gmtime
 
- our Time multi gmtime ( Time $time? )
- our Time multi method gmtime ( Time $time: )
+ our Temporal::DateTime multi gmtime ( Num $epoch? = time() )
 
 Identical to:
 
@@ -40,178 +40,159 @@ Identical to:
 
 =item localtime
 
- our Time multi localtime ( Time $time?, Time::Zone $tz? )
- our Time multi method localtime ( Time $time: Time::Zone $tz? )
+ our Temporal::DateTime multi localtime ( Num $epoch? = time() )
 
-Returns a time object whose default timezone is C<$tz> (or the system's
-default timezone if none is provided).
+These functions take an epoch value and return a C<Temporal::DateTime>
+object. For C<localtime> the time zone is taken from the local
+system. For C<gmtime> the time zone is aways UTC.
 
-If used as a function, and no time is provided, the current time is used.
-
-Note that no matter what, C<$time>'s concept of "its timezone" is discarded
-in favor of something new.
+If no time is provided, the current time is used.
 
 =item time
 
- our Time multi time()
+ our Num time()
 
-Returns a C<Time> object. There are a number of uses for this
-object, all of which can be found in the documentation for C<Time>.
-
-There is, by default, no timezone associated with this Time object, so
-whatever default the system has will take over if timezone-specific
-data is accessed.
+Returns an epoch value for the current time.
 
 =back
 
 =head1 Roles
 
+The intent behind these classes is to provide an absolutely minimal,
+but still useful, set of core behavior. The assumption is that the
+core will ship with a simple set of classes so that C<gmtime> and
+C<localtime> have something to return.
+
 =head2 Temporal::Date
 
-You probably want to use the Temporal::Instant object instead.  
+You probably want to use the Temporal::DateTime object instead.
 
 role	Temporal::Date {
-	has Int $.year;
-	has Int $.month;
-	has Int $.day; # Day of month
-	has Int $.dayofweek;
-	has Int $.era; # BC, AD, etc, depending on locale
-	has Str $.defaultformat; # A CLDR-formatted string, for use with toString();
+        my subset Month of Int where { 1 <= $^a <= 12 };
+        my subset Day of Int where { 1 <= $^a <= 31 };
+        my subset DayOfWeek of Int where { 1 <= $^a <= 7 };
 
-	method	toString($format => $.defaultformat);
+	has Int   $.year;
+	has Month $.month = 1;
+	has Day   $.day = 1;
 
-	multi method Temporal::Instant infix:<+>(Temporal::Date $self, Temporal::Time $other);
-	multi method Temporal::Instant infix:<+>(Temporal::Date $self, Temporal::Duration $other);
+        # This can be cached internally, but it's a calculated value,
+        # not an attribute.
+	method day-of-week () returns DayOfWeek;
 
-	multi method infix:{'<=>'}(Temporal::Date $self, Temporal::Date $other);
-	multi method infix:{'<=>'}(Temporal::Date $self, Temporal::Duration $other);
+        # These always return the long English names
+        method month-name () returns Str; # "January"
+        method day-name () returns Str;   # "Tuesday"
+
+        # returns the date formatted in ISO8601 style - 2008-01-25
+	method iso8601 () returns Str
+            { [ self.year, self.month, self.date ].join('-') };
+
+        method infix:{'~'} return Str { self.iso8601 };
+
+	multi method infix:{'<=>'} (Temporal::Date $self, Temporal::Date $other) {
+            $self.year <=> $other.year
+            ||
+            $self.month <=> $other.month
+            ||
+            $self.day <=> $other.day;
+        }
 }
 
 Example:
 
-$date = new Date('2002/01/01');
-$date.month.name(); # January
-$date.month.name('short'); # Jan
-
-$format will naturally need to allow for eras.  
-
-=over
-
-=item 
-
- method toString($format = 'YYYY/MM/DD');
-
-$format contains things like YYYY/MM/DD or whatever.  
-
-=back
+$date = Date.new( :year(2008), :month(1), :day(25) );
+$date.month(); # 1
 
 =head2 Temporal::Time
 
-You probably want to use the Temporal::Instant object instead.  
+You probably want to use the Temporal::DateTime object instead.
 
 role	Temporal::Time {
-	has $.hour;
-	has $.minute;
-	has $.second;
+        my subset Hour   of Int where { 0 <= $^a <= 23 };
+        my subset Minute of Int where { 0 <= $^a <= 59 };
+        my subset Second of Int where { 0 <= $^a <= 60 };
+        my subset Attosecond of Int where { 0 <= $^a <= 10**18 };
 
-	method	toString($format?);
-	# This can't be right; how do we specify this
-	multi method infix:{'<=>'}(Temporal::Time $self, Temporal::Time $other);
-	multi method infix:{'<=>'}(Temporal::Time $self, Temporal::Duration $other);
+	has Hour   $.hour = 0;
+	has Minute $.minute = 0;
+	has Second $.second = 0;
+        # 10^-18 - there's really no point in going any smaller (this
+        # is the smallest unit ever measured), but maybe it's better
+        # to make $.second a floating point value instead?
+        has Attosecond $.attosecond = 0;
+
+        method fractional-second () { self.second / 10**18 }
+
+	method iso8601 () returns Str
+            { [ self.hour, self.minute, self.fractional-second ].join(':') }
+
+        method Str returns Str { self.iso8601() };
+
+	multi method infix:{'<=>'} (Temporal::Time $self, Temporal::Time $other) {
+            $self.hour <=> $other.hour
+            ||
+            $self.minute <=> $other.minute
+            ||
+            $self.second <=> $other.second
+            ||
+            $self.attosecond <=> $other.attosecond;
+        }
 }
 
-When created, recognises "today" as a possibility.  
+=head2 Temporal::TimeZone::Observance
 
-role	Temporal::Timezone {
-	has $.number;
+role    Temporal::TimeZone::Observance {
+        my subset Offset of Int where { -86400 < $^a < 86400 };
 
-	method name($format);
-	method is_dst();
+        has Offset $.offset;
+        has Bool $.isdst;
+        has Str $.abbreviation; # CST, AST
+
+        # The ISO8601 standard does not allow for offsets with
+        # sub-minute resolutions. In real-world practice, this is not
+        # an issue.
+        method iso8601 returns Str {
+            my $hours = self.offset.abs / 3600;
+            my $minutes = self.offset.abs % 3600;
+
+            return self.offset < 0 ?? '-' :: '+'
+                   ~ $hours.fmt('%02d')
+                   ~ $minutes.truncate.fmt('%02d');
+        }
+
+        method Str returns Str { self.iso8601 }
 }
 
-role	Temporal::Subsecond {
-	has	$.nanosecond;
+This is called an I<observance> because it represents the state of a
+time zone for a given instant. A real Temporal::TimeZone role would
+return an observance when given a particular datetime.
+
+We don't specify a proper C<Temporal::TimeZone> role because time
+zones are messy and complex. The system libraries are able to give us
+sufficient information to create an observance for a time, but are not
+able to give us proper time zone information.
+
+=head2 Temporal::DateTime
+
+role	Temporal::DateTime {
+        has Temporal::Date $!date handles <year month day day-of-week>;
+        has Temporal::Time $!time handles <hour minute second fractional-second>;
+        has Temporal::TimeZone::Observance $!timezone handles <offset isdst>;
+
+	method iso8601 () returns Str
+            { self.date.is8601 ~ 'T' ~ self.time.iso8601 ~ self.timezone.iso8601 }
+
+        method Str return Str { self.iso8601 }
+
+        # This involves a whole bunch of code - see Perl 5's
+        # Time::Local
+        method epoch returns Num { ... }
+
+        method Int returns Int { self.epoch.truncate }
+
+        method Num returns Num { self.epoch }
 }
-
-=head1 Classes
-
-=head2 Temporal::Timezone
-
-=head2 Temporal::Instant
-
-class	Temporal::Instant 
-	does Temporal::Date 
-	does Temporal::Time 
-	does Temporal::Timezone 
-	does Temporal::Subsecond
-{
-	has $.locale;
-	has $.parser;
-	has $.formatter; # Only for output formats
-
-	multi method Temporal::Instant infix:<+>(Temporal::Instant $self, Duration $other);
-
-	multi method infix:<->(Temporal::Instant $self, Duration $other);
-	multi method infix:<->(Temporal::Instant $self, Duration $other);
-
-	multi method infix:{'<=>'}(Temporal::Instant $self, Temporal::Instant $other);
-	multi method infix:{'<=>'}(Temporal::Instant $self, Duration $other);
-
-	method	new(:$String);
-	method	truncate(Str $to);
-	method	last(Str $type, Str $of);
-	method	toString($format?);
-}
-
-All formats are CLDR, although implementations may want to have another set of functions 
-that use the strftime functions instead.  
-
-=over
-
-=item new
-
- method new(Str :$String) # parser defaults to 'strptime' or something similar
-	| (Str $parser, Str $String) # $parser = 'strptime'
-	| (Str $parser, Int $Epoch)  # $parser = 'epoch'
-	| (Str $parser, Str $Timezone?) # $parser = 'today' [unless strptime does this]
-	;
-
-Tries to parse the date and time specified using $parser.  
-
-If $Epoch is passed in instead, then it interprets the time as being in seconds since the 
-epoch (which is determined on a system-by-system basis).
-
-If $parser is 'today', then the current time is gotten.  Timezone would be useful for 
-simulating eg. gmtime().  
-
-=item	truncate
-
-Can be used to truncate a function to the current day, or whatever.  
-
-=item	last
-
- $date.last('day', of => 'month');
-
-=back
-
-=head2 Temporal::Duration
-
-class	Temporal::Duration 
-	does Temporal::Date 
-	does Temporal::Time 
-	does Temporal::Subsecond
-{
-}
-
-=head2 Temporal::Recurring
-
-This class specifies when a repetitive action (eg. a cron job) happens.  
-
-class	Temporal::Recurring {
-...
-}
-
-Should allow creation from the format that cron uses (ie. */5 * * * * ).  
 
 =head1 Additions
 
