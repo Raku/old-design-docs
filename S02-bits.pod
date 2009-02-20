@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 6 Feb 2009
+  Last Modified: 20 Feb 2009
   Number: 2
-  Version: 152
+  Version: 153
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -972,6 +972,8 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Signature   Function parameters (left-hand side of a binding)
     Capture     Function call arguments (right-hand side of a binding)
     Blob        An undifferentiated mass of bits
+    Instant     A point on the continuous atomic timeline (TAI)
+    Duration    The differences between two Instants
 
 Insofar as Lists are lazy, they're really only partially immutable, in
 the sense that the past is fixed but the future is not.  The portion of
@@ -982,6 +984,21 @@ references to mutable objects) are decided and locked in at that point.
 Iterators may have several different ways of iterating depending on
 the degree of laziness/eagerness desired in context.  The iterator
 API is described in S07.
+
+C<Instant>s and C<Duration>s are measured in atomic seconds with
+fractions.  Notionally they are real numbers which may be implemented
+in either C<Num> or C<Rat> types.  (Fixed-point implementations are
+strongly discouraged.)  Interfaces that take C<Duration> arguments,
+such as sleep(), may also take C<Num> arguments, but C<Instant>
+arguments must be explicitly created via any of various culturally
+aware time specification APIs that, by and large, are outside the
+CORE of Perl 6, with the possible exception of a constructor taking a
+native TAI value.  In numeric context a C<Duration> happily returns a
+C<Num> representing seconds.  If pressed for a number, an C<Instant>
+will return the length of time in atomic seconds from the TAI epoch,
+but it will be unhappy about it.  Systems which cannot provide
+a steady time base, such as POSIX systems, will simply have to make
+their best guess as to the correct atomic time.
 
 =head2 Mutable types
 
