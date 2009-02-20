@@ -111,21 +111,14 @@ You probably want to use the Temporal::DateTime object instead.
 role	Temporal::Time {
         my subset Hour   of Int where { 0 <= $^a <= 23 };
         my subset Minute of Int where { 0 <= $^a <= 59 };
-        my subset Second of Int where { 0 <= $^a <= 60 };
-        my subset Attosecond of Int where { 0 <= $^a <= 10**18 };
+        my subset Second of Num where { 0 <= $^a <= 60 };
 
 	has Hour   $.hour = 0;
 	has Minute $.minute = 0;
 	has Second $.second = 0;
-        # 10^-18 - there's really no point in going any smaller (this
-        # is the smallest unit ever measured), but maybe it's better
-        # to make $.second a floating point value instead?
-        has Attosecond $.attosecond = 0;
-
-        method fractional-second () { self.second / 10**18 }
 
 	method iso8601 () returns Str
-            { [ self.hour, self.minute, self.fractional-second ].join(':') }
+            { [ self.hour, self.minute, self.second ].join(':') }
 
         method Str { self.iso8601() };
 
@@ -135,8 +128,6 @@ role	Temporal::Time {
             $self.minute <=> $other.minute
             ||
             $self.second <=> $other.second
-            ||
-            $self.attosecond <=> $other.attosecond;
         }
 }
 
