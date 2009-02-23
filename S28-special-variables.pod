@@ -1,0 +1,740 @@
+=head1 NAME
+
+ [DRAFT] Synopsis 28 - Special Variables [DRAFT]
+
+=head1 Version
+
+ Author:        Larry Wall <larry@wall.org>
+ Maintainer:    Larry Wall <larry@wall.org>
+ Contributions: Tim Nelson <wayland@wayland.id.au>
+ Date:          23 Feb 2009, created from miscellaneous documents lying around
+ Last Modified: 23 Feb 2009
+ Version:       1
+
+=head1 INTRODUCTION
+
+This document serves as a collection point 
+for what is known about special variables 
+in Perl 6 and correlates them with the changes from Perl 5. 
+
+If you are trying to find the Perl 6 equivalent of a Perl 5 special
+variable you know, try searching this file for the Perl 5 version.
+Each main entry is followed by a note containing the corresponding
+Perl 5 variable(s). The list of main entries is also followed by 
+a table showing the 5 and 6 variables side-by-side.
+
+Most/All variables of the form $*SOMETHING should also work in the form
+$SOMETHING (without the '*') unless masked by "my $SOMETHING".
+
+=head1 DESCRIPTION
+
+=head2 Secondary Sigils (also known as "twigils"):
+
+    $+   # currently compiling scope (see S02)
+    $?   # lexically-scoped (compile time, see S02)
+    $*   # global (run time, see S02)
+    $=   # file-scoped (see S02)
+    $^   # implicit block argument (see S06 placeholder variables)
+    $<   # current $/ scope (see S02)
+    $.   # public attribute (see S12 attributes)
+    $!   # private attribute (see S12 attributes)
+
+
+=head2 Named variables (see S02):
+
+    $/             # match object from last rule
+    $0             # first captured value from match: $/.[0]
+    @*ARGS         # command-line arguments
+    &?BLOCK        # current block (itself, see S06)
+    @?BLOCK        # current blocks (themselves, see S06)
+    $?BLOCKLABEL   # label of current block (see S06) 
+                   #   XXX redundant with $?LABEL?
+    ::?CLASS       # current class (as package name)
+    $?CLASS        # current class (as variable)
+    @?CLASS        # current classes
+    %?CONFIG	   # configuration hash
+    $=DATA         # data block handle (=begin DATA ... =end)
+    $*DEFIN        # Default input file handle (see S16)
+    $*DEFOUT       # Default output file handle (see S16)
+    $*DEFERR       # Default error file handle (see S16)
+    $*EGID         # effective group id
+    %*ENV          # system environment
+    $*ERR          # standard error handle (but you likely want $*DEFERR)
+    $*EUID         # effective user id
+    $*EXECUTABLE_NAME    # executable name
+    $?FILE         # current file
+    $?GRAMMAR      # current grammar
+    @?GRAMMAR      # current grammars
+    $*GID          # group id
+    $*IN           # standard input handle (but you likely want $*DEFIN)
+    $?LABEL        # label of current block
+    @?LABEL        # labels of current blocks
+    $?LINE         # current line
+    $?MODULE       # current module
+    @?MODULE       # current modules
+    $?OS           # operating system compiled for
+    $*OS           # operating system running under
+    $?OSVER        # operating system version compiled for
+    $*OSVER        # operating system version running under
+    $*OUT          # standard output handle (but you likely want $*DEFOUT)
+    $?PACKAGE      # current package (as object)
+    @?PACKAGE      # current packages
+    $?PACKAGENAME  # name of current package (see S10) 
+    $?PERLVER      # perl version compiled for
+    $*PERLVER      # perl version running under
+    $*PROGRAM_NAME # name of the program being executed
+    $*PID          # system process id
+    $?PUGS_VERSION # Pugs version (not canonical)
+    $*PUGS_HAS_HSPLUGINS # True if Pugs was compiled with support for hsplugins
+                         # (not canonical)
+    ::?ROLE        # current role (as package name)
+    $?ROLE         # current role (as variable)
+    @?ROLE         # current roles
+    &?ROUTINE      # current sub or method (itself, see S06)
+    @?ROUTINE      # current subs or methods (themselves)
+    $*UID          # system user id
+
+There were threads on p6l about unifying all variables which concern the OS or
+the VM ($*UID, $*PROGRAM_NAME, etc.) into two variables, $?ENV (compile-time
+environment) and $*ENV (runtime environment). Larry did like the idea, but
+"ENV" is probably to overloaded to mean the hash of environment variables
+(which would be found under $*ENV.environment or some-such).
+
+
+XXX Everything below this line is older than everything above it.  XXX
+
+=head1 NAME
+
+ [DRAFT] Synopsis 28 - Special Variables [DRAFT]
+
+=head1 OUTLINE
+
+ DRAFT NOTES
+ INTRODUCTION
+ SPECIAL VARIABLES
+ PERL 6 / PERL 5 COMPARISON
+ HISTORY
+ SOURCES
+
+=head1 DRAFT NOTES
+
+As of 2007-03-13:
+
+There is a more recent document at docs/Perl6/Overview/Variable.pod
+which contains the bare bones of the next
+iteration of work on special variables in Perl 6.
+
+While the list there appears to be more complete, there remains information
+here that may still be of help in roughing in more details there.
+
+=head1 SPECIAL VARIABLES
+
+=over 8
+
+=item $*IN
+
+=item $*OUT
+
+=item $*ERR
+
+Predefined filehandles for STDIN, STDOUT, and STDERR.
+
+=over 4
+
+=item p5:
+
+Replace STDIN, STDOUT, and STDERR.
+
+=back
+
+=back
+
+=over 8
+
+=item $_
+
+The default input and pattern-searching space. 
+Same as in Perl 5 but lexically scoped
+
+=over 4
+ 
+=item p5:
+
+$_ but more lexically aware.
+
+=back
+
+=back
+
+=over 8
+
+=item $a, $b, $c ...
+
+Parameters of the current closure (block 
+or subroutine) by position in the invocation.
+
+=over 4
+ 
+=item p5:
+
+$_[0], $_[1], $_[2] ...
+
+=back
+
+=back
+
+=over 8
+
+=item $/
+
+Object containing the results of the last regular expression match. 
+All match result info found in the contained data structure. 
+This is available as the current state of the match in progress.
+
+=over 4 
+
+=item p5:
+
+No direct parallel.
+
+=back
+
+=back
+
+=over 8
+
+=item $0,$1,$2...
+
+Objects containing information on any subpatterns 
+from the corresponding set of capturing 
+parentheses from the last pattern match, not counting patterns 
+matched in nested blocks that have been exited already.
+These variables are all read-only and dynamically scoped to the 
+current BLOCK. Shortcut to same info in $/ with data structures containing 
+such things as .start and .end (Unicode level independent).
+
+=over 4 
+
+=item p5:
+
+$1,$2,$3... but now as objects, and base zero instead of one.
+
+=back
+
+=back
+
+=over 8
+
+=item $0
+
+$0 (dollar-zero) is the string matched by the last successful 
+pattern match (not counting any matches hidden within a BLOCK 
+or eval() enclosed by the current BLOCK). 
+This variable is read-only and dynamically scoped to the current BLOCK.
+What would be returned by $1 if you had
+put parens around the entire match. $0 is not bound until 
+the match succeeds. 
+
+=over 4 
+
+=item p5:
+
+$&, $MATCH
+
+=back
+
+=back
+
+=over 8
+
+=item $*MOST_RECENT_CAPTURED_MATCH
+=item $/[-1]
+=item $/[-$n]
+
+It's not clear yet which of these would be used.
+Or whether to drop this.
+
+=over 4 
+
+=item p5:
+
+$^N
+
+=back
+
+=back
+
+=over 8
+
+=item $.
+
+=item $IN_FH.input_line_number  ...or some such
+
+May-be. Current line number for the filehandle. 
+Each filehandle in Perl counts the number of lines 
+that have been read from it. 
+(Depending on the value of $IN_FH.input_rec_separator, 
+Perl's idea of what constitutes a line may not match yours.) 
+When a line is read from a filehandle, 
+or when tell() or seek() is called on it, 
+$IN_FH.input_rec_separator becomes an alias to the 
+line counter for that filehandle.
+
+=over 4 
+
+=item p5:
+
+$.  $NR  $INPUT_LINE_NUMBER  HANDLE->input_line_number(EXPR)
+But now with cleaned-up localization usage.
+
+=back
+
+=back
+
+=over 8
+
+=item $IN_FH.input_rec_separator ...or some such
+
+The input record separator, newline by default. 
+This influences Perl's idea of what a ``line'' is. 
+Works like awk's RS variable, including treating empty lines 
+as a terminator if set to the null string. 
+(An empty line cannot contain any spaces or tabs.) 
+You may set it to a multi-character string to match a multi-character 
+terminator, or to undef to read through the end of file. 
+Setting it to "\n\n" means something slightly different 
+than setting to "", if the file contains consecutive empty lines. 
+Setting to "" will treat two or more consecutive empty lines 
+as a single empty line. Setting to "\n\n" will blindly assume 
+that the next input character belongs to the next paragraph, 
+even if it's a newline. 
+(Mnemonic: / delimits line boundaries when quoting poetry.)
+
+Remember: the value of $/ is a string, not a regex. 
+awk has to be better for something. :-)
+
+=over 4 
+
+=item p5:
+
+$/ $RS $INPUT_RECORD_SEPARATOR
+IO::Handle->input_record_separator(EXPR)
+
+=back
+
+=back
+
+=over 8
+
+=item $OUT_FH.autoflush  ...or some such
+
+If set to nonzero, forces a flush right away and after every write 
+or print on the currently selected output channel. 
+Default is 0 (regardless of whether the channel is really buffered 
+by the system or not; 
+$OUT_FH.autoflush tells you only whether you've asked Perl 
+explicitly to flush after each write). 
+$*OUT will typically be line buffered if output is to the 
+terminal and block buffered otherwise. 
+Setting this variable is useful primarily when you are 
+outputting to a pipe or socket, 
+such as when you are running a Perl program under rsh 
+and want to see the output as it's happening. 
+This has no effect on input buffering. 
+(Mnemonic: when you want your pipes to be piping hot.)
+
+=over 4 
+
+=item p5:
+
+$|  $OUTPUT_AUTOFLUSH  HANDLE->autoflush(EXPR)
+
+=back
+
+=back
+
+
+. . . More to come here . . .
+
+
+=head1 PERL 6 / PERL 5 COMPARISON
+
+=over 4
+
+Because a blank entry in either column could be taken to mean either 
+"not in Perl 6" or "unknown", the information as presented 
+below presumes an entry in both columns for every entry. 
+Options are:
+
+=over 6
+
+thing  as the var in question
+
+-      for "not in this Perl"
+
+?      for "don't know yet"
+
+=back
+
+Other organizational
+schemes may become appropriate when the table is more complete.
+
+=back
+
+ Perl 5         Perl 6         Comment
+ -----------    -----------    -----------------------
+ STDIN          $*IN
+
+ STDOUT         $*OUT
+
+ STDERR         $*ERR
+
+ $_             $_
+
+ $_[1],$_[2]..  $^a,$^b..  
+
+ $a,$b            -            Just params to anonymous block
+
+   -            $/             Object with results of last regex match
+
+ $1,$2,$3...    $1,$2,$3...
+
+ $&             $<>
+
+ $`             $<pre>
+
+ $'             $<post>
+
+ $+               -            But info can now be retrieved from $/
+
+ $^N            $*MOST_RECENT_CAPTURED_MATCH  ...or some such. 
+             or $/[-1]                        ...or omit
+             or $/[-$n] 
+
+ @+               $1.end, etc.
+ 
+ $*               -
+
+ $.             $IN_FH.input_line_number  ...or some such
+
+ $/             $IN_FH.input_rec_separator  ...or some such
+
+ ******* XXX the columns seem to have switched! *********
+
+ $OUT_FH.autoflush           ...or some such
+         $|  $OUTPUT_AUTOFLUSH
+             HANDLE->autoflush(EXPR)
+
+ $OUT_FH.output_field_separator   ...or some such
+         $,  $OFS $OUTPUT_FIELD_SEPARATOR
+             IO::Handle->output_field_separator
+
+ $OUT_FH.output_record_separator   ...or some such
+         $\  $ORS $OUTPUT_RECORD_SEPARATOR
+             IO::Handle->output_record_separator
+
+ -       $"  $LIST_SEPARATOR
+
+ -       $;  $SUBSEP $SUBSCRIPT_SEPARATOR
+
+ -       $#             Output format for printed numbers.
+
+ -       $%  $FORMAT_PAGE_NUMBER
+ -           HANDLE->format_page_number(EXPR)
+
+ -       $=  $FORMAT_LINES_PER_PAGE
+ -           HANDLE->format_lines_per_page(EXPR)
+
+ -       $-  $FORMAT_LINES_LEFT
+ -           HANDLE->format_lines_left(EXPR)
+
+ $1.start, etc.       @-  @LAST_MATCH_START
+
+ -       $~  $FORMAT_NAME
+ -           HANDLE->format_name(EXPR)
+
+ -       $^  $FORMAT_TOP_NAME
+ -           HANDLE->format_top_name(EXPR)
+
+ -       $:  $FORMAT_LINE_BREAK_CHARACTERS
+ -           IO::Handle->format_line_break_characters
+
+ -       $^L $FORMAT_FORMFEED
+ -           IO::Handle->format_formfeed
+
+ -       $^A $ACCUMULATOR
+
+
+ ?       ${^ENCODING}
+
+ $!                     Universal error object with as much info as
+                        you'd like on the current exception (unthrown 
+                        outside of CATCH, thrown inside).  Unthrown 
+                        exceptions are typically interesting values 
+                        of undef.
+ -       $!  $ERRNO $OS_ERROR
+ -       $?  $CHILD_ERROR
+ -       $@  $EVAL_ERROR
+ -       $^E $EXTENDED_OS_ERROR
+
+ -       %!
+
+ $*PID   $$  $PID $PROCESS_ID
+
+ $*UID                  ...or some such
+         $<  $UID $REAL_USER_ID
+ $*EUID                 ...or some such
+         $>  $EUID $EFFECTIVE_USER_ID
+ $*GID                  ...or some such
+         $(  $GID $REAL_GROUP_ID
+ $*EGID                 ...or some such
+         $)  $EGID $EFFECTIVE_GROUP_ID
+
+ $*PROGRAM_NAME         ...or some such
+         $0  $PROGRAM_NAME
+
+ -       $[             Index of the first element in an array, 
+                        and of the first character in a substring.
+
+ 
+ -       $^V $PERL_VERSION
+ -       $]             version + patchlevel / 1000 of Perl interpreter
+                        Replacement for the above two is unclear.
+
+ $*COMPILING            ...or some such
+         $^C $COMPILING
+
+ $*DEBUGGING            ...or some such
+         $^D $DEBUGGING
+
+ $*SYS_FD_MAX           ...or some such
+         $^F $SYSTEM_FD_MAX
+
+ -       $^H
+ -       %^H
+
+ $*INPLACE_EDIT         ...or some such
+         $^I $INPLACE_EDIT
+
+ $*EMERGENCY_MEMORY     ...or some such (or omit)
+         $^M
+
+ $*OSNAME               ...or some such
+         $^O $OSNAME
+
+ -       ${^OPEN}
+
+ $*PERLDB               ...or some such
+         $^P $PERLDB
+
+ $*LAST_REGEXP_CODE_RESULT   ...or some such. Or omit.
+         $^R $LAST_REGEXP_CODE_RESULT
+
+ $*BASETIME             ...or some such
+         $^T $BASETIME
+
+ ?       ${^TAINT}
+ ?       ${^UNICODE}
+
+ -       $^W $WARNING   Probably gone. But we need a reasonably
+                        granular way to suppress specific (groups
+                        of) warnings within both lexical and 
+                        dynamic scopes.
+
+ $?WARNINGS       ${^WARNING_BITS}
+
+ $*EXECUTABLE_NAME      ...or some such
+         $^X $EXECUTABLE_NAME
+
+ ?       $ARGV
+ 
+ $*ARGS  ARGV        Note the P6 idiom: 
+                        for =$*ARGS { 
+                           # each time through loop
+                           # proc a line from files named in ARGS 
+                        }
+
+ @*ARGS  @ARGV
+
+ $*ARGVOUT
+         ARGVOUT
+
+ @*INPLACE_AUTOSPLIT_FIELDS   ..or some such
+         @F
+
+ ?       @INC        Uncertain but we need a way to add to search path
+ ?       %INC        Uncertain but we need a way to add to search path
+
+ ?       @_
+
+
+ %*ENV   %ENV        Or %ENV
+
+ %*SIG   %SIG        Or possibly &*ON_SIGINT, etc. But then we'd need 
+                     to add some signal introspection in another way.
+
+ &*ON_WARN __WARN__
+ &*ON_DIE  __DIE__
+ &*ON_PARSEERROR
+ -       $^S $EXCEPTIONS_BEING_CAUGHT
+
+=head1 HISTORY
+
+ 2007-03-13 dvergin     Reference to docs/Perl6/Overview/Variable.pod
+ 2005-04-11 dvergin     Filling in more pieces
+ 2005-04-10 dvergin     Roughed in main table 
+ 2005-04-02 anonpugster Placeholder file containing Larry's email
+
+=head1 SOURCES
+
+At its present stage of development this file
+draws on a few key sources: Perl 5's perlvar.pod (for a full list of special
+vars in Perl 5) and a perl6-language list thread documented 
+below. E02 and S02 have also been helpful in several cases.
+
+A key resource in compiling the new material above 
+has been a thread on the perl6-language
+email list which can be found at: 
+
+  http://www.mail-archive.com/perl6-language@perl.org/msg18609.html
+
+For our present purposes, the most helpful item in that thread is the 
+head post found at the url given above. 
+It is an item by Larry Wall which is reproduced here:
+_________________________________________________________________
+
+ Mailing-List: contact perl6-language-help@perl.org; run by ezmlm
+ Date: Sat, 26 Mar 2005 00:27:24 -0800
+ From: Larry Wall <larry@wall.org>
+ To: perl6-compiler@perl.org
+ Cc: perl6-language@perl.org
+ Subject: S28ish [was: [Pugs] A couple of string interpolation edge cases]
+ 
+ On Sat, Mar 26, 2005 at 02:11:29PM +0800, Audrey Tang wrote:
+ : On Fri, Mar 25, 2005 at 10:03:45PM -0800, Larry Wall wrote:
+ : > Hmm, well, if it got that far.  Given strict being on by default,
+ : > this particular example should probably just die on the fact that $"
+ : > isn't declared, since there's no $" in Perl 6.
+ : 
+ : Is $" okay as a variable name?  Is everything from perlvar.pod legal? :)
+ 
+ Considering nobody's written perlvar.pod for Perl 6 yet, yeah, everything
+ in that pod is legal.  :-)
+ 
+ :     my $" = 3;
+ : 
+ : Pugs parses that because it only considers $! and $/ as legal
+ : symbolic variable names.
+ 
+ $! will be a legal variable name.  $/ is going away, as is $", which
+ means they fail under "use strict", but they'd still autocreate
+ globals under laxity as Perl 5 does.  (I know Perl 5 exempted all
+ special variables from strict, but I don't see why we have to do
+ that for Perl 6.  Merely having $_ in the lexical scope or $*! in the
+ global scope should be sufficient declaration to get around strict.
+ Though perhaps we can exempt people from having to write $*! under
+ strict.  In fact, that probably goes for all predeclared $* names,
+ so $IN is legal for $*IN as long as you don't have "my $IN" hiding
+ it.  Another way to look at it is that * variables are basically
+ autodeclared "our" implicitly in the outermost lexical scope.)
+ 
+ Sigh, I'd better rough it all in here, even if I don't have time to
+ do a good job on it.  Maybe somebody can beat this into a real S28 pod.
+ 
+ $? and $@ are gone, merged in with $!.  (Frees up ? twigil for $?FOO
+ syntax.)  $^E is merged too.  $! is an object with as much info as
+ you'd like on the current exception (unthrown outside of CATCH, thrown
+ inside).  Unthrown exceptions are typically interesting values of undef.
+ 
+ $$ is now $*PID.  ($$foo is now unambiguous.)
+ 
+ $0 is gone in favor of $*PROGRAM_NAME or some such.
+ 
+ Anything that varied with the selected output filehandle like $|
+ is now a method on that filehande, and the variables don't exist.
+ (The p5-to-p6 translator will probably end up depending on some
+ $Perl5ish::selected_output_filehandle variable to emulate Perl 5's
+ single-arg select().)  Likewise $/ and $. should be attached to
+ a particular input filehandle.  (In fact, $/ is now the result of
+ the last regular expression match, though we might keep the idea of
+ $. around in some form or other just because it's awfully handy for
+ error messages.  But the localizing $. business is yucky.  We have
+ to clean that up.)
+ 
+ All the special format variables ($%, $=, $-, $:, $~, $^, $^A, $^L)
+ are gone.  (Frees up the = twigil for %= POD doc structures and
+ old __DATA__ stream, the : twigil for private attributes, and the ~
+ twigil for autodeclared parameters.)
+ 
+ $`, $', and $+ don't exist any more, but you can dig that info out
+ of $/'s structures.  Shortcuts into $/ include $1, $2, and such, and
+ the newfangled $<foo> things.  Also, $& is changed to $0 for the whole
+ matched string.  $` and $' may be $<pre> and $<post>, but you probably
+ have to explicitly match <pre> and <post> to get them remembered,
+ so we don't have a repeat of the Perl 5 sawampersand fiasco.  <pre>
+ and <post> would automatically exclude themselves from $0.  Or you
+ need some special flag to remember them, maybe.
+ 
+ %+ and %- are gone.  $0, $1, $2,  etc. are all objects that know
+ where they .start and .end.  (Mind you, those methods return magical
+ positions that are Unicode level independent.)
+ 
+ $* and $# have been deprecated half of forever and are gone.  $[
+ is a fossil that I suppose could turn into an evil pragma, if we
+ try to translate it at all.  (Frees up * twigil for $*FOO syntax.)
+ 
+ $(, $), $<, and $> should all change to various $*FOO names.  $] is either
+ something in $* or a trait of the Perl namespace.  Likewise $^V, if
+ they aren't in fact merged.
+ 
+ ${...} is reserved for hard refs only now.  ($::(...) must be used
+ for symbolics refs.)  ${^foo} should just change to $*foo or $*_foo
+ or some such.
+ 
+ $; is gone because the multidim hash hack is gone.  $" is gone,
+ replaced by @foo.join(":") or some such.  Likewise for $, in print
+ statements.
+ 
+ We never did find a use for $}, thank goodness.
+ 
+ And we still are keeping $_ around, though it's lexically scoped.
+ 
+ Let's see, what other damage can we do to perlvar.  $a and $b are
+ no longer special.  No bareword filehandles.  $*IN, $*OUT, $*ERR.
+ Args come in @*ARGS rather than @ARGV.  (Environment still in %ENV,
+ will wonders never cease.)  I don't know whether @INC and %INC will
+ make as much sense when we're looking installed modules in a database,
+ though I suppose you still have to let the user add places to look.
+ 
+ %SIG is now %*SIG.  The __DIE__ and __WARN__ hooks should be brought
+ out as separate &*ON_DIE and &*ON_WARN variables--they really
+ have nothing to do with signals.  I suppose we could even do away
+ with %SIG and replace it with &*ON_SIGINT and such, though then we'd
+ lose a bit of signal introspection which would have to be provided
+ some other way.  Oh, and we probably ought to split out &?ON_PARSEERROR
+ from $*ON_DIE to get rid of the $^S fiasco of Perl 5.
+ 
+ $^C, $^D, $^F, $^I, $^M, $^O, $^P, $^S, $^T, $^V, $^X are all renamed
+ to something $*FOOish, at least the ones that aren't going away entirely.
+ 
+ $^W is is too blunt an instrument even in Perl 5, so it's probably gone.
+ 
+ I'm not quite sure what to do with $^N or $^R yet.  Most likely they
+ end up as something $<foo>ish, if they stay.
+ 
+ You weren't ever supposed to know about $^H and %^H.  Or %{^FNORD}...
+ 
+ Other things might show up as global variables in support of
+ command-line options, like $*ARGVOUT or @*F.  Some of the special
+ variables we've blissfull relegated to the trash heap might
+ creep back in as global variables that just happen to know about
+ $*Perl5ish::current_selected_filehandle and such, but we should
+ probably try to keep them as lvalue subs in &Perl5ish::ors() and such.
+ 
+ Anyway, it's all negotiable, except for the parts that aren't.
+ 
+ Larry
+
+=cut
+
+
