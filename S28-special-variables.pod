@@ -1,4 +1,4 @@
-=head1 NAME
+=head1 Name
 
  [DRAFT] Synopsis 28 - Special Variables [DRAFT]
 
@@ -11,7 +11,7 @@
  Last Modified: 23 Feb 2009
  Version:       1
 
-=head1 INTRODUCTION
+=head1 Introduction
 
 This document serves as a collection point 
 for what is known about special variables 
@@ -26,7 +26,7 @@ a table showing the 5 and 6 variables side-by-side.
 Most/All variables of the form $*SOMETHING should also work in the form
 $SOMETHING (without the '*') unless masked by "my $SOMETHING".
 
-=head1 DESCRIPTION
+=head1 Overview
 
 =head2 Secondary Sigils (also known as "twigils"):
 
@@ -42,7 +42,7 @@ $SOMETHING (without the '*') unless masked by "my $SOMETHING".
 
 =head2 Named variables (see S02):
 
-    $/             # match object from last rule
+    $/             # match object from last rule (see S05)
     $0             # first captured value from match: $/.[0]
     @*ARGS         # command-line arguments
     &?BLOCK        # current block (itself, see S06)
@@ -59,14 +59,14 @@ $SOMETHING (without the '*') unless masked by "my $SOMETHING".
     $*DEFERR       # Default error file handle (see S16)
     $*EGID         # effective group id
     %*ENV          # system environment
-    $*ERR          # standard error handle (but you likely want $*DEFERR)
+    $*ERR          # standard error handle (see S16)
     $*EUID         # effective user id
     $*EXECUTABLE_NAME    # executable name
     $?FILE         # current file
     $?GRAMMAR      # current grammar
     @?GRAMMAR      # current grammars
     $*GID          # group id
-    $*IN           # standard input handle (but you likely want $*DEFIN)
+    $*IN           # standard input handle (see S16)
     $?LABEL        # label of current block
     @?LABEL        # labels of current blocks
     $?LINE         # current line
@@ -76,7 +76,7 @@ $SOMETHING (without the '*') unless masked by "my $SOMETHING".
     $*OS           # operating system running under
     $?OSVER        # operating system version compiled for
     $*OSVER        # operating system version running under
-    $*OUT          # standard output handle (but you likely want $*DEFOUT)
+    $*OUT          # standard output handle (see S16)
     $?PACKAGE      # current package (as object)
     @?PACKAGE      # current packages
     $?PACKAGENAME  # name of current package (see S10) 
@@ -100,71 +100,12 @@ environment) and $*ENV (runtime environment). Larry did like the idea, but
 "ENV" is probably to overloaded to mean the hash of environment variables
 (which would be found under $*ENV.environment or some-such).
 
+=head1 Special Variables
 
-XXX Everything below this line is older than everything above it.  XXX
+This section only lists variables that don't have a "See S16" or suchlike next to them in 
+the overview above.  
 
-=head1 NAME
-
- [DRAFT] Synopsis 28 - Special Variables [DRAFT]
-
-=head1 OUTLINE
-
- DRAFT NOTES
- INTRODUCTION
- SPECIAL VARIABLES
- PERL 6 / PERL 5 COMPARISON
- HISTORY
- SOURCES
-
-=head1 DRAFT NOTES
-
-As of 2007-03-13:
-
-There is a more recent document at docs/Perl6/Overview/Variable.pod
-which contains the bare bones of the next
-iteration of work on special variables in Perl 6.
-
-While the list there appears to be more complete, there remains information
-here that may still be of help in roughing in more details there.
-
-=head1 SPECIAL VARIABLES
-
-=over 8
-
-=item $*IN
-
-=item $*OUT
-
-=item $*ERR
-
-Predefined filehandles for STDIN, STDOUT, and STDERR.
-
-=over 4
-
-=item p5:
-
-Replace STDIN, STDOUT, and STDERR.
-
-=back
-
-=back
-
-=over 8
-
-=item $_
-
-The default input and pattern-searching space. 
-Same as in Perl 5 but lexically scoped
-
-=over 4
- 
-=item p5:
-
-$_ but more lexically aware.
-
-=back
-
-=back
+XXX Some of the information here is either old, or needs to be moved elsewhere.  XXX
 
 =over 8
 
@@ -173,29 +114,13 @@ $_ but more lexically aware.
 Parameters of the current closure (block 
 or subroutine) by position in the invocation.
 
+XXX This needs to go under "Closures".  XXX
+
 =over 4
  
 =item p5:
 
 $_[0], $_[1], $_[2] ...
-
-=back
-
-=back
-
-=over 8
-
-=item $/
-
-Object containing the results of the last regular expression match. 
-All match result info found in the contained data structure. 
-This is available as the current state of the match in progress.
-
-=over 4 
-
-=item p5:
-
-No direct parallel.
 
 =back
 
@@ -383,13 +308,13 @@ schemes may become appropriate when the table is more complete.
 
  Perl 5         Perl 6         Comment
  -----------    -----------    -----------------------
- STDIN          $*IN
+ STDIN          $*IN           See S16
 
- STDOUT         $*OUT
+ STDOUT         $*OUT          See S16
 
- STDERR         $*ERR
+ STDERR         $*ERR          See S16
 
- $_             $_
+ $_             $_             More lexically aware
 
  $_[1],$_[2]..  $^a,$^b..  
 
@@ -578,12 +503,15 @@ schemes may become appropriate when the table is more complete.
  &*ON_PARSEERROR
  -       $^S $EXCEPTIONS_BEING_CAUGHT
 
-=head1 HISTORY
 
- 2007-03-13 dvergin     Reference to docs/Perl6/Overview/Variable.pod
- 2005-04-11 dvergin     Filling in more pieces
- 2005-04-10 dvergin     Roughed in main table 
- 2005-04-02 anonpugster Placeholder file containing Larry's email
+XXX Everything below this line is older than everything above it.  XXX
+
+=head1 OUTLINE
+
+ SPECIAL VARIABLES
+ PERL 6 / PERL 5 COMPARISON
+ HISTORY
+ SOURCES
 
 =head1 SOURCES
 
