@@ -100,7 +100,7 @@ This role provides unbuffered read access to the data stream.
 role	IO::Readable {
 	has	$.isReadable;
 
-	method Int read($buf is rw, Int $length)
+	method Int read($buf is rw, Int $bytes)
 }
 
 When the $.isReadable is set, it tries to change the readability of the filehandle.  This 
@@ -109,9 +109,9 @@ readability by calling shutdown(), for example.
 
 =over
 
-=item method Int read($buf is rw, Int $length)
+=item method Int read($buf is rw, Int $bytes)
 
-Tries to read $length bytes and store in $buf. The contents of $buf
+Tries to read $bytes bytes and store in $buf. The contents of $buf
 are replaced and the actual number of bytes read is returned. A return
 of 0 means end of file. It might return unthrown failures, to be
 specified by each IO implementation.
@@ -130,7 +130,7 @@ This role provides unbuffered write access to the data stream.
 role	IO::Writeable {
 	has	$.isWriteable;
 
-	method Int write($buf, Int $length)
+	method Int write($buf, Int $bytes)
 }
 
 When the $.isWriteable is set, it tries to change the writeability of the filehandle.  
@@ -139,9 +139,9 @@ writeability by calling shutdown(), for example.
 
 =over
 
-=item method Int write($buf, Int $length)
+=item method Int write($buf, Int $bytes)
 
-Tries to write $length bytes of $buf. The actual number of bytes
+Tries to write $bytes bytes of $buf. The actual number of bytes
 written is returned. It might return unthrown failures, to be
 specified by each IO implementation.
 
@@ -157,6 +157,9 @@ IO::Writeable::Encoded methods.
 =over
 
 =item method Bool eoi()
+
+EOI = End Of Input -- equivalent to End Of File, but applies to other kinds of sockets as 
+well.  
 
 Returns true if it's the end of the input (ie. end of file or whatever), returns false if 
 not, returns undef if we can't say for certain.  
@@ -195,6 +198,15 @@ This role represents objects that depend on some external resource,
 which means that data might not be available at request.
 
 =over
+
+=item new()
+
+ method IO::Streamable new(
+	Bool :$NoOpen,
+ );
+
+Unless the NoOpen option is passed, an open will be done on the IO object when it is 
+created.  
 
 =item method Bool blocking() is rw
 
@@ -260,9 +272,9 @@ it (including the separator). If a readfield finds a
 $.input_record_separator it consumes the record separator, but returns
 undef. If $.input_escape is set, it should pay attention to that.
 
-=item method Str getc(Int $length? = 1)
+=item method Str getc(Int $char? = 1)
 
-Reads the next $length character in the set $.encoding according to
+Reads the next $char character in the set $.encoding according to
 the $.locale, or the undefined value at end of file, or if there was
 an error (in the latter case C<$!> is set).
 
@@ -451,10 +463,13 @@ class	IO::File does IO::Streamable {
 	:$fd
 	Bool :$NoOpen, 
 	:$Writeable,
+	:$Readable
  );
 
 The FSNode, Filename and fd options are mutually exclusive.  If "use portable" is in 
 effect, the Filename option throws an error; use an FSNode instead.  
+
+NoOpen is passed to IO::Streamable.new()
 
 Examples:
 
@@ -789,7 +804,7 @@ class	IO::Socket::TCP does IO::Socket does IO::Streamable {
 	Bool :$NoOpen
  );
 
-The creation of the object will also open the connection, unless NoOpen is specified.  
+The NoOpen option is passed to IO::Streamable.new()
 
 =item open
 
@@ -799,11 +814,11 @@ If it's not an IO::Listening, it does a connect().
 
 It's intended for the case where the creation of the object didn't do one.  
 
-=item method Int read($buf is rw, Int $length)
+=item method Int read($buf is rw, Int $bytes)
 
 Does a recv().  
 
-=item method Int write($buf, Int $length)
+=item method Int write($buf, Int $bytes)
 
 Does a send().
 
