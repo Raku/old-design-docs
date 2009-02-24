@@ -592,28 +592,27 @@ A Pair used as a pattern is treated as a file test.
     :C	Same for inode change time (Unix, may differ for other platforms)
 
 The interpretation of the file permission operators C<:r>, C<:R>,
-C<:w>, C<:W>, C<:x>, and C<:X> is by default based solely on the mode
-of the file and the uids and gids of the user.  There may be other
-reasons you can't actually read, write, or execute the file.  Such
-reasons may be for example network filesystem access controls, ACLs
-(access control lists), read-only filesystems, and unrecognized
-executable formats.
+C<:w>, C<:W>, C<:x>, and C<:X> is by default based on:
+
+=over
+
+=item * The mode of the file and the uids and gids of the user
+
+=item * ACLs (access control lists)
+
+=item * read-only filesystems
+
+=back
+
+There may be other reasons you can't actually read, write, or execute 
+the file.  Such reasons may be for example network filesystem access 
+controls and unrecognized executable formats.  
 
 Also note that, for the superuser on the local filesystems, the C<:r>,
 C<:R>, C<:w>, and C<:W> tests always return 1, and C<:x> and C<:X> return 1
 if any execute bit is set in the mode.  Scripts run by the superuser
 may thus need to do a stat() to determine the actual mode of the file,
 or temporarily set their effective uid to something else.
-
-If you are using ACLs, there is a pragma called C<filetest> that may
-produce more accurate results than the bare stat() mode bits.
-When under the C<use filetest 'access'> the above-mentioned filetests
-will test whether the permission can (not) be granted using the
-access() family of system calls.  Also note that the C<:x> and C<:X> may
-under this pragma return true even if there are no execute permission
-bits set (nor any extra execute permission ACLs).  This strangeness is
-due to the underlying system calls' definitions.  Read the
-documentation for the C<filetest> pragma for more information.
 
 The C<:T> and C<:B> switches work as follows.  The first block or so of the
 file is examined for odd characters such as strange control codes or
