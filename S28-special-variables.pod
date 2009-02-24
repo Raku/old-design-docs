@@ -9,7 +9,7 @@
  Contributions: Tim Nelson <wayland@wayland.id.au>
  Date:          23 Feb 2009, created from miscellaneous documents lying around
  Last Modified: 23 Feb 2009
- Version:       2
+ Version:       3
 
 =head1 Introduction
 
@@ -23,66 +23,78 @@ Each main entry is followed by a note containing the corresponding
 Perl 5 variable(s). The list of main entries is also followed by 
 a table showing the 5 and 6 variables side-by-side.
 
+Most/All variables of the form $*SOMETHING should also work in the form
+$SOMETHING (without the '*') unless masked by "my $SOMETHING".
+
 =head1 Overview
 
 =head2 Secondary Sigils (also known as "twigils"):
 
-    $?   # constants (variable only at compile time, see S02)
-    $*   # context variables and globals (run time, see S02)
-    $=   # pod documents, file-scoped (see S02)
-    $^   # self-declaring block positional parameter (see S06 placeholder variables)
-    $:   # self-declaring block named parameter (see S06 placeholder variables)
-    $<   # current $/ scope (see S02)
-    $.   # public attribute accessor (see S12 attributes)
-    $!   # private attribute storage (see S12 attributes)
+A quick reminder of the relevant twigils:
 
+    $?foo   # Lexically-scoped (compile time, see S02)
+    $*foo   # Contextualiseable Global variable (run time, see S02)
+    $=foo   # File-scoped (see S02) 
+
+XXX Something else claimed that $=foo was a POD variable; Larry says it's not 
+well-defined, yet, and we're waiting on Damian to write S26 before we'll know what's going 
+on XXX
 
 =head2 Named variables (see S02):
 
-    $/             # match object from last match (see S05)
-    $0             # first captured value from match: $/[0]
-    @*ARGS         # command-line arguments
-    &?BLOCK        # current block (itself, see S06)
-    @?BLOCK        # current blocks (themselves, see S06)
-    ::?CLASS       # current class (as package name)
-    $?CLASS        # current class (as variable)
-    @?CLASS        # current classes
-    %?CONFIG	   # configuration hash
-    $=DATA         # data block handle (=begin DATA ... =end)
-    $*EGID         # effective group id
-    %*ENV          # system environment
-    $*ERR          # standard error handle (see S16)
-    $*EUID         # effective user id
-    $*EXECUTABLE_NAME    # executable name
-    $?FILE         # current filename of source file
-    $?GRAMMAR      # current grammar
-    @?GRAMMAR      # current grammars
-    $*GID          # group id
-    $*IN           # standard input handle (see S16)
-    $?LABEL        # label of current block
-    @?LABEL        # labels of current blocks
-    $?LINE         # current line number in source file
-    $?MODULE       # current module
-    @?MODULE       # current modules
-    $?OS           # operating system compiled for
-    $*OS           # operating system running under
-    $?OSVER        # operating system version compiled for
-    $*OSVER        # operating system version running under
-    $*OUT          # standard output handle (see S16)
-    $?PACKAGE      # current package (as object)
-    @?PACKAGE      # current packages
-    $?PACKAGENAME  # name of current package (see S10) 
-    $?PERLVER      # perl version compiled for
-    $*PERLVER      # perl version running under
-    $*PROGRAM_NAME # name of the program being executed
-    $*PID          # system process id
-    ::?ROLE        # current role (as package name)
-    $?ROLE         # current role (as variable)
-    @?ROLE         # current roles
-    &?ROUTINE      # current sub or method (itself, see S06)
-    @?ROUTINE      # current subs or methods (themselves)
-    $*UID          # system user id
+ Variable            Spec  Description
+ --------            ----  -----------
 
+ $/                  S05   # match object from last match
+ $0, $1, $2          S05   # first captured value from match: $/[0]
+ @*ARGS              S06   # command-line arguments
+ &?BLOCK             S06   # current block (itself)
+ @?BLOCK             S06   # current blocks (themselves)
+ ::?CLASS                  # current class (as package name)
+ $?CLASS                   # current class (as variable)
+ @?CLASS                   # current classes
+ %?CONFIG                  # configuration hash
+ $=DATA                    # data block handle (=begin DATA ... =end)
+ $*EGID                    # effective group id
+ %*ENV                     # system environment
+ $*ERR               S16   # Standard error handle; is an IO object
+ $*EUID                    # effective user id
+ $*EXECUTABLE_NAME         # executable name
+ $?FILE                    # current filename of source file
+ $?GRAMMAR                 # current grammar
+ @?GRAMMAR                 # current grammars
+ $*GID                     # group id
+ $*IN                S16   # Standard input handle; is an IO object
+ $?LABEL                   # label of current block
+ @?LABEL                   # labels of current blocks
+ $?LINE                    # current line number in source file
+ $?MODULE                  # current module
+ @?MODULE                  # current modules
+ %*OPTS              S19   # Options from command line
+ %*OPT...            S19   # Options from command line to be passed down
+ %*OPTS              S19   # Options from command line
+ %*OPT...            S19   # Options from command line to be passed down
+ $?OS                      # operating system compiled for
+ $*OS                      # operating system running under
+ $?OSVER                   # operating system version compiled for
+ $*OSVER                   # operating system version running under
+ $*OUT               S16   # Standard output handle; is an IO object
+ $?PACKAGE                 # current package (as object)
+ @?PACKAGE                 # current packages
+ $?PACKAGENAME       S10   # name of current package
+ $?PERLVER                 # perl version compiled for
+ $*PERLVER                 # perl version running under
+ $*PROGRAM_NAME            # name of the program being executed
+ $*PID                     # system process id
+ ::?ROLE                   # current role (as package name)
+ $?ROLE                    # current role (as variable)
+ @?ROLE                    # current roles
+ &?ROUTINE           S06   # current sub or method (itself)
+ @?ROUTINE                 # current subs or methods (themselves)
+ $*STDERR            S16   # standard error handle; is an IO object
+ $*STDIN             S16   # standard input handle; is an IO object
+ $*STDOUT            S16   # standard output handle; is an IO object
+ $*UID                     # system user id
 
 Note that contextual variables such as C<$*OUT> may have more than
 one current definition in the outer dynamic context, in which case
