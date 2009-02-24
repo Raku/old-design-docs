@@ -190,6 +190,21 @@ Flushes the buffers associated with this object.
 
 Forces this object to keep its buffers empty
 
+If set to nonzero, forces a flush right away and after every write
+or print on the currently selected output channel.
+Default is 0 (regardless of whether the channel is really buffered
+by the system or not;
+$OUT_FH.autoflush tells you only whether you've asked Perl
+explicitly to flush after each write).
+$*OUT will typically be line buffered if output is to the
+terminal and block buffered otherwise.
+Setting this variable is useful primarily when you are
+outputting to a pipe or socket,
+such as when you are running a Perl program under rsh
+and want to see the output as it's happening.
+This has no effect on input buffering.
+
+
 =back
 
 =head2 IO::Streamable
@@ -246,9 +261,31 @@ IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
 
 =over
 
+=item method Int input_record_count()
+
+Returns a count of the number of records (lines?) that have been input.  
+Now with cleaned-up localization usage.
+
 =item method Str input_record_separator() is rw
 
 This regulates how "readline" behaves.
+
+The input record separator, newline by default.
+This influences Perl's idea of what a ``line'' is.
+Works like awk's RS variable, including treating empty lines
+as a terminator if set to the null string.
+(An empty line cannot contain any spaces or tabs.)
+You may set it to a multi-character string to match a multi-character
+terminator, or to undef to read through the end of file.
+Setting it to "\n\n" means something slightly different
+than setting to "", if the file contains consecutive empty lines.
+Setting to "" will treat two or more consecutive empty lines
+as a single empty line. Setting to "\n\n" will blindly assume
+that the next input character belongs to the next paragraph,
+even if it's a newline.
+
+Remember: the value of input_record_separator is a string, not a regex.
+awk has to be better for something. :-)
 
 =item method Str input_field_separator() is rw
 
@@ -290,6 +327,10 @@ case of warn(), which operates on C<$*DEFERR>.  The form with leading dot prints
 the appropriate default handle unless an explicit filehandle is supplied.
 
 =over
+
+=item method Int output_record_count()
+
+Returns a count of the number of records (lines?) that have been output.  
 
 =item method Str output_record_separator() is rw
 
