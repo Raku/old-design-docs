@@ -131,50 +131,6 @@ $_[0], $_[1], $_[2] ...
 
 =over 8
 
-=item $0,$1,$2...
-
-Objects containing information on any subpatterns 
-from the corresponding set of capturing 
-parentheses from the last pattern match, not counting patterns 
-matched in nested blocks that have been exited already.
-These variables are all read-only and dynamically scoped to the 
-current BLOCK. Shortcut to same info in $/ with data structures containing 
-such things as .start and .end (Unicode level independent).
-
-=over 4 
-
-=item p5:
-
-$1,$2,$3... but now as objects, and base zero instead of one.
-
-=back
-
-=back
-
-=over 8
-
-=item $0
-
-$0 (dollar-zero) is the string matched by the last successful 
-pattern match (not counting any matches hidden within a BLOCK 
-or eval() enclosed by the current BLOCK). 
-This variable is read-only and dynamically scoped to the current BLOCK.
-What would be returned by $1 if you had
-put parens around the entire match. $0 is not bound until 
-the match succeeds. 
-
-=over 4 
-
-=item p5:
-
-$&, $MATCH
-
-=back
-
-=back
-
-=over 8
-
 =item $*MOST_RECENT_CAPTURED_MATCH
 =item $/[-1]
 =item $/[-$n]
@@ -191,99 +147,6 @@ $^N
 =back
 
 =back
-
-=over 8
-
-=item $.
-
-=item $IN_FH.input_line_number  ...or some such
-
-May-be. Current line number for the filehandle. 
-Each filehandle in Perl counts the number of lines 
-that have been read from it. 
-(Depending on the value of $IN_FH.input_rec_separator, 
-Perl's idea of what constitutes a line may not match yours.) 
-When a line is read from a filehandle, 
-or when tell() or seek() is called on it, 
-$IN_FH.input_rec_separator becomes an alias to the 
-line counter for that filehandle.
-
-=over 4 
-
-=item p5:
-
-$.  $NR  $INPUT_LINE_NUMBER  HANDLE->input_line_number(EXPR)
-But now with cleaned-up localization usage.
-
-=back
-
-=back
-
-=over 8
-
-=item $IN_FH.input_rec_separator ...or some such
-
-The input record separator, newline by default. 
-This influences Perl's idea of what a ``line'' is. 
-Works like awk's RS variable, including treating empty lines 
-as a terminator if set to the null string. 
-(An empty line cannot contain any spaces or tabs.) 
-You may set it to a multi-character string to match a multi-character 
-terminator, or to undef to read through the end of file. 
-Setting it to "\n\n" means something slightly different 
-than setting to "", if the file contains consecutive empty lines. 
-Setting to "" will treat two or more consecutive empty lines 
-as a single empty line. Setting to "\n\n" will blindly assume 
-that the next input character belongs to the next paragraph, 
-even if it's a newline. 
-(Mnemonic: / delimits line boundaries when quoting poetry.)
-
-Remember: the value of $/ is a string, not a regex. 
-awk has to be better for something. :-)
-
-=over 4 
-
-=item p5:
-
-$/ $RS $INPUT_RECORD_SEPARATOR
-IO::Handle->input_record_separator(EXPR)
-
-=back
-
-=back
-
-=over 8
-
-=item $OUT_FH.autoflush  ...or some such
-
-If set to nonzero, forces a flush right away and after every write 
-or print on the currently selected output channel. 
-Default is 0 (regardless of whether the channel is really buffered 
-by the system or not; 
-$OUT_FH.autoflush tells you only whether you've asked Perl 
-explicitly to flush after each write). 
-$*OUT will typically be line buffered if output is to the 
-terminal and block buffered otherwise. 
-Setting this variable is useful primarily when you are 
-outputting to a pipe or socket, 
-such as when you are running a Perl program under rsh 
-and want to see the output as it's happening. 
-This has no effect on input buffering. 
-(Mnemonic: when you want your pipes to be piping hot.)
-
-=over 4 
-
-=item p5:
-
-$|  $OUTPUT_AUTOFLUSH  HANDLE->autoflush(EXPR)
-
-=back
-
-=back
-
-
-. . . More to come here . . .
-
 
 =head1 PERL 6 / PERL 5 COMPARISON
 
@@ -309,89 +172,55 @@ schemes may become appropriate when the table is more complete.
 
 =back
 
- Perl 5         Perl 6         Comment
- -----------    -----------    -----------------------
- STDIN          $*IN           See S16
-
- STDOUT         $*OUT          See S16
-
- STDERR         $*ERR          See S16
-
- $_             $_             More lexically aware
-
- $_[1],$_[2]..  $^a,$^b..  
-
- $a,$b            -            Just params to anonymous block
-
-   -            $/             Object with results of last regex match
-
- $1,$2,$3...    $1,$2,$3...
-
- $&             $<>
-
- $`             $<pre>
-
- $'             $<post>
-
- $+               -            But info can now be retrieved from $/
-
- $^N            $*MOST_RECENT_CAPTURED_MATCH  ...or some such. 
-             or $/[-1]                        ...or omit
-             or $/[-$n] 
-
- @+               $1.end, etc.
- 
- $*               -
-
- $.             $IN_FH.input_line_number  ...or some such
-
- $/             $IN_FH.input_rec_separator  ...or some such
+ Perl 5              Perl 6         Comment
+ -----------         -----------    -----------------------
+ STDIN               $*STDIN        See S16; you probably want $*IN
+ STDOUT              $*STDOUT       See S16; you probably want $*OUT
+ STDERR              $*STDERR       See S16;	you probably want $*ERR
+ $_                  $_             More lexically aware
+ $_[1],$_[2]..       $^a,$^b..  
+ $a,$b               -              Just params to anonymous block
+ -                   $/             Object with results of last regex match
+ $1,$2,$3...         $1,$2,$3...
+ $&, $MATCH          $<>
+ $`, $PREMATCH       $<pre>
+ $', $POSTMATCH      $<post>
+ $+                  -              But info can now be retrieved from $/
+ $^N                 $*MOST_RECENT_CAPTURED_MATCH  ...or some such. 
+                  or $/[-$n]                       ...or omit 
+ @-                  $1.start, etc
+ @+                  $1.end, etc.
+ $*                  -
+ $#                  -
+ $.                  $*IN.input_record_number()
+ $/                  $*IN.input_record_separator()
+ $|                  $*OUT.autoflush()
+ $,                  $*OUT.output_field_separator()
+ $\                  $*OUT.output_record_separator()
+ $$, $PID            $*PID
+ $<, $UID            $*UID          Real UID (User ID)
+ $(, $GID            $*GID          Real GID (Group ID)
+ $>, $EUID           $*EUID         Effective UID
+ $), $EGID           $*EGID         Effective GID
+ $0, $PROGRAM_NAME   $*PROGRAM_NAME
+ $^C, $COMPILING     $*COMPILING
+ $^D, $DEBUGGING     $*DEBUGGING
+ $^F, $SYS_FD_MAX    $*SYS_FD_MAX   ...or some such
+ $^I, $INPLACE_EDIT  $*INPLACE_EDIT ...or some such
+ $^M                 $*EMERGENCY_MEMORY ...or some such (or omit)
+ $^O, $OSNAME        $*OSNAME       ...or some such
+ $^P, $PERLDB        $*PERLDB       ...or some such
+ $^R                 $*LAST_REGEXP_CODE_RESULT   ...or some such. Or omit.
+ $^T, $BASETIME      $*BASETIME     A Temporal::Instant object
+ ${^WARNING_BITS}    $?WARNINGS
+ $^X                 $*EXECUTABLE_NAME ...or some such
+ $EXECUTABLE_NAME
 
  ******* XXX the columns seem to have switched! *********
-
- $OUT_FH.autoflush           ...or some such
-         $|  $OUTPUT_AUTOFLUSH
-             HANDLE->autoflush(EXPR)
-
- $OUT_FH.output_field_separator   ...or some such
-         $,  $OFS $OUTPUT_FIELD_SEPARATOR
-             IO::Handle->output_field_separator
-
- $OUT_FH.output_record_separator   ...or some such
-         $\  $ORS $OUTPUT_RECORD_SEPARATOR
-             IO::Handle->output_record_separator
 
  -       $"  $LIST_SEPARATOR
 
  -       $;  $SUBSEP $SUBSCRIPT_SEPARATOR
-
- -       $#             Output format for printed numbers.
-
- -       $%  $FORMAT_PAGE_NUMBER
- -           HANDLE->format_page_number(EXPR)
-
- -       $=  $FORMAT_LINES_PER_PAGE
- -           HANDLE->format_lines_per_page(EXPR)
-
- -       $-  $FORMAT_LINES_LEFT
- -           HANDLE->format_lines_left(EXPR)
-
- $1.start, etc.       @-  @LAST_MATCH_START
-
- -       $~  $FORMAT_NAME
- -           HANDLE->format_name(EXPR)
-
- -       $^  $FORMAT_TOP_NAME
- -           HANDLE->format_top_name(EXPR)
-
- -       $:  $FORMAT_LINE_BREAK_CHARACTERS
- -           IO::Handle->format_line_break_characters
-
- -       $^L $FORMAT_FORMFEED
- -           IO::Handle->format_formfeed
-
- -       $^A $ACCUMULATOR
-
 
  ?       ${^ENCODING}
 
@@ -407,20 +236,6 @@ schemes may become appropriate when the table is more complete.
 
  -       %!
 
- $*PID   $$  $PID $PROCESS_ID
-
- $*UID                  ...or some such
-         $<  $UID $REAL_USER_ID
- $*EUID                 ...or some such
-         $>  $EUID $EFFECTIVE_USER_ID
- $*GID                  ...or some such
-         $(  $GID $REAL_GROUP_ID
- $*EGID                 ...or some such
-         $)  $EGID $EFFECTIVE_GROUP_ID
-
- $*PROGRAM_NAME         ...or some such
-         $0  $PROGRAM_NAME
-
  -       $[             Index of the first element in an array, 
                         and of the first character in a substring.
 
@@ -429,37 +244,10 @@ schemes may become appropriate when the table is more complete.
  -       $]             version + patchlevel / 1000 of Perl interpreter
                         Replacement for the above two is unclear.
 
- $*COMPILING            ...or some such
-         $^C $COMPILING
-
- $*DEBUGGING            ...or some such
-         $^D $DEBUGGING
-
- $*SYS_FD_MAX           ...or some such
-         $^F $SYSTEM_FD_MAX
-
  -       $^H
  -       %^H
 
- $*INPLACE_EDIT         ...or some such
-         $^I $INPLACE_EDIT
-
- $*EMERGENCY_MEMORY     ...or some such (or omit)
-         $^M
-
- $*OSNAME               ...or some such
-         $^O $OSNAME
-
  -       ${^OPEN}
-
- $*PERLDB               ...or some such
-         $^P $PERLDB
-
- $*LAST_REGEXP_CODE_RESULT   ...or some such. Or omit.
-         $^R $LAST_REGEXP_CODE_RESULT
-
- $*BASETIME             ...or some such
-         $^T $BASETIME
 
  ?       ${^TAINT}
  ?       ${^UNICODE}
@@ -468,11 +256,6 @@ schemes may become appropriate when the table is more complete.
                         granular way to suppress specific (groups
                         of) warnings within both lexical and 
                         dynamic scopes.
-
- $?WARNINGS       ${^WARNING_BITS}
-
- $*EXECUTABLE_NAME      ...or some such
-         $^X $EXECUTABLE_NAME
 
  ?       $ARGV
  
@@ -669,3 +452,442 @@ _________________________________________________________________
 =cut
 
 
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 2: Bits and Pieces
+
+S02
+
+=head1 AUTHOR
+
+Larry Wall <larry@wall.org>
+
+=head1 VERSION
+
+  Maintainer: Larry Wall <larry@wall.org>
+  Date: 10 Aug 2004
+  Last Modified: 20 Feb 2009
+  Number: 2
+  Version: 153
+
+=item *
+
+Many of the special variables of Perl 5 are going away.  Those that
+apply to some object such as a filehandle will instead be attributes
+of the appropriate object.  Those that are truly global will have
+global alphabetic names, such as C<$*PID> or C<@*ARGS>. 
+
+=item *
+
+Any remaining special variables will be lexically scoped.
+This includes C<$_> and C<@_>, as well as the new C<$/>, which
+is the return value of the last regex match.  C<$0>, C<$1>, C<$2>, etc.,
+are aliases into the C<$/> object.
+
+=item *
+
+The following pseudo-package names are reserved at the front of a name:
+
+    MY          # Symbols in the current lexical scope (aka $?SCOPE)
+    OUR         # Symbols in the current package (aka $?PACKAGE)
+
+=item *
+
+When "strict" is in effect (which is the default except for one-liners),
+non-qualified variables (such as C<$x> and C<@y>) are only looked up from
+lexical scopes, but never from package scopes.
+
+To bind package variables into a lexical scope, simply say C<our ($x, @y)>.
+To bind global variables into a lexical scope, predeclare them with C<use>:
+
+    use GLOBAL <$IN $OUT>;
+
+Or just refer to them as C<$*IN> and C<$*OUT>.
+
+=item *
+
+The C<CALLER> package refers to the lexical scope of the (dynamically
+scoped) caller.  The caller's lexical scope is allowed to hide any
+user-defined variable from you.  In fact, that's the default, and a
+lexical variable must have the trait "C<is context>" to be
+visible via C<CALLER>.  (C<$_>, C<$!> and C<$/> are always
+contextual.) If the variable is not visible in the caller, it returns
+failure.  Variables whose names are visible at the point of the call but that
+come from outside that lexical scope are controlled by the scope
+in which they were originally declared as contextual.
+Hence the visibility of C<< CALLER::<$*foo> >> is determined where
+C<$*foo> is actually declared, not by the caller's scope (unless that's where
+it happens to be declared).  Likewise C<< CALLER::CALLER::<$x> >>
+depends only on the declaration of C<$x> visible in your caller's caller.
+
+Any lexical declared with the C<is context> trait is by default
+considered readonly outside the current lexical scope.  You may
+add a trait argument of C<< <rw> >> to allow called routines to
+modify your value.  C<$_>, C<$!>, and C<$/> are C<< context<rw> >>
+by default.  In any event, the declaring scope can always access the
+variable as if it were an ordinary variable; the restriction on writing
+applies only to access via the C<*> twigil.
+
+=item *
+
+The C<CONTEXT> pseudo-package is just like C<CALLER> except that
+it starts in the current dynamic scope and from there
+scans outward through all dynamic scopes until it finds a
+contextual variable of that name in that context's lexical scope.
+(Use of C<$*FOO> is equivalent to C<< CONTEXT::<$FOO> >> or C<< $CONTEXT::FOO >>.)
+If after scanning all the lexical scopes of each dynamic scope,
+there is no variable of that name, it looks in the C<GLOBAL> package followed
+by the C<PROCESS> package.
+If there is no such package variable,
+it then looks in C<CONTEXT::<%ENV> for the identifier of the variable,
+which, if not overridden in a dynamic scope, finds C<< PROCESS::<%ENV> >>,
+that is, in the environment variables passed to program.  If the
+value is not found there, it returns failure.  If the variable is
+of the form C<$*FOO>, the complete environment value is returned.  If it
+is of the form C<@*FOO> the string will be split either on colons or
+semicolons as appropriate to the current operating system.  Usage of
+the C<%*FOO> form is currently undefined.
+
+Unlike C<CALLER>, C<CONTEXT> will see a contextual variable that is declared in
+the current scope, however it will not be writeable via C<CONTEXT> unless
+declared "C<< is context<rw> >>", even if the variable itself is
+modifiable in that scope.  (If it is, you should just use the bare
+variable itself to modify it.)  Note that C<$*_> will always see
+the C<$_> in the current scope, not the caller's scope.  You may
+use C<< CALLER::<$*foo> >> to bypass a contextual definition of C<$foo>
+in your current context, such as to initialize it with the outer
+contextual value:
+
+    my $foo is context = CALLER::<$*foo>;
+
+The C<temp> maybe used on a contextual variable to perform a similar operation:
+
+    temp $*foo;
+
+The main difference is that by default it initializes the new
+C<$*foo> with its previous value, rather than the caller's value.
+The temporized contextual variable takes its read/write policy from
+the previous C<$*foo> container.
+
+The C<CONTEXT> package is primarily for internal overriding of contextual
+information, modelled on how environmental variables work among
+processes.  Despite the fact that the C<CONTEXT> package reflects the
+current process's environment variables individually where those are not
+hidden by lower-level declarations, the actual set of environment variables
+that will be passed to subprocesses is taken from the C<%*ENV> variable.
+Hence you must override that variable itself to influence what is
+passed to subprocesses.  That is,
+
+    temp $*LANG = "ja_JP.utf8";   # WRONG
+    run "greet";
+
+does not set the LANG environment variable for the greet program.  Instead
+you should make a private copy of the environment and modify that:
+
+    temp %*ENV;
+    %*ENV<LANG> = "ja_JP.utf8";   # ok
+    run "greet";
+
+=item *
+
+There is no longer any special package hash such as C<%Foo::>.  Just
+subscript the package object itself as a hash object, the key of which
+is the variable name, including any sigil.  The package object can
+be derived from a type name by use of the C<::> postfix:
+
+    MyType::<$foo>
+
+(Directly subscripting the type with either square brackets or curlies
+is reserved for various generic type-theoretic operations.  In most other
+matters type names and package names are interchangeable.)
+
+Typeglobs are gone.  Use binding (C<:=> or C<::=>) to do aliasing.
+Individual variable objects are still accessible through the
+hash representing each symbol table, but you have to include the
+sigil in the variable name now: C<MyPackage::{'$foo'}> or the
+equivalent C<< MyPackage::<$foo> >>.
+
+=item *
+
+Truly global variables live in the C<*> package: C<$*UID>, C<%*ENV>.
+(The C<*> may be omitted if you import the name from the C<GLOBAL>
+package.)  C<$*foo> is short for C<$*::foo>, suggesting that the
+variable is "wild carded" into every package.
+
+=item *
+
+For an ordinary Perl program running by itself, the C<GLOBAL> and
+C<PROCESS> namespaces are considered synonymous.  However, in certain
+situations (such as shared hosting under a webserver), the actual
+process may contain multiple virtual processes, each running its own
+"main" code.  In this case, the C<GLOBAL> namespace holds variables
+that properly belong to the individual virtual process, while the
+C<PROCESS> namespace holds variables that properly belong to the actual
+process as a whole.  From the viewpoint of the C<GLOBAL> namespace
+there is little difference, since process variables that normally
+appear in C<GLOBAL> are automatically imported from C<PROCESS>.
+However, the process as a whole may place restrictions on the
+mutability of process variables as seen by the individual subprocesses.
+Also, individual subprocesses may not create new process variables.
+If the process wishes to grant subprocesses the ability to communicate
+via the C<PROCESS> namespace, it must supply a writeable variable
+to all the subprocesses granted that privilege.
+
+When these namespaces are so distinguished, the C<*> shortcut always refers
+to C<GLOBAL>.  There is no twigil shortcut for C<PROCESS>.
+
+=item *
+
+The magic command-line input handle is C<$*ARGFILES>.
+The arguments themselves come in C<@*ARGS>.  See also "Declaring a MAIN
+subroutine" in S06.
+
+=item *
+
+Magical file-scoped values live in variables with a C<=> secondary
+sigil.  C<$=DATA> is the name of your C<DATA> filehandle, for instance.
+All pod structures are available through C<%=POD> (or some such).
+As with C<*>, the C<=> may also be used as a package name: C<$=::DATA>.
+
+=item *
+
+Magical lexically scoped values live in variables with a C<?> secondary
+sigil.  These are all values that are known to the compiler, and may
+in fact be dynamically scoped within the compiler itself, and only
+appear to be lexically scoped because dynamic scopes of the compiler
+resolve to lexical scopes of the program.  All C<$?> variables are considered
+constants, and may not be modified after being compiled in.  The user
+is also allowed to define or (redefine) such constants:
+
+    constant $?TABSTOP = 4;     # assume heredoc tabs mean 4 spaces
+
+(Note that the constant declarator always evaluates its initialization
+expression at compile time.)
+
+C<$?FILE> and C<$?LINE> are your current file and line number, for
+instance.  C<?> is not a shortcut for a package name like C<*> is.
+Instead of C<$?OUTER::SUB> you probably want to write C<< OUTER::<$?SUB> >>.
+Within code that is being run during the compile, such as C<BEGIN> blocks, or
+macro bodies, or constant initializers, the compiler variables must be referred
+to as (for instance) C<< COMPILING::<$?LINE> >> if the bare C<$?LINE> would
+be taken to be the value during the compilation of the currently running
+code rather than the eventual code of the user's compilation unit.  For
+instance, within a macro body C<$?LINE> is the line within the macro
+body, but C<< COMPILING::<$?LINE> >> is the line where the macro was invoked.
+See below for more about the C<COMPILING> pseudo package.
+
+Here are some possibilities:
+
+    $?FILE      Which file am I in?
+    $?LINE      Which line am I at?
+    $?PARSER    Which Perl grammar was used to parse this statement?
+    $?LANG      Which Perl parser should embedded closures parse with?
+    &?ROUTINE   Which routine am I in?
+    @?ROUTINE   Which nested routines am I in?
+    &?BLOCK     Which block am I in?
+    @?BLOCK     Which nested blocks am I in?
+    $?LABEL     Which innermost block label am I in?
+    @?LABEL     Which nested block labels am I in?
+
+All the nested C<@?> variables are ordered from the innermost to the
+outermost, so C<@?BLOCK[0]> is always the same as C<&?BLOCK>.
+
+The following return objects that contain all pertinent info:
+
+    $?OS        Which operating system am I compiled for?
+    $?DISTRO    Which OS distribution am I compiling under
+    $?VM        Which virtual machine am I compiling under
+    $?XVM       Which virtual machine am I cross-compiling for
+    $?PERL      Which Perl am I compiled for?
+    $?SCOPE     Which lexical scope am I in?
+    $?PACKAGE   Which package am I in?
+    @?PACKAGE   Which nested packages am I in?
+    $?MODULE    Which module am I in?
+    @?MODULE    Which nested modules am I in?
+    $?CLASS     Which class am I in? (as variable)
+    @?CLASS     Which nested classes am I in?
+    $?ROLE      Which role am I in? (as variable)
+    @?ROLE      Which nested roles am I in?
+    $?GRAMMAR   Which grammar am I in?
+    @?GRAMMAR   Which nested grammars am I in?
+
+It is relatively easy to smartmatch these constant objects
+against pairs to check various attributes such as name,
+version, or authority:
+
+    given $?VM {
+        when :name<Parrot> :ver(v2) { ... }
+        when :name<CLOS>            { ... }
+        when :name<SpiderMonkey>    { ... }
+        when :name<JVM> :ver(v6.*)  { ... }
+    }
+
+Matches of constant pairs on constant objects may all be resolved at
+compile time, so dead code can be eliminated by the optimizer.
+
+Note that some of these things have parallels in the C<*> space at run time:
+
+    $*OS        Which OS I'm running under
+    $*DISTRO    Which OS distribution I'm running under
+    $*VM        Which VM I'm running under
+    $*PERL      Which Perl I'm running under
+
+You should not assume that these will have the same value as their
+compile-time cousins.
+
+=item *
+
+While C<$?> variables are constant to the run time, the compiler
+has to have a way of changing these values at compile time without
+getting confused about its own C<$?> variables (which were frozen in
+when the compile-time code was itself compiled).  The compiler can
+talk about these compiler-dynamic values using the C<COMPILING> pseudopackage.
+
+References to C<COMPILING> variables are automatically hoisted into the
+context currently being compiled.  Setting or temporizing a C<COMPILING>
+variable sets or temporizes the incipient C<$?> variable in the
+surrounding lexical context that is being compiled.  If nothing in
+the context is being compiled, an exception is thrown.
+
+    $?FOO // say "undefined";   # probably says undefined
+    BEGIN { COMPILING::<$?FOO> = 42 }
+    say $?FOO;                  # prints 42
+    {
+        say $?FOO;              # prints 42
+        BEGIN { temp COMPILING::<$?FOO> = 43 } # temporizes to *compiling* block
+        say $?FOO;              # prints 43
+        BEGIN { COMPILING::<$?FOO> = 44 }
+        say $?FOO;              # prints 44
+        BEGIN { say COMPILING::<$?FOO> }        # prints 44, but $?FOO probably undefined
+    }
+    say $?FOO;                  # prints 42 (left scope of temp above)
+    $?FOO = 45;                 # always an error
+    COMPILING::<$?FOO> = 45;    # an error unless we are compiling something
+
+Note that C<< CALLER::<$?FOO> >> might discover the same variable
+as C<COMPILING::<$?FOO>>, but only if the compiling context is the
+immediate caller.  Likewise C<< OUTER::<$?FOO> >> might or might not
+get you to the right place.  In the abstract, C<COMPILING::<$?FOO>>
+goes outwards dynamically until it finds a compiling scope, and so is
+guaranteed to find the "right" C<$?FOO>.  (In practice, the compiler
+hopefully keeps track of its current compiling scope anyway, so no
+scan is needed.)
+
+Perceptive readers will note that this subsumes various "compiler hints"
+proposals.  Crazy readers will wonder whether this means you could
+set an initial value for other lexicals in the compiling scope.  The
+answer is yes.  In fact, this mechanism is probably used by the
+exporter to bind names into the importer's namespace.
+
+=item *
+
+The currently compiling Perl parser is switched by modifying
+C<< COMPILING::<$?PARSER> >>.  Lexically scoped parser changes
+should temporize the modification.  Changes from here to
+end-of-compilation unit can just assign or bind it.  In general,
+most parser changes involve deriving a new grammar and then pointing
+C<< COMPILING::<$?PARSER> >> at that new grammar.  Alternately, the
+tables driving the current parser can be modified without derivation,
+but at least one level of anonymous derivation must intervene from
+the standard Perl grammar, or you might be messing up someone else's
+grammar.  Basically, the current grammar has to belong only to the
+current compiling scope.  It may not be shared, at least not without
+explicit consent of all parties.  No magical syntax at a distance.
+Consent of the governed, and all that.
+
+=item *
+
+The double-underscore forms are going away:
+
+    Old                 New
+    ---                 ---
+    __LINE__            $?LINE
+    __FILE__            $?FILE
+    __PACKAGE__         $?PACKAGE
+    __END__             =begin END
+    __DATA__            =begin DATA
+
+The C<=begin END> pod stream is special in that it assumes there's
+no corresponding C<=end END> before end of file.  The C<DATA>
+stream is no longer special--any POD stream in the current file
+can be accessed via a filehandle, named as C<< %=POD{'DATA'} >> and such.
+Alternately, you can treat a pod stream as a scalar via C<$=DATA>
+or as an array via C<@=DATA>.  Presumably a module could read all
+its COMMENT blocks from C<@=COMMENT>, for instance.  Each chunk of
+pod comes as a separate array element.  You have to split it into lines
+yourself.  Each chunk has a C<.range> property that indicates its
+line number range within the source file.
+
+The lexical routine itself is C<&?ROUTINE>; you can get its name with
+C<&?ROUTINE.name>.  The current block is C<&?BLOCK>.  If the block has any
+labels, those shows up in C<&?BLOCK.labels>.  Within the lexical scope of
+a statement with a label, the label is a pseudo-object representing
+the dynamic context of that statement.  (If inside multiple dynamic
+instances of that statement, the label represents the innermost one.)
+When you say:
+
+    next LINE;
+
+it is really a method on this pseudo-object, and
+
+    LINE.next;
+
+would work just as well.  You can exit any labeled block early by saying
+
+    MyLabel.leave(@results);
+
+=item *
+
+Heredocs allow optional whitespace both before and after terminating
+delimiter.  Leading whitespace equivalent to the indentation of the
+delimiter will be removed from all preceding lines.  If a line is
+deemed to have less whitespace than the terminator, only whitespace
+is removed, and a warning may be issued.  (Hard tabs will be assumed
+to be C<< ($?TABSTOP // 8) >> spaces, but as long as tabs and spaces are used consistently
+that doesn't matter.)  A null terminating delimiter terminates on
+the next line consisting only of whitespace, but such a terminator
+will be assumed to have no indentation.  (That is, it's assumed to
+match at the beginning of any whitespace.)
+
+=head1 NOT YET DEFINED
+
+The following items are not yet defined, but will need to be defined.  
+
+=head2 Form.pm
+
+These go in the Perl5 to Perl6 conversion table:
+
+ Perl6   Perl5
+ -----   -----------------------------------------
+ -       $%  $FORMAT_PAGE_NUMBER
+ -           HANDLE->format_page_number(EXPR)
+
+ -       $=  $FORMAT_LINES_PER_PAGE
+ -           HANDLE->format_lines_per_page(EXPR)
+
+ -       $-  $FORMAT_LINES_LEFT
+ -           HANDLE->format_lines_left(EXPR)
+
+ -       $~  $FORMAT_NAME
+ -           HANDLE->format_name(EXPR)
+
+ -       $^  $FORMAT_TOP_NAME
+ -           HANDLE->format_top_name(EXPR)
+
+ -       $:  $FORMAT_LINE_BREAK_CHARACTERS
+ -           IO::Handle->format_line_break_characters
+
+ -       $^L $FORMAT_FORMFEED
+ -           IO::Handle->format_formfeed
+
+ -       $^A $ACCUMULATOR
+
+
+=head1 Additions
+
+Please post errors and feedback to perl6-language.  If you are making
+a general laundry list, please separate messages by topic.
+
+=for vim:set expandtab sw=4:
