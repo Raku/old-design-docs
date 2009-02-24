@@ -9,7 +9,7 @@
  Contributions: Tim Nelson <wayland@wayland.id.au>
  Date:          23 Feb 2009, created from miscellaneous documents lying around
  Last Modified: 23 Feb 2009
- Version:       1
+ Version:       2
 
 =head1 Introduction
 
@@ -23,53 +23,45 @@ Each main entry is followed by a note containing the corresponding
 Perl 5 variable(s). The list of main entries is also followed by 
 a table showing the 5 and 6 variables side-by-side.
 
-Most/All variables of the form $*SOMETHING should also work in the form
-$SOMETHING (without the '*') unless masked by "my $SOMETHING".
-
 =head1 Overview
 
 =head2 Secondary Sigils (also known as "twigils"):
 
-    $+   # currently compiling scope (see S02)
-    $?   # lexically-scoped (compile time, see S02)
-    $*   # global (run time, see S02)
-    $=   # file-scoped (see S02)
-    $^   # implicit block argument (see S06 placeholder variables)
+    $?   # constants (variable only at compile time, see S02)
+    $*   # context variables and globals (run time, see S02)
+    $=   # pod documents, file-scoped (see S02)
+    $^   # self-declaring block positional parameter (see S06 placeholder variables)
+    $:   # self-declaring block named parameter (see S06 placeholder variables)
     $<   # current $/ scope (see S02)
-    $.   # public attribute (see S12 attributes)
-    $!   # private attribute (see S12 attributes)
+    $.   # public attribute accessor (see S12 attributes)
+    $!   # private attribute storage (see S12 attributes)
 
 
 =head2 Named variables (see S02):
 
-    $/             # match object from last rule (see S05)
-    $0             # first captured value from match: $/.[0]
+    $/             # match object from last match (see S05)
+    $0             # first captured value from match: $/[0]
     @*ARGS         # command-line arguments
     &?BLOCK        # current block (itself, see S06)
     @?BLOCK        # current blocks (themselves, see S06)
-    $?BLOCKLABEL   # label of current block (see S06) 
-                   #   XXX redundant with $?LABEL?
     ::?CLASS       # current class (as package name)
     $?CLASS        # current class (as variable)
     @?CLASS        # current classes
     %?CONFIG	   # configuration hash
     $=DATA         # data block handle (=begin DATA ... =end)
-    $*DEFIN        # Default input file handle (see S16)
-    $*DEFOUT       # Default output file handle (see S16)
-    $*DEFERR       # Default error file handle (see S16)
     $*EGID         # effective group id
     %*ENV          # system environment
     $*ERR          # standard error handle (see S16)
     $*EUID         # effective user id
     $*EXECUTABLE_NAME    # executable name
-    $?FILE         # current file
+    $?FILE         # current filename of source file
     $?GRAMMAR      # current grammar
     @?GRAMMAR      # current grammars
     $*GID          # group id
     $*IN           # standard input handle (see S16)
     $?LABEL        # label of current block
     @?LABEL        # labels of current blocks
-    $?LINE         # current line
+    $?LINE         # current line number in source file
     $?MODULE       # current module
     @?MODULE       # current modules
     $?OS           # operating system compiled for
@@ -84,9 +76,6 @@ $SOMETHING (without the '*') unless masked by "my $SOMETHING".
     $*PERLVER      # perl version running under
     $*PROGRAM_NAME # name of the program being executed
     $*PID          # system process id
-    $?PUGS_VERSION # Pugs version (not canonical)
-    $*PUGS_HAS_HSPLUGINS # True if Pugs was compiled with support for hsplugins
-                         # (not canonical)
     ::?ROLE        # current role (as package name)
     $?ROLE         # current role (as variable)
     @?ROLE         # current roles
@@ -94,11 +83,16 @@ $SOMETHING (without the '*') unless masked by "my $SOMETHING".
     @?ROUTINE      # current subs or methods (themselves)
     $*UID          # system user id
 
-There were threads on p6l about unifying all variables which concern the OS or
-the VM ($*UID, $*PROGRAM_NAME, etc.) into two variables, $?ENV (compile-time
-environment) and $*ENV (runtime environment). Larry did like the idea, but
-"ENV" is probably to overloaded to mean the hash of environment variables
-(which would be found under $*ENV.environment or some-such).
+
+Note that contextual variables such as C<$*OUT> may have more than
+one current definition in the outer dynamic context, in which case
+the innermost dynamic scope determines the meaning.  For instance,
+C<$PROCESS::OUT> is the stdout for the entire process, but each
+interpreter can set its own C<$GLOBAL::OUT> to make C<$*OUT> mean
+whatever it wants independently of other interpreters.  Any dynamic
+scope may also declare a local meaning of C<$*OUT> that applies only
+to called code.  Likewise each thread could log its own errors
+to its own C<$*ERR>, since a thread is a dynamic scope.
 
 =head1 Special Variables
 

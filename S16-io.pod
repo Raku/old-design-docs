@@ -13,8 +13,8 @@ DRAFT: Synopsis 16: IPC / IO / Signals
                 Tim Nelson <wayland@wayland.id.au>
                 Daniel Ruoso <daniel@ruoso.com>
  Date:          12 Sep 2006
- Last Modified: 19 Feb 2009
- Version:       20
+ Last Modified: 23 Feb 2009
+ Version:       21
 
 This is a draft document. Many of these functions will work as in Perl
 5, except we're trying to rationalize everything into roles.  For
@@ -24,22 +24,46 @@ many of them are really methods on an IO handle, and if there is a
 corresponding global function, it's merely an exported version of
 the method.
 
-=head1 Default IO handles
+=head1 Overridable IO handles
 
-In Perl 6, there are the I<standard> handles, and the I<default> handles.  
+In Perl 6, there are the I<standard> IO handles, and any number of overriding
+inner filehandles for the same symbol.  
 
-The I<standard> ones are our old familiar friends (with new names).  Standard input 
-changed from STDIN to C<$*IN>, standard output changed from STDOUT to C<$*OUT>, and 
-standard error changed from STDERR to C<$*ERR>.  
+The I<standard> handles are our old familiar friends (with new names).
+Standard input changed from STDIN to C<$*IN>, standard output changed
+from STDOUT to C<$*OUT>, and standard error changed from STDERR to
+C<$*ERR>.  In Perl 6 these symbols represent more of a concept than
+a given filehandle, since the meaning is contextually determined.
+The process's version of these handles live in the C<PROCESS::>
+namespace, which is more global than the per-interpreter C<GLOBAL::>
+namespace.
 
-However, the I<default> ones replace the single handle set by the Perl 5 select() call 
-with with three new variables.  
-At the start of the program, the default handles (C<$*DEFIN>, C<$*DEFOUT>, and 
-C<$*DEFERR>) are aliased to the standard handles, but may be temporarily or permanently 
-rebound to some other file handle.  
+When no explicit filehandle is used, the standard IO operators are
+defined in terms of the contextual variables.  So the C<print> function
+prints to C<$*OUT>, while C<warn> warns to C<$*ERR>.  The C<< =<> >>
+term inputs from C<$*IN>.  So any given dynamic scope (interpreter,
+thread, function or method call) may redefine the current meaning of
+any of those filehandles within the dynamic scope of itself and of
+its called routines.
 
-Many of the roles and functions below will operate on the default handles.  To set all 3 
-at once, do C<($*DEFIN, $*DEFOUT, $*DEFERR) ::= ($*IN, $*OUT, $*ERR)>.  
+So to put it another way, when you write something like
+
+    say "Howdy, world!"
+
+the C<say> function looks for the current meaning of C<$*OUT>, and
+takes the closest definition it can find in its callers.  If none
+of the callers have overridden the definition, it looks in the
+interpreter's C<GLOBAL> namespace.  If the interpreter hasn't overridden
+the meaning, it takes the meaning from C<PROCESS>.  In essence, any
+dynamic scope in Perl 6 is allowed to do IO redirection much like
+a Unix shell does with its subprocesses, albeit with a different
+syntax:
+
+    {
+	temp $*OUT = open $newfile, :w;
+	foo() # all stdout goes to $newfile
+    }
+    # stdout reverts to outer scope's definition
 
 =head1 Roles and Classes
 
