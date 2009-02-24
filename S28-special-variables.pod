@@ -46,10 +46,8 @@ on XXX
  $0, $1, $2          S05   # first captured value from match: $/[0]
  @*ARGS              S06   # command-line arguments
  &?BLOCK             S06   # current block (itself)
- @?BLOCK             S06   # current blocks (themselves)
  ::?CLASS                  # current class (as package name)
  $?CLASS                   # current class (as variable)
- @?CLASS                   # current classes
  %?CONFIG                  # configuration hash
  $=DATA                    # data block handle (=begin DATA ... =end)
  $*EGID                    # effective group id
@@ -59,14 +57,11 @@ on XXX
  $*EXECUTABLE_NAME         # executable name
  $?FILE                    # current filename of source file
  $?GRAMMAR                 # current grammar
- @?GRAMMAR                 # current grammars
  $*GID                     # group id
  $*IN                S16   # Standard input handle; is an IO object
  $?LABEL                   # label of current block
- @?LABEL                   # labels of current blocks
  $?LINE                    # current line number in source file
  $?MODULE                  # current module
- @?MODULE                  # current modules
  %*OPTS              S19   # Options from command line
  %*OPT...            S19   # Options from command line to be passed down
  %*OPTS              S19   # Options from command line
@@ -77,7 +72,6 @@ on XXX
  $*OSVER                   # operating system version running under
  $*OUT               S16   # Standard output handle; is an IO object
  $?PACKAGE                 # current package (as object)
- @?PACKAGE                 # current packages
  $?PACKAGENAME       S10   # name of current package
  $?PERLVER                 # perl version compiled for
  $*PERLVER                 # perl version running under
@@ -85,9 +79,7 @@ on XXX
  $*PID                     # system process id
  ::?ROLE                   # current role (as package name)
  $?ROLE                    # current role (as variable)
- @?ROLE                    # current roles
  &?ROUTINE           S06   # current sub or method (itself)
- @?ROUTINE                 # current subs or methods (themselves)
  $*STDERR            S16   # standard error handle; is an IO object
  $*STDIN             S16   # standard input handle; is an IO object
  $*STDOUT            S16   # standard output handle; is an IO object
@@ -174,17 +166,17 @@ schemes may become appropriate when the table is more complete.
 
  Perl 5              Perl 6         Comment
  -----------         -----------    -----------------------
- STDIN               $*STDIN        See S16; you probably want $*IN
- STDOUT              $*STDOUT       See S16; you probably want $*OUT
- STDERR              $*STDERR       See S16;	you probably want $*ERR
+ STDIN               $*IN           See S16; actual variable is $PROCESS::IN
+ STDOUT              $*OUT          See S16; actual variable is $PROCESS::OUT
+ STDERR              $*ERR          See S16; actual variable is $PROCESS::ERR
  $_                  $_             More lexically aware
  $_[1],$_[2]..       $^a,$^b..  
  $a,$b               -              Just params to anonymous block
  -                   $/             Object with results of last regex match
  $1,$2,$3...         $1,$2,$3...
  $&, $MATCH          $<>
- $`, $PREMATCH       $<pre>
- $', $POSTMATCH      $<post>
+ $`, $PREMATCH       substr based on $/.from
+ $', $POSTMATCH      substr based on $/.to
  $+                  -              But info can now be retrieved from $/
  $^N                 $*MOST_RECENT_CAPTURED_MATCH  ...or some such. 
                   or $/[-$n]                       ...or omit 

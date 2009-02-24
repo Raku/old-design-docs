@@ -13,9 +13,9 @@ Allison Randal <al@shadowed.net>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 21 Mar 2003
-  Last Modified: 20 Feb 2009
+  Last Modified: 24 Feb 2009
   Number: 6
-  Version: 101
+  Version: 102
 
 
 This document summarizes Apocalypse 6, which covers subroutines and the
@@ -1667,10 +1667,21 @@ to try to wrap this subroutine (or that if they do, you don't care).
 =item C<is tighter>/C<is looser>/C<is equiv>
 
 Specifies the precedence of an operator relative to an existing
-operator.  C<tighter> and C<looser> operators default to being left
-associative.
+operator.  C<tighter> and C<looser> precedence levels default to
+being left associative.  They define a new precedence level slighty
+tighter or looser than the precedence level on which they're based.
+Both C<tighter> and C<looser> may be specified, in which case the new
+precedence level is generated midway between the specified levels.
 
-C<equiv> on the other hand also clones other traits, so it specifies
+Two different declarations using the same precedence derivation end
+up at the same precedence level, as if C<equiv> was specified instead
+of C<tighter>/C<looser>, and the second will clone the associativity
+of the first.  If the second explicitly specifies an associativity
+that differs from the first, unexpected parsing conflicts may result.
+(See S03.)
+
+In addition to cloning the precedence level,
+C<equiv> also clones other traits, so it specifies
 the default associativity to be the same as the operator to which
 the new operator is equivalent.  The following are the default
 equivalents for various syntactic categories if neither C<equiv> nor
