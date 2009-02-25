@@ -137,7 +137,77 @@ $^N
 
 =back
 
-=head1 PERL 6 / PERL 5 COMPARISON
+=head2 Perl5 to Perl6 special variable translation
+
+If a column has a "-" in it, it means that item is unavailable in that version of Perl.  
+
+ Perl 5              Perl 6         Comment
+ -----------         -----------    -----------------------
+ STDIN               $*IN           See S16; actual variable is $PROCESS::IN
+ STDOUT              $*OUT          See S16; actual variable is $PROCESS::OUT
+ STDERR              $*ERR          See S16; actual variable is $PROCESS::ERR
+ $_ $ARG             $_             More lexically aware
+ $_[1],$_[2]..       $^a,$^b..  
+ $a,$b               -              Just params to anonymous block
+ -                   $/             Object with results of last regex match
+ $1,$2,$3...         $1,$2,$3...
+ $& $MATCH           $<>
+ $` $PREMATCH        substr based on $/.from
+ $' $POSTMATCH       substr based on $/.to
+ $+                  -              But info can now be retrieved from $/
+ $^N                 $*MOST_RECENT_CAPTURED_MATCH  ...or some such. 
+                       or $/[-$n]                       ...or omit 
+ @-                  $1.start, etc
+ @+                  $1.end, etc.
+ %!                  -
+ $[                  -              This feature has been removed
+ $*                  -              Deprecated long ago
+ $#                  -              Deprecated long ago
+ $^H                 -              These were only ever internal anyway
+ %^H                 -
+ -                   $!             Current exception (see L<S04-control>)
+ $! $ERRNO $OS_ERROR -              Can get some info from new $!
+ $?  $CHILD_ERROR    -
+ $@  $EVAL_ERROR     -              Just throws an exception now (see L<S04-control>)
+ $^E                 -
+ $. $NR              $*IN.input_record_number()
+ $/ $RS              $*IN.input_record_separator()
+ $|                  $*OUT.autoflush()
+ $, $OFS             $*OUT.output_field_separator()
+ $\                  $*OUT.output_record_separator()
+ $" $LIST_SEPARATOR  -
+ $; $SUBSEP          -
+ $$ $PID             $*PID
+ $< $UID             $*UID          Real UID (User ID)
+ $( $GID             $*GID          Real GID (Group ID)
+ $> $EUID            $*EUID         Effective UID
+ $) $EGID            $*EGID         Effective GID
+ $0 $PROGRAM_NAME    $*PROGRAM_NAME
+ $^C $COMPILING      $*COMPILING
+ $^D $DEBUGGING      $*DEBUGGING
+ $^F $SYS_FD_MAX     $*SYS_FD_MAX   ...or some such
+ $^I $INPLACE_EDIT   $*INPLACE_EDIT ...or some such
+ $^M                 $*EMERGENCY_MEMORY ...or some such (or omit)
+ $^O $OSNAME         $*OSNAME       ...or some such
+ $^P $PERLDB         $*PERLDB       ...or some such
+ $^R                 $*LAST_REGEXP_CODE_RESULT   ...or some such. Or omit.
+ $^T $BASETIME       $*BASETIME     A Temporal::Instant object
+ ${^WARNING_BITS}    $?WARNINGS
+ $^X                 $*EXECUTABLE_NAME ...or some such
+ ARGV                $*ARGS         Note the P6 idiom for this handle:
+                                    for =$*ARGS { 
+                                      # each time through loop
+                                      # proc a line from files named in ARGS 
+                                    }
+ @ARGV               @*ARGS
+ ARGVOUT             $*ARGVOUT      Another IO object
+ @F                  @*INPLACE_AUTOSPLIT_FIELDS   ..or some such
+ %ENV                %*ENV
+
+=head2 Old stuff for p5/p6 comparison
+
+This section will eventually die, but for now, it contains some old information on which 
+Perl5 special variables will turn into Perl6 special variables.  
 
 =over 4
 
@@ -161,80 +231,15 @@ schemes may become appropriate when the table is more complete.
 
 =back
 
- Perl 5              Perl 6         Comment
- -----------         -----------    -----------------------
- STDIN               $*IN           See S16; actual variable is $PROCESS::IN
- STDOUT              $*OUT          See S16; actual variable is $PROCESS::OUT
- STDERR              $*ERR          See S16; actual variable is $PROCESS::ERR
- $_                  $_             More lexically aware
- $_[1],$_[2]..       $^a,$^b..  
- $a,$b               -              Just params to anonymous block
- -                   $/             Object with results of last regex match
- $1,$2,$3...         $1,$2,$3...
- $&, $MATCH          $<>
- $`, $PREMATCH       substr based on $/.from
- $', $POSTMATCH      substr based on $/.to
- $+                  -              But info can now be retrieved from $/
- $^N                 $*MOST_RECENT_CAPTURED_MATCH  ...or some such. 
-                  or $/[-$n]                       ...or omit 
- @-                  $1.start, etc
- @+                  $1.end, etc.
- $*                  -
- $#                  -
- $.                  $*IN.input_record_number()
- $/                  $*IN.input_record_separator()
- $|                  $*OUT.autoflush()
- $,                  $*OUT.output_field_separator()
- $\                  $*OUT.output_record_separator()
- $$, $PID            $*PID
- $<, $UID            $*UID          Real UID (User ID)
- $(, $GID            $*GID          Real GID (Group ID)
- $>, $EUID           $*EUID         Effective UID
- $), $EGID           $*EGID         Effective GID
- $0, $PROGRAM_NAME   $*PROGRAM_NAME
- $^C, $COMPILING     $*COMPILING
- $^D, $DEBUGGING     $*DEBUGGING
- $^F, $SYS_FD_MAX    $*SYS_FD_MAX   ...or some such
- $^I, $INPLACE_EDIT  $*INPLACE_EDIT ...or some such
- $^M                 $*EMERGENCY_MEMORY ...or some such (or omit)
- $^O, $OSNAME        $*OSNAME       ...or some such
- $^P, $PERLDB        $*PERLDB       ...or some such
- $^R                 $*LAST_REGEXP_CODE_RESULT   ...or some such. Or omit.
- $^T, $BASETIME      $*BASETIME     A Temporal::Instant object
- ${^WARNING_BITS}    $?WARNINGS
- $^X                 $*EXECUTABLE_NAME ...or some such
- $EXECUTABLE_NAME
-
  ******* XXX the columns seem to have switched! *********
-
- -       $"  $LIST_SEPARATOR
-
- -       $;  $SUBSEP $SUBSCRIPT_SEPARATOR
 
  ?       ${^ENCODING}
 
- $!                     Universal error object with as much info as
-                        you'd like on the current exception (unthrown 
-                        outside of CATCH, thrown inside).  Unthrown 
-                        exceptions are typically interesting values 
-                        of undef.
- -       $!  $ERRNO $OS_ERROR
- -       $?  $CHILD_ERROR
- -       $@  $EVAL_ERROR
- -       $^E $EXTENDED_OS_ERROR
 
- -       %!
-
- -       $[             Index of the first element in an array, 
-                        and of the first character in a substring.
-
- 
  -       $^V $PERL_VERSION
  -       $]             version + patchlevel / 1000 of Perl interpreter
                         Replacement for the above two is unclear.
 
- -       $^H
- -       %^H
 
  -       ${^OPEN}
 
@@ -248,27 +253,11 @@ schemes may become appropriate when the table is more complete.
 
  ?       $ARGV
  
- $*ARGS  ARGV        Note the P6 idiom: 
-                        for =$*ARGS { 
-                           # each time through loop
-                           # proc a line from files named in ARGS 
-                        }
-
- @*ARGS  @ARGV
-
- $*ARGVOUT
-         ARGVOUT
-
- @*INPLACE_AUTOSPLIT_FIELDS   ..or some such
-         @F
-
  ?       @INC        Uncertain but we need a way to add to search path
  ?       %INC        Uncertain but we need a way to add to search path
 
  ?       @_
 
-
- %*ENV   %ENV        Or %ENV
 
  %*SIG   %SIG        Or possibly &*ON_SIGINT, etc. But then we'd need 
                      to add some signal introspection in another way.
@@ -279,7 +268,8 @@ schemes may become appropriate when the table is more complete.
  -       $^S $EXCEPTIONS_BEING_CAUGHT
 
 
-XXX Everything below this line is older than everything above it.  XXX
+XXX Everything below this line is older than everything above it.  
+...except for the stuff at the bottom taken from S22.  XXX
 
 =head1 OUTLINE
 
