@@ -409,27 +409,27 @@ parameterized we open the door to even more re-use. Taking a simple example, ima
 wanted to factor out a "greet" method into a role, which takes somebody's name and greets 
 them. We want to parameterize it on the greeting.
 
-role Greet[Str $greeting] {
-    method greet() { say "$greeting!"; }
-}
-class EnglishMan does Greet["Hello"] { }
-class Slovak does Greet["Ahoj"] { }
-class Lolcat does Greet["OH HAI"] { }
-EnglishMan.new.greet(); # Hello
-Slovak.new.greet(); # Ahoj
-Lolcat.new.greet(); # OH HAI
+    role Greet[Str $greeting] {
+        method greet() { say "$greeting!"; }
+    }
+    class EnglishMan does Greet["Hello"] { }
+    class Slovak does Greet["Ahoj"] { }
+    class Lolcat does Greet["OH HAI"] { }
+    EnglishMan.new.greet(); # Hello
+    Slovak.new.greet(); # Ahoj
+    Lolcat.new.greet(); # OH HAI
 
 Similarly, we could do a role for requests.
 
-role Request[Str $statement] {
-    method request($object) { say "$statement $object?"; }
-}
-class EnglishMan does Request["Please can I have a"] { }
-class Slovak does Request["Prosim si"] { }
-class Lolcat does Request["I CAN HAZ"] { }
-EnglishMan.new.request("yorkshire pudding");
-Slovak.new.request("borovicka");
-Lolcat.new.request("CHEEZEBURGER");
+    role Request[Str $statement] {
+        method request($object) { say "$statement $object?"; }
+    }
+    class EnglishMan does Request["Please can I have a"] { }
+    class Slovak does Request["Prosim si"] { }
+    class Lolcat does Request["I CAN HAZ"] { }
+    EnglishMan.new.request("yorkshire pudding");
+    Slovak.new.request("borovicka");
+    Lolcat.new.request("CHEEZEBURGER");
 
 Sadly, the Slovak output sucks here. Borovicka is the nominative form of the word, and we 
 need to decline it into the accusative case. But some languages don't care about that, and 
@@ -438,27 +438,27 @@ roles with the same short name, and a different signature, and multi-dispatch wi
 the right one for you. So we write something to produce the accusative case in Slovak and 
 pass it in. Here's the new code.
 
-role Request[Str $statement] {
-    method request($object) { say "$statement $object?"; }
-}
-role Request[Str $statement, &transform] {
-    method request($object) {
-        say "$statement " ~ transform($object) ~ "?";
+    role Request[Str $statement] {
+        method request($object) { say "$statement $object?"; }
     }
-}
-module Language::Slovak {
-    sub accusative($nom) {
-        # ...and before some smartass points it out, I know
-        # I'm missing some of the masculine animate declension...
-        return $nom.subst(/a$/, 'u');
+    role Request[Str $statement, &transform] {
+        method request($object) {
+            say "$statement " ~ transform($object) ~ "?";
+        }
     }
-}
-class EnglishMan does Request["Please can I have a"] { }
-class Slovak does Request["Prosim si", &Language::Slovak::accusative] { }
-class Lolcat does Request["I CAN HAZ"] { }
-EnglishMan.new.request("yorkshire pudding");
-Slovak.new.request("borovicka");
-Lolcat.new.request("CHEEZEBURGER");
+    module Language::Slovak {
+        sub accusative($nom) {
+            # ...and before some smartass points it out, I know
+            # I'm missing some of the masculine animate declension...
+            return $nom.subst(/a$/, 'u');
+        }
+    }
+    class EnglishMan does Request["Please can I have a"] { }
+    class Slovak does Request["Prosim si", &Language::Slovak::accusative] { }
+    class Lolcat does Request["I CAN HAZ"] { }
+    EnglishMan.new.request("yorkshire pudding");
+    Slovak.new.request("borovicka");
+    Lolcat.new.request("CHEEZEBURGER");
 
 Which means we can now properly order our borovicka in Slovakia, which is awesome. Until 
 you do it in a loop and find the Headache['very bad'] role got mixed into yourself 
@@ -466,23 +466,23 @@ overnight, anyway...
 
 Role attributes can also be used to initialise attributes:
 
- role AttrParams[$a, $b] {
-     has $.x = $a;
-     has $.y = $b;
- }
+    role AttrParams[$a, $b] {
+        has $.x = $a;
+        has $.y = $b;
+    }
 
 ...and to constrain types.  
 
- role TypeParams[::T] {
-    method x(T $x) { return "got a " ~ T ~ " it was $x" }
- }
+    role TypeParams[::T] {
+       method x(T $x) { return "got a " ~ T ~ " it was $x" }
+    }
 
- class IntShower does TypeParams[Int] { } # Shows Ints
- class StrShower does TypeParams[Str] { } # Shows Strs
+    class IntShower does TypeParams[Int] { } # Shows Ints
+    class StrShower does TypeParams[Str] { } # Shows Strs
 
- print IntShower.new.x(42); # Prints 'got a Int it was 42'
- print StrShower.new.x("OH HAI"); # Prints 'got a Str it was OH HAI'
- print IntShower.new.x("OH HAI"); # Dies
+    print IntShower.new.x(42); # Prints 'got a Int it was 42'
+    print StrShower.new.x("OH HAI"); # Prints 'got a Str it was OH HAI'
+    print IntShower.new.x("OH HAI"); # Dies
 
 
 
