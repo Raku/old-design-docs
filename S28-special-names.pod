@@ -50,6 +50,7 @@ on XXX
  $?CLASS                   # current class (as variable)
  %?CONFIG                  # configuration hash
  $=DATA                    # data block handle (=begin DATA ... =end)
+ $?DISTRO            S02   # Which OS distribution am I compiling under
  $*EGID                    # effective group id
  %*ENV                     # system environment
  $*ERR               S16   # Standard error handle; is an IO object
@@ -71,16 +72,20 @@ on XXX
  $?OSVER                   # operating system version compiled for
  $*OSVER                   # operating system version running under
  $*OUT               S16   # Standard output handle; is an IO object
+ $?PARSER            S02   # Which Perl grammar was used to parse this statement?
  $?PACKAGE                 # current package (as object)
  $?PACKAGENAME       S10   # name of current package
- $?PERLVER                 # perl version compiled for
- $*PERLVER                 # perl version running under
+ $?PERL              S02   # Which Perl am I compiled for?
+ $*PERL                    # perl version running under
  $*PROGRAM_NAME            # name of the program being executed
  $*PID                     # system process id
  ::?ROLE                   # current role (as package name)
  $?ROLE                    # current role (as variable)
  &?ROUTINE           S06   # current sub or method (itself)
+ $?SCOPE             S02   # Current "my" scope
  $*UID                     # system user id
+ $?VM                S02   # Which virtual machine am I compiling under
+ $?XVM               S02   # Which virtual machine am I cross-compiling for
 
 Note that contextual variables such as C<$*OUT> may have more than
 one current definition in the outer dynamic context, in which case
@@ -166,10 +171,11 @@ If a column has a "-" in it, it means that item is unavailable in that version o
  $^H                 -              These were only ever internal anyway
  %^H                 -
  -                   $!             Current exception (see L<S04-control>)
- $! $ERRNO $OS_ERROR -              Can get some info from new $!
- $?  $CHILD_ERROR    -
- $@  $EVAL_ERROR     -              Just throws an exception now (see L<S04-control>)
- $^E                 -
+ $! $ERRNO $OS_ERROR -              Use shiny new $!
+ $?  $CHILD_ERROR    -              Use shiny new $!
+ $@  $EVAL_ERROR     -              Use shiny new $!
+ $^E                 -              Use shiny new $!
+ $^S                 -
  $. $NR              $*IN.input_record_number()
  $/ $RS              $*IN.input_record_separator()
  $|                  $*OUT.autoflush()
@@ -203,13 +209,21 @@ If a column has a "-" in it, it means that item is unavailable in that version o
  ARGVOUT             $*ARGVOUT      Another IO object
  @F                  @*INPLACE_AUTOSPLIT_FIELDS   ..or some such
  %ENV                %*ENV
+ ${^OPEN}            -              This was internal; forget it
 
 =head2 Old stuff for p5/p6 comparison
 
 This section will eventually die, but for now, it contains some old information on which 
-Perl5 special variables will turn into Perl6 special variables.  
+Perl5 special variables will turn into Perl6 special variables.  The reason they are 
+retained is either:
 
-=over 4
+=over
+
+=item * Their status is undecided
+
+=item * They have some commentary on stuff that needs consideration
+
+=back
 
 Because a blank entry in either column could be taken to mean either 
 "not in Perl 6" or "unknown", the information as presented 
@@ -229,29 +243,25 @@ thing  as the var in question
 Other organizational
 schemes may become appropriate when the table is more complete.
 
-=back
-
  ******* XXX the columns seem to have switched! *********
 
  ?       ${^ENCODING}
-
+ ?       ${^UNICODE}     Pending S15 Unicode
 
  -       $^V $PERL_VERSION
  -       $]             version + patchlevel / 1000 of Perl interpreter
                         Replacement for the above two is unclear.
+                        Is this $?PERL?  
 
 
- -       ${^OPEN}
-
- ?       ${^TAINT}
- ?       ${^UNICODE}
+ ?       ${^TAINT}      Pending, among other things, infectious trait spec
 
  -       $^W $WARNING   Probably gone. But we need a reasonably
                         granular way to suppress specific (groups
                         of) warnings within both lexical and 
                         dynamic scopes.
 
- ?       $ARGV
+ ?       $ARGV       Can this be handled with $*IN.name, etc?  
  
  ?       @INC        Uncertain but we need a way to add to search path
  ?       %INC        Uncertain but we need a way to add to search path
@@ -259,13 +269,14 @@ schemes may become appropriate when the table is more complete.
  ?       @_
 
 
+This signal handling stuff is pending S16.  
+
  %*SIG   %SIG        Or possibly &*ON_SIGINT, etc. But then we'd need 
                      to add some signal introspection in another way.
 
  &*ON_WARN __WARN__
  &*ON_DIE  __DIE__
  &*ON_PARSEERROR
- -       $^S $EXCEPTIONS_BEING_CAUGHT
 
 
 XXX Everything below this line is older than everything above it.  
