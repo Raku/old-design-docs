@@ -72,6 +72,7 @@ be fleshed out in S26.
  %?CONFIG                  # configuration hash
  $=DATA                    # data block handle (=begin DATA ... =end)
  @=DATA                    # Same as above, but array
+ %?DEEPMAGIC         S13   # Controls the mappings of magical names to sub definitions
  $?DISTRO            S02   # Which OS distribution am I compiling under
  $*EGID                    # effective group id
  %*ENV                     # system environment variables
@@ -84,7 +85,10 @@ be fleshed out in S26.
  $*IN                S16   # Standard input handle; is an IO object
  $*INC               S11   # where to search for user modules (but not std lib!)
  $?LABEL                   # label of current block (XXX unnecessary?)
+ $?LANG              S02   # Which Perl parser should embedded closures parse with?
+ $*LANG              S02   # LANG variable from %*ENV that defines what human language is used
  $?LINE                    # current line number in source file
+ %*META-ARGS         S19   # Meta-arguments
  $?MODULE                  # current module (as package object variable)
  %*OPTS              S19   # Options from command line
  %*OPT...            S19   # Options from command line to be passed down
@@ -105,6 +109,7 @@ be fleshed out in S26.
  &?ROUTINE           S06   # current sub or method (itself)
  $?SCOPE             S02   # Current "my" scope (XXX unnecessary?)
  $*UID                     # system user id
+ $?USAGE             S06   # Default usage message generated at compile time
  $?VM                S02   # Which virtual machine am I compiling under
  $?XVM               S02   # Which virtual machine am I cross-compiling for
 
@@ -208,6 +213,11 @@ The following items are not yet defined, but will need to be defined.
 
 XXX Don't remove this line until this section is completely blank.  
 
+We also seem to have $*INC in the table at the top, @*INC in S19 and the table 
+immediately above, %*INC also in the table above.  
+
+The $?LANG and $*LANG variables are also confusing (both in S02).  
+
 =head2 Form.pm
 
 These go in the Perl5 to Perl6 conversion table:
@@ -239,7 +249,8 @@ These go in the Perl5 to Perl6 conversion table:
 
 =head2 S15-unicode.pod
 
-${^ENCODING} and ${^UNICODE} variables
+${^ENCODING} variable -- S32/Str.pod implies this is $*ENC
+${^UNICODE} variable
 
 =head2 Infectious trait spec
 
