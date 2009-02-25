@@ -8,8 +8,8 @@
  Maintainer:    Larry Wall <larry@wall.org>
  Contributions: Tim Nelson <wayland@wayland.id.au>
  Date:          23 Feb 2009, created from miscellaneous documents lying around
- Last Modified: 23 Feb 2009
- Version:       3
+ Last Modified: 24 Feb 2009
+ Version:       4
 
 =head1 Introduction
 
@@ -27,17 +27,36 @@ a table showing the 5 and 6 variables side-by-side.
 
 =head2 Secondary Sigils (also known as "twigils"):
 
-A quick reminder of the relevant twigils:
+A quick reminder of the relevant twigils from S02:
 
-    $?foo   # Lexically-scoped (compile time, see S02)
-    $*foo   # Contextualiseable Global variable (run time, see S02)
-    $=foo   # File-scoped (see S02) 
+    $?foo   # Compiler constants (fixed at compile time)
+    $*foo   # Context variable, default global (run time)
+    $=foo   # File-scoped POD data
 
-XXX Something else claimed that $=foo was a POD variable; Larry says it's not 
-well-defined, yet, and we're waiting on Damian to write S26 before we'll know what's going 
-on XXX
+The various C<$?foo> variables are determined at compile time, and are
+not modifiable at run time.  This does not mean that the variable has the
+same value everywhere; for instance, C<$?LINE> is different on every line
+of the program.
 
-=head2 Named variables (see S02):
+The C<$*foo> variables function both as dymamically scoped variables
+and as globals.  Globalness is relative, in other words.  Any dynamic
+scope may modify the set of globals visible via the C<$*foo> notation.
+Most of the standard globals listed below actually live either in
+the C<PROCESS> or the C<GLOBAL> package, where C<PROCESS> contains
+globals belonging to the entire process, while C<GLOBAL> contains the
+globals belonging to the current interpreter, since a process may be
+running more than one interpreter.  Unless otherwise indicated below,
+the outermost definition of these variables are kept in the C<PROCESS>
+package.
+
+The C<$=foo> variables are related to the the C<$?foo> variables
+insofar as the text of the program is known at compile time, so the
+values are static.  However, the different twigil indicates that the
+variable contains POD data, which is primarily under user control
+rather than compiler control.  The structure of these variables will
+be fleshed out in S26.
+
+=head2 Named variables:
 
  Variable            Spec  Description
  --------            ----  -----------
@@ -46,25 +65,24 @@ on XXX
  $0, $1, $2          S05   # first captured value from match: $/[0]
  @*ARGS              S06   # command-line arguments
  &?BLOCK             S06   # current block (itself)
- ::?CLASS                  # current class (as package name)
- $?CLASS                   # current class (as variable)
+ ::?CLASS                  # current class (as package or type name)
+ $?CLASS                   # current class (as package object)
  %?CONFIG                  # configuration hash
  $=DATA                    # data block handle (=begin DATA ... =end)
  $?DISTRO            S02   # Which OS distribution am I compiling under
  $*EGID                    # effective group id
- %*ENV                     # system environment
+ %*ENV                     # system environment variables
  $*ERR               S16   # Standard error handle; is an IO object
  $*EUID                    # effective user id
  $*EXECUTABLE_NAME         # executable name
  $?FILE                    # current filename of source file
- $?GRAMMAR                 # current grammar
+ $?GRAMMAR                 # current grammar (as object)
  $*GID                     # group id
  $*IN                S16   # Standard input handle; is an IO object
- $?LABEL                   # label of current block
+ $*INC               S11   # where to search for user modules (but not std lib!)
+ $?LABEL                   # label of current block (XXX unnecessary?)
  $?LINE                    # current line number in source file
- $?MODULE                  # current module
- %*OPTS              S19   # Options from command line
- %*OPT...            S19   # Options from command line to be passed down
+ $?MODULE                  # current module (as package object variable)
  %*OPTS              S19   # Options from command line
  %*OPT...            S19   # Options from command line to be passed down
  $?OS                      # operating system compiled for
@@ -73,16 +91,15 @@ on XXX
  $*OSVER                   # operating system version running under
  $*OUT               S16   # Standard output handle; is an IO object
  $?PARSER            S02   # Which Perl grammar was used to parse this statement?
- $?PACKAGE                 # current package (as object)
- $?PACKAGENAME       S10   # name of current package
+ $?PACKAGE                 # current package (as package object variable)
  $?PERL              S02   # Which Perl am I compiled for?
  $*PERL                    # perl version running under
- $*PROGRAM_NAME            # name of the program being executed
+ $*PROGRAM_NAME            # name of the Perl program being executed
  $*PID                     # system process id
- ::?ROLE                   # current role (as package name)
- $?ROLE                    # current role (as variable)
+ ::?ROLE                   # current role (as package or type name)
+ $?ROLE                    # current role (as package object variable)
  &?ROUTINE           S06   # current sub or method (itself)
- $?SCOPE             S02   # Current "my" scope
+ $?SCOPE             S02   # Current "my" scope (XXX unnecessary?)
  $*UID                     # system user id
  $?VM                S02   # Which virtual machine am I compiling under
  $?XVM               S02   # Which virtual machine am I cross-compiling for
@@ -104,44 +121,6 @@ the overview above.
 
 XXX Some of the information here is either old, or needs to be moved elsewhere.  XXX
 
-=over 8
-
-=item $a, $b, $c ...
-
-Parameters of the current closure (block 
-or subroutine) by position in the invocation.
-
-XXX This needs to go under "Closures".  XXX
-
-=over 4
- 
-=item p5:
-
-$_[0], $_[1], $_[2] ...
-
-=back
-
-=back
-
-=over 8
-
-=item $*MOST_RECENT_CAPTURED_MATCH
-=item $/[-1]
-=item $/[-$n]
-
-It's not clear yet which of these would be used.
-Or whether to drop this.
-
-=over 4 
-
-=item p5:
-
-$^N
-
-=back
-
-=back
-
 =head2 Perl5 to Perl6 special variable translation
 
 If a column has a "-" in it, it means that item is unavailable in that version of Perl.  
@@ -161,7 +140,7 @@ If a column has a "-" in it, it means that item is unavailable in that version o
  $' $POSTMATCH       substr based on $/.to
  $+                  -              But info can now be retrieved from $/
  $^N                 $*MOST_RECENT_CAPTURED_MATCH  ...or some such. 
-                       or $/[-$n]                       ...or omit 
+                       or $/[*-$n]                       ...or omit 
  @-                  $1.start, etc
  @+                  $1.end, etc.
  %!                  -
@@ -197,7 +176,9 @@ If a column has a "-" in it, it means that item is unavailable in that version o
  $^O $OSNAME         $*OSNAME       ...or some such
  $^P $PERLDB         $*PERLDB       ...or some such
  $^R                 $*LAST_REGEXP_CODE_RESULT   ...or some such. Or omit.
- $^T $BASETIME       $*BASETIME     A Temporal::Instant object
+ $^T $BASETIME       $*INITTIME     A Temporal::Instant object
+ $^V $]              $?PERL.version
+ $^W                 $*WARNINGS (if any dynamic control needed)
  ${^WARNING_BITS}    $?WARNINGS
  $^X                 $*EXECUTABLE_NAME ...or some such
  ARGV                $*ARGS         Note the P6 idiom for this handle:
@@ -206,9 +187,15 @@ If a column has a "-" in it, it means that item is unavailable in that version o
                                       # proc a line from files named in ARGS 
                                     }
  @ARGV               @*ARGS
- ARGVOUT             $*ARGVOUT      Another IO object
- @F                  @*INPLACE_AUTOSPLIT_FIELDS   ..or some such
+ ARGVOUT             TBD
+ $ARGV               TBD
+ @F                  @_
  %ENV                %*ENV
+ @INC                @*INC (but not for std library modules)
+ %INC                %*INC (maybe, if needed)
+ %SIG                event filters plus exception translation
+ $SIG{__WARN__}      $*ON_WARN
+ $SIG{__DIE__}       $*ON_DIE
  ${^OPEN}            -              This was internal; forget it
 
 =head2 Old stuff for p5/p6 comparison
@@ -243,40 +230,12 @@ thing  as the var in question
 Other organizational
 schemes may become appropriate when the table is more complete.
 
- ******* XXX the columns seem to have switched! *********
-
  ?       ${^ENCODING}
  ?       ${^UNICODE}     Pending S15 Unicode
 
- -       $^V $PERL_VERSION
- -       $]             version + patchlevel / 1000 of Perl interpreter
-                        Replacement for the above two is unclear.
-                        Is this $?PERL?  
-
-
  ?       ${^TAINT}      Pending, among other things, infectious trait spec
 
- -       $^W $WARNING   Probably gone. But we need a reasonably
-                        granular way to suppress specific (groups
-                        of) warnings within both lexical and 
-                        dynamic scopes.
 
- ?       $ARGV       Can this be handled with $*IN.name, etc?  
- 
- ?       @INC        Uncertain but we need a way to add to search path
- ?       %INC        Uncertain but we need a way to add to search path
-
- ?       @_
-
-
-This signal handling stuff is pending S16.  
-
- %*SIG   %SIG        Or possibly &*ON_SIGINT, etc. But then we'd need 
-                     to add some signal introspection in another way.
-
- &*ON_WARN __WARN__
- &*ON_DIE  __DIE__
- &*ON_PARSEERROR
 
 
 XXX Everything below this line is older than everything above it.  

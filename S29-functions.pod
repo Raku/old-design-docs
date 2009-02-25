@@ -15,8 +15,8 @@ Synopsis 29: Builtin Functions
                 Moritz Lenz <moritz@faui2k3.org>
                 Tim Nelson <wayland@wayland.id.au>
  Date:          12 Mar 2005
- Last Modified: 19 Feb 2009
- Version:       41
+ Last Modified: 24 Feb 2009
+ Version:       42
 
 The document is a draft.
 
@@ -28,8 +28,8 @@ the SVN repository if you would like to make changes.
 
 In Perl 6, all builtin functions belong to a named package (generally a
 class or role). Not all
-functions are guaranteed to be imported into the global package
-C<::*>. In addition, the list of functions imported into C<::*> will be
+functions are guaranteed to be imported into the CORE scope.
+In addition, the list of functions imported into C<CORE> will be
 subject to change with each release of Perl. Authors wishing to
 "Future Proof" their code should either specifically import the
 functions they will be using, or always refer to the functions by their
@@ -52,14 +52,14 @@ but for the sake of documentation, only functions declared without
 specifying a grammatical category or with a category of C<term:>
 (see L<S02/"Bits and Pieces">) will be described as "functions",
 and everything else as "operators" which are outside of the scope
-of this document.
+of this document.  (See S03 for operators.)
 
 =head2 Multis vs. Functions
 
 In actual fact, most of the "functions" defined here are multi
 subs, or are multi methods that are also exported as multi subs.
-The Prelude is responsible for importing all the standard multi subs
-into the user's scope.
+The Setting is responsible for importing all the standard multi subs
+from their various packages into the CORE lexical scope.  See S02.
 
 =head1 Type Declarations
 
@@ -112,7 +112,7 @@ C<CharTurkish>, etc. for instantiated C<CharLingua> types.
 
 =item Matcher
 
- subset Matcher of Item | Junction;
+ subset Matcher of Object where { $_.can('ACCEPTS') };
 
 Used to supply a test to match against. Assume C<~~> will be used against it.
 
