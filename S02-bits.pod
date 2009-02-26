@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 24 Feb 2009
+  Last Modified: 25 Feb 2009
   Number: 2
-  Version: 154
+  Version: 155
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1861,11 +1861,7 @@ Note that unlike in Perl 5, initial C<::> doesn't imply global.
 Package names are searched for from inner lexical scopes to outer,
 then from inner packages to outer.  Variable names are searched
 for from inner lexical scopes to outer, but unlike package names
-are looked for in only the current package and the global package.
-
-The global namespace is the last place it looks in either case.
-You must use the C<*> (or C<GLOBAL>) package on the front of the
-string argument to force the search to start in the global namespace.
+are looked for in only the current package.
 
 Use the C<MY> pseudopackage to limit the lookup to the current lexical
 scope, and C<OUR> to limit the scopes to the current package scope.
@@ -1879,7 +1875,7 @@ lexical scopes, but never from package scopes.
 To bind package variables into a lexical scope, simply say C<our ($x, @y)>.
 To bind global variables into a lexical scope, predeclare them with C<use>:
 
-    use GLOBAL <$IN $OUT>;
+    use PROCESS <$IN $OUT>;
 
 Or just refer to them as C<$*IN> and C<$*OUT>.
 
@@ -1889,7 +1885,7 @@ To do direct lookup in a package's symbol table without scanning, treat
 the package name as a hash:
 
     Foo::Bar::{'&baz'}  # same as &Foo::Bar::baz
-    GLOBAL::<$IN>       # Same as $*IN
+    PROCESS::<$IN>      # Same as $*IN
     Foo::<::Bar><::Baz> # same as Foo::Bar::Baz
 
 The C<::> before the subscript is required here, because the C<Foo::Bar{...}>
@@ -2052,32 +2048,31 @@ equivalent C<< MyPackage::<$foo> >>.
 
 =item *
 
-Truly global variables live in the C<*> package: C<$*UID>, C<%*ENV>.
-(The C<*> may be omitted if you import the name from the C<GLOBAL>
-package.)  C<$*foo> is short for C<$*::foo>, suggesting that the
-variable is "wild carded" into every package.
+Interpreter globals live in the C<GLOBAL> package.  The user's program
+starts in the C<GLOBAL> package, so "our" declarations in the mainline
+code go into that package by default.  Process-wide variables live in
+the C<PROCESS> package.  Most predefined globals such as C<$*UID>
+and C<%*PID> are actually process globals.
 
 =item *
 
-For an ordinary Perl program running by itself, the C<GLOBAL> and
-C<PROCESS> namespaces are considered synonymous.  However, in certain
+There is only ever a single C<PROCESS> package.
+For an ordinary Perl program running by itself, there is only one C<GLOBAL>
+package as well.  However, in certain
 situations (such as shared hosting under a webserver), the actual
-process may contain multiple virtual processes, each running its own
+process may contain multiple virtual processes or interpreters, each running its own
 "main" code.  In this case, the C<GLOBAL> namespace holds variables
 that properly belong to the individual virtual process, while the
 C<PROCESS> namespace holds variables that properly belong to the actual
-process as a whole.  From the viewpoint of the C<GLOBAL> namespace
-there is little difference, since process variables that normally
-appear in C<GLOBAL> are automatically imported from C<PROCESS>.
-However, the process as a whole may place restrictions on the
+process as a whole.  From the viewpoint of the program
+there is little difference as long as all global variables are accessed
+as if they were context variables (by using the C<*> twigil).
+The process as a whole may place restrictions on the
 mutability of process variables as seen by the individual subprocesses.
 Also, individual subprocesses may not create new process variables.
 If the process wishes to grant subprocesses the ability to communicate
-via the C<PROCESS> namespace, it must supply a writeable variable
+via the C<PROCESS> namespace, it must supply a writeable context variable
 to all the subprocesses granted that privilege.
-
-When these namespaces are so distinguished, the C<*> shortcut always refers
-to C<GLOBAL>.  There is no twigil shortcut for C<PROCESS>.
 
 =item *
 
@@ -2108,8 +2103,8 @@ is also allowed to define or (redefine) such constants:
 expression at compile time.)
 
 C<$?FILE> and C<$?LINE> are your current file and line number, for
-instance.  C<?> is not a shortcut for a package name like C<*> is.
-Instead of C<$?OUTER::SUB> you probably want to write C<< OUTER::<$?SUB> >>.
+instance.
+Instead of C<$?OUTER::FOO> you probably want to write C<< OUTER::<$?FOO> >>.
 Within code that is being run during the compile, such as C<BEGIN> blocks, or
 macro bodies, or constant initializers, the compiler variables must be referred
 to as (for instance) C<< COMPILING::<$?LINE> >> if the bare C<$?LINE> would
@@ -2126,11 +2121,7 @@ Here are some possibilities:
     $?PARSER    Which Perl grammar was used to parse this statement?
     $?LANG      Which Perl parser should embedded closures parse with?
     &?ROUTINE   Which routine am I in?
-    @?ROUTINE   Which nested routines am I in?
     &?BLOCK     Which block am I in?
-    @?BLOCK     Which nested blocks am I in?
-    $?LABEL     Which innermost block label am I in?
-    @?LABEL     Which nested block labels am I in?
 
 All the nested C<@?> variables are ordered from the innermost to the
 outermost, so C<@?BLOCK[0]> is always the same as C<&?BLOCK>.
@@ -2144,15 +2135,10 @@ The following return objects that contain all pertinent info:
     $?PERL      Which Perl am I compiled for?
     $?SCOPE     Which lexical scope am I in?
     $?PACKAGE   Which package am I in?
-    @?PACKAGE   Which nested packages am I in?
     $?MODULE    Which module am I in?
-    @?MODULE    Which nested modules am I in?
     $?CLASS     Which class am I in? (as variable)
-    @?CLASS     Which nested classes am I in?
     $?ROLE      Which role am I in? (as variable)
-    @?ROLE      Which nested roles am I in?
     $?GRAMMAR   Which grammar am I in?
-    @?GRAMMAR   Which nested grammars am I in?
 
 It is relatively easy to smartmatch these constant objects
 against pairs to check various attributes such as name,
