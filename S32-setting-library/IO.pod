@@ -545,14 +545,12 @@ Available only as a handle method.
 
 This represents the filesystem.  
 
-class	IO::FileSystem does IO::Streamable does Tree {
+class	IO::FileSystem does IO::Streamable {
 	has	Str $.fstype; # ext3, ntfs, vfat, reiserfs, etc
 	has	Str $.illegal_chars; # ie. /\x0
 	has	Int $.max_path;
 ...
 }
-
-It inherits $cwn and $root from Tree.  
 
 =over 4
 
@@ -570,7 +568,7 @@ Returns FSNode objects
 
 =head2	IO::FSNode
 
-class	IO::FSNode does Tree::Node {
+class	IO::FSNode {
 	has Array of IO::FSNodeACL @.ACLs;
 	has Hash of %.times;
 ...
@@ -813,11 +811,24 @@ sets C<$!> (errno).  If FILENAME is omitted, uses C<$_>.
 ...
  }
 
-=item link
+=item new
 
-=item readlink
+Creates a new link in the filesystem.  
 
-=item symlink
+ IO::LinkNode.new(
+     Name => '/home/wayland/symlink.txt'
+     Target => '/home/wayland/realfile.txt',
+     Type => 'Hard', # Default is Symbolic
+ );
+
+Reads in the previously created symlink.  
+
+ $link = IO::LinkNode.new(
+     Name => '/home/wayland/symlink.txt',
+ );
+ print $link.target; # prints /home/wayland/realfile.txt
+
+Neither of these is "use portable" compatible.  
 
 =head2	IO::Socket::TCP
 
@@ -989,16 +1000,11 @@ successfully changed.
     $mode = '0o644'; chmod $mode, 'foo';     # this is better
     $mode = 0o644;   chmod $mode, 'foo';     # this is best
 
-=item lstat
-
-Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
-to true, and additional file tests may be performed on the value.  If
-the stat fails, all subsequent tests on the stat buffer also evaluate
-to false.
-
 =item stat
 
 =item IO.stat
+
+ $node.stat(Type => 'Link'); # Type => Link does an lstat instead
 
 Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
 to true, and additional file tests may be performed on the value.  If
@@ -1071,6 +1077,10 @@ Gone, see IO::Endable
 =item IO.fileno
 
 See IO::FileDescriptor
+
+=item lstat
+
+Use stat() with the Type => 'Link' option.  
 
 =item IO.name
 
