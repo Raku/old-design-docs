@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 24 Feb 2009
+  Last Modified: 26 Feb 2009
   Number: 3
-  Version: 154
+  Version: 155
 
 =head1 Overview
 
@@ -3795,9 +3795,8 @@ By default, if there is one argument, the built-in reduce operators
 return that one argument.  However, this default doesn't make sense
 for operators like C<< < >> that don't return the same type as they
 take, so these kinds of operators overload the single-argument case
-to return something more meaningful.  All the comparison operators
-return a boolean for either 1 or 0 arguments.  Negated operators
-return C<Bool::False>, and all the rest return C<Bool::True>.
+to return something more meaningful.  To be consistent with chaining
+semantics, all the comparison operators return C<Bool::True> for 1 or 0 arguments.
 
 You can also make a reduce operator of the comma operator.  This is just
 the list operator form of the C<< circumfix:<[ ]> >> anonymous array composer:
@@ -3833,7 +3832,7 @@ Builtin reduce operators return the following identity values:
     [&]()       # all()
     [|]()       # any()
     [^]()       # one()
-    [!==]()     # Bool::False   (also for 1 arg)
+    [!==]()     # Bool::True    (also for 1 arg)
     [==]()      # Bool::True    (also for 1 arg)
     [before]()  # Bool::True    (also for 1 arg)
     [after]()   # Bool::True    (also for 1 arg)
@@ -3842,23 +3841,23 @@ Builtin reduce operators return the following identity values:
     [>]()       # Bool::True    (also for 1 arg)
     [>=]()      # Bool::True    (also for 1 arg)
     [~~]()      # Bool::True    (also for 1 arg)
-    [!~~]()     # Bool::False   (also for 1 arg)
+    [!~~]()     # Bool::True    (also for 1 arg)
     [eq]()      # Bool::True    (also for 1 arg)
-    [!eq]()     # Bool::False   (also for 1 arg)
+    [!eq]()     # Bool::True    (also for 1 arg)
     [lt]()      # Bool::True    (also for 1 arg)
     [le]()      # Bool::True    (also for 1 arg)
     [gt]()      # Bool::True    (also for 1 arg)
     [ge]()      # Bool::True    (also for 1 arg)
     [=:=]()     # Bool::True    (also for 1 arg)
-    [!=:=]()    # Bool::False   (also for 1 arg)
+    [!=:=]()    # Bool::True    (also for 1 arg)
     [===]()     # Bool::True    (also for 1 arg)
-    [!===]()    # Bool::False   (also for 1 arg)
+    [!===]()    # Bool::True    (also for 1 arg)
     [eqv]()     # Bool::True    (also for 1 arg)
-    [!eqv]()    # Bool::False   (also for 1 arg)
+    [!eqv]()    # Bool::True    (also for 1 arg)
     [&&]()      # Bool::True
     [||]()      # Bool::False
     [^^]()      # Bool::False
-    [//]()      # undef
+    [//]()      # Any
     [min]()     # +Inf
     [max]()     # -Inf
     [=]()       # undef    (same for all assignment operators)
@@ -3956,6 +3955,9 @@ infix operator beginning with backslash, C<< infix:<\x> >> say, will make it
 impossible to write certain triangular reduction operators, since C<[\x]> would
 mean the normal reduction of C<< infix:<\x> >> operator, not the triangular
 reduction of C<< infix:<x> >>.  This is deemed to be an insignificant problem.
+
+Triangular reductions of chaining operators always consist of one or
+more C<True> values followed by 0 or more C<False> values.
 
 =head2 Cross operators
 
