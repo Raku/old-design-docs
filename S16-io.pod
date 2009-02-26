@@ -73,21 +73,124 @@ S32-setting-library/IO.pod.
 
 =head1 POSIX Signals
 
+The %*SIG variable contains a Hash of Proc::Signals::Signal.  
+
+class	Signal {
+	has $exception; # This specifies what exception will be raised when this signal is received
+	has $interrupt; # See siginterrupt(3)
+	has $blocked;   # Is this signal blocked?  cf. sigprocmask
+}
+
+The @*SIGQUEUE array contains a queue of the signals that are blocked and queued.  
+
 The standard POSIX signals simply raise control exceptions that are handled as normal 
-through the signal handler, except for the fact that some of them are resumeable.  The 
-exception names are:
+through the control signal handler, and caught by CONTROL blocks.  
 
-=over
+=head2 Signal defaults
 
-=item * ControlExceptionSigHUP
+The signals have defaults as specified in the table below.  $blocked always defaults to 
+false.  
 
-=item * ControlExceptionSigTERM
+ Signal     Default Exception
+ ------     -----------------
+ SIGHUP     ControlExceptionSigHUP
+ SIGINT     ControlExceptionSigINT
+ SIGQUIT    ControlExceptionSigQUIT
+ SIGILL     ControlExceptionSigILL
+ SIGABRT    ControlExceptionSigABRT
+ SIGFPE     ControlExceptionSigFPE
+ SIGKILL    ControlExceptionSigKILL
+ SIGSEGV    ControlExceptionSigSEGV
+ SIGPIPE    ControlExceptionSigPIPE
+ SIGALRM    ControlExceptionSigALRM
+ SIGTERM    ControlExceptionSigTERM
+ SIGUSR1    ControlExceptionSigUSR1
+ SIGUSR2    ControlExceptionSigUSR2
+ SIGCHLD    undef
+ SIGCONT    ControlExceptionSigCONT
+ SIGSTOP    ControlExceptionSigSTOP
+ SIGTSTP    ControlExceptionSigTSTP
+ SIGTTIN    ControlExceptionSigTTIN
+ SIGTTOU    ControlExceptionSigTTOU
+ SIGBUS     ControlExceptionSigBUS
+ SIGPROF    ControlExceptionSigPROF
+ SIGSYS     ControlExceptionSigSYS
+ SIGTRAP    ControlExceptionSigTRAP
+ SIGURG     undef
+ SIGVTALRM  ControlExceptionSigVTALRM
+ SIGXCPU    ControlExceptionSigXCPU
+ SIGXFSZ    ControlExceptionSigXFSZ
+ SIGEMT     ControlExceptionSigEMT
+ SIGSTKFLT  ControlExceptionSigSTKFLT
+ SIGIO      ControlExceptionSigIO
+ SIGPWR     ControlExceptionSigPWR
+ SIGLOST    ControlExceptionSigLOST
+ SIGWINCH   undef
 
-=item * ControlExceptionSigINT
+=head2 Signal exceptions
 
-=back
+A table below describes the exceptions.  
+
+Each of these has a default action as well.  The possible actions are:
+
+ Term   Default action is to terminate the process.
+
+ Ign    Default action is to ignore the signal ($signal.exception is undef by default)
+
+ Core   Default action is to terminate the process and dump core (see core(5)).
+
+ Stop   Default action is to stop the process.
+
+ Cont   Default action is to continue the process if it is currently stopped.
+
+Some actions do the Resumeable role.  An exception listed in the table below that does the 
+Resumeable role is marked with a * in the R column.  
+
+The exceptions are:
+
+ Signal                   Action   R Comment
+ ----------------------------------------------------------------------
+ ControlExceptionSigHUP    Term    ? Hangup detected on controlling terminal or death of controlling process
+ ControlExceptionSigINT    Term    ? Interrupt from keyboard
+ ControlExceptionSigQUIT   Core    ? Quit from keyboard
+ ControlExceptionSigILL    Core    ? Illegal Instruction
+ ControlExceptionSigABRT   Core    ? Abort signal from abort(3)
+ ControlExceptionSigFPE    Core    ? Floating point exception
+ ControlExceptionSigKILL   Term    ? Kill signal
+ ControlExceptionSigSEGV   Core      Invalid memory reference
+ ControlExceptionSigPIPE   Term    ? Broken pipe: write to pipe with no readers
+ ControlExceptionSigALRM   Term    ? Timer signal from alarm(2)
+ ControlExceptionSigTERM   Term    ? Termination signal
+ ControlExceptionSigUSR1   Term    ? User-defined signal 1
+ ControlExceptionSigUSR2   Term    ? User-defined signal 2
+ ControlExceptionSigCHLD   Ign     ? Child stopped or terminated
+ ControlExceptionSigCONT   Cont    * Continue if stopped
+ ControlExceptionSigSTOP   Stop    ? Stop process
+ ControlExceptionSigTSTP   Stop    ? Stop typed at tty
+ ControlExceptionSigTTIN   Stop    ? tty input for background process
+ ControlExceptionSigTTOU   Stop    ? tty output for background process
+ ControlExceptionSigBUS    Core    ? Bus error (bad memory access)
+ ControlExceptionSigPROF   Term    ? Profiling timer expired
+ ControlExceptionSigSYS    Core    ? Bad argument to routine (SVr4)
+ ControlExceptionSigTRAP   Core    ? Trace/breakpoint trap
+ ControlExceptionSigURG    Ign     ? Urgent condition on socket (4.2BSD)
+ ControlExceptionSigVTALRM Term    ? Virtual alarm clock (4.2BSD)
+ ControlExceptionSigXCPU   Core    ? CPU time limit exceeded (4.2BSD)
+ ControlExceptionSigXFSZ   Core    ? File size limit exceeded (4.2BSD)
+ ControlExceptionSigEMT    Term    ?
+ ControlExceptionSigSTKFLT Term    ? Stack fault on coprocessor (unused)
+ ControlExceptionSigIO     Term    ? I/O now possible (4.2BSD)
+ ControlExceptionSigPWR    Term    ? Power failure (System V)
+ ControlExceptionSigLOST   Term    ? File lock lost
+ ControlExceptionSigWINCH  Ign     ? Window resize signal (4.3BSD, Sun)
 
 See L<S04-control> for details on how to handle exceptions.  
+
+XXX I'm unsure how the actions in the table above can be made to make sense.  The Ign 
+actions are already dealt with because %SIG{CHLD}.exception already defaults to undef.  
+The Term action will probably be self-solving (ie. will terminate the process).  The 
+others I'm just plain unsure about.  XXX
+
 
 =head1 Additions
 
