@@ -108,163 +108,11 @@ In C<@@> context a List of Array is returned instead of flat list.
 
 =back
 
-=head2 Array
-
-All these methods are defined in the C<Array> role/class.
-
-role	Array does Positional {...}
-
-=over
-
-=item shape
-
- our Capture method shape (@array: ) is export
-
-Returns the declared shape of the array, as described in S09.
-
-=item end
-
- our Any method end (@array: ) is export
-
-Returns the final subscript of the first dimension; for a one-dimensional
-array this simply the index of the final element.  For fixed dimensions
-this is the declared maximum subscript.  For non-fixed dimensions (undeclared
-or explicitly declared with C<*>), the index of the actual last element is used.
-
-=item elems
-
- our Int method elems (@array: ) is export
-
-Returns the length of the array counted in elements.  (Sparse array
-types should return the actual number of elements, not the distance
-between the maximum and minimum elements.)
-
-=item delete
-
- our List method delete (@array : *@indices ) is export
-
-Sets elements specified by C<@indices> in the invocant to a
-non-existent state, as if they never had a value. Deleted elements at
-the end of an Array shorten the length of the Array, unless doing so
-would violate an C<is shape()> definition.
-
-C<@indices> is interpreted the same way as subscripting is in terms of
-slices and multidimensionality. See Synopsis 9 for details.
-
-Returns the value(s) previously held in deleted locations.
-
-An unary form is expected. See C<Hash::delete>.
-
-
-=item exists
-
- our Bool method exists (@array : Int *@indices )
-
-True if the specified Array element has been assigned to. This
-is not the same as being defined.
-
-Supplying a different number of indices than invocant has dimensions is
-an error.
-
-A unary form is expected. See C<Hash::delete>.
-
-
-=item pop
-
- our Scalar multi method pop ( @array: ) is export
-
-Remove the last element of C<@array> and return it.
-
-=item push
-
- our Int multi method push ( @array: *@values ) is export
-
-Add to the end of C<@array>, all of the subsequent arguments.
-
-=item shift
-
- our Scalar multi method shift ( @array:  ) is export
-
-Remove the first element from C<@array> and return it.
-
-=item splice
-
- our List multi method splice( @array is rw: Int $offset = 0, Int $size?, *@values ) is export
-
-C<splice> fills many niches in array-management, but its fundamental behavior
-is to remove zero or more elements from an array and replace them with a
-new (and potentially empty) list. This operation can shorten or lengthen
-the target array.
-
-C<$offset> is the index of the array element to start with. It defaults
-to C<0>.
-
-C<$size> is the number of elements to remove from C<@array>. It defaults
-to removing the rest of the array from C<$offset> on.
-
-The slurpy list of values (if any) is then inserted at C<$offset>.
-
-Calling splice with a traditional parameter list, you must define C<$offset>
-and C<$size> if you wish to pass a replacement list of values. To avoid
-having to pass these otherwise optional parameters, use the piping operator(s):
-
- splice(@array,10) <== 1..*;
-
-which replaces C<@array[10]> and all subsequent elements with an infinite
-series starting at C<1>.
-
-This behaves similarly to Perl 5's C<splice>.
-
-If C<@array> is multidimensional, C<splice> operates only on the first
-dimension, and works with Array References.
-
-C<splice> returns the list of deleted elements in list context, and a
-reference to a list of deleted elements in scalar context.
-
-
-=item unshift
-
- our Int multi method unshift ( @array: *@values ) is export
-
-C<unshift> adds the values onto the start of the C<@array>.
-
-=item keys
-
-=item kv
-
-=item pairs
-
-=item values
-
- our List multi method keys ( @array: Matcher *@indextests ) is export
- our List multi method kv ( @array: Matcher *@indextests ) is export
- our List multi method pairs  (@array: Matcher *@indextests ) is export
- our List multi method values ( @array: Matcher *@indextests ) is export
-
-Iterates the elements of C<@array>, in order.
-
-If C<@indextests> are provided, only elements whose indices match
-C<$index ~~ any(@indextests)> are iterated.
-
-What is returned at each element of the iteration varies with function.
-C<values> returns the value of the associated element; C<kv> returns
-a 2 element list in (index, value) order, C<pairs> a C<Pair(index, value)>.
-
-C<@array> is considered single dimensional. If it is in fact multi-dimensional,
-the values returned will be array references to the sub array.
-
-In Scalar context, they all return the count of elements that would have
-been iterated.
-
-=back
-
-
-
 =head2 List
 
 The following are defined in the C<List> role/class:
 
-role	List does Positional {...}
+role	List does Container does Positional {...}
 
 =over
 
@@ -559,11 +407,161 @@ the values in the list matches.
 
 =back
 
+=head2 Array
+
+All these methods are defined in the C<Array> role/class.
+
+role	Array does List {...}
+
+=over
+
+=item shape
+
+ our Capture method shape (@array: ) is export
+
+Returns the declared shape of the array, as described in S09.
+
+=item end
+
+ our Any method end (@array: ) is export
+
+Returns the final subscript of the first dimension; for a one-dimensional
+array this simply the index of the final element.  For fixed dimensions
+this is the declared maximum subscript.  For non-fixed dimensions (undeclared
+or explicitly declared with C<*>), the index of the actual last element is used.
+
+=item elems
+
+ our Int method elems (@array: ) is export
+
+Returns the length of the array counted in elements.  (Sparse array
+types should return the actual number of elements, not the distance
+between the maximum and minimum elements.)
+
+=item delete
+
+ our List method delete (@array : *@indices ) is export
+
+Sets elements specified by C<@indices> in the invocant to a
+non-existent state, as if they never had a value. Deleted elements at
+the end of an Array shorten the length of the Array, unless doing so
+would violate an C<is shape()> definition.
+
+C<@indices> is interpreted the same way as subscripting is in terms of
+slices and multidimensionality. See Synopsis 9 for details.
+
+Returns the value(s) previously held in deleted locations.
+
+An unary form is expected. See C<Hash::delete>.
+
+
+=item exists
+
+ our Bool method exists (@array : Int *@indices )
+
+True if the specified Array element has been assigned to. This
+is not the same as being defined.
+
+Supplying a different number of indices than invocant has dimensions is
+an error.
+
+A unary form is expected. See C<Hash::delete>.
+
+
+=item pop
+
+ our Scalar multi method pop ( @array: ) is export
+
+Remove the last element of C<@array> and return it.
+
+=item push
+
+ our Int multi method push ( @array: *@values ) is export
+
+Add to the end of C<@array>, all of the subsequent arguments.
+
+=item shift
+
+ our Scalar multi method shift ( @array:  ) is export
+
+Remove the first element from C<@array> and return it.
+
+=item splice
+
+ our List multi method splice( @array is rw: Int $offset = 0, Int $size?, *@values ) is export
+
+C<splice> fills many niches in array-management, but its fundamental behavior
+is to remove zero or more elements from an array and replace them with a
+new (and potentially empty) list. This operation can shorten or lengthen
+the target array.
+
+C<$offset> is the index of the array element to start with. It defaults
+to C<0>.
+
+C<$size> is the number of elements to remove from C<@array>. It defaults
+to removing the rest of the array from C<$offset> on.
+
+The slurpy list of values (if any) is then inserted at C<$offset>.
+
+Calling splice with a traditional parameter list, you must define C<$offset>
+and C<$size> if you wish to pass a replacement list of values. To avoid
+having to pass these otherwise optional parameters, use the piping operator(s):
+
+ splice(@array,10) <== 1..*;
+
+which replaces C<@array[10]> and all subsequent elements with an infinite
+series starting at C<1>.
+
+This behaves similarly to Perl 5's C<splice>.
+
+If C<@array> is multidimensional, C<splice> operates only on the first
+dimension, and works with Array References.
+
+C<splice> returns the list of deleted elements in list context, and a
+reference to a list of deleted elements in scalar context.
+
+
+=item unshift
+
+ our Int multi method unshift ( @array: *@values ) is export
+
+C<unshift> adds the values onto the start of the C<@array>.
+
+=item keys
+
+=item kv
+
+=item pairs
+
+=item values
+
+ our List multi method keys ( @array: Matcher *@indextests ) is export
+ our List multi method kv ( @array: Matcher *@indextests ) is export
+ our List multi method pairs  (@array: Matcher *@indextests ) is export
+ our List multi method values ( @array: Matcher *@indextests ) is export
+
+Iterates the elements of C<@array>, in order.
+
+If C<@indextests> are provided, only elements whose indices match
+C<$index ~~ any(@indextests)> are iterated.
+
+What is returned at each element of the iteration varies with function.
+C<values> returns the value of the associated element; C<kv> returns
+a 2 element list in (index, value) order, C<pairs> a C<Pair(index, value)>.
+
+C<@array> is considered single dimensional. If it is in fact multi-dimensional,
+the values returned will be array references to the sub array.
+
+In Scalar context, they all return the count of elements that would have
+been iterated.
+
+=back
+
 =head2 Hash
 
 The following are defined in the C<Hash> role.
 
-role	Hash does Associative {...}
+role	Hash does Container does Associative {...}
 
 =over 4
 
