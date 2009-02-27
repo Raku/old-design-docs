@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 19 Aug 2004
-  Last Modified: 27 Dec 2008
+  Last Modified: 27 Feb 2008
   Number: 4
-  Version: 71
+  Version: 72
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -571,7 +571,7 @@ followed by a statement modifier:
     # Not an error: Equivalent to "if foo() -> $x { say $x }"
     { say $^x } if foo();
 
-=head2 The gather statement
+=head2 The C<gather> statement prefix
 
 A variant of C<do> is C<gather>.  Like C<do>, it is followed by a
 statement or block, and executes it once.  Unlike C<do>, it evaluates
@@ -637,6 +637,40 @@ desired behavior you must coerce the call to an appropriate context.
 In any event, such a function is called only once at the time the
 C<Capture> object is generated, not when it is bound (which could
 happen more than once).
+
+=head2 The C<lift> statement prefix
+
+When writing generic multi routines you often want to write a bit of
+code whose meaning is dependent on the context of the caller.  It's
+somewhat like virtual methods where the actual call depends on the type
+of the invocant, but here the "invocant" is really the lexical scope of
+the caller, and the virtual calls are name bindings.  Within a lift,
+special rules apply to how names are looked up.  Only names defined
+in the lexical scope of the immediately surrounding routine are considered concrete.
+All other names (including implicit names of operators) are looked up
+in the lexical scope of the caller when we actually know who the caller
+is at run time.  (Note the caller can vary from call to call!)
+Through this mechanism, a generic multi can redirect execution to
+a more specific version, but the candidate list for this redirection
+is determined by the caller, not by the lexical scope of the multi,
+which can't see the caller's lexical scope except through the CALLER::
+pseudo package.  For example, Perl forces generic C<eq> to coerce to
+string comparison, like this:
+
+    proto infix:<eq> (Any $a, Any $b)	{ lift ~$a eq ~$b }		# user's eq, user's ~
+    multi infix:<eq> (Whatever, Any $b)	{ -> $a { lift $a eq $b } }	# user's eq
+    multi infix:<eq> (Any $a, Whatever)	{ -> $b { lift $a eq $b } }	# user's eq
+    multi infix:<eq> (&f:($), Any $b)	{ -> $a { lift f($a) eq $b } }	# user's eq
+    multi infix:<eq> (Str $a, Str $b)	{ !Str::leg($a, $b) }		# primitive leg, primitive !
+
+
+Note that in each piec of lifted code there are references to
+variables defined in the multi, such as C<$a>, C<$b>, and C<&f>.
+These are taken at face value.  Everything else within a lift is
+assumed to mean something in the caller's context.  (This implies
+that there are some errors that would ordinarily be found at
+compile time that cannot be found until we know what the caller's
+lexical scope looks like at run time.  That's okay.)
 
 =head2 Other C<do>-like forms
 
