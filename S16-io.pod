@@ -24,7 +24,9 @@ many of them are really methods on an IO handle, and if there is a
 corresponding global function, it's merely an exported version of
 the method.
 
-=head1 Overridable IO handles
+=head1 IO
+
+=head2 Overridable IO handles
 
 In Perl 6, there are the I<standard> IO handles, and any number of overriding
 inner filehandles for the same symbol.  
@@ -65,11 +67,71 @@ syntax:
     }
     # stdout reverts to outer scope's definition
 
-=head1 Roles and Classes
+=head2 Roles and Classes
 
 The roles and classes that define most of the functionality for IO are defined in 
 S32-setting-library/IO.pod.  The main functions used are listed in S29 with references to 
 S32-setting-library/IO.pod.  
+
+=head1 Users and Groups
+
+=head2 User role
+
+role	User {
+	has $username; # Username (some descendants(?) may want to implement a real $name)
+	has $id;  # User ID
+	has $dir; # Home directory for files
+}
+
+=item new
+
+ method User new($Username?, $UID?) {...}
+
+Creates a new User object, fetching the information either by username or user ID.  
+
+=item write
+
+ method write() {...}
+
+Tries to write the current User object to the user database.  This may well fail.  
+
+=item Str
+
+When converted to a Str, returns $username.  
+
+=item Num
+
+When converted to a Num, returns $uid.  
+
+=head2 OS::Unix::User role
+
+role	OS::Unix::User does User {
+	has $password;
+	has $gid;
+	has $gecos;
+	has $shell;
+}
+
+All the information is naturally fetched from the system via getpwuid, getpwnam, or the 
+like.  
+
+=head2 Group role
+
+role	Group {
+	has $name;
+	has $id;
+	has @members;
+}
+
+=item new
+
+ method Group new(:$Name, :$ID);
+
+=item write
+
+ method write();
+
+Tries to write the group entry into the system group database.  
 
 =head1 Additions
 
@@ -77,3 +139,6 @@ Please post errors and feedback to perl6-language.  If you are making
 a general laundry list, please separate messages by topic.
 
 =cut
+
+=encoding utf8
+

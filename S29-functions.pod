@@ -420,53 +420,6 @@ Examples:
   my $address = gethost("foo.example.com").addr;
   my $hostname = gethost(:addr<"10.1.2.3">);
 
-=item getpw
-
- our OS::PW multi getpw()
- our OS::PW multi getpw( Int $uid )
- our OS::PW multi getpw( Str $name )
-
- our OS::PW multi method OS::PWEnt::getpw( OS::PWEnt $pw: )
- our OS::PW multi method OS::PWEnt::getpw( OS::PWEnt $pw: Int $uid )
- our OS::PW multi method OS::PWEnt::getpw( OS::PWEnt $pw: Str $name )
-
-The C<getpw> function operates on system login information, returning
-data about users in the form of an C<OS::PW> object ("PW" refers
-to the historical C<getpw*> functions that are part of the POSIX
-standard, and stands for "password").
-
-When given no parameters, the "next" user entry is returned (C<undef> is
-returned when the list of users has been exhausted).
-
-When C<$uid> is provided, a user with the given UID is found and returned.
-C<undef> is returned if no matching entry is found.
-
-When C<$name> is provided, a user with the matching name is found and
-returned. C<undef> is returned if no matching entry is found.
-
-The return value is an object that represents the system-specific
-information about the user. When numified, this object returns the
-UID of the user. When stringified, this object returns the username.
-
-Therefore, the typical convention of:
-
-  my Int $uid = getpw(~$name);
-
-and
-
-  my Str $name = getpw(+$uid);
-
-Will work as expected.
-
-See the documentation for the C<OS::PW> and C<OS::PWEnt> classes for more
-information and the equivalent of the Perl 5 setpwent / endpwent functions.
-
-WARNING: Even when used as a method on an C<OS::PWEnt> object, there
-may be system-specific, global state associated with the implementation
-of these routines.
-
-[Note: TODO setpgrp setpriority times -ajs ]
-
 =item chroot
 
  our Bool multi chroot ( Str $path = CALLER::<$_> )
@@ -828,6 +781,10 @@ See .pairs() method, above.
 
 See Exegesis 7.
 
+=item getgrgid, getgrnam, getpwnam, getpwuid
+
+The User and Group roles in S16 cover most of these.  
+
 =item length()
 
 This word is banned in Perl 6.  You must specify units.  In practise, this probably means 
@@ -948,8 +905,6 @@ endprotoent
 endpwent
 endservent
 getgrent
-getgrgid
-getgrnam
 gethostbyaddr
 gethostbyname
 gethostent
@@ -965,8 +920,6 @@ getprotobyname
 getprotobynumber
 getprotoent
 getpwent
-getpwnam
-getpwuid
 getservbyname
 getservbyport
 getservent
