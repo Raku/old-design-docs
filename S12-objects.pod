@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 12 Feb 2009
+  Last Modified: 26 Feb 2009
   Number: 12
-  Version: 69
+  Version: 70
 
 =head1 Overview
 
@@ -1298,11 +1298,6 @@ value (an argumentless sub).  The names of the values are specified as a list:
     my enum Day ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     my enum Day <Sun Mon Tue Wed Thu Fri Sat>;
 
-For any enum value the C<.perl> method will return its long name.
-A numeric enum value numifies to its numeric value and stringifies to its short name.
-A string enum value has no special numeric value, and stringifies to its string value
-rather than its name. [XXX inconsistent]
-
 If the first value is unspecified, it defaults to 0.  To specify the
 first value, use pair notation (see below).
 
@@ -1315,6 +1310,23 @@ The type can be specified:
     my bit enum maybe <no yes>;
     my Int enum day ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     my enum day of uint4 <Sun Mon Tue Wed Thu Fri Sat>;
+
+For any enum value of an object type, the object itself knows its own
+type, so the C<.perl> method will return its long name, while C<.name>
+returns its short name.  Other than that, number valued enums act
+just like numbers, while string valued enums act just like strings.
+
+Enums based on native types may be used only for their value, since a
+native value doesn't know its own type.  To translate such a value back to its name
+requires a call to the name method, which must be qualified by the type:
+
+    3.day::name   # returns "Wed"
+
+Alternatively, native types may be placed in a typed variable, which determines
+which method to call:
+
+    my day $d = 3;
+    $d.name     # returns "Wed"
 
 An anonymous enum just makes sure each string turns into a pair with
 sequentially increasing values, so:
@@ -1414,11 +1426,11 @@ all return false.
 
 Two built-in enums are:
 
-    our bit enum Bool <False True>;
-    our bit enum Taint <Untainted Tainted>;
+    our Bit enum Bool <False True>;
+    our Bit enum Taint <Untainted Tainted>;
 
 Note that C<Bool> and C<Taint> are really role names, and the enum
-values are really subset types of the C<bit> integer type.  You can
+values are really subset types of the C<Bit> integer type.  You can
 call the C<.Bool> coercion or the C<true> function or the C<?>
 prefix operator on any built-in type, but the value returned is of
 type C<bit>.  Never compare a value to "C<true>", or even "C<True>".
