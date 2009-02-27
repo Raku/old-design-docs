@@ -61,9 +61,10 @@ See below for details.
 =item uri
 
     IO::Streamable method uri(Str $uri);
+    IO::Streamable sub uri(Str $uri);
 
 Returns an appropriate IO::Streamable descendant, with the type depending on the uri 
-passed in.  Here's the mapping:
+passed in.  Here are some example mappings:
 
  URI type IO type
  ======== =======
@@ -71,15 +72,12 @@ passed in.  Here's the mapping:
  ftp:     IO::Socket::TCP (data channel)
  http:    IO::Socket::TCP
 
-IO::Streamable method uri(Str $uri) {
-	$uri.match(/^<alnum>+\:/);
-	return(&$PROTOCOLS{$1}($uri));
-}
+These can naturally be overridden or added to by other modules.  
 
 =item %PROTOCOLS global variable
 
-For each protocol, stores a subroutine reference that returns the appropriate object when 
-the URI is passed in.  
+For each protocol, stores a type name that should be instantiated by calling the .uri() 
+constructor on that type, and passing in the appropriate uri.  
 
 =back
 
