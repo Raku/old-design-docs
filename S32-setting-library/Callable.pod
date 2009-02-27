@@ -36,6 +36,8 @@ to support C<< postcircumfix:<( )> >>.
 # Base class for all executable objects
 role	Code {
 	method Signature signature() {...}
+	method Code      assuming(...) {...}
+	method           do() {...} # See L<S12/Introspection>
 }
 
 =head2 Block
@@ -59,11 +61,29 @@ role	Signature {...}
 # Function call arguments (right-hand side of a binding)
 role	Capture does Positional does Associative {...}
 
+=head2 WrapHandle
+
+role	WrapHandle {...}
+
 =head1 Classes
 
 =head2 Routine
 
-class	Routine does Block {...}
+class	Routine does Block {
+	method WrapHandle wrap(Code $code) {...}
+	method Routine    unwrap(Wraphandle $original) {...}
+	method Str        name() {...}
+}
+
+=item unwrap
+
+See L<S06/Wrapping>.  
+
+=item wrap
+
+ method wrap(Code $code) {...}
+
+See L<S06/Wrapping>.  
 
 =head2 Sub
 
