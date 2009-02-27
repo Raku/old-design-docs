@@ -3,7 +3,7 @@
 
 =head1 Title
 
-DRAFT: Synopsis 16: IO / User / Group
+DRAFT: Synopsis 16: IO / Name Services
 
 =head1 Version
 
@@ -73,7 +73,22 @@ The roles and classes that define most of the functionality for IO are defined i
 S32-setting-library/IO.pod.  The main functions used are listed in S29 with references to 
 S32-setting-library/IO.pod.  
 
-=head1 Users and Groups
+=head1 Name Services
+
+=head NameServices role
+
+The NameServices role has a bunch of functions that between them will return the whole 
+Name Services database between them, as lists of objects.  The lists are specifically 
+intended to be lazy.  
+
+role	NameServices {
+	method List of User     users()     {...} # getpwent, setpwent, endpwent
+	method List of Group    groups()    {...} # getgrent, setgrent, endgrent
+	method List of Service  services()  {...} # getservent, setservent, endservent
+	method List of Protocol protocols() {...} # getprotoent, setprotoent, endprotoent
+	method List of Network  networks()  {...} # getnetent, setnetent, endnetent
+	method List of Host     hosts()     {...} # gethostent, sethostent, endhostent
+}
 
 =head2 User role
 
@@ -115,13 +130,6 @@ role	OS::Unix::User does User {
 All the information is naturally fetched from the system via getpwuid, getpwnam, or the 
 like.  
 
-=head2 UserIterator role
-
-role	UserIterator does Iterator {...}
-
-In the Unix implementation, this deals with getpwent, setpwent, and endpwent.  Basically, 
-it returns a User object with each iteration.  
-
 =head2 Group role
 
 role	Group {
@@ -139,13 +147,6 @@ role	Group {
  method write();
 
 Tries to write the group entry into the system group database.  
-
-=head2 GroupIterator role
-
-role	GroupIterator does Iterator {...}
-
-In the Unix implementation, this deals with getgrent, setgrent, and endgrent.  Basically, 
-it returns a Group object with each iteration.  
 
 =head1 Additions
 
