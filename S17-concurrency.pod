@@ -2,33 +2,247 @@
 
 =head1 TITLE
 
-DRAFT: Synopsis 17: Concurrency
+DRAFT: Synopsis 17: Processes and Concurrency
 
 =head1 AUTHOR
 
-Elizabeth Mattijsen <liz@dijkmat.nl>
-Audrey Tang <audreyt@audreyt.org>
-
 =head1 VERSION
 
+ Authors:       Elizabeth Mattijsen <liz@dijkmat.nl>
+                Audrey Tang <audreyt@audreyt.org>
  Maintainer:    Elizabeth Mattijsen <liz@dijkmat.nl>
  Contributions: Christoph Buchetmann
+                Tim Nelson <wayland@wayland.id.au>
  Date:          13 Jun 2005
- Last Modified: 4 Mar 2008
- Number         0
- Version:       3
+ Last Modified: 27 Feb 2009
+ Number         17
+ Version:       4
+
+This draft document is a paste together from various sources.  The bulk of it is simply 
+the old S17-concurrency.pod, which dealt only with concurrency.  Signals were added from 
+S16-io, but haven't been merged with the conflicting S17 signals doco.  An event loop 
+section has been added here because a) Larry mentioned the idea, and b) Moritz suggested 
+that http://www.seas.upenn.edu/~lipeng/homepage/unify.html be our model for concurrency, 
+and in that model, an event loop underlies the threads.  
+
+=head1 Overview
+
+An event loop underlies everything in this document.  POSIX signals can interact with 
+this, and concurrency is built on top of it.  Naturally, IPC (inter-process communication) 
+is documented here too (XXX or should be :) ).  
+
+=head1 The Event Loop
+
+=head1 POSIX Signals
+
+The %*SIG variable contains a Hash of Proc::Signals::Signal.  
+
+class	Proc::Signals::Signal {
+	has $exception; # This specifies what exception will be raised when this signal is received
+	has $interrupt; # See siginterrupt(3)
+	has $blocked;   # Is this signal blocked?  cf. sigprocmask
+}
+
+The @*SIGQUEUE array contains a queue of the signals that are blocked and queued.  
+
+The standard POSIX signals simply raise control exceptions that are handled as normal 
+through the control signal handler, and caught by CONTROL blocks, as specified in S04.  
+
+To declare your main program catches INT signals, put a CONTROL block anywhere
+in the toplevel to handle exceptions like this:
+
+ CONTROL {
+     when Error::Signal::INT { ... }
+ }
+
+=head2 Signal defaults
+
+The signals have defaults as specified in the table below.  $blocked always defaults to 
+false.  
+
+ Signal     Default Exception
+ ------     -----------------
+ SIGHUP     ControlExceptionSigHUP
+ SIGINT     ControlExceptionSigINT
+ SIGQUIT    ControlExceptionSigQUIT
+ SIGILL     ControlExceptionSigILL
+ SIGABRT    ControlExceptionSigABRT
+ SIGFPE     ControlExceptionSigFPE
+ SIGKILL    ControlExceptionSigKILL
+ SIGSEGV    ControlExceptionSigSEGV
+ SIGPIPE    ControlExceptionSigPIPE
+ SIGALRM    ControlExceptionSigALRM
+ SIGTERM    ControlExceptionSigTERM
+ SIGUSR1    ControlExceptionSigUSR1
+ SIGUSR2    ControlExceptionSigUSR2
+ SIGCHLD    ControlExceptionSigCHLD
+ SIGCONT    ControlExceptionSigCONT
+ SIGSTOP    ControlExceptionSigSTOP
+ SIGTSTP    ControlExceptionSigTSTP
+ SIGTTIN    ControlExceptionSigTTIN
+ SIGTTOU    ControlExceptionSigTTOU
+ SIGBUS     ControlExceptionSigBUS
+ SIGPROF    ControlExceptionSigPROF
+ SIGSYS     ControlExceptionSigSYS
+ SIGTRAP    ControlExceptionSigTRAP
+ SIGURG     Undefined
+ SIGVTALRM  ControlExceptionSigVTALRM
+ SIGXCPU    ControlExceptionSigXCPU
+ SIGXFSZ    ControlExceptionSigXFSZ
+ SIGEMT     ControlExceptionSigEMT
+ SIGSTKFLT  ControlExceptionSigSTKFLT
+ SIGIO      ControlExceptionSigIO
+ SIGPWR     ControlExceptionSigPWR
+ SIGLOST    ControlExceptionSigLOST
+ SIGWINCH   Undefined
+
+=head2 Signal exceptions
+
+A table below describes the exceptions.  
+
+Each of these has a default action as well.  The possible actions are:
+
+ Term   Default action is to terminate the process.
+
+ Ign    Default action is to ignore the signal ($signal.exception is undef by default)
+
+ Core   Default action is to terminate the process and dump core (see core(5)).
+
+ Stop   Default action is to stop the process.
+
+ Cont   Default action is to continue the process if it is currently stopped.
+
+Some actions do the Resumeable role.  An exception listed in the table below that does the 
+Resumeable role is marked with a * in the R column.  
+
+The exceptions are:
+
+ Signal                   Action   R Comment
+ ----------------------------------------------------------------------
+ ControlExceptionSigHUP    Term    ? Hangup detected on controlling terminal or death of controlling process
+ ControlExceptionSigINT    Term    ? Interrupt from keyboard
+ ControlExceptionSigQUIT   Core    ? Quit from keyboard
+ ControlExceptionSigILL    Core    ? Illegal Instruction
+ ControlExceptionSigABRT   Core    ? Abort signal from abort(3)
+ ControlExceptionSigFPE    Core    ? Floating point exception
+ ControlExceptionSigKILL   Term    ? Kill signal
+ ControlExceptionSigSEGV   Core      Invalid memory reference
+ ControlExceptionSigPIPE   Term    ? Broken pipe: write to pipe with no readers
+ ControlExceptionSigALRM   Term    ? Timer signal from alarm(2)
+ ControlExceptionSigTERM   Term    ? Termination signal
+ ControlExceptionSigUSR1   Term    ? User-defined signal 1
+ ControlExceptionSigUSR2   Term    ? User-defined signal 2
+ ControlExceptionSigCHLD   Ign     * Child stopped or terminated
+ ControlExceptionSigCONT   Cont    * Continue if stopped
+ ControlExceptionSigSTOP   Stop    ? Stop process
+ ControlExceptionSigTSTP   Stop    ? Stop typed at tty
+ ControlExceptionSigTTIN   Stop    ? tty input for background process
+ ControlExceptionSigTTOU   Stop    ? tty output for background process
+ ControlExceptionSigBUS    Core    ? Bus error (bad memory access)
+ ControlExceptionSigPROF   Term    ? Profiling timer expired
+ ControlExceptionSigSYS    Core    ? Bad argument to routine (SVr4)
+ ControlExceptionSigTRAP   Core    ? Trace/breakpoint trap
+ ControlExceptionSigURG    Ign     ? Urgent condition on socket (4.2BSD)
+ ControlExceptionSigVTALRM Term    ? Virtual alarm clock (4.2BSD)
+ ControlExceptionSigXCPU   Core    ? CPU time limit exceeded (4.2BSD)
+ ControlExceptionSigXFSZ   Core    ? File size limit exceeded (4.2BSD)
+ ControlExceptionSigEMT    Term    ?
+ ControlExceptionSigSTKFLT Term    ? Stack fault on coprocessor (unused)
+ ControlExceptionSigIO     Term    ? I/O now possible (4.2BSD)
+ ControlExceptionSigPWR    Term    ? Power failure (System V)
+ ControlExceptionSigLOST   Term    ? File lock lost
+ ControlExceptionSigWINCH  Ign     ? Window resize signal (4.3BSD, Sun)
+
+See L<S04-control> for details on how to handle exceptions.  
+
+XXX I'm unsure how the actions in the table above can be made to make sense.  The Ign 
+actions are already dealt with because %SIG{CHLD}.exception already defaults to undef.  
+The Term action will probably be self-solving (ie. will terminate the process).  The 
+others I'm just plain unsure about.  XXX
+
+=head1 Alarm
+
+XXX Everything about Alarm is from the old S17-concurrency.pod
+
+An alarm is just a pre-arranged exception to be delivered to your program.
+
+By the time alarm has arrived, the current block may have already finished
+executing, so you would need to set up CATCH blocks in places where an alarm
+can rise to handle it properly.
+
+You can request an alarm using the number of seconds, or with a target date.
+It returns a proxy alarm object that you can do interesting things with.
+
+    multi Alarm *alarm (Num $seconds = $CALLER::_, &do = {die Sig::ALARM}, :$repeat = 1)
+    multi Alarm *alarm (Date $date, &do = {die Sig::ALARM}, :$repeat = 1)
+
+Perl 6's C<alarm> has three additional features over traditional alarms:
+
+=head2 Multiple and Lexical Alarms
+
+One can set up multiple alarms using repeated alarm calls:
+
+    {
+        my $a1 = alarm(2);
+        my $a2 = alarm(2);
+        sleep 10;
+        CATCH {
+            is critical; # if you don't want $a2 to be raised inside this
+            when Sig::ALARM { ... } 
+        }
+    }
+
+To stop an alarm, call C<$alarm.stop>.  The C<alarms> method for Conc objects
+(including process and threads) returns a list of alarms currently scheduled
+for that concurrent context.
+
+When an alarm object is garbage collected, the alarm is stopped automatically.
+Under void context, the implicit alarm object can only be stopped by querying
+C<.alarms> on the current process.
+
+We are not sure what C<alarm(0)> would mean.  Probably a deprecation warning?
+
+=head2 Repeated Alarms
+
+If you request a repeated alarm using the C<repeated> named argument, it will
+attempt to fire off the alarm that many times.  However, the alarm will be
+suppressed when inside a C<CATCH> block that's already handling the exception
+raised by I<same> alarm.
+
+To repeat 0 times is to not fire off any alarms at all.  To repeat +Inf times
+is to repeat over and over again.
+
+=head2 Callbacks in Alarms
+
+You can arrange a callback (like JavaScript's setTimeOut) in C<alarm>, which
+will then be invoked with the then-current code as caller.
+
+If you set up such a callback to another Conc object, what happens is just like
+when you called C<.die> on behalf of that object -- namely, the callback
+closure, along with anything it referenced, is shared to the target Conc
+context.
+
+Unlike in Perl 5's ithreads where you cannot share anything after the fact,
+this allows passing shared objects in an C<ad-hoc> fashion across concurrent
+parts of the program.  Under the default (multiplexing) concurrency model, this
+is basically a no-op.
+
+=head1 IPC
+
+=head1 Concurrency
 
 This is a draft document. After being some time under the surface of Perl 6
 development this is a attempt to document working concurrency issues, list the
 remaining todos and mark the probably obsolete and redundant points.
 
-=head1 Overview
+
+=head2 Overview
 
 Concurrency can take many forms in Perl 6.  With varying degrees of
 explicitness and control capabilities.  This document attempts to describe
 what these capabilities are and in which form they can be accessed in Perl 6.
 
-=head2 Processes, threads, fibers?
+=head3 Processes, threads, fibers?
 
 Concurrency comes in many shapes and forms.  Most Perl users are used to
 the concept of a "process" or a "thread" (usually depending on the OS they
@@ -55,7 +269,7 @@ at the OS level should not matter at the Perl 6 level.
 And for sake of consistency, an unthreaded "normal" program is considered
 to be also running in a single thread.
 
-=head2 Variables
+=head3 Variables
 
 In the past, there have been two models for concurrent processes in Perl.
 In general, these are referred to as "5.005 threads" (C<perldoc perlothrtut>)
@@ -80,9 +294,9 @@ some kind of copy-on-write magic to be automagically added to all variable
 access inside a thread, except for those with an explicit "is shared"
 attribute?)
 
-=head1 Contend/Maybe/Defer
+=head2 Contend/Maybe/Defer
 
-=head2 No user accessible locks
+=head3 No user accessible locks
 
 Differently from any current concurrent process implementation in Perl, there
 are no user accessible locks.  Instead, the concept of Software
@@ -110,7 +324,7 @@ the Code block (with the L<defer> statement).
 (EM: maybe point out if / how old style locks can be "simulated", for those
 needing a migration path?)
 
-=head2 Atomic Code blocks
+=head3 Atomic Code blocks
 
     my ($x, $y);
     sub c {
@@ -135,7 +349,7 @@ The start of a block marked C<contend> also becomes a I<checkpoint> to
 which execution can return (in exactly the same state) if a problem occurs
 (a.k.a. a L<defer> is done) inside the scope of the Code block.
 
-=head3 defer
+=head4 defer
 
 The C<defer> function basically restores the state of the thread at the
 last checkpoint and will wait there until an external event allows it to
@@ -148,7 +362,7 @@ exception will be raised.
 The last checkpoint is either the outermost C<contend> boundary, or
 the most immediate caller constructed with C<maybe>.
 
-=head3 maybe
+=head4 maybe
 
 The C<maybe> statement causes a checkpoint to be made for C<defer> for
 each block in the C<maybe> chain, creating an alternate execution path to
@@ -169,7 +383,7 @@ be followed when a C<defer> is done.  For example:
 If placed outside a C<contend> block, the C<maybe> statement creates its
 own C<contend> barrier.
 
-=head3 limitations
+=head4 limitations
 
 Because Perl 6 must be able to revert its state to the state it had at the
 checkpoint, it is not allowed to perform any non-revertible actions.  These
@@ -185,7 +399,7 @@ method for freezing a state, and restoring to a previously frozen state.
 If you're not interested in revertability, but are interested in
 uninterruptability, you could use the "is critical" trait.
 
-=head3 Critical Code blocks
+=head4 Critical Code blocks
 
  sub tricky is critical {
      # code accessing external info, not to be interrupted
@@ -201,7 +415,7 @@ since it is able to access non-revertible data structures (such as
 non-seekable file handles), it cannot do a C<defer> as it would be impossible
 to restore the state to the beginning of the Code block.
 
-=head3 Mixing Atomic and Critical
+=head4 Mixing Atomic and Critical
 
 Both "atomic" as well as "critical" propagate down the call chain.  This means
 that any subroutine that in itself is not "atomic" or "critical" becomes
@@ -216,7 +430,7 @@ from a socket) will cause a fatal error when called inside the call chain
 of an Atomic Code block.
 
 
-=head1 Co-Routines
+=head2 Co-Routines
 
 There is no real difference between a subroutine (or method) and a so-called
 'co-routine'.  The only difference is how control is relinquished by the
@@ -244,7 +458,7 @@ inside the subroutine.  Positional parameters will be available to any code
 looking at them, but will B<not> be handled automatically.  It would seem that
 the use of named parameters is therefore advisable.
 
-=head2 Coroutine attributes
+=head3 Coroutine attributes
 
 =over
 
@@ -254,7 +468,7 @@ True on return() and false on midway yield()
 
 =back
 
-=head2 Coroutine methods
+=head3 Coroutine methods
 
 =over
 
@@ -264,7 +478,7 @@ Set starting parameter list.
 
 =back
 
-=head2 Coroutine examples
+=head3 Coroutine examples
 
 =over
 
@@ -296,7 +510,7 @@ Set starting parameter list.
 
 =back
 
-=head1 Threads
+=head2 Threads
 
 All outside of a thread defined variables are
 shared and transactional variables by default
@@ -305,7 +519,7 @@ Program will wait for _all_ threads.
 Unjoined threads will be joined at the beginning of the END
 block batch of the parent thread that spawned them
 
-=head2 Thread creation
+=head3 Thread creation
 
 A thread will be created using the keyword C<async> followed by
 a codeblock being executed in this thread.
@@ -316,7 +530,7 @@ a codeblock being executed in this thread.
    };
 
 
-=head2 Thread status and attributes
+=head3 Thread status and attributes
 
 =over
 
@@ -361,7 +575,7 @@ TODO: IO objects and containers gets concurrency love!
 
 =back
 
-=head2 Thread operators
+=head3 Thread operators
 
 =over
 
@@ -385,7 +599,7 @@ TODO: Enumerable with Conc.list
 
 =back
 
-=head2 Thread methods
+=head3 Thread methods
 
 =over
 
@@ -456,93 +670,16 @@ TODO:
 =back
 
 
-=head2 Signals
-
-Asynchronous exceptions are just like user-initiated exceptions with C<die>,
-so you can also catch it with regular C<CATCH> blocks as specified in S04.
-
-To declare your main program catches INT signals, put a CATCH block anywhere
-in the toplevel to handle exceptions like this:
-
- CATCH {
-     when Error::Signal::INT { ... }
- }
-
-=head2 Alarm
-
-An alarm is just a pre-arranged exception to be delivered to your program.
-
-By the time alarm has arrived, the current block may have already finished
-executing, so you would need to set up CATCH blocks in places where an alarm
-can rise to handle it properly.
-
-You can request an alarm using the number of seconds, or with a target date.
-It returns a proxy alarm object that you can do interesting things with.
-
-    multi Alarm *alarm (Num $seconds = $CALLER::_, &do = {die Sig::ALARM}, :$repeat = 1)
-    multi Alarm *alarm (Date $date, &do = {die Sig::ALARM}, :$repeat = 1)
-
-Perl 6's C<alarm> has three additional features over traditional alarms:
-
-=head3 Multiple and Lexical Alarms
-
-One can set up multiple alarms using repeated alarm calls:
-
-    {
-        my $a1 = alarm(2);
-        my $a2 = alarm(2);
-        sleep 10;
-        CATCH {
-            is critical; # if you don't want $a2 to be raised inside this
-            when Sig::ALARM { ... } 
-        }
-    }
-
-To stop an alarm, call C<$alarm.stop>.  The C<alarms> method for Conc objects
-(including process and threads) returns a list of alarms currently scheduled
-for that concurrent context.
-
-When an alarm object is garbage collected, the alarm is stopped automatically.
-Under void context, the implicit alarm object can only be stopped by querying
-C<.alarms> on the current process.
-
-We are not sure what C<alarm(0)> would mean.  Probably a deprecation warning?
-
-=head3 Repeated Alarms
-
-If you request a repeated alarm using the C<repeated> named argument, it will
-attempt to fire off the alarm that many times.  However, the alarm will be
-suppressed when inside a C<CATCH> block that's already handling the exception
-raised by I<same> alarm.
-
-To repeat 0 times is to not fire off any alarms at all.  To repeat +Inf times
-is to repeat over and over again.
-
-=head3 Callbacks in Alarms
-
-You can arrange a callback (like JavaScript's setTimeOut) in C<alarm>, which
-will then be invoked with the then-current code as caller.
-
-If you set up such a callback to another Conc object, what happens is just like
-when you called C<.die> on behalf of that object -- namely, the callback
-closure, along with anything it referenced, is shared to the target Conc
-context.
-
-Unlike in Perl 5's ithreads where you cannot share anything after the fact,
-this allows passing shared objects in an C<ad-hoc> fashion across concurrent
-parts of the program.  Under the default (multiplexing) concurrency model, this
-is basically a no-op.
-
-=head2 Continuations
+=head3 Continuations
 
 TODO document
 
-=head2 Junctive Autothreading and Hyper Operations
+=head3 Junctive Autothreading and Hyper Operations
 
 Live in userland for the time being.
 
 
-=head2 Still more or less unorganized stuff
+=head3 Still more or less unorganized stuff
 
 
     ### INTERFACE BARRIER ###
@@ -581,13 +718,9 @@ Live in userland for the time being.
     }
     ### INTERFACE BARRIER ###
 
-=head2 See also
+=head3 See also
 
 =over
-
-=item *
-
-L<S16/Interprocess Communication>
 
 =item *
 
@@ -602,6 +735,13 @@ L<S16/File Descriptors>
 L<S16/Sockets>
 
 =back
+
+=cut
+
+=head1 Additions
+
+Please post errors and feedback to perl6-language.  If you are making
+a general laundry list, please separate messages by topic.
 
 =cut
 
