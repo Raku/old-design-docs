@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 26 Feb 2009
+  Last Modified: 4 Mar 2009
   Number: 3
-  Version: 155
+  Version: 156
 
 =head1 Overview
 
@@ -3142,7 +3142,7 @@ the table assumes the following types will behave similarly:
     List Seq                    Array
     KeySet KeyBag KeyHash       Hash
     Class Enum Role             Type
-    Subst Grammar               Regex
+    Subst                       Regex
     Char Cat                    Str
     Int UInt etc.               Num
     Match                       Capture
@@ -3165,15 +3165,9 @@ information, you may still do pattern matching against the buffer, but
 to treat the buffer as other than a sequence integers is erroneous,
 and warnings may be generously issued.
 
-Matching against a C<Grammar> object will call the C<TOP> method
-defined in the grammar.  The C<TOP> method may either be a rule
-itself, or may call the actual top rule automatically.  How the
-C<Grammar> determines the top rule is up to the grammar, but normal
-Perl 6 grammars will default to setting top to the first rule in the
-original base grammar.  Derived grammars then inherit this idea of
-the top rule.  This may be overridden in either the base grammar or a
-derived grammar by explicitly naming a rule C<TOP>, or defining your
-own C<TOP> method to call some other rule.
+Matching against a C<Grammar> treats the grammar as a typename,
+not as a grammar.  You need to use the C<.parse> or C<.parsefile>
+methods to invoke a grammar.
 
 Matching against a C<Signature> does not actually bind any variables,
 but only tests to see if the signature I<could> bind.  To really bind
