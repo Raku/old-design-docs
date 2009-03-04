@@ -14,7 +14,7 @@ Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
   Last Modified: 4 Mar 2009
   Number: 12
-  Version: 72
+  Version: 73
 
 =head1 Overview
 
@@ -1293,7 +1293,7 @@ preferred.
 
 An enum is a low-level class that can function as a role or property.
 A given enum value can function as a subtype, a method, or as an ordinary
-value (an argumentless sub).  The names of the values are specified as a list:
+value.  The names of the values are specified as a list:
 
     my enum Day ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     my enum Day <Sun Mon Tue Wed Thu Fri Sat>;
@@ -1411,7 +1411,6 @@ returns C<day::Tue> (that is, 3), and
     $x.does(day)
     $x.day == Tue
     day($x) == Tue
-    Tue($x)
     $x.Tue
 
 all return true, and
@@ -1435,6 +1434,23 @@ call the C<.Bool> coercion or the C<true> function or the C<?>
 prefix operator on any built-in type, but the value returned is of
 type C<bit>.  Never compare a value to "C<true>", or even "C<True>".
 Just use it in a boolean context.
+
+Like type names, enum names are parsed as standalone tokens
+representing scalar values, and don't look for any arguments.
+Unlike type names which are undefined protoobjects, enums are defined
+constant values.  Also unlike types, they do not respond to C<.()>.
+They may not be post-declared.
+
+    our enum Maybe <OK FAIL>;
+    sub OK {...}
+    $x = OK;   # certainly the enum value
+    $x = OK()  # certainly the function
+
+Since there is an enum OK, the function OK may only be
+called using parentheses, never in list operator form.  (If there is
+a collision on two enum values that cancels them both, the function
+still may only be called with parentheses, since the enum symbol
+is "poisoned".)
 
 Enum types (and perhaps certain other finite, enumerable types such
 as finite ranges) define a C<.pick> method on the protoobject of
