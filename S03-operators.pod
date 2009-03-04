@@ -14,7 +14,7 @@ Luke Palmer <luke@luqui.org>
   Date: 8 Mar 2004
   Last Modified: 4 Mar 2009
   Number: 3
-  Version: 156
+  Version: 157
 
 =head1 Overview
 
@@ -649,6 +649,9 @@ C<< prefix:<|> >>, flatten object into arglist
 
 Interpolates the contents of the C<Capture> (or C<Capture>-like) value
 into the current argument list as if they had been specified literally.
+If the first argument of the capture is marked as an invocant but is used
+in a context not expecting one, it is treated as an ordinary positional
+argument.
 
 =item *
 
@@ -1797,7 +1800,7 @@ function call is the previous capture in the list.
 
 =back
 
-Many of these operators return a list of Captures, which depending on
+Many of these operators return a list of C<Capture>s, which depending on
 context may or may not flatten them all out into one flat list.  The
 default is to flatten, but see the contextualizers below.
 
@@ -1969,8 +1972,8 @@ The C<item> contextualizer
 
     item foo()
 
-The new name for Perl 5's C<scalar> contextualizer.  Equivalent to C<$()>
-(except that empty C<$()> means C<$($/)>, while empty C<item()> yields C<Failure>).
+The new name for Perl 5's C<scalar> contextualizer.  Equivalent to C<$(...)>
+(except that empty C<$()> means C<$/{''} // Str($/)>, while empty C<item()> yields C<Failure>).
 We still call the values scalars, and talk about "scalar operators", but
 scalar operators are those that put their arguments into item context.
 
@@ -1990,7 +1993,7 @@ The C<list> contextualizer
 
 Forces the subsequent expression to be evaluated in list context.
 A list of C<Capture>s will be transformed into a flat list.
-Equivalent to C<@()> (except that empty C<@()> means C<@($/)>, while
+Equivalent to C<@(...)> (except that empty C<@()> means C<@($/)>, while
 empty C<list()> means an empty list).
 
 =item *
@@ -2002,7 +2005,7 @@ The C<slice> contextualizer
 Forces the subsequent expression to be evaluated in slice context.
 (Slices are considered to be potentially multidimensional in Perl 6.)
 A list of C<Capture>s will be transformed into a list of lists.
-Equivalent to C<@@()> (except that empty C<@@()> means C<@@($/)>, while
+Equivalent to C<@@(...)> (except that empty C<@@()> means C<@@($/)>, while
 empty C<slice()> means a null slice).
 
 =item *
@@ -2016,7 +2019,7 @@ The expression is evaluated in list context (flattening any C<Capture>s),
 then a hash will be created from the list, taken as a list of C<Pair>s.
 (Any element in the list that is not a C<Pair> will pretend to be a key
 and grab the next value in the list as its value.)  Equivalent to
-C<%()> (except that empty C<%()> means C<%($/)>, while
+C<%(...)> (except that empty C<%()> means C<%($/)>, while
 empty C<hash()> means an empty hash).
 
 =back
@@ -4200,22 +4203,25 @@ Note that the resulting arguments still must comply with the subroutine's
 signature, but the presence of C<|> defers that test until run time for
 that argument (and for any subsequent arguments):
 
-    my @args := [item @foo, @bar];
-    push |@args;
+    my $args = \(@foo, @bar);
+    push |$args;
 
 is equivalent to:
 
-    push @foo: @bar;
+    push @foo, @bar;
 
-which is just another way to write:
+However,
+
+    my $args = \(@foo: @bar);
+
+is instead equivalent to:
 
     @foo.push(@bar);
 
-Unlike C<[,]>, C<|> does not turn its argument into an C<Array>, but instead directly
+C<|> does not turn its argument into an C<Array>, but instead directly
 converts its argument into a C<Capture>:
 
     my @args = \$x, 1, 2, 3;
-    say [,] @args;  # say([\$x, 1, 2, 3]);
     say |@args;     # say(\$x, 1, 2, 3);
 
 Because of this, C<|%args> always produces named arguments, and
@@ -4247,12 +4253,6 @@ second form can keep the "arrayness" of the lvalue close to the
 assignment operator:
 
     $foo.bar.baz.bletch.whatever.attr[] = 1,2,3;
-
-Otherwise you'd have to write:
-
-    @($foo.bar.baz.bletch.whatever.attr) = 1,2,3;
-
-and remember the C<@> at the front until you get to the C<=>.
 
 The empty C<[]> and C<.[]> postfix operators are interpreted as a
 zero-dimensional slice returning the entire array, not as a one-dimensional

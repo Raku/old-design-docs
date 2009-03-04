@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 26 Feb 2009
+  Last Modified: 4 Mar 2009
   Number: 2
-  Version: 156
+  Version: 157
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1535,8 +1535,10 @@ An argument list may be captured into an object with backslashed parens:
 
     $args = \(1,2,3,:mice<blind>)
 
-Values in a C<Capture> object are parsed as ordinary expressions, marked as
-invocant, positional, named, and so on.
+Values in a C<Capture> object are parsed as ordinary expressions, then marked as
+positional or named.  If the first positional is followed by a colon instead of
+a comma, it is marked as the invocant in case it finds itself in a context
+that cares.
 
 Like C<List> objects, C<Capture> objects are immutable in the abstract, but
 evaluate their arguments lazily.  Before everything inside a C<Capture> is
@@ -1552,17 +1554,17 @@ others are not.
 You may retrieve parts from a C<Capture> object with a prefix sigil operator:
 
     $args = \3;     # same as "$args = \(3)"
-    $$args;         # same as "$args as Scalar" or "Scalar($args)"
-    @$args;         # same as "$args as Array"  or "Array($args)"
-    %$args;         # same as "$args as Hash"   or "Hash($args)"
+    @$args;         # same as "Array($args)"
+    %$args;         # same as "Hash($args)"
 
 When cast into an array, you can access all the positional arguments; into a
-hash, all named arguments; into a scalar, its invocant.
+hash, all named arguments.
 
 All prefix sigil operators accept one positional argument, evaluated in
 item context as a rvalue.  They can interpolate in strings if called with
-parentheses.  The special syntax form C<$()> translates into C<$( $/ )> 
-to operate on the current match object; the same applies to C<@()> and C<%()>.
+parentheses.  The special syntax form C<$()> translates into C<$( $/{''} // Str($/) )> 
+to operate on the current match object; similarly C<@()> and C<%()> can
+extract positional and named submatches.
 
 C<Capture> objects fill the ecological niche of references in Perl 6.
 You can think of them as "fat" references, that is, references that
