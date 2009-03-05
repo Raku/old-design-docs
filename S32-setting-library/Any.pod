@@ -28,7 +28,64 @@ the SVN repository if you would like to make changes.
 
 The following are defined in the C<Any> role:
 
+ role	Any does Object does Pattern {
+     our Bool multi sub eqv (Ordering @by, $a, $b) {...}
+     our Bool multi sub eqv (Ordering $by = &infix:<eqv>, $a, $b) {...}
+
+     our Bool multi method defined ( Any $self) {...}
+     our Bool multi method defined ( Any $self, ::role ) {...}
+
+     our multi method undefine( Any $self ) {...}
+
+     our multi method clone (::T $self --> T) {...}
+     our multi method clone (::T $self, *%attributes --> T) {...}
+
+     our Order multi sub cmp (Ordering @by, $a, $b) {...}
+     our Order multi sub cmp (Ordering $by = &infix:<cmp>, $a, $b) {...}
+
+     our Callable multi method can ($self:, Str $method) {...}
+     our Bool     multi method does ($self:, $type) {...}
+     our Bool     multi method isa  ($self:, $type) {...}
+     our Str      multi method perl ( Object $o: ) is export {...}
+     our          multi method warn ( Object $o: ) is export {...}
+ }
+
 =over
+
+=item defined
+
+  our Bool multi defined ( Any $thing )
+  our Bool multi defined ( Any $thing, ::role )
+  our Bool multi method defined ( Any $self)
+  our Bool multi method defined ( Any $self, ::role )
+
+C<defined> returns true if the parameter has a value and that value is
+not the undefined value (per C<undef>), otherwise false is returned.
+
+Same as Perl 5, only takes extra optional argument to ask if value is defined
+with respect to a particular role:
+
+  defined($x, SomeRole);
+
+A value may be defined according to one role and undefined according to another.
+Without the extra argument, defaults to the definition of defined supplied by
+the type of the object.
+
+=item undefine
+
+  our multi undefine( Any $thing )
+  our multi method undefine( Any $self )
+
+Takes any variable as a parameter and attempts to "remove" its
+definition. For simple scalar variables this means assigning
+the undefined value to the variable. For objects, this is equivalent
+to invoking their undefine method. For arrays, hashes and other
+complex data, this might require emptying the structures associated
+with the object.
+
+In all cases, calling C<undefine> on a variable
+should place the object in the same state as if it was just
+declared.
 
 =item eqv
 
@@ -102,6 +159,21 @@ Prints a warning to C<$*ERR>, which is usually finds C<$PROCESS::ERR>. See
 C<Synopsis 16: IPC / IO / Signals> for details.
 
 =back
+
+=head1 Pattern
+
+ role	Pattern {
+     method ACCEPTS($self:, $other) {...}
+     method REJECTS($self:, $other) {...}
+ }
+
+=item ACCEPTS
+
+Used in smartmatching; see S03.  
+
+=item REJECTS
+
+Used in smartmatching; see S03.  
 
 =head1 Additions
 
