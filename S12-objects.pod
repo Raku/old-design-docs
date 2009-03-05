@@ -214,6 +214,20 @@ Private methods are declared using C<!>:
 in fact called with a different syntax that uses C<!> in place of the C<.>
 character.  See below.)
 
+Unlike with most other declarations, C<method> declarations do not
+default to C<our> semantics, or even C<my> semantics, but rather
+C<has> semantics.  So instead of installing a symbol into a lexical
+or package symbol table, they merely install a public or private
+method in the current class or role via calls to its metaobject.
+(Likewise for C<submethod> declarations--see L<Submethods> below.)
+
+Use of an explicit C<has> declarator has no effect on the declaration.
+You may install additional aliases to the method in the lexical scope
+using C<my> or in the current package using C<our>.  These aliases
+are named with C<&foo> notation and return a C<Routine> object that
+may be called as a subroutine, in which case you must supply the
+expected invocant as the first argument.
+
 To call an ordinary method with ordinary method-dispatch semantics,
 use either the dot notation or indirect object notation:
 
