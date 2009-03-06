@@ -3,7 +3,7 @@
 
 =head1 Title
 
-DRAFT: Synopsis 32: Setting Library - Any
+DRAFT: Synopsis 32: Setting Library - Basics
 
 =head1 Version
 
@@ -21,43 +21,26 @@ DRAFT: Synopsis 32: Setting Library - Any
 The document is a draft.
 
 If you read the HTML version, it is generated from the pod in the pugs 
-repository under /docs/Perl6/Spec/S32-setting-library/Any.pod so edit it there in
+repository under /docs/Perl6/Spec/S32-setting-library/Basics.pod so edit it there in
 the SVN repository if you would like to make changes.
 
-=head1 Any
+=head1 Roles
 
-The following are defined in the C<Any> role:
+=head2 Object
 
- role	Any does Object does Pattern {
-     our Bool multi sub eqv (Ordering @by, $a, $b) {...}
-     our Bool multi sub eqv (Ordering $by = &infix:<eqv>, $a, $b) {...}
+The following are defined in the C<Object> role:
 
-     our Bool multi method defined ( Any $self) {...}
-     our Bool multi method defined ( Any $self, ::role ) {...}
+ role	Object {
+     our Bool multi method defined ($self:) {...}
+     our Bool multi method defined ($self: ::role ) {...}
 
-     our multi method undefine( Any $self ) {...}
-
-     our multi method clone (::T $self --> T) {...}
-     our multi method clone (::T $self, *%attributes --> T) {...}
-
-     our Order multi sub cmp (Ordering @by, $a, $b) {...}
-     our Order multi sub cmp (Ordering $by = &infix:<cmp>, $a, $b) {...}
-
-     our Callable multi method can ($self:, Str $method) {...}
-     our Bool     multi method does ($self:, $type) {...}
-     our Bool     multi method isa  ($self:, $type) {...}
-     our Str      multi method perl ( Object $o: ) is export {...}
-     our          multi method warn ( Object $o: ) is export {...}
+     our multi method undefine( $self: ) {...}
  }
-
-=over
 
 =item defined
 
-  our Bool multi defined ( Any $thing )
-  our Bool multi defined ( Any $thing, ::role )
-  our Bool multi method defined ( Any $self)
-  our Bool multi method defined ( Any $self, ::role )
+  our Bool multi method defined ( $self: ) is export
+  our Bool multi method defined ( $self: ::role ) is export
 
 C<defined> returns true if the parameter has a value and that value is
 not the undefined value (per C<undef>), otherwise false is returned.
@@ -86,6 +69,29 @@ with the object.
 In all cases, calling C<undefine> on a variable
 should place the object in the same state as if it was just
 declared.
+
+=head2 Any
+
+The following are defined in the C<Any> role:
+
+ role	Any does Object does Pattern {
+     our Bool multi sub eqv (Ordering @by, $a, $b) {...}
+     our Bool multi sub eqv (Ordering $by = &infix:<eqv>, $a, $b) {...}
+
+     our multi method clone (::T $self --> T) {...}
+     our multi method clone (::T $self, *%attributes --> T) {...}
+
+     our Order multi sub cmp (Ordering @by, $a, $b) {...}
+     our Order multi sub cmp (Ordering $by = &infix:<cmp>, $a, $b) {...}
+
+     our Callable multi method can ($self:, Str $method) {...}
+     our Bool     multi method does ($self:, $type) {...}
+     our Bool     multi method isa  ($self:, $type) {...}
+     our Str      multi method perl ( Object $o: ) is export {...}
+     our          multi method warn ( Object $o: ) is export {...}
+ }
+
+=over
 
 =item eqv
 
@@ -160,7 +166,7 @@ C<Synopsis 16: IPC / IO / Signals> for details.
 
 =back
 
-=head1 Pattern
+=head2 Pattern
 
  role	Pattern {
      method ACCEPTS($self:, $other) {...}
@@ -175,10 +181,39 @@ Used in smartmatching; see S03.
 
 Used in smartmatching; see S03.  
 
+=head2 Scalar
+
+B<API document>: L<Scalar>
+
+C<Scalar> provides the basic tools for operating on undifferentiated
+scalar variables. All of the following are exported by default.
+
+=over
+
+=item undef
+
+  constant Scalar Scalar::undef
+
+Returns the undefined scalar object. C<undef> has no value at
+all, but for historical compatibility, it will numify to C<0>
+and stringify to the empty string, potentially generating a
+warning in doing so. There are two ways to determine if a
+value equal to undef: the C<defined> function (or method) can
+be called or the C<//> (or C<orelse>) operator can be used.
+
+C<undef> is also considered to be false in a boolean context.
+Such a conversion does not generate a warning.
+
+Perl 5's unary C<undef> function is renamed C<undefine> to avoid
+confusion with the value C<undef> (which is always 0-ary now).
+
+=item VAR
+
+This is not really a method, but some kind of macro.  See L<S12> for details.  
+
+=back
+
 =head1 Additions
 
 Please post errors and feedback to perl6-language.  If you are making
 a general laundry list, please separate messages by topic.
-
-
-
