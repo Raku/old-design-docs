@@ -38,6 +38,7 @@ role	Code {
 	method Signature signature() {...}
 	method Code      assuming(...) {...}
 	method           do() {...} # See L<S12/Introspection>
+	# XXX What does do() return?  I mean, it's a "method body", but what's that?  
 }
 
 =head2 Block
@@ -49,6 +50,7 @@ role	Block does Code does Callable {
 	method redo() {...}
 	method leave() {...}
 	method labels() {...}
+	method as() {...} # See L<S12/Introspection> and L<S02/Value types>
 }
 
 =head2 Signature
@@ -69,11 +71,12 @@ role	WrapHandle {...}
 
 =head2 Routine
 
-class	Routine does Block {
-	method WrapHandle wrap(Code $code) {...}
-	method Routine    unwrap(Wraphandle $original) {...}
-	method Str        name() {...}
-}
+ class	Routine does Block {
+      method WrapHandle wrap(Code $code) {...}
+      method Routine    unwrap(Wraphandle $original) {...}
+      method Str        name() {...}
+      method Bool       multi() {...}
+ }
 
 =item unwrap
 
