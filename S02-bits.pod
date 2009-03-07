@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 4 Mar 2009
+  Last Modified: 7 Mar 2009
   Number: 2
-  Version: 157
+  Version: 158
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2418,7 +2418,7 @@ a C<Capture> object:
     $a = \('a', 'b');
 
 Likewise, if bound to a scalar parameter, C<< <a b> >> will be
-treated as a single list object, but if bound to a slurpy parameter,
+treated as a single C<Capture> object, but if bound to a slurpy parameter,
 it will auto-flatten.
 
 But note that under the parenthesis-rewrite rule, a single value will
@@ -2431,6 +2431,15 @@ still act like a scalar value.  These are all the same:
 And if bound to a scalar parameter, no list is constructed.
 To force a single value to become a list object in item context,
 you should use C<< ['a'] >> for clarity as well as correctness.
+
+The degenerate case C<< <> >> is disallowed as a probable attempt to
+do IO in the style of Perl 5; that is now written C<< =<> >>.  (C<<
+<STDIN> >> is also disallowed.)  Empty lists are better written with
+C<()> or C<Nil> in any case because C<< <> >> will often be misread
+as meaning C<('')>.  (Likewise the subscript form C<< %foo<> >>
+should be written C<%foo{}> to avoid misreading as C<@foo{''}.)
+If you really want the angle form for stylistic reasons, you can
+suppress the error by putting a space inside: C<< < > >>.
 
 Much like the relationship between single quotes and double quotes, single
 angles do not interpolate while double angles do.  The double angles may
