@@ -14,9 +14,9 @@ Allison Randal <al@shadowed.net>
    Maintainer: Patrick Michaud <pmichaud@pobox.com> and
                Larry Wall <larry@wall.org>
    Date: 24 Jun 2002
-   Last Modified: 4 Mar 2009
+   Last Modified: 8 Mar 2009
    Number: 5
-   Version: 88
+   Version: 89
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -688,7 +688,7 @@ parses as
 =item *
 
 The C<~> operator is a helper for matching nested subrules with a
-specific terminator as the goal.  It appears to be placed between the
+specific terminator as the goal.  It is designed to be placed between an
 opening and closing bracket, like so:
 
     '(' ~ ')' <expression>
@@ -713,7 +713,9 @@ actually rewrites our example to something more like:
 Note that you can use this construct to set up expectations for
 a closing construct even when there's no opening bracket:
 
-    <null> ~ ')' \d+
+    <?> ~ ')' \d+
+
+Here <?> returns true on the first null string.
 
 By default the error message uses the name of the current rule as an
 indicator of the abstract goal of the parser at that point.  However,
@@ -1625,61 +1627,87 @@ The following symbols are predefined entries in the metasyntax.
 
 =item * ident
 
-=item * null
-
-Deprecated, use <?>
-
-=item * fail
-
-Deprecated, use <!>
+Match an identifier.
 
 =item * upper
 
+Match a single uppercase character.
+
 =item * lower
+
+Match a single lowercase character.
 
 =item * alpha
 
+Match a single alphabetic character.
+
 =item * digit
+
+Match a single digit.
 
 =item * xdigit
 
-=item * space
+Match a single hexadecimal digit.
 
 =item * print
 
+Match a single printable character.
+
 =item * graph
 
-=item * blank
+Match a single "graphical" character.
 
 =item * cntrl
 
+Match a single "control" character. A control character is usually one that doesn't produce output as such but instead controls the terminal somehow: for example newline and backspace are control characters. All characters with ord() less than 32 are usually classified as control characters (assuming ASCII, the ISO Latin character sets, and Unicode), as is the character with the ord() value of 127 (DEL ).
+
 =item * punct
+
+Match a single punctuation character.
 
 =item * alnum
 
-=item * sp
+Match a single alphanumeric character. This is equivalent to <+alpha +digit> .
 
-Deprecated, use ' '
+= item * word
 
-=item * lt
-
-Deprecated, use '<'
-
-=item * gt
-
-Deprecated, use '>'
-
-=item * dot
-
-Deprecated, use '.'
-
-=item * ws
+Match a single word character, viz., alphanumeric plus '_'.
 
 =item * wb
 
-=item * before
+Returns true if we're at a word boundary. A word boundary is a spot between two characters, one which matches <word>, the other matches <-word>, counting the imaginary characters off the beginning and end of the string as matching a <-word>.
 
-=item * after
+=item * ws
+
+Match whitespace between tokens.
+
+=item * space
+
+Match a single whitespace character. Hence C< <ws> > is equivalent to C< <space>+ >.
+
+=item * blank
+
+Match a single "blank" character. Differs from C< <space> > which include C<tab>'s etc.
+
+=item * before C<pattern>
+
+Perform lookahead -- i.e., check if we're at a position where
+C<pattern> matches.  Returns a zero-width Match object on
+success.
+
+=item * after C<pattern>
+
+Perform lookbehind -- i.e., check if the string before the
+current position matches <pattern> (anchored at the end).
+Returns a zero-width Match object on success.
+
+=item * <?>
+
+Match a null string, viz., always returns true
+
+=item * <!>
+
+Inverse of <?>, viz., always returns false.
 
 =back
 
