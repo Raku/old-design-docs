@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 5 Mar 2009
+  Last Modified: 9 Mar 2009
   Number: 12
-  Version: 74
+  Version: 75
 
 =head1 Overview
 
@@ -1055,10 +1055,24 @@ but the export allows you to use a comma after the invocant instead of
 a colon, or to omit the colon entirely in the case of a method with
 no arguments other than the invocant.  Many standard methods (such
 as C<IO::close> and C<Array::push>) are automatically exported to the
-global namespace by default.  For other exported methods, you will not
+C<CORE> namespace by default.  For other exported methods, you will not
 see the multi sub definition unless you C<use> the class in your scope,
 which will import the multi sub lexically, after which you can call it
 using normal subroutine call syntax.
+
+In the absence of an explicit type on the method's invocant, the
+exported multi sub's first argument is implicitly constrained to
+match the class in which it was defined or composed, so for instance
+the multi version of C<close> requires its first argument to be of
+type C<IO> or one of its subclasses.  If the invocant is explicitly
+typed, that will govern the type coverage of the corresponding multi's
+first argument, whether that is more specific or more general than
+the class's invocant would naturally be.  (But be aware that if it's
+more specific than C<::?CLASS>, the binding may reject an otherwise
+valid single dispatch as well as a multi dispatch.)  In any case,
+it does no good to overgeneralize the invocant if the routine itself
+cannot handle the broader type.  In such a situation you must write
+a wrapper to coerce to the narrower type.
 
 Note that explicit use of a syntactic category as a method name
 overrides the choice of dispatcher, so
