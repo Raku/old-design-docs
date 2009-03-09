@@ -35,7 +35,7 @@ the terms I<rule> and I<token> are generally preferred over I<regex>.
 
 =head1 New match result and capture variables
 
-The underlying match result object is now available as the C<$/>
+The underlying match object is now available via the C<$/>
 variable, which is implicitly lexically scoped.  All user access to the
 most recent match is through this variable, even when
 it doesn't look like it.  The individual capture variables (such as C<$0>,
@@ -781,7 +781,7 @@ for this match:
 
 This has the effect of capturing the square root of the numified string,
 instead of the string.  The C<Remainder> part is matched but is not returned
-unless the first C<make> is later overridden by another C<make>.
+as part of the result object unless the first C<make> is later overridden by another C<make>.
 
 These closures are invoked with a topic (C<$_>) of the current match
 state (a C<Cursor> object).  Within a closure, the instantaneous
@@ -2461,16 +2461,6 @@ the C<< <(...)> >> construct:
 In this case the result object is always a string when doing string
 matching, and a list of one or more elements when doing array matching.
 
-Additionally, the C<Match> object delegates its C<coerce> calls
-(such as C<+$match> and C<~$match>) to its underlying result object.
-The only exception is that C<Match> handles boolean coercion itself,
-which returns whether the match had succeeded at least once.
-
-This means that these two work the same:
-
-    / <moose> { make $moose as Moose } /
-    / <moose> { make $$moose as Moose } /
-
 =item *
 
 When used as an array, a C<Match> object pretends to be an array of all
@@ -2590,6 +2580,8 @@ like a C<return>, but doesn't clobber the match state:
                { make 'bar' }     # But pretend we matched 'bar'
              /;
     say $();                      # says 'bar'
+
+The result object is available in the C<Match> object via a C<< .<?> >> lookup.
 
 =back
 
