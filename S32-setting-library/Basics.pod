@@ -31,10 +31,13 @@ the SVN repository if you would like to make changes.
 The following are defined in the C<Object> role:
 
  role	Object {
-     our Bool multi method defined ($self:) {...}
-     our Bool multi method defined ($self: ::role ) {...}
+     our Bool multi method defined ($self:) is export {...}
+     our Bool multi method defined ($self: ::role ) is export {...}
 
-     our multi method undefine( $self: ) {...}
+     our multi method undefine( $self: ) is export {...}
+
+     method not() is export {...}
+     method true() is export {...}
  }
 
 =item defined
@@ -69,6 +72,25 @@ with the object.
 In all cases, calling C<undefine> on a variable
 should place the object in the same state as if it was just
 declared.
+
+=item not
+
+     method not() is export {...}
+
+=item true
+
+     method true() is export {...}
+
+XXX Copied from S02 -- should it be deleted from there?  
+
+The definition of C<.true> for the most ancestral type (that is, the
+C<Object> type) is equivalent to C<.defined>.  Since protoobjects are
+considered undefined, all protoobjects (including C<Object> itself)
+are false unless the type overrides the definition of C<.true>
+to include undefined values.  Instantiated objects default to true
+unless the class overrides the definition.  Note that if you could
+instantiate an C<Object> it would be considered defined, and thus true.
+(It is not clear that this is allowed, however.)
 
 =head2 Any
 
