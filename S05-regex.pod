@@ -1619,9 +1619,9 @@ definition of "word" characters.)
 
 =back
 
-=head2 Predefined Metasyntax
+=head2 Predefined Subrules
 
-The following symbols are predefined entries in the metasyntax.  
+These are the predefined subrules for any grammar or regex:
 
 =over
 
@@ -1669,25 +1669,31 @@ Match a single punctuation character.
 
 Match a single alphanumeric character. This is equivalent to <+alpha +digit> .
 
-= item * word
-
-Match a single word character, viz., alphanumeric plus '_'.
-
 =item * wb
 
-Returns true if we're at a word boundary. A word boundary is a spot between two characters, one which matches <word>, the other matches <-word>, counting the imaginary characters off the beginning and end of the string as matching a <-word>.
+Returns a zero-width match that is true at word boundaries.  A word
+boundary is a spot with a "\w" on one side and a "\W" on the other
+side (in either order), counting the beginning and end of the string
+as matching "\W".
+
+=item * ww
+
+Matches between two word characters (zero-width match).
 
 =item * ws
 
-Match whitespace between tokens.
+Matches required whitespace between two word characters, optional
+whitespace otherwise.  This is roughly equivalent to  C<< <!ww> \s* >>
+(C<ws> isn't required to use the C<ww> subrule).
 
 =item * space
 
-Match a single whitespace character. Hence C< <ws> > is equivalent to C< <space>+ >.
+Match a single whitespace character (same as C< \s > ).
 
 =item * blank
 
-Match a single "blank" character. Differs from C< <space> > which include C<tab>'s etc.
+Match a single "blank" character -- in most locales, this corresponds
+to space and tab.
 
 =item * before C<pattern>
 
