@@ -14,9 +14,9 @@ Allison Randal <al@shadowed.net>
    Maintainer: Patrick Michaud <pmichaud@pobox.com> and
                Larry Wall <larry@wall.org>
    Date: 24 Jun 2002
-   Last Modified: 9 Mar 2009
+   Last Modified: 11 Mar 2009
    Number: 5
-   Version: 90
+   Version: 91
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -2435,8 +2435,8 @@ When used as a scalar, a C<Match> object evaluates to itself.
 
 However, sometimes you would like an alternate scalar value to ride
 along with the match.  This is called a I<result> object, and it rides
-along in the null named key.
-C<$()> is a shorthand for C<$($<?> // Str($/))>.
+along is an attribute of the C<Match> object.
+C<$()> is a shorthand for C<$($/.rob)>.
 
 Therefore C<$()> is usually just the entire match string, but
 you can override that by calling C<make> inside a regex:
@@ -2447,7 +2447,7 @@ you can override that by calling C<make> inside a regex:
         # match succeeds -- ignore the rest of the regex
     });
 
-This puts the result object into C<$<?>>.  If a result object is
+This puts the result object into C<$/.rob>.  If a result object is
 returned that way, it may be of any type, not just a string.
 This makes it convenient to build up an abstract syntax tree of
 arbitrary node types.
@@ -2581,7 +2581,7 @@ like a C<return>, but doesn't clobber the match state:
              /;
     say $();                      # says 'bar'
 
-The result object is available in the C<Match> object via a C<< .<?> >> lookup.
+The result object is available in the C<Match> object via a C<< .rob >> lookup.
 
 =back
 
