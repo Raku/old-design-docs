@@ -2576,12 +2576,13 @@ all the function's arguments must be passed inside the parentheses
 (except for postfix adverbs, which may follow the parentheses provided they
 would not attach to some other operator by the rules of precedence).
 
-Other than various forms of parentheses, all other postfixes are
+Other than parentheses, all other postfixes are
 disallowed immediately after a list operator, even if there are no
 arguments.  To add a postfix to an argumentless list operator you
 must write it as a function call with empty parentheses:
 
     foo.[]      # ILLEGAL
+    foo.()      # ILLEGAL
     foo++       # ILLEGAL
     foo().[]    # legal
     foo()++     # legal (if foo() is rw)
@@ -2613,7 +2614,7 @@ Examples:
     say foo++;                          ILLEGAL, need parens
 
     say foo($bar+1),$baz                say(foo($bar+1), $baz);
-    say foo.($bar+1),$baz               say(foo($bar+1), $baz);
+    say foo.($bar+1),$baz               ILLEGAL, need space or parens
     say foo ($bar+1),$baz               say(foo($bar+1, $baz));
     say foo .($bar+1),$baz              say(foo($_.($bar+1), $baz));
 

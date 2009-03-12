@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 9 Mar 2009
+  Last Modified: 12 Mar 2009
   Number: 12
-  Version: 75
+  Version: 76
 
 =head1 Overview
 
@@ -386,23 +386,27 @@ For a call on your own private method, you may also use the attribute-ish form:
 Parentheses (or a colon) are required on the dot/bang notations if there
 are any arguments (not counting adverbial arguments).  There may be
 no space between the method name and the left parenthesis unless you
-use the dot form of parentheses or otherwise make use of "unspace":
+make use of "unspace":
 
     .doit       # okay, no arguments
     .doit()     # okay, no arguments
     .doit ()    # ILLEGAL (two terms in a row)
-    .doit.()    # okay, no arguments, same as .doit()
     .doit\ ()   # okay, no arguments, same as .doit() (unspace form)
-    .doit\ .()  # okay, no arguments, same as .doit.() (unspace form)
 
-However, you can turn any of the legal forms above into a list
+Note that the named method call forms are special and do not use the dot
+form of postfix.  If you attempt to use the postfix operator form, it
+will assume you want to call the method with no arguments and then call
+the result of I<that>:
+
+    .doit.()    # okay, no arguments *twice*, same as .doit().()
+    .doit\ .()  # okay, no arguments *twice*, same as .doit.().() (unspace form)
+
+However, you can turn any of the named forms above into a list
 operator by appending a colon:
 
     .doit: 1,2,3        # okay, three arguments
     .doit(1): 2,3       # okay, one argument plus list
     .doit (): 1,2,3     # ILLEGAL (two terms in a row)
-    .doit.(1): 2,3      # okay, same as .doit(1,2,3)
-    .doit\ .(1,2): 3    # okay, same as .doit(1,2,3)
 
 In particular, this allows us to pass a closure in addition to the
 "normal" arguments:
@@ -612,14 +616,16 @@ C<self.foo> with different contexts, the class does not need to declare
 any of those as an attribute -- a C<method foo> declaration can work
 just as well.
 
-The dot form can take an argument list as well.  These are all equivalent:
+As with the normal method call forms, only dotless parentheses may contain arguments.
+If you use the C<.()> form it will perform an extra level of indirection after
+the method call:
 
     self.foo(1,2,3);    # a regular method call
-    self.foo.(1,2,3);   # ditto
+    self.foo.(1,2,3);   # self.foo().(1,2,3), call .() on closure returned by .foo
     $.foo(1,2,3);       # calls self.foo under $ context
-    $.foo.(1,2,3);      # ditto
-    @.foo(1,2,3);       # calls self.foo under @ context
-    @.foo.(1,2,3);      # ditto
+    $.foo.(1,2,3);      # $.foo().(1,2,3), call .() on closure returned by .foo
+    &.foo(1,2,3);       # calls self.foo under & context
+    &.foo.(1,2,3);      # &.foo().(1,2,3), call .() on closure returned by .foo
 
 Pseudo-assignment to an attribute declaration specifies the default
 value.  The value on the right is treated as an implicit closure and
@@ -1466,7 +1472,8 @@ Just use it in a boolean context.
 Like type names, enum names are parsed as standalone tokens
 representing scalar values, and don't look for any arguments.
 Unlike type names which are undefined protoobjects, enums are defined
-constant values.  Also unlike types, they do not respond to C<.()>.
+constant values.  Also unlike types, they do not respond to C<.()>
+unless you mix in C<Callable> somehow.
 They may not be post-declared.
 
     our enum Maybe <OK FAIL>;
@@ -1474,7 +1481,7 @@ They may not be post-declared.
     $x = OK;   # certainly the enum value
     $x = OK()  # certainly the function
 
-Since there is an enum OK, the function OK may only be
+Since there is an enum C<OK>, the function C<OK> may only be
 called using parentheses, never in list operator form.  (If there is
 a collision on two enum values that cancels them both, the function
 still may only be called with parentheses, since the enum symbol

@@ -1597,7 +1597,7 @@ in parentheses:
 
 Unlike in Perl 5, the notation C<&foo> merely stands for the C<foo>
 function as a Code object without calling it.  You may call any Code
-object with parens after it (which may, of course, contain arguments):
+object by dereferencing it with parens (which may, of course, contain arguments):
 
     &foo($arg1, $arg2);
 
@@ -1612,6 +1612,29 @@ postfix forms:
     &foo\#[
         embedded comment
     ].($arg1, $arg2);
+
+Note however that the parentheses around arguments in the "normal"
+named forms of function and method calls are not postfix operators, so do
+not allow the C<.()> form, because the dot is indicative of an actual
+dereferencing operation, which the named forms aren't doing.  You
+may, however, use "unspace" to install extra space before the parens
+in the forms:
+
+    foo()       # okay
+    foo\ ()     # okay
+    foo.()      # means foo().()
+
+    .foo()      # okay
+    .foo\ ()    # okay
+    .foo.()     # means .foo().()
+
+    $.foo()     # okay
+    $.foo\ ()   # okay
+    $.foo.()    # means $.foo().()
+
+If you I<do> use the dotty form on these special forms, it will
+assume you wanted to call the named form without arguments, and
+then dereference the result of that.
 
 =item *
 
