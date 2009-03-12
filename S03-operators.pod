@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 4 Mar 2009
+  Last Modified: 12 Mar 2009
   Number: 3
-  Version: 157
+  Version: 158
 
 =head1 Overview
 
@@ -2660,18 +2660,52 @@ list operator.
 
 A function predeclared with an empty signature is considered 0-ary
 at run time but is still parsed as a list prefix operator, and looks
-for a following list.  To declare a function that is parsed
-as a simple 0-ary term, you must use the form C<< term:<foo> >>.
-Such a term is never considered a list prefix operator, though it
-allows an optional set of empty parentheses (because it represents a
-C<Code> object).  Unlike functions and list operators with arguments
-(see above), a 0-ary term does not require parentheses even if followed
-immediately by a postfix.
+for a following argument list, which it may reject at run time.
+
+    my sub foo () {...}
+    foo;          # okay
+    foo();        # okay
+    foo (),(),(); # okay
+    foo 1;        # fails to dispatch
+
+The compiler is allowed to complain about anything it knows cannot
+succeed at run time.  Note that a multi may contain () as one
+of its signatures, however:
+
+    my multi foo () {...}
+    my multi foo ($x) {...}
+    foo;          # okay
+    foo();        # okay
+    foo (),(),(); # okay
+    foo 1;        # okay
+
+To declare an item that is parsed as a simple term, you must use the
+form C<< term:<foo> >>, or some other form of constant declaration such
+as an enum declaration.  Such a term never looks for its arguments,
+is never considered a list prefix operator, and may not work with
+subsequent parentheses because it will be parsed as a function call
+instead of the intended term.  (The function in question may or
+may not exist.)  For example, C<rand> is a simple term in Perl 6
+and does not allow parens, because there is no C<rand()> function
+(though there's a C<$n.rand> method).  Most constant values such as
+C<e> and C<pi> are in the same category.  After parsing one of these
+the parser expects to see a postfix or an infix operator, not a term.
+Therefore any attempt to use a simple value as a list operator is
+destined to fail with an error indicating the parser saw two terms
+in a row.
+
+For those values (such as types) that do respond to parentheses
+(that is, that do the C<Callable> role), the parentheses (parsed as
+a postfix operator) are required in order to invoke the object:
+
+    my $i = Int.($x);   # okay
+    my $i = Int($x);    # okay
+    my $i = Int $x;     # ILLEGAL, two terms in a row
 
 =item *
 
 A non-multi sub predeclared with an arity of exactly 1 also still
-parses as a list prefix operator.  You must explicitly use the form
+parses as a list prefix operator expecting multiple arguments.  You must explicitly use the form
 C<< prefix:<foo> >> to declare C<foo> as a named unary in precedence;
 it must still take a single positional parameter (though any number of
 named parameters are allowed, which can be bound to adverbs).
