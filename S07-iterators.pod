@@ -163,6 +163,22 @@ immutable data, it is free to refuse a value that is either out of the
 original order or if it wasn't consumed. In that case, it should fail
 with UnorderedPushBackException or BadPushBackException.
 
+=head1 The Iterator::Unshift Role
+
+This role defines an iterator that can receive new elements in the top
+of the stack, it works like pushback, but it should be able to store
+objects that are completely new to this stream. Either by being backed
+by a mutable list or by providing a local stack. This role implies
+Iterator::PushBack, where pushback will be handled by unshift.
+
+The purpose of defining two different Roles is to give the user the
+"expect to fail" or "expect to succeed" semantics.
+
+=head2 method unshift($value) {}
+
+This unshifts $value either to the backed list or to a local stack of
+the iterator.
+
 =head1 Auxiliary Implementations
 
 Perl's built-ins require that a number of auxiliary types.  
