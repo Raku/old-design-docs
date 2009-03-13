@@ -148,6 +148,21 @@ to build a slice. While building a List, the items will be flattened.
 
 When it runs out of items, it will throw an OutOfItemsException.  
 
+=head1 The Iterator::PushBack Role
+
+This role defines an iterator that knows how to receive values back to
+be consumed again as if they were never consumed. The iterator is free
+to refuse values that were not consumed first and in the correct
+order, since this role is not intened to modify the original data,
+only to modify the traversal of that data.
+
+=head2 method pushback($value) {}
+
+This pushes $value back to the array. If this iterator is proxying
+immutable data, it is free to refuse a value that is either out of the
+original order or if it wasn't consumed. In that case, it should fail
+with UnorderedPushBackException or BadPushBackException.
+
 =head1 Auxiliary Implementations
 
 Perl's built-ins require that a number of auxiliary types.  
