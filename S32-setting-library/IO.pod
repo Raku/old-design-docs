@@ -16,8 +16,8 @@ DRAFT: Synopsis 32: Setting Library - IO
        	       	Tim Nelson <wayland@wayland.id.au>
                 Daniel Ruoso <daniel@ruoso.com>
  Date:          19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
- Last Modified: 23 Feb 2009
- Version:       2
+ Last Modified: 14 Mar 2009
+ Version:       3
 
 The document is a draft.
 
@@ -261,12 +261,12 @@ IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
 
 =over
 
-=item method Int input_record_count()
+=item method Int input-record-count()
 
 Returns a count of the number of records (lines?) that have been input.  
 Now with cleaned-up localization usage.
 
-=item method Str input_record_separator() is rw
+=item method Str input-record-separator() is rw
 
 This regulates how "readline" behaves.
 
@@ -284,30 +284,30 @@ as a single empty line. Setting to "\n\n" will blindly assume
 that the next input character belongs to the next paragraph,
 even if it's a newline.
 
-Remember: the value of input_record_separator is a string, not a regex.
+Remember: the value of input-record-separator is a string, not a regex.
 awk has to be better for something. :-)
 
-=item method Str input_field_separator() is rw
+=item method Str input-field-separator() is rw
 
 This regulates how "readfield" behaves.
 
-=item method Str input_escape() is rw
+=item method Str input-escape() is rw
 
 This allows the definition of a escape character, which should be used
 by readline and readfield.
 
 =item method Str readline()
 
-Reads the stream before it finds a $.input_record_separator and
-returns it (including the separator). If $.input_escape is set, it
+Reads the stream before it finds a $.input-record-separator and
+returns it (including the separator). If $.input-escape is set, it
 should pay attention to that.
 
 =item method Str readfield()
 
-Reads the stream before it finds a $.input_field_separator and returns
+Reads the stream before it finds a $.input-field-separator and returns
 it (including the separator). If a readfield finds a
-$.input_record_separator it consumes the record separator, but returns
-undef. If $.input_escape is set, it should pay attention to that.
+$.input-record-separator it consumes the record separator, but returns
+undef. If $.input-escape is set, it should pay attention to that.
 
 =item method Str getc(Int $char? = 1)
 
@@ -328,20 +328,20 @@ the appropriate handle unless C<$_> happens to be a filehandle.
 
 =over
 
-=item method Int output_record_count()
+=item method Int output-record-count()
 
 Returns a count of the number of records (lines?) that have been output.  
 
-=item method Str output_record_separator() is rw
+=item method Str output-record-separator() is rw
 
 This regulates how say and print(%hash) behaves.
 
-=item method Str output_field_separator() is rw
+=item method Str output-field-separator() is rw
 
 This regulates how print(@arr), say(@arr), print(%hash) and
 say(%hash) behave.
 
-=item method Str output_escape() is rw
+=item method Str output-escape() is rw
 
 This allows the definition of a escape character, which should be used
 by say and print to preserve the record/field semantics.
@@ -351,27 +351,27 @@ by say and print to preserve the record/field semantics.
 =item method Bool say(Str $str)
 
 Sends $str to the data stream doing proper encoding conversions. Say
-sends an additional $.output_record_separator. This should also
-convert "\n" to the desired $.output_record_separator.
+sends an additional $.output-record-separator. This should also
+convert "\n" to the desired $.output-record-separator.
 
 =item method Bool print(Array @arr)
 
 =item method Bool say(Array @arr)
 
-Sends each element of @arr separated by $.output_field_separator. Say
-should add an additional $.output_record_separator. If an element
-contains the $.output_record_separator or the
-$.output_field_seaparator and a $.output_escape is defined, it should
+Sends each element of @arr separated by $.output-field-separator. Say
+should add an additional $.output-record-separator. If an element
+contains the $.output-record-separator or the
+$.output-field-seaparator and a $.output-escape is defined, it should
 do the escaping.
 
 =item method Bool print(Hash %hash)
 
 =item method Bool say(Hash %hash)
 
-Sends each pair of the hash separated by $.output_record_separator,
-with key and value separated by $.output_field_separator. If one of
-those contains a $.output_record_separator or a
-$.output_field_seaparator and $.output_escape is set, it should do the
+Sends each pair of the hash separated by $.output-record-separator,
+with key and value separated by $.output-field-separator. If one of
+those contains a $.output-record-separator or a
+$.output-field-seaparator and $.output-escape is set, it should do the
 escaping.
 
 =item our Bool method print (IO $self: *@LIST)
@@ -547,8 +547,8 @@ This represents the filesystem.
 
 class	IO::FileSystem does IO::Streamable {
 	has	Str $.fstype; # ext3, ntfs, vfat, reiserfs, etc
-	has	Str $.illegal_chars; # ie. /\x0
-	has	Int $.max_path;
+	has	Str $.illegal-chars; # ie. /\x0
+	has	Int $.max-path;
 ...
 }
 
@@ -983,7 +983,7 @@ is not a portable assumption.  On POSIX systems, you can detect
 this condition this way:
 
     use POSIX qw(sysconf _PC_CHOWN_RESTRICTED);
-    $can_chown_giveaway = not sysconf(_PC_CHOWN_RESTRICTED);
+    $can-chown-giveaway = not sysconf(_PC_CHOWN_RESTRICTED);
 
 =item chmod LIST
 X<chmod> X<permission> X<mode>
