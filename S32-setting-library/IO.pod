@@ -13,11 +13,11 @@ DRAFT: Synopsis 32: Setting Library - IO
                 Mark Stosberg <mark@summersault.com>
                 Carl Mäsak <cmasak@gmail.com>
                 Moritz Lenz <moritz@faui2k3.org>
-       	       	Tim Nelson <wayland@wayland.id.au>
+                Tim Nelson <wayland@wayland.id.au>
                 Daniel Ruoso <daniel@ruoso.com>
  Date:          19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
  Last Modified: 14 Mar 2009
- Version:       4
+ Version:       5
 
 The document is a draft.
 
@@ -27,97 +27,125 @@ the SVN repository if you would like to make changes.
 
 =head2 IO
 
+[Note: if a method declaration indicates a method name qualified by
+type, it should be taken as shorthand to say which role or class the
+method is actually declared in.]
+
 =over 4
+
+=item open
+
+    multi open (Str $name,
+	Bool :$rw = False,
+	Bool :$bin = False,
+	Str  :$enc = "Unicode",
+	Any  :$nl = "\n",
+	Bool :$chomp = True,
+	...
+	--> IO
+    ) is export
+
+A convenience method/function that hides most of the OO complexity.
+It will only open normal files.  Text is the default.  Note that
+the "Unicode" encoding implies figuring out which actual UTF is
+in use, either from a BOM or other heuristics.  If heuristics are
+inconclusive, UTF-8 will be assumed.  (No 8-bit encoding will ever
+be picked implicitly.)  A file opened with C<:bin> may still be
+processed line-by-line, but IO will be in terms of C<Buf> rather
+than C<Str> types.
 
 =item getc
 
-    our Bool method getc (IO $self: *@LIST)
+    method getc (Int $chars = 1 --> Char)
 
 See below for details.
 
 =item print
 
-    our Bool method print (IO $self: *@LIST)
-    our Bool multi print (*@LIST)
-    our Bool method print (Str $self: IO $io)
+    method print (*@LIST --> Bool)
+    multi print (*@LIST --> Bool)
+    method Str::print (IO $io --> Bool)
+    method Array::print (IO $io --> Bool)
+    method Hash::print (IO $io --> Bool)
 
 See below for details.
 
 =item say
 
-    our Bool method say (IO $self: *@LIST)
-    our Bool multi say (*@LIST)
-    our Bool method say (Str $self: IO $io)
+    method say (*@LIST --> Bool)
+    multi say (*@LIST --> Bool)
+    method Str::say (IO $io --> Bool)
+    method Array::say (IO $io --> Bool)
+    method Hash::say (IO $io --> Bool)
 
 See below for details.
 
 =item printf
 
-    our Bool method printf (IO $self: Str $fmt, *@LIST)
-    our Bool multi printf (Str $fmt, *@LIST)
+    method printf (Str $fmt, *@LIST --> Bool)
+    multi printf (Str $fmt, *@LIST --> Bool)
 
 See below for details.
 
 =item uri
 
-    IO::Streamable method uri(Str $uri);
-    IO::Streamable sub uri(Str $uri);
+    method uri(Str $uri --> IO::Streamable);
+    sub uri(Str $uri --> IO::Streamable);
 
-Returns an appropriate IO::Streamable descendant, with the type depending on the uri 
+Returns an appropriate C<IO::Streamable> descendant, with the type depending on the uri 
 passed in.  Here are some example mappings:
 
- URI type IO type
- ======== =======
- file:    IO::File or IO::Directory
- ftp:     IO::Socket::TCP (data channel)
- http:    IO::Socket::TCP
+    URI type IO type
+    ======== =======
+    file:    IO::File or IO::Directory
+    ftp:     IO::Socket::TCP (data channel)
+    http:    IO::Socket::TCP
 
 These can naturally be overridden or added to by other modules.  
 
-=item %*PROTOCOLS global variable
+=item %*PROTOCOLS context variable
 
-For each protocol, stores a type name that should be instantiated by calling the .uri() 
+For each protocol, stores a type name that should be instantiated by calling the C<uri> 
 constructor on that type, and passing in the appropriate uri.  
 
 =back
 
 =head1 Roles
 
-The functionality of IO objects is broken down into several roles,
+The functionality of C<IO> objects is broken down into several roles,
 which should identify the features each object supports.
 
 =head2 IO
 
-The base role only tags that this is an IO object for more generic
+The base role only tags that this is an C<IO> object for more generic
 purposes. It doesn't specify any methods or attributes.
 
 =head2 IO::Readable
 
 This role provides unbuffered read access to the data stream.
 
-role	IO::Readable {
-	has	$.isReadable;
+    role IO::Readable {
+        has $.isReadable;
+        method read($buf is rw, Int $bytes --> Int)
+    }
 
-	method Int read($buf is rw, Int $bytes)
-}
-
-When the $.isReadable is set, it tries to change the readability of the filehandle.  This 
-is not always possible, but can be done in a number of cases.  IO::Socket can remove 
-readability by calling shutdown(), for example.  
+When the C<$.isReadable> is set, it tries to change the readability of the filehandle.  This 
+is not always possible, but can be done in a number of cases.  C<IO::Socket> can remove 
+readability by calling C<shutdown>, for example.  
 
 =over
 
-=item method Int read($buf is rw, Int $bytes)
+=item method read($buf is rw, Int $bytes --> Int)
 
-Tries to read $bytes bytes and store in $buf. The contents of $buf
+Tries to read C<$bytes> bytes and store in C<$buf>. The contents of C<$buf>
 are replaced and the actual number of bytes read is returned. A return
 of 0 means end of file. It might return unthrown failures, to be
-specified by each IO implementation.
+specified by each C<IO> implementation.
 
 It is important to realize that this is "raw" read. You're going to
-have plain octets stored in $buf, if this is actually encoded data,
+have plain octets stored in C<$buf>, if this is actually encoded data,
 you're going to need to encode it later, or use "getc" or other
-IO::Readable::Encoded methods.
+C<IO::Readable::Encoded> methods.
 
 =back
 
@@ -125,28 +153,27 @@ IO::Readable::Encoded methods.
 
 This role provides unbuffered write access to the data stream.
 
-role	IO::Writeable {
-	has	$.isWriteable;
+    role IO::Writeable {
+        has $.isWriteable;
+        method write($buf, Int $bytes --> Int)
+    }
 
-	method Int write($buf, Int $bytes)
-}
-
-When the $.isWriteable is set, it tries to change the writeability of the filehandle.  
-This is not always possible, but can be done in a number of cases.  IO::Socket can remove 
+When the C<$.isWriteable> is set, it tries to change the writeability of the filehandle.  
+This is not always possible, but can be done in a number of cases.  C<IO::Socket> can remove 
 writeability by calling shutdown(), for example.
 
 =over
 
-=item method Int write($buf, Int $bytes)
+=item method write($buf, Int $bytes --> Int)
 
-Tries to write $bytes bytes of $buf. The actual number of bytes
+Tries to write C<$bytes> bytes of C<$buf>. The actual number of bytes
 written is returned. It might return unthrown failures, to be
-specified by each IO implementation.
+specified by each C<IO> implementation.
 
-It is important to realize that this is "raw" write. $buf should
-contain plain octets that are going to be sent. If $buf contains
+It is important to realize that this is "raw" write. C<$buf> should
+contain plain octets that are going to be sent. If C<$buf> contains
 encoded data, you should decode it first, or use "print" or other
-IO::Writeable::Encoded methods.
+C<IO::Writeable::Encoded> methods.
 
 =back
 
@@ -154,7 +181,7 @@ IO::Writeable::Encoded methods.
 
 =over
 
-=item method Bool eoi()
+=item method eoi( --> Bool)
 
 EOI = End Of Input -- equivalent to End Of File, but applies to other kinds of sockets as 
 well.  
@@ -162,12 +189,12 @@ well.
 Returns true if it's the end of the input (ie. end of file or whatever), returns false if 
 not, returns undef if we can't say for certain.  
 
-=item method Bool seek(Int $position)
+=item method seek(Int $position --> Bool)
 
-Position this stream into $position. The meaning of this position is
+Position this stream into C<$position>. The meaning of this position is
 always in "octets".
 
-=item method Int tell()
+=item method tell( --> Int)
 
 Returns the current raw position in the stream in number of "octets".
 
@@ -180,11 +207,11 @@ buffer is completely implementation specific.
 
 =over 
 
-=item method Bool flush()
+=item method flush( --> Bool)
 
 Flushes the buffers associated with this object.
 
-=item method Bool autoflush() is rw
+=item method autoflush( --> Bool) is rw
 
 Forces this object to keep its buffers empty
 
@@ -192,9 +219,9 @@ If set to nonzero, forces a flush right away and after every write
 or print on the currently selected output channel.
 Default is 0 (regardless of whether the channel is really buffered
 by the system or not;
-$OUT_FH.autoflush tells you only whether you've asked Perl
+C<$OUT_FH.autoflush> tells you only whether you've asked Perl
 explicitly to flush after each write).
-$*OUT will typically be line buffered if output is to the
+C<$*OUT> will typically be line buffered if output is to the
 terminal and block buffered otherwise.
 Setting this variable is useful primarily when you are
 outputting to a pipe or socket,
@@ -210,32 +237,30 @@ This has no effect on input buffering.
 This role represents objects that depend on some external resource,
 which means that data might not be available at request.
 
-role	IO::Streamable does IO {...}
+    role IO::Streamable does IO {...}
 
 =over
 
 =item new()
 
- method IO::Streamable new(
-	Bool :$NoOpen,
- );
+    method new( Bool :$NoOpen --> IO::Streamable) {...}
 
-Unless the NoOpen option is passed, an open will be done on the IO object when it is 
+Unless the NoOpen option is passed, an open will be done on the C<IO> object when it is 
 created.  
 
-=item method Bool blocking() is rw
+=item method blocking( --> Bool) is rw
 
-This allows the user to control wether this object should do a
+This allows the user to control whether this object should do a
 blocking wait or immediatly return in the case of not having data
 available.
 
 =item uri
 
- method IO::Streamable uri(Str $uri) {...}
+    method uri(Str $uri --> IO::Streamable) {...}
 
 This should be callable on the class, and act like a kind of "new()" function.  When given 
-a URI, it returns an IO::Streamable of the appropriate type, and throws an error when an 
-inappropriate type is passed in.  For example, calling IO::File.uri('http://....') will 
+a URI, it returns an C<IO::Streamable> of the appropriate type, and throws an error when an 
+inappropriate type is passed in.  For example, calling C<IO::File.uri('http://....')> will 
 throw an error (but will suggest using just uri('http://...') instead).  
 
 =back
@@ -246,9 +271,9 @@ This is a generic role for encoded data streams.
 
 =over
 
-=item method Str encoding() is rw
+=item method encoding( --> Str) is rw
 
-=item method Str locale() is rw
+=item method locale( --> Str) is rw
 
 Encoding and locale are required for sane conversions.
 
@@ -257,16 +282,16 @@ Encoding and locale are required for sane conversions.
 =head2 IO::Readable::Encoded
 
 This role provides encoded access to a readable data stream, implies
-IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
+C<IO::Encoded>. Might imply C<IO::Buffered>, but that's not a requirement.
 
 =over
 
-=item method Int input-line()
+=item method ins( --> Int)
 
-Returns the number of lines (records) that have been input.
+Returns the number of lines or records that have been input.
 Now with cleaned-up localization usage.
 
-=item method Str input-line-separator() is rw
+=item method input-line-separator( --> Str) is rw
 
 This regulates how "readline" behaves.
 
@@ -284,43 +309,46 @@ as a single empty line. Setting to "\n\n" will blindly assume
 that the next input character belongs to the next paragraph,
 even if it's a newline.
 
-Remember: the value of input-line-separator is a string, not a regex.
-awk has to be better for something. :-)
+You may also set it to a regular expression.  The value of C<$/>
+will be (temporarily) set to the matched separator upon input,
+if you care about the contents of the separator.
 
-=item method Str input-field-separator() is rw
+=item method input-field-separator( --> Str) is rw
 
-This regulates how "readfield" behaves.
+[Deprecated.]
 
-=item method Str input-escape() is rw
+=item method input-escape( --> Str) is rw
 
-This allows the definition of a escape character, which should be used
-by readline and readfield.
+[Deprecated.]
 
-=item method Str readline()
+=item method readline( --> Str)
 
-Reads the stream before it finds a $.input-line-separator and
-returns it (including the separator). If $.input-escape is set, it
-should pay attention to that.
+Reads the stream before it finds a C<$.input-line-separator> and
+returns it (autochomped by default).
 
-=item method Str readfield()
+=item method readfield( --> Str)
 
-Reads the stream before it finds a $.input-field-separator and returns
-it (including the separator). If a readfield finds a
-$.input-line-separator it consumes the line separator, but returns
-undef. If $.input-escape is set, it should pay attention to that.
+[Deprecated. Use split or comb or an ILS regex.]
 
-=item method Str getc(Int $char? = 1)
+=item method getc(Int $chars = 1 --> Char)
 
-Reads the next $char character in the set $.encoding according to
-the $.locale, or the undefined value at end of file, or if there was
-an error (in the latter case C<$!> is set).
+Reads the next C<$char> character in the set C<$.encoding>,
+or C<Failure> at end of file, or if there was
+an error (in either case C<$!> is set).  Note that this
+function cannot be used interactively as a C<readkey()> function, since under
+Unicode you can't tell the end of a grapheme until you
+see the beginning of the next one.
+
+[TODO someone needs to define something like C<readkey()> for terminal IO.
+Though most event-based programs will just want to feed keystrokes into the
+event queue.]
 
 =back
 
 =head2 IO::Writeable::Encoded
 
 This role provides encoded access to a writeable data stream, implies
-IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
+C<IO::Encoded>. Might imply C<IO::Buffered>, but that's not a requirement.
 
 If these are called in their non-object form, they operate on C<$*OUT>, except in the 
 case of warn(), which operates on C<$*ERR>.  The form with leading dot prints C<$_> to 
@@ -328,75 +356,56 @@ the appropriate handle unless C<$_> happens to be a filehandle.
 
 =over
 
-=item method Int output-line()
+=item Int method outs()
 
-Returns the number of lines (records) that have been output so far.
+Returns the number of lines or records that have been output so far.
 
-=item method Str output-line-separator() is rw
+=item method output-line-separator( --> Str) is rw
 
-This regulates how say and print(%hash) behaves.
+This regulates how say behaves.
 
-=item method Str output-field-separator() is rw
+=item method output-field-separator( --> Str) is rw
 
-This regulates how print(@arr), say(@arr), print(%hash) and
-say(%hash) behave.
+[Deprecated.]
 
-=item method Str output-escape() is rw
+=item method output-escape( --> Str) is rw
 
-This allows the definition of a escape character, which should be used
-by say and print to preserve the line/field semantics.
+[Deprecated.]
 
-=item method Bool print(Str $str)
+=item method Str::print (IO $io = $*OUT --> Bool)
 
-=item method Bool say(Str $str)
+=item method Str::say (IO $io = $*OUT --> Bool)
 
-Sends $str to the data stream doing proper encoding conversions. Say
-sends an additional $.output-line-separator. This should also
-convert "\n" to the desired $.output-line-separator.
+=item method Array::print(IO $io = $*OUT --> Bool)
 
-=item method Bool print(Array @arr)
+=item method Array::say(IO $io = $*OUT --> Bool)
 
-=item method Bool say(Array @arr)
+=item method Hash::print(IO $io = $*OUT --> Bool)
 
-Sends each element of @arr separated by $.output-field-separator. Say
-should add an additional $.output-line-separator. If an element
-contains the $.output-line-separator or the
-$.output-field-seaparator and a $.output-escape is defined, it should
-do the escaping.
+=item method Hash::say(IO $io = $*OUT --> Bool)
 
-=item method Bool print(Hash %hash)
+Stringifies the invocant (if necessary) and then sends it to the output.
+C<say> should add an additional C<$.output-line-separator>.
 
-=item method Bool say(Hash %hash)
 
-Sends each pair of the hash separated by $.output-line-separator,
-with key and value separated by $.output-field-separator. If one of
-those contains a $.output-line-separator or a
-$.output-field-seaparator and $.output-escape is set, it should do the
-escaping.
+=item method print (*@LIST --> Bool)
 
-=item our Bool method print (IO $self: *@LIST)
+=item multi print (*@LIST --> Bool)
 
-=item our Bool multi print (*@LIST)
 
-=item our Bool method print (Str $self: IO $io)
-
-Prints a string or a list of strings.  Returns Bool::True if
-successful, Failure otherwise.  The IO handle, if supplied, must be
-an object that supports I/O.  Indirect objects in Perl 6 must always
-be followed by a colon, and any indirect object more complicated than
-a variable should be put into parentheses.
+Stringifies each element, concatenates those strings, and sends the
+result to the output.
+Returns C<Bool::True> if successful, C<Failure> otherwise.
 
 It is a compiler error to use a bare C<print> without arguments.
 (However, it's fine if you have an explicit argument list that evaluates to
 the empty list at runtime.)
 
-=item say our Bool method say (IO $self: *@LIST)
+=item method say (*@LIST --> Bool)
 
-=item our Bool multi say (*@LIST)
+=item multi say (*@LIST --> Bool)
 
-=item our Bool method say (Str $self: IO $io)
-
-This is identical to print() except that it auto-appends a newline after
+This is identical to print() except that it auto-appends the C<output-line-separator> after
 the final argument.
 
     Was:    print "Hello, world!\n";
@@ -405,14 +414,19 @@ the final argument.
 As with C<print>, it is a compiler error to use a bare C<say> without
 arguments.
 
-=item our Bool method printf (IO $self: Str $fmt, *@LIST)
+=item method printf ($self: Str $fmt, *@LIST --> Bool)
 
-=item our Bool multi printf (Str $fmt, *@LIST)
+=item multi printf (Str $fmt, *@LIST --> Bool)
 
-The function form works as in Perl 5 and always prints to $*OUT.
-The method form uses IO handles, not formats, as objects.
+The function form works as in Perl 5 and always prints to C<$*OUT>.
 
 =back
+
+For any handle marked as textual, all these output calls intercept any newline
+character and translate it to the current C<output-line-separator> if it
+is defined as something other than newline.  No such translation is done on
+binary handles, though you may still specify a record separator.  In any case,
+escaping separators is the responsibility of the programmer.
 
 =head2 IO::Closeable
 
@@ -420,37 +434,37 @@ This role indicates that this object can be closed.
 
 =over
 
-=item method Bool close()
+=item method close( --> Bool)
 
 Closes the file or pipe associated with the object.
 
-Returns True on success, but might return an unthrown failure.  
-Returns true only if IO buffers are successfully flushed and closes the system
+Returns C<True> on success, but might return an unthrown C<Failure>.  
+Returns true only if C<IO> buffers are successfully flushed and closes the system
 file descriptor.  
 
-Unlike in Perl 5, an IO object is not a special symbol table entry
+Unlike in Perl 5, an C<IO> object is not a special symbol table entry
 neither this object is available magically anywhere else. But as in
-Perl 5, unless stated otherwise, IO::Closeable objects always close
-themselves during destruction
+Perl 5, unless stated otherwise, C<IO::Closeable> objects always close
+themselves during destruction.
 
 =back
 
 =head2 IO::Socket
 
-role	IO::Socket {
-	has %.options;
-...
-}
+    role IO::Socket {
+        has %.options;
+        ...
+    }
 
-Accessing the %.options would on Unix be done with getsockopt/setsockopt.
+Accessing the C<%.options> would on Unix be done with I<getsockopt(2)>/I<setsockopt(2)>.
 
 =over
 
 =item pair
 
-    our List of IO method pair(Int $domain, Int $type, Int $protocol)
+    method pair(Int $domain, Int $type, Int $protocol --> List of IO)
 
-A wrapper for socketpair(2), returns a pair of IO objects representing the
+A wrapper for I<socketpair(2)>, returns a pair of C<IO> objects representing the
 reader and writer ends of the socket.
 
    use Socket;
@@ -463,13 +477,13 @@ reader and writer ends of the socket.
 
 =item open
 
- method open()
+    method open()
 
- Does a bind() and a listen().  
+Does a I<bind(2)> and a I<listen(2)>.
 
 =item accept
 
- method IO::Socket accept()
+    method accept( --> IO::Socket)
 
 =head2 IO::FileDescriptor
 
@@ -486,52 +500,52 @@ File descriptors are always native integers, conforming to C89.
 
 =head1 Classes
 
-=head2	IO::File
+=head2 IO::File
 
 This does file input and output.  
 
-class	IO::File does IO::Streamable {
-...
-}
+    class IO::File does IO::Streamable {
+	...
+    }
 
 =over
 
 =item new
 
- method new(
-	FSNode :$FSNode, 
-	Str :$Filename,
-	:$fd
-	Bool :$NoOpen, 
-	:$Writeable,
-	:$Readable
- );
+    method new(
+        FSNode :$FSNode, 
+        Str :$Filename,
+        :$fd
+        Bool :$NoOpen, 
+        :$Writeable,
+        :$Readable
+    );
 
-The FSNode, Filename and fd options are mutually exclusive.  If "use portable" is in 
-effect, the Filename option throws an error; use an FSNode instead.  
+The C<FSNode>, C<Filename> and C<fd> options are mutually exclusive.  If "C<use portable>" is in 
+effect, the C<Filename> option throws an error; use an C<FSNode> instead.  
 
-NoOpen is passed to IO::Streamable.new()
+C<NoOpen> is passed to C<IO::Streamable.new()>
 
 Examples:
 
- # Read -- throws errors with 'use portable'
- $fobj = new IO::File(Filename => $filename);
+    # Read -- throws errors with 'use portable'
+    $fobj = new IO::File(Filename => $filename);
 
- # Write -- works with 'use portable'
- $fobj = new IO::File(
-	FSNode => IO::FSNode.new(type => 'Unix', Filename => $filename), 
-	Writeable => 1
- );
+    # Write -- works with 'use portable'
+    $fobj = new IO::File(
+        FSNode => IO::FSNode.new(type => 'Unix', Filename => $filename), 
+        Writeable => 1
+    );
 
- # Read using file descriptor
- $fobj = new IO::File(fd => $fd);
+    # Read using file descriptor
+    $fobj = new IO::File(fd => $fd);
 
-This final example associates an IO object with an already-open file descriptor,
+This final example associates an C<IO> object with an already-open file descriptor,
 presumably passed in from the parent process.
 
 =item open()
 
-This function opens a file that had the "NoOpen" option passed to the new() method.  
+This function opens a file that had the C<NoOpen> option passed to the C<new> method.  
 
 =item IO.truncate
 
@@ -541,43 +555,43 @@ Available only as a handle method.
 
 =back
 
-=head2	IO::FileSystem
+=head2 IO::FileSystem
 
 This represents the filesystem.  
 
-class	IO::FileSystem does IO::Streamable {
-	has	Str $.fstype; # ext3, ntfs, vfat, reiserfs, etc
-	has	Str $.illegal-chars; # ie. /\x0
-	has	Int $.max-path;
-...
-}
+    class IO::FileSystem does IO::Streamable {
+        has Str $.fstype; # ext3, ntfs, vfat, reiserfs, etc
+        has Str $.illegal-chars; # ie. /\x0
+        has Int $.max-path;
+    ...
+    }
 
 =over 4
 
 =item glob
 
-Returns FSNode objects
+Returns C<FSNode> objects.
 
 =item find
 
-Returns FSNode objects
+Returns C<FSNode> objects.
 
 =item rename
 
 =back
 
-=head2	IO::FSNode
+=head2 IO::FSNode
 
-class	IO::FSNode {
-	has Array of IO::FSNodeACL @.ACLs;
-	has Hash of %.times;
-...
-}
+    class IO::FSNode {
+        has Array of IO::FSNodeACL @.ACLs;
+        has Hash of %.times;
+    ...
+    }
 
-The %times has keys that can be eg. ctime, Modification, and Access (and maybe others on 
-other operating systems), and the values are all Temporal::Instant objects.  
+The C<%times> has keys that can be eg. C<ctime>, C<Modification>, and C<Access> (and maybe others on 
+other operating systems), and the values are all C<Temporal::Instant> objects.  
 
-When .path() is implemented, it should return the path that this was opened with.  
+When C<.path> is implemented, it should return the path that this was opened with.  
 
 =over 4
 
@@ -594,41 +608,41 @@ A file test, where X is one of the letters listed below.  This unary
 operator takes one argument, either a filename or a filehandle, and
 tests the associated file to see if something is true about it.
 
-A Pair used as a pattern is treated as a file test.
+A C<Pair> used as a pattern is treated as a file test.
 
-    :r	File is readable by effective uid/gid.
-    :w	File is writable by effective uid/gid.
-    :x	File is executable by effective uid/gid.
-    :o	File is owned by effective uid.
+    :r  File is readable by effective uid/gid.
+    :w  File is writable by effective uid/gid.
+    :x  File is executable by effective uid/gid.
+    :o  File is owned by effective uid.
 
-    :R	File is readable by real uid/gid.
-    :W	File is writable by real uid/gid.
-    :X	File is executable by real uid/gid.
-    :O	File is owned by real uid.
+    :R  File is readable by real uid/gid.
+    :W  File is writable by real uid/gid.
+    :X  File is executable by real uid/gid.
+    :O  File is owned by real uid.
 
-    :e	File exists.
-    :z	File has zero size (is empty).
-    :s	File has nonzero size (returns size in bytes).
+    :e  File exists.
+    :z  File has zero size (is empty).
+    :s  File has nonzero size (returns size in bytes).
 
-    :f	File is a plain file.
-    :d	File is a directory.
-    :l	File is a symbolic link.
-    :p	File is a named pipe (FIFO), or Filehandle is a pipe.
-    :S	File is a socket.
-    :b	File is a block special file.
-    :c	File is a character special file.
-    :t	Filehandle is opened to a tty.
+    :f  File is a plain file.
+    :d  File is a directory.
+    :l  File is a symbolic link.
+    :p  File is a named pipe (FIFO), or Filehandle is a pipe.
+    :S  File is a socket.
+    :b  File is a block special file.
+    :c  File is a character special file.
+    :t  Filehandle is opened to a tty.
 
-    :u	File has setuid bit set.
-    :g	File has setgid bit set.
-    :k	File has sticky bit set.
+    :u  File has setuid bit set.
+    :g  File has setgid bit set.
+    :k  File has sticky bit set.
 
-    :T	File is an ASCII text file (heuristic guess).
-    :B	File is a "binary" file (opposite of :T).
+    :T  File is an ASCII text file (heuristic guess).
+    :B  File is a "binary" file (opposite of :T).
 
-    :M	Script start time minus file modification time, in days.
-    :A	Same for access time.
-    :C	Same for inode change time (Unix, may differ for other platforms)
+    :M  Script start time minus file modification time, in days.
+    :A  Same for access time.
+    :C  Same for inode change time (Unix, may differ for other platforms)
 
 The interpretation of the file permission operators C<:r>, C<:R>,
 C<:w>, C<:W>, C<:x>, and C<:X> is by default based on:
@@ -650,7 +664,7 @@ controls and unrecognized executable formats.
 Also note that, for the superuser on the local filesystems, the C<:r>,
 C<:R>, C<:w>, and C<:W> tests always return 1, and C<:x> and C<:X> return 1
 if any execute bit is set in the mode.  Scripts run by the superuser
-may thus need to do a stat() to determine the actual mode of the file,
+may thus need to do a C<stat> to determine the actual mode of the file,
 or temporarily set their effective uid to something else.
 
 The C<:T> and C<:B> switches work as follows.  The first block or so of the
@@ -658,7 +672,7 @@ file is examined for odd characters such as strange control codes or
 characters with the high bit set.  If too many strange characters (>30%)
 are found, it's a C<:B> file; otherwise it's a C<:T> file.  Also, any file
 containing null in the first block is considered a binary file.  If C<:T>
-or C<:B> is used on a filehandle, the current IO buffer is examined
+or C<:B> is used on a filehandle, the current C<IO> buffer is examined
 rather than the first block.  Both C<:T> and C<:B> return true on a null
 file, or a file at EOF when testing a filehandle.  Because you have to
 read a file to do the C<:T> test, on most occasions you want to use a C<:f>
@@ -675,13 +689,13 @@ Or pass multiple tests together in OO style:
 
 =item realpath
 
- method Str realpath();
+    method realpath( --> Str);
 
 Gets the real path to the object, resolving softlinks/shortcuts, etc
 
 =item === operator
 
- method infix:<===>(Str $filename);
+    method infix:<===>(Str $filename);
 
 Test whether the specified filename is the same file as this file.  On a Unix system, 
 this would presumably be done by comparing inode numbers or something.  
@@ -690,45 +704,45 @@ this would presumably be done by comparing inode numbers or something.
 
 This is called automatically on object creation.  
 
-multi method new(Array of Str :@PathElements);
-multi method new(Str :$Type, Str :$Path, Str :$Create);
-multi method new(Str :$Path);
+    multi method new(Array of Str :@PathElements);
+    multi method new(Str :$Type, Str :$Path, Str :$Create);
+    multi method new(Str :$Path);
 
-This last throws an error if "use portable" pragma is used.  
+This last throws an error if "C<use portable>" pragma is used.  
 
-If the "Create" option is passed in, and the node doesn't exist in the filesystem, it 
-attempts to create the node; this can be used for "mkdir", "link", and similar 
+If the C<Create> option is passed in, and the node doesn't exist in the filesystem, it 
+attempts to create the node; this can be used for I<mkdir>, I<link>, and similar 
 functionality.  
 
 Examples:
 
- $fsnode = new IO::FSNode(PathElements => ['home', 'wayland']);
- $fsnode = new IO::FSNode(Type => 'Unix', Path => '/home/wayland');
- $fsnode = new IO::FSNode(Path => '/home/wayland'); # portability error
+    $fsnode = new IO::FSNode(PathElements => ['home', 'wayland']);
+    $fsnode = new IO::FSNode(Type => 'Unix', Path => '/home/wayland');
+    $fsnode = new IO::FSNode(Path => '/home/wayland'); # portability error
 
 =item delete
 
-This deletes the FSNode from the filesystem.  If the node has children, it throws an error 
-unless the "Recursive" option is specified.  Returns the number of nodes deleted.  
+This deletes the C<FSNode> from the filesystem.  If the node has children, it throws an error 
+unless the C<Recursive> option is specified.  Returns the number of nodes deleted.  
 
 =back
 
-=head2	IO::FSNodeACL
+=head2 IO::FSNodeACL
 
 This is a basic abstraction; for better control, use the operating-system specific 
 interfaces, over which this is a thin veneer.  
 
-class	IO::FSNodeACL {
-	has	Str $.type; # "User", "Group", "Everyone", ???
-	has	Str $.id; # username or groupname; unused for $type eq "Everyone"
-	has	%.permissions;
-		# Unsupported values may (or may not) throw 
-		# UnsupportedPermission when set or read
-	has	IO::FSNode $.owningObject;
-...
-}
+    class IO::FSNodeACL {
+        has Str $.type; # "User", "Group", "Everyone", ???
+        has Str $.id; # username or groupname; unused for $type eq "Everyone"
+        has %.permissions;
+                # Unsupported values may (or may not) throw 
+                # UnsupportedPermission when set or read
+        has IO::FSNode $.owningObject;
+	...
+    }
 
-The permissions used in %permissions are:
+The permissions used in C<%permissions> are:
 
 =over
 
@@ -750,51 +764,76 @@ read, and throw an exception if written to.
 =item Default
 
 An ACL of User,fred,Default sets the user "fred" to be the owner of the file.  This can be 
-done with groups too.  Work on Unix, at least.  
+done with groups too.  Works on Unix, at least.  
 
 =back
 
-The $.owningObject attribute of FSNodeACL shows what the ACL is set on.  On a 
+The C<$.owningObject> attribute of C<FSNodeACL> shows what the ACL is set on.  On a 
 Windows system, this can be a parent directory, as permissions are inherited.  
 
-=head2	IO::FileNode
+=head2 IO::FileNode
 
- role	IO::FileNode does IO::FSNode {
-...
- }
+    role IO::FileNode does IO::FSNode {
+        ...
+    }
 
 =over
 
-=item our List multi method lines (IO $handle:) is export;
+=item lines
 
-=item our List multi lines (Str $filename);
+    method lines ($handle:
+	Bool :$bin = False,
+	Str  :$enc = "Unicode",
+	Any  :$nl = "\n",
+	Bool :$chomp = True,
+	--> List
+    ) is export
 
-Returns all the lines of a file as a (lazy) List regardless of context.
-See also C<slurp>.
+    multi lines (Str $filename,
+	Bool :$bin = False,
+	Str  :$enc = "Unicode",
+	Any  :$nl = "\n",
+	Bool :$chomp = True,
+	--> List
+    )
 
-=item our Item multi method slurp (IO $handle: *%opts) is export;
+Returns all the lines of a file as a C<List> regardless of context.
+See also C<slurp>.  Note that lists are lazy by default, but you
+can always ask for C<eager lines>.
 
-=item our Item multi slurp (Str $filename, *%opts);
+=item slurp
 
-Slurps the entire file into a Str or Buf regardless of context.
-(See also C<lines>.)  Whether a Str or Buf is returned depends on
-the options.
+    method slurp ($handle:
+	Bool :$bin = False,
+	Str  :$enc = "Unicode",
+	--> Str|Buf
+    ) is export
+    multi slurp (Str $filename
+	Bool :$bin = False,
+	Str  :$enc = "Unicode",
+	--> Str|Buf
+    )
+
+Slurps the entire file into a C<Str> (or C<Buf> if C<:bin>) regardless of context.
+(See also C<lines>.)
 
 =back
 
-=head2	IO::DirectoryNode
+=head2 IO::DirectoryNode
 
- role	IO::DirectoryNode does IO::FSNode {
-...
- }
+    role IO::DirectoryNode does IO::FSNode {
+        ...
+    }
 
 =item open
 
-  $dir.open();
+  $dir.open(
+	Str  :$enc = "Unicode",
+  );
 
-Opens a directory for processing, if the new() method was passed the NoOpen option.  
+Opens a directory for processing, if the C<new> method was passed the C<NoOpen> option.  
 Makes the directory looks like
-a list of autochomped lines, so just use ordinary IO operators after the open.
+a list of autochomped lines, so just use ordinary C<IO> operators after the open.
 
 =item rmdir FILENAME
 X<rmdir> X<rd> X<directory, remove>
@@ -802,39 +841,39 @@ X<rmdir> X<rd> X<directory, remove>
 =item rmdir
 
 Deletes the directory specified by FILENAME if that directory is
-empty.  If it succeeds it returns true, otherwise it returns false and
-sets C<$!> (errno).  If FILENAME is omitted, uses C<$_>.
+empty.  If it succeeds it returns true, otherwise it returns C<Failure> and
+sets C<$!> (errno).
 
 =head2 IO::LinkNode
 
- role	IO::LinkNode does IO::FSNode {
-...
- }
+    role IO::LinkNode does IO::FSNode {
+        ...
+    }
 
 =item new
 
 Creates a new link in the filesystem.  
 
- IO::LinkNode.new(
-     Name => '/home/wayland/symlink.txt'
-     Target => '/home/wayland/realfile.txt',
-     Type => 'Hard', # Default is Symbolic
- );
+    IO::LinkNode.new(
+	 Name => '/home/wayland/symlink.txt'
+	 Target => '/home/wayland/realfile.txt',
+	 Type => 'Hard', # Default is Symbolic
+    );
 
 Reads in the previously created symlink.  
 
- $link = IO::LinkNode.new(
-     Name => '/home/wayland/symlink.txt',
- );
- print $link.target; # prints /home/wayland/realfile.txt
+    $link = IO::LinkNode.new(
+	Name => '/home/wayland/symlink.txt',
+    );
+    print $link.target; # prints /home/wayland/realfile.txt
 
-Neither of these is "use portable" compatible.  
+Neither of these is "C<use portable>" compatible.  
 
-=head2	IO::Socket::TCP
+=head2 IO::Socket::TCP
 
-class	IO::Socket::TCP does IO::Socket does IO::Streamable {
-...
-}
+    class IO::Socket::TCP does IO::Socket does IO::Streamable {
+        ...
+    }
 
 =over
 
@@ -848,32 +887,33 @@ class	IO::Socket::TCP does IO::Socket does IO::Streamable {
 
 =item new
 
- method IO::Socket::TCP new(
-	Str :$RemoteHost, Str :$RemotePort, 
-	Str :$LocalHost, Str :$LocalPort, 
-	Bool :$Blocking, 
-	Bool :$NoOpen
- );
+    method new(
+        Str :$RemoteHost, Str :$RemotePort, 
+        Str :$LocalHost, Str :$LocalPort, 
+        Bool :$Blocking, 
+        Bool :$NoOpen
+	--> IO::Socket::TCP
+    ) {...}
 
-The NoOpen option is passed to IO::Streamable.new()
+The C<NoOpen> option is passed to C<IO::Streamable.new()>.
 
 IPv6 is supported.  
 
 =item open
 
- method open()
+    method open()
 
-If it's not an IO::Listening, it does a connect().
+If it's not an C<IO::Listening>, it does a C<connect()>.
 
 It's intended for the case where the creation of the object didn't do one.  
 
-=item method Int read($buf is rw, Int $bytes)
+=item method read($buf is rw, Int $bytes --> Int)
 
-Does a recv().  
+Does a I<recv(2)>.  
 
-=item method Int write($buf, Int $bytes)
+=item method write($buf, Int $bytes --> Int)
 
-Does a send().
+Does a I<send(2)>.
 
 =item IO.getpeername
 
@@ -883,60 +923,50 @@ Does a send().
 
 =head2 IO::Pipe
 
-class	IO::Pipe does IO::Streamable {
-...
-}
+    class IO::Pipe does IO::Streamable {
+        ...
+    }
 
-May also do IO::Readable and IO::Writable, depending on opening method.  
+May also do C<IO::Readable> and C<IO::Writable>, depending on opening method.  
 
 =over
 
 =item close()
 
 If the file handle came from a piped open, C<close> will additionally
-return false if one of the other system calls involved fails, or if the
-program exits with non-zero status.  (If the only problem was that the
-program exited non-zero, C<$!> will be set to C<0>.)  Closing a pipe
+return C<Failure> (aliased to C<$!>) if one of the other system calls involved fails, or if the
+program exits with non-zero status.  The exception object will contain any
+pertinent informatoin.  Closing a pipe
 also waits for the process executing on the pipe to complete, in case you
 want to look at the output of the pipe afterwards, and
-implicitly puts the exit status value of that command into C<$!>.
+implicitly puts the exit status value into the C<Failure> object if necessary.
 
-=item Pipe.to
+=item IO::Pipe.to
 
-    our IO method to(Str $command, *%opts)
+    method to(Str $command, *%opts --> Bool)
+    method to(Str *@command, *%opts --> Bool)
 
-Opens a one-way pipe writing to $command.  IO redirection for
-stderr is specified with :err(IO) or :err<Str>.  Other IO redirection
+Opens a one-way pipe writing to C<$command>.  C<IO> redirection for
+stderr is specified with C<:err(IO)> or C<< :err<Str> >>.  Other C<IO> redirection
 is done with feed operators. XXX how to specify "2>&1"?
 
-=item Pipe.from
+=item IO::Pipe.from
 
-    our IO method from(Str $command, *%opts)
+    method from(Str $command, *%opts --> Bool)
+    method from(Str *@command, *%opts --> Bool)
 
-Opens a one-way pipe reading from $command.  IO redirection for
-stderr is specified with :err(IO) or :err<Str>.  Other IO redirection
+Opens a one-way pipe reading from $command.  C<IO> redirection for
+stderr is specified with C<:err(IO)> or C<< :err<Str> >>.  Other C<IO> redirection
 is done with feed operators. XXX how to specify "2>&1"?
 
-=item Pipe.pair
+=item IO::Pipe.pair
 
-    our List of IO method pair()
+    method pair(--> List of IO::Pipe)
 
-A wrapper for pipe(2), returns a pair of IO objects representing the
+A wrapper for I<pipe(2)>, returns a pair of C<IO> objects representing the
 reader and writer ends of the pipe.
 
-   ($r, $w) = Pipe.pair;
-
-=back
-
-=head1 Calls that operate on the default IO handle
-
-=over
-
-=item close()
-
-=item open()
-
-...
+   ($r, $w) = IO::Pipe.pair;
 
 =back
 
@@ -948,7 +978,7 @@ reader and writer ends of the pipe.
 
 =item chown
 
-    our Int multi chown ($uid = -1, $gid = -1, *@files)
+    multi chown ($uid = -1, $gid = -1, *@files --> Int)
 
 Changes the owner (and group) of a list of files.  The first
 two elements of the list must be the numeric uid and gid, in
@@ -1004,7 +1034,7 @@ successfully changed.
 
 =item IO.stat
 
- $node.stat(Type => 'Link'); # Type => Link does an lstat instead
+    $node.stat(Bool :$link); # :link does an lstat instead
 
 Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
 to true, and additional file tests may be performed on the value.  If
@@ -1013,18 +1043,18 @@ to false.
 
 =head2 IO::POSIX
 
-Indicates that this object can perform standard posix IO
-operations. It implies IO::Readable and IO::Writeable.
+Indicates that this object can perform standard posix C<IO>
+operations. It implies C<IO::Readable> and C<IO::Writeable>.
 
 =over
 
-=item method IO dup()
+=item method dup( --> IO)
 
 =item has Bool $.blocking is rw
 
-=item method Bool flock(:$r,:$w)
+=item method flock(:$r,:$w --> Bool)
 
-=item method Bool funlock()
+=item method funlock( --> Bool)
 
 =item ...
 
@@ -1032,13 +1062,15 @@ operations. It implies IO::Readable and IO::Writeable.
 
 =head2 IO::File::Windows
 
-role	IO::File::Windows does IO::File {
-	method open(Bool :$BinaryMode) {...}
-}
+    role IO::File::Windows does IO::File {
+        method open(Bool :$BinaryMode) {...}
+    }
 
 =item open()
 
-Takes the BinaryMode option to open the file in binary mode.  
+Takes the C<BinaryMode> option to open the file in binary mode.  
+
+[XXX bogus, now under Unicode *all* systems must distinguish text from binary.]
 
 =head1 Unfiled
 
@@ -1052,9 +1084,9 @@ Available only as a handle method.
 
 =item prompt
 
-    our Str prompt (Str $prompt)
+    multi prompt (Str $prompt --> Str)
 
-    Should there be an IO::Interactive role?  
+Should there be an IO::Interactive role?  
 
 =item Str.readpipe
 
@@ -1072,19 +1104,19 @@ Available only as a handle method.
 
 =item IO.eof
 
-Gone, see IO::Endable
+Gone, see C<IO::Endable>.
 
 =item IO.fileno
 
-See IO::FileDescriptor
+See C<IO::FileDescriptor>.
 
 =item lstat
 
-Use stat() with the Type => 'Link' option.  
+Use C<stat> with the C<:link> option.  
 
 =item IO.name
 
-Changed to .path(), but we haven't gotten around to specifying this on all of them.  
+Changed to C<.path>, but we haven't gotten around to specifying this on all of them.  
 
 The C<.name> method returns the name of the file/socket/uri the handle
 was opened with, if known.  Returns undef otherwise.  There is no
@@ -1100,7 +1132,7 @@ Gone.  (Note: for subsecond sleep, just use sleep with a fractional argument.)
 
 =item IO.shutdown()
 
-Gone, see IO::Socket.close(), $IO::Readable.isReadable, and $IO::Writeable.isWriteable
+Gone, see C<IO::Socket.close()>, C<$IO::Readable.isReadable>, and C<$IO::Writeable.isWriteable>
 
 =item socketpair
 
@@ -1108,15 +1140,15 @@ Gone, see Socket.pair
 
 =item IO.sysread
 
-Gone, see IO::Readable.read()
+Gone, see C<IO::Readable.read()>.
 
 =item IO.syswrite
 
-Gone, see IO::Writeable.read()
+Gone, see C<IO::Writeable.read()>.
 
 =item utime
 
-Gone, see %IO::FSNode.times.  
+Gone, see C<IO::FSNode.times>.  
 
 =back
 
@@ -1125,4 +1157,4 @@ Gone, see %IO::FSNode.times.
 Please post errors and feedback to perl6-language.  If you are making
 a general laundry list, please separate messages by topic.
 
-=cut
+=for vim:set expandtab sw=4:
