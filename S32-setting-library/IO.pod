@@ -17,7 +17,7 @@ DRAFT: Synopsis 32: Setting Library - IO
                 Daniel Ruoso <daniel@ruoso.com>
  Date:          19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
  Last Modified: 14 Mar 2009
- Version:       3
+ Version:       4
 
 The document is a draft.
 
@@ -261,16 +261,16 @@ IO::Encoded. Might imply IO::Buffered, but that's not a requirement.
 
 =over
 
-=item method Int input-record-count()
+=item method Int input-line()
 
-Returns a count of the number of records (lines?) that have been input.  
+Returns the number of lines (records) that have been input.
 Now with cleaned-up localization usage.
 
-=item method Str input-record-separator() is rw
+=item method Str input-line-separator() is rw
 
 This regulates how "readline" behaves.
 
-The input record separator, newline by default.
+The input line (record) separator, newline by default.
 This influences Perl's idea of what a ``line'' is.
 Works like awk's RS variable, including treating empty lines
 as a terminator if set to the null string.
@@ -284,7 +284,7 @@ as a single empty line. Setting to "\n\n" will blindly assume
 that the next input character belongs to the next paragraph,
 even if it's a newline.
 
-Remember: the value of input-record-separator is a string, not a regex.
+Remember: the value of input-line-separator is a string, not a regex.
 awk has to be better for something. :-)
 
 =item method Str input-field-separator() is rw
@@ -298,7 +298,7 @@ by readline and readfield.
 
 =item method Str readline()
 
-Reads the stream before it finds a $.input-record-separator and
+Reads the stream before it finds a $.input-line-separator and
 returns it (including the separator). If $.input-escape is set, it
 should pay attention to that.
 
@@ -306,7 +306,7 @@ should pay attention to that.
 
 Reads the stream before it finds a $.input-field-separator and returns
 it (including the separator). If a readfield finds a
-$.input-record-separator it consumes the record separator, but returns
+$.input-line-separator it consumes the line separator, but returns
 undef. If $.input-escape is set, it should pay attention to that.
 
 =item method Str getc(Int $char? = 1)
@@ -328,11 +328,11 @@ the appropriate handle unless C<$_> happens to be a filehandle.
 
 =over
 
-=item method Int output-record-count()
+=item method Int output-line()
 
-Returns a count of the number of records (lines?) that have been output.  
+Returns the number of lines (records) that have been output so far.
 
-=item method Str output-record-separator() is rw
+=item method Str output-line-separator() is rw
 
 This regulates how say and print(%hash) behaves.
 
@@ -344,23 +344,23 @@ say(%hash) behave.
 =item method Str output-escape() is rw
 
 This allows the definition of a escape character, which should be used
-by say and print to preserve the record/field semantics.
+by say and print to preserve the line/field semantics.
 
 =item method Bool print(Str $str)
 
 =item method Bool say(Str $str)
 
 Sends $str to the data stream doing proper encoding conversions. Say
-sends an additional $.output-record-separator. This should also
-convert "\n" to the desired $.output-record-separator.
+sends an additional $.output-line-separator. This should also
+convert "\n" to the desired $.output-line-separator.
 
 =item method Bool print(Array @arr)
 
 =item method Bool say(Array @arr)
 
 Sends each element of @arr separated by $.output-field-separator. Say
-should add an additional $.output-record-separator. If an element
-contains the $.output-record-separator or the
+should add an additional $.output-line-separator. If an element
+contains the $.output-line-separator or the
 $.output-field-seaparator and a $.output-escape is defined, it should
 do the escaping.
 
@@ -368,9 +368,9 @@ do the escaping.
 
 =item method Bool say(Hash %hash)
 
-Sends each pair of the hash separated by $.output-record-separator,
+Sends each pair of the hash separated by $.output-line-separator,
 with key and value separated by $.output-field-separator. If one of
-those contains a $.output-record-separator or a
+those contains a $.output-line-separator or a
 $.output-field-seaparator and $.output-escape is set, it should do the
 escaping.
 
