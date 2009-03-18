@@ -14,9 +14,9 @@ Allison Randal <al@shadowed.net>
    Maintainer: Patrick Michaud <pmichaud@pobox.com> and
                Larry Wall <larry@wall.org>
    Date: 24 Jun 2002
-   Last Modified: 11 Mar 2009
+   Last Modified: 18 Mar 2009
    Number: 5
-   Version: 91
+   Version: 92
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -774,14 +774,20 @@ for side-effects:
         \s+  { print "but does contain whitespace\n" }
      /
 
-An B<explicit> reduction using the C<make> function sets the I<result object>
+An B<explicit> reduction using the C<make> function generates the
+I<abstract syntax tree> object (I<abstract object> or I<ast> for short)
 for this match:
 
         / (\d) { make $0.sqrt } Remainder /;
 
-This has the effect of capturing the square root of the numified string,
-instead of the string.  The C<Remainder> part is matched but is not returned
-as part of the result object unless the first C<make> is later overridden by another C<make>.
+This has the effect of capturing the square root of the numified
+string, instead of the string.  The C<Remainder> part is matched and
+returned as part of the C<Match> object but is not returned
+as part of the abstract object.  Since the abstract object usually
+represents the top node of an abstract syntax tree, the abstract object
+may be extracted from the C<Match> object by use if the C<.ast> method.
+
+A second call to C<make> overrides any previous call to C<make>.
 
 These closures are invoked with a topic (C<$_>) of the current match
 state (a C<Cursor> object).  Within a closure, the instantaneous
@@ -1331,7 +1337,7 @@ form is cached with the string so that it is not recompiled next
 time you use it unless the string changes.  (Any external lexical
 variable names must be rebound each time though.)  Subrules may not be
 interpolated with unbalanced bracketing.  An interpolated subrule
-keeps its own inner match result as a single item, so its parentheses never count toward the
+keeps its own inner match results as a single item, so its parentheses never count toward the
 outer regexes groupings.  (In other words, parenthesis numbering is always
 lexically scoped.)
 
@@ -1585,7 +1591,7 @@ The following tokens include angles but are not required to balance:
 
 =item *
 
-A C<< <( >> token indicates the start of a result capture, while the
+A C<< <( >> token indicates the start of the match's overall capture, while the
 corresponding C<< )> >> token indicates its endpoint.  When matched,
 these behave as assertions that are always true, but have the side
 effect of setting the C<.from> and C<.to> attributes of the match
@@ -1600,8 +1606,9 @@ is equivalent to:
 except that the scan for "C<foo>" can be done in the forward direction,
 while a lookbehind assertion would presumably scan for C<\d+> and then
 match "C<foo>" backwards.  The use of C<< <(...)> >> affects only the
-meaning of the I<result object> and the positions of the beginning and
-ending of the match.  That is, after the match above, C<$()> contains
+meaning the positions of the beginning and
+ending of the match, and anything calculated based on those positions.
+For instance, after the match above, C<$()> contains
 only the digits matched, and C<$/.to> is pointing to after the digits.
 Other captures (named or numbered) are unaffected and may be accessed
 through C<$/>.
@@ -2389,8 +2396,9 @@ processed into the user's C<$/> variable when the match completes.
 =item *
 
 Notionally, a match object contains (among other things) a boolean
-success value, a scalar I<result object>, an array of ordered submatch
-objects, and a hash of named submatch objects.  To provide convenient
+success value, an array of ordered submatch objects, and a hash of named
+submatch objects.  (It also optionally carries an I<abstract object> normally
+used to build up an abstract syntax tree,)  To provide convenient
 access to these various values, the match object evaluates differently
 in different contexts:
 
@@ -2433,10 +2441,12 @@ which is usually the entire matched string:
 
 When used as a scalar, a C<Match> object evaluates to itself.
 
-However, sometimes you would like an alternate scalar value to ride
-along with the match.  This is called a I<result> object, and it rides
-along is an attribute of the C<Match> object.
-C<$()> is a shorthand for C<$($/.rob)>.
+However, sometimes you would like an alternate scalar value to
+ride along with the match.  The C<Match> object itself describes
+a concrete parse tree, so this extra value is called an I<abstract>
+object; it rides along as an attribute of the C<Match> object.  C<$()>
+is a shorthand for C<$($/.ast)>.  The C<.ast> method by default just
+returns the string between the C<$/.from> and C<$/.to> positions.
 
 Therefore C<$()> is usually just the entire match string, but
 you can override that by calling C<make> inside a regex:
@@ -2447,19 +2457,19 @@ you can override that by calling C<make> inside a regex:
         # match succeeds -- ignore the rest of the regex
     });
 
-This puts the result object into C<$/.rob>.  If a result object is
+This puts the new abstract node into C<$/.ast>.  If the abstract object is
 returned that way, it may be of any type, not just a string.
 This makes it convenient to build up an abstract syntax tree of
 arbitrary node types.
 
-You may also capture a subset of the match as the result object using
+You may also capture a subset of the match as the abstract object using
 the C<< <(...)> >> construct:
 
     "foo123bar" ~~ / foo <( \d+ )> bar /
     say $();    # says 123
 
-In this case the result object is always a string when doing string
-matching, and a list of one or more elements when doing array matching.
+In this case the abstract object is always a string when doing string
+matching, and a list of one or more elements when doing list matching.
 
 =item *
 
@@ -2564,15 +2574,15 @@ C<$/> variable of the current surroundings. That is:
 
 =item *
 
-Inside a regex, the C<$_> variable holds the current regex's incomplete
-C<Match> object, known as a match state.  Generally this should not
+Inside a regex, the C<$¢> variable holds the current regex's incomplete
+C<Match> object, known as a match state (of type C<Cursor>).  Generally this should not
 be modified unless you know how to create and propagate match states.
 All regexes actually return match states even when you think they're
 returning something else, because the match states keep track of
 the success and failures of the pattern for you.
 
-Fortunately, when you just want to return a different result object instead
-of the default C<Match> object, you may associate your return value with
+Fortunately, when you just want to return a different abstract result along with
+the default concrete C<Match> object, you may associate your return value with
 the current match state using the C<make> function, which works something
 like a C<return>, but doesn't clobber the match state:
 
@@ -2581,7 +2591,7 @@ like a C<return>, but doesn't clobber the match state:
              /;
     say $();                      # says 'bar'
 
-The result object is available in the C<Match> object via a C<< .rob >> lookup.
+The abstract object of any C<Match> object is available via the C<< .ast >> method.
 
 =back
 
@@ -3942,8 +3952,9 @@ So, for example, you can multiply every dollar amount by 2 with:
 method call.)
 
 You'll note from the last example that substitutions only happen on
-the "official" string result of the match, that is, the C<$()> value.
-(Here we captured C<$()> using the C<< <(...)> >> pair; otherwise we
+the "official" string result of the match, that is, the portion of
+the string between the C<$/.from> and C<$/.to> positions.
+(Here we set those explicitly using the C<< <(...)> >> pair; otherwise we
 would have had to use lookbehind to match the C<$>.)
 
 =head1 Positional matching, fixed width types
