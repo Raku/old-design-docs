@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 15 Mar 2009
+  Lwst Modified: 18 Mar 2009
   Number: 2
-  Version: 159
+  Version: 160
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -576,7 +576,7 @@ does not specify a unit.
 
 Built-in object types start with an uppercase letter. This includes
 immutable types (e.g. C<Int>, C<Num>, C<Complex>, C<Rat>, C<Str>,
-C<Bit>, C<Regex>, C<Set>, C<Junction>, C<Code>, C<Block>, C<List>,
+C<Bit>, C<Regex>, C<Set>, C<Code>, C<Block>, C<List>,
 C<Seq>), as well as mutable (container) types, such as C<Scalar>,
 C<Array>, C<Hash>, C<Buf>, C<Routine>, C<Module>, etc.
 
@@ -587,6 +587,11 @@ look like their corresponding uppercase types if you treat them that way.
 (In other words, it does autoboxing.  Note, however, that sometimes
 repeated autoboxing can slow your program more than the native type
 can speed it up.)
+
+The C<junction> type is considered a native type because its internal
+representation is fixed, and you may not usefully derive from it
+because the intent of junctions is to autothread any method calls
+on them.
 
 Some object types can behave as value types.  Every object can produce
 a "WHICH" value that uniquely identifies the
@@ -937,7 +942,7 @@ on the type specified by the container but continues to carry the
 C<Failure> role.  (The C<undef> function merely returns the most
 generic C<Failure> object.  Use C<fail> to return more specific failures.  Use
 C<Object> for the most generic non-failure undefined value.  The C<Any>
-type is also undefined, but excludes C<Junctions> so that autothreading
+type is also undefined, but excludes C<junctions> so that autothreading
 may be dispatched using normal multiple dispatch rules.)
 
 The C<Nil> type is officially undefined as an item but interpolates
@@ -968,7 +973,6 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Range       A pair of Ordered endpoints; gens immutables when iterated
     Set         Unordered collection of values that allows no duplicates
     Bag         Unordered collection of values that allows duplicates
-    Junction    Set with additional behaviors
     Signature   Function parameters (left-hand side of a binding)
     Capture     Function call arguments (right-hand side of a binding)
     Blob        An undifferentiated mass of bits
@@ -1028,8 +1032,8 @@ because they can be wrapped in place.)
     Class       Perl 6 standard class namespace
     Role        Perl 6 standard generic interface/implementation
     Grammar     Perl 6 pattern matching namespace
-    Any         Perl 6 object (default routine parameter type, excludes Junction)
-    Object      Perl 6 object (default block parameter type, either Any or Junction)
+    Any         Perl 6 object (default routine parameter type, excludes junction)
+    Object      Perl 6 object (default block parameter type, either Any or junction)
 
 A C<KeyHash> differs from a normal C<Hash> in how it handles default
 values.  If the value of a C<KeyHash> element is set to the default

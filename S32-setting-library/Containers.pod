@@ -15,8 +15,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
                 Moritz Lenz <moritz@faui2k3.org>
        	       	Tim Nelson <wayland@wayland.id.au>
  Date:          19 Feb 2009 extracted from S29-functions.pod
- Last Modified: 8 Mar 2009
- Version:       2
+ Last Modified: 18 Mar 2009
+ Version:       3
 
 The document is a draft.
 
@@ -701,25 +701,24 @@ class	Bag does Associative {...}
 
 class	KeyHash does Associative {...}
 
-=head2 Junction
+=head2 junction
 
-All method calls on Junctions autothread if there's no such method in the
-Junction class.
+All method calls on junctions autothread because the type provides no public methods.
 
 =over 4
 
-=item eigenstates
+=item !eigenstates
 
-    our List multi method eigenstates (Junction $j)
+    method !eigenstates (Junction $j: --> List)
 
 Returns an unordered list of the values that constitute the junction (formerly
 called C<.values>). It flattens nested junctions of the same type, so
 C<(1|(2|3)).eigenstate> returns an arbitrary permutation of the list
 C<1, 2, 3>.
 
-This method has a rather unusual name by intention; a more common name might
-cause confusion as it could clash with a method name over which autothreading
-is expected.
+Note this is a private method; you must arrange for yourself to be trusted
+by the junctions class in order to call it, which probably involves evil
+MONKEY_PATCHING.
 
 =back
 
