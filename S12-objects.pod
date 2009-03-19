@@ -14,7 +14,7 @@ Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
   Last Modified: 19 Mar 2009
   Number: 12
-  Version: 78
+  Version: 79
 
 =head1 Overview
 
@@ -1335,6 +1335,19 @@ an equivalent one with no constraint.  So the first C<mesg> above is
 preferred if the constraint matches, and otherwise the second is
 preferred.
 
+=head2 Multiple constraints
+
+[Conjecture: This entire section is considered a guess at our
+post-6.0.0 direction.  For 6.0.0 we will allow only a single constraint
+before the variable, and post constraints will all be considered
+"epsilon" narrower than the single type on the left.  The single
+constraint on the left may, however, be a value like 0 or a named
+subset type.  Such a named subset type may be predeclared with an
+arbitrarily complex C<where> clause; for 6.0.0 any structure type
+information inferrable from the C<where> clause will be ignored,
+and the declared subset type will simply be considered nominally
+derived from the C<of> type mentioned in the same declaration.]
+
 More generally, a parameter can have a set of constraints, and
 the set of constraints defines the formal type of the parameter,
 as visible to the signature.  (No one constraint is priviledged as
@@ -1349,7 +1362,7 @@ The constraint implied by the sigil also counts as part of the official type.
 The sigil is actually a constraint on the container, so the actual
 type of the parameter above is something like:
 
-    Positional[role { does Foo; does Bar; }]
+    Positional[subset :: of Any where Foo & Bar }]
 
 Static C<where> clauses also count as part of the official type.
 A C<where> clause is considered static if it can be applied to
