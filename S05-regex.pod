@@ -16,7 +16,7 @@ Allison Randal <al@shadowed.net>
    Date: 24 Jun 2002
    Last Modified: 18 Mar 2009
    Number: 5
-   Version: 92
+   Version: 93
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1705,14 +1705,14 @@ to space and tab.
 =item * before C<pattern>
 
 Perform lookahead -- i.e., check if we're at a position where
-C<pattern> matches.  Returns a zero-width Match object on
+C<pattern> matches.  Returns a zero-width C<Match> object on
 success.
 
 =item * after C<pattern>
 
 Perform lookbehind -- i.e., check if the string before the
 current position matches <pattern> (anchored at the end).
-Returns a zero-width Match object on success.
+Returns a zero-width C<Match> object on success.
 
 =item * <?>
 
@@ -2385,7 +2385,7 @@ the regex containing the C<||>.
 
 =item *
 
-A match always returns a Match object, which is also available
+A match always returns a C<Match> object, which is also available
 as C<$/>, which is a contextual lexical declared in the outer
 subroutine that is calling the regex.  (A regex declares its own
 lexical C<$/> variable, which always refers to the most recent
@@ -2547,6 +2547,9 @@ The currently defined methods are
     $/.chars	# $/.to - $/.from
     $/.orig	# the original match string
     $/.Str	# substr($/.orig, $/.from, $/.chars)
+    $/.ast      # the abstract result associated with this node
+    $/.caps     # sequential captures
+    $/.chunks   # sequential tokenization
 
 Within the regex the current match state C<$¢> also provides
 
@@ -2558,6 +2561,18 @@ on whether the match is proceeding in a forward or backward direction
 
 =item *
 
+As described above, a C<Match> in list context returns its positional
+captures.  However, sometimes you'd rather get a flat list of tokens in
+the order they occur in the text.  The C<.caps> method returns a list
+of every captured item, regardless of how it was otherwise bound into
+named or numbered captures.  The C<.chunks> method returns the captures
+as well as all the interleaved "noise" between the captures. [Conjecture:
+we could also have C<.deepcaps> and C<.deepchunks> that recursively expand
+any capture containing submatches.  Presumably each returned chunk would
+come equipped with some method to discover its "pedigree" in the parse tree.]
+
+=item *
+
 All match attempts--successful or not--against any regex, subrule, or
 subpattern (see below) return an object of class C<Match>. That is:
 
@@ -2566,8 +2581,8 @@ subpattern (see below) return an object of class C<Match>. That is:
 
 =item *
 
-This returned object is also automatically assigned to the lexical
-C<$/> variable of the current surroundings. That is:
+This returned object is also automatically bound to the lexical
+C<$/> variable of the current surroundings regardless of success. That is:
 
      $str ~~ /pattern/;
      say "Matched" if $/;
@@ -3122,7 +3137,7 @@ If a named scalar alias is applied to a set of I<non-capturing> brackets:
         #        |                            |
       mm/ $<key>=[ (<[A..E]>) (\d**3..6) (X?) ] /;
 
-then the corresponding C<< $/<key> >> Match object contains only the string
+then the corresponding C<< $/<key> >> C<Match> object contains only the string
 matched by the non-capturing brackets.
 
 =item *
