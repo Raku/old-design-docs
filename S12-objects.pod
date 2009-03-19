@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 14 Mar 2009
+  Last Modified: 19 Mar 2009
   Number: 12
-  Version: 77
+  Version: 78
 
 =head1 Overview
 
@@ -1308,7 +1308,7 @@ anded together anyway.
 You can leave out the block when matching against a literal value of some
 kind:
 
-    multi sub fib ($n where 0|1) { return $n }
+    multi sub fib (Int $n where 0|1) { return $n }
     multi sub fib (Int $n) { return fib($n-1) + fib($n-2) }
 
 In fact, you can leave out the 'where' declaration altogether:
@@ -1334,6 +1334,111 @@ For multi dispatch, a long name with a matching constraint is preferred over
 an equivalent one with no constraint.  So the first C<mesg> above is
 preferred if the constraint matches, and otherwise the second is
 preferred.
+
+More generally, a parameter can have a set of constraints, and
+the set of constraints defines the formal type of the parameter,
+as visible to the signature.  (No one constraint is priviledged as
+the storage type of the actual argument, unless it is a native type.)
+All constraints considered in type narrowness.
+That is, these are equivalently narrow:
+
+    Foo Bar @x
+    Bar Foo @x
+
+The constraint implied by the sigil also counts as part of the official type.
+
+Static C<where> clauses also count as part of the official type.
+A C<where> clause is considered static if it can be applied to
+the types to the left of it at compile time to produce a known finite set
+of values.  For instance, a subset of an enum type is a static set
+of values.  Hence
+
+    Day $d where 'Mon'..'Fri'
+
+is considered equivalent to
+
+    subset Weekday of Day where 'Mon'..'Fri';
+    Weekday $d
+
+Types mentioned in a dynamic C<where> class are not considered part of the official
+type, except insofar as the type includes the notion: "is also constrained
+by a dynamic C<where> clause", which narrows it by epsilon over the equivalent
+type without a C<where> clause.
+
+    Foo Bar @x              # type is Foo & Bar & Positional
+    Foo Bar @x where Baz    # slightly tighter than Foo Bar Positional
+
+The set of constraints for a parameter creates a subset type that implies
+some set of allowed values for the parameter.  The set of allowed values
+may or may not be determinable at compile time.  When the set of allowed
+values is determinable at compile time, we call it a static subtype.
+
+Type constraints that resolve to a static subtype (that is, with a
+fixed set of elements knowable (if not known) at compile time) are
+considered to be narrower than type constraints that involve run-time
+calculation, or are otherwise intractable at compile time.
+Note that all values such as 0 or "foo" are considered
+singleton static subtypes.  Singleton values are considered narrower
+than a subtype with multiple values, even if the subtype contains
+the value in question.  This is because, for enumerable types, type
+narrowness is defined by doing set theory on the set of enumerated values.
+
+So assuming:
+
+    my enum Day ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    subset Weekday of Day where 'Mon' .. 'Fri'; # considered static
+    subset Today of Day where *.today;
+
+we have the following pecking order:
+
+    Parameter                   # Set of possible values
+    =========                   ========================
+    Int $n                      # Int
+
+    Int $n where Today          # Int plus dynamic where
+    Int $n where 1 <= * <= 5    # Int plus dynamic where
+
+    Day $n                      # 0..6
+
+    Day $n where Today          # 0..6 plus dynamic where
+
+    Day $n where 1 <= * <= 5    # 1..5
+    Int $n where Weekday        # 1..5
+    Day $n where Weekday        # 1..5
+    Weekday $n                  # 1..5
+
+    Tue                         # 2
+
+Note the difference between:
+
+    Int $n where 1 <= * <= 5    # Int plus dynamic where
+    Day $n where 1 <= * <= 5    # 1..5
+
+The first C<where> is considered dynamic not because of the nature
+of the comparsons but because C<Int> is not finitely enumerable.
+Our C<Weekday> subset type can calculate the set membership at compile
+time because it is based on the C<Day> enum, and hence is considered
+static despite the use of a C<where>.  Had we based C<Weekday> on
+C<Int> it would have been considered dynamic.  Note, however, that
+with "anded" constraints, any enum type governs looser types, so
+
+    Int Day $n where 1 <= * <= 5
+
+is considered static, since C<Day> is an enum, and cuts down the
+search space.
+
+The basic principle we're trying to get at is this: in comparing
+two parameter types, the narrowness is determined by the subset
+relationships on the sets of possible values, not on the names of
+constraints, or the method by which those constraints are specified.
+For practical reasons, we limit our subset knowledge to what can be
+easily known at compile time, and consider the presence of one or
+more dynamic constraints to be epsilon narrower than the same set of
+possible values without a dynamic constraint.
+
+As a first approximation for 6.0.0, subsets of enums are static,
+and other subsets are dynamic.  We may refine this in subsequent
+versions of Perl.
 
 =head1 Enums
 
