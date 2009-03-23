@@ -14,9 +14,9 @@ Allison Randal <al@shadowed.net>
    Maintainer: Patrick Michaud <pmichaud@pobox.com> and
                Larry Wall <larry@wall.org>
    Date: 24 Jun 2002
-   Last Modified: 18 Mar 2009
+   Last Modified: 22 Mar 2009
    Number: 5
-   Version: 93
+   Version: 94
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -2562,14 +2562,34 @@ on whether the match is proceeding in a forward or backward direction
 =item *
 
 As described above, a C<Match> in list context returns its positional
-captures.  However, sometimes you'd rather get a flat list of tokens in
-the order they occur in the text.  The C<.caps> method returns a list
-of every captured item, regardless of how it was otherwise bound into
-named or numbered captures.  The C<.chunks> method returns the captures
-as well as all the interleaved "noise" between the captures. [Conjecture:
-we could also have C<.deepcaps> and C<.deepchunks> that recursively expand
-any capture containing submatches.  Presumably each returned chunk would
-come equipped with some method to discover its "pedigree" in the parse tree.]
+captures.  However, sometimes you'd rather get a flat list of tokens
+in the order they occur in the text.  The C<.caps> method returns
+a list of every capture in order, regardless of how it was otherwise
+bound into named or numbered captures.  (Other than order, there is
+no new information here; all the elements of the list are the very
+same C<Match> objects that bound elsewhere.)  The bindings are actually
+returned as key/value pairs where the key is the name or number under which
+the match object was bound, and the value is the match object itself.
+
+In addition to returning those captured C<Match> objects, the
+C<.chunks> method also returns all the interleaved "noise" between
+the captures.  As with C<.caps>, the list elements are in the order
+they were originally in the text.  The interleaved bits are also returned
+returned as pairs, where the key is '~' and the value
+is a simple C<Match> object containing only the string, even if unbound
+subrules such as C<.ws> were called to traverse the text in the first
+place.  Calling C<.ast> on such a C<Match> object always returns a C<Str>.
+
+A warning will be issued if either C<.caps> or C<.chunks> discovers
+that it has overlapping bindings.  In the absence of such overlap,
+C<.chunks> guarantees to map every part of its matched string (between
+C<.from> and C<.to>) to exactly one element of its returned matches,
+so coverage is complete.
+
+[Conjecture: we could also have C<.deepcaps> and C<.deepchunks> that
+recursively expand any capture containing submatches.  Presumably the
+keys of such returned chunks would indicate the "pedigree" of bindings
+in the parse tree.]
 
 =item *
 
