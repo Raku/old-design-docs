@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 18 Mar 2009
+  Last Modified: 22 Mar 2009
   Number: 2
-  Version: 160
+  Version: 161
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1865,6 +1865,47 @@ of the eval, not the language in effect at the top of the file.
 (You may, however, use C<OUTER::SETTING> to get the setting of the
 code that is executing the eval.)  In more traditional terms, the
 normal program is functioning as the "prelude" of the eval.
+
+So the outermost lexical scopes nest like this, traversed via C<OUTER>:
+
+    CORE <= SETTING < UNIT < (your_block_here)
+
+The outermost packages scopes nest like this, traversed via C<PARENT>:
+
+    GLOBAL <  (your_package_here)
+
+You main program starts up in the C<GLOBAL> package and the C<UNIT>
+lexical scope.  Whenever anything is declared with "our" semantics, it
+inserts a name into both the current package and the current lexical
+scope.  (And "my" semantics only insert into the current lexical
+scope.)  Note that the standard setting, C<CORE>, is a lexical scope,
+not a package; the various items that are defined within (or imported
+into) C<CORE> are *not* in C<GLOBAL>, which is pretty much empty when
+your program starts compiling, and mostly only contains things you
+either put there yourself, or some other module put there because
+you used that module.  In general things defined within (or imported
+into) C<CORE> should only be declared or imported with "my" semantics.
+All Perl code can see C<CORE> anyway as the outermost lexical scope,
+so there's no need to also put such things into C<GLOBAL>.
+
+The C<GLOBAL> package itself is rooted at C<CORE::GLOBAL>.
+The C<PROCESS> package is rooted at C<CORE::PROCESS>.  You will note
+that C<PROCESS> is not the parent of C<GLOBAL>.  However, searching
+up the dynamic stack for context variables will look in all nested
+dynamic scopes (mapped automatically to each call's lexical scope,
+not package scope) out to C<UNIT>; once all the dynamic scopes are
+exhausted, it also looks in the C<GLOBAL> package and then in the
+C<PROCESS> package, so C<$*OUT> typically finds the process's standard
+output handle.
+
+Any context variable declared with C<our> in the user's main program
+(specifically, the part compiled with C<GLOBAL> as the current package)
+is accessible (by virtue of being in C<GLOBAL>) as a context variable
+even if not directly in the dynamic call chain.  Note that context
+vars do *not* look in C<CORE> for anything.  (They I<might> look in
+C<SETTING> if you're running under a setting distinct from C<CORE>,
+if that setting defines a dynamic scope outside your main program,
+such as for the C<-n> or C<-p> switch.)
 
 =item *
 
