@@ -98,8 +98,8 @@ passed in.  Here are some example mappings:
     URI type IO type
     ======== =======
     file:    IO::File or IO::Directory
-    ftp:     IO::Socket::TCP (data channel)
-    http:    IO::Socket::TCP
+    ftp:     IO::Socket::INET (data channel)
+    http:    IO::Socket::INET
 
 These can naturally be overridden or added to by other modules.  
 
@@ -869,9 +869,9 @@ Reads in the previously created symlink.
 
 Neither of these is "C<use portable>" compatible.  
 
-=head2 IO::Socket::TCP
+=head2 IO::Socket::INET
 
-    class IO::Socket::TCP does IO::Socket does IO::Streamable {
+    class IO::Socket::INET does IO::Socket does IO::Streamable {
         ...
     }
 
@@ -891,8 +891,9 @@ Neither of these is "C<use portable>" compatible.
         Str :$RemoteHost, Str :$RemotePort, 
         Str :$LocalHost, Str :$LocalPort, 
         Bool :$Blocking, 
-        Bool :$NoOpen
-	--> IO::Socket::TCP
+        Bool :$NoOpen,
+        Str :$Protocol = 'TCP'
+	--> IO::Socket::INET
     ) {...}
 
 The C<NoOpen> option is passed to C<IO::Streamable.new()>.
