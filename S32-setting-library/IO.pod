@@ -243,10 +243,16 @@ which means that data might not be available at request.
 
 =item new()
 
-    method new( Bool :$NoOpen --> IO::Streamable) {...}
+    method new(
+        Bool :$NoOpen,
+        Bool :$Blocking,
+        --> IO::Streamable
+    ) {...}
 
 Unless the NoOpen option is passed, an open will be done on the C<IO> object when it is 
 created.  
+
+If blocking is passed in, .blocking() is called (see below).  
 
 =item method blocking( --> Bool) is rw
 
@@ -458,28 +464,28 @@ themselves during destruction.
         does IO::Streamable 
     {
         has %.options;
-        has Bool $.Listening = 0;
+        has Bool $.Listener = 0;
         ...
     }
 
 Accessing the C<%.options> would on Unix be done with I<getsockopt(2)>/I<setsockopt(2)>.
 
-The $.Listening attribute indicates whether the socket will be a listening socket when 
+The $.Listener attribute indicates whether the socket will be a listening socket when 
 opened, rather than indicating whether it is currently listening.
-
-[TODO: come up with a better name for it -- $.Server maybe?]
 
 =over
 
 =item new
 
-    method new
+    method new(
+        :$Listener, # initialises $.Listener
+    )
 
 =item open
 
     method open()
 
-If $.Listening is true, does a I<bind(2)> and a I<listen(2)>, otherwise does a 
+If $.Listener is true, does a I<bind(2)> and a I<listen(2)>, otherwise does a 
 I<connect(2)>.  
 
 It's end-user use case is intended for the case where NoOpen is passed to .new().  .new() 
@@ -904,45 +910,45 @@ Neither of these is "C<use portable>" compatible.
 =head2 IO::Socket::INET
 
     class IO::Socket::INET does IO::Socket {
+        has Int $.Version = 4; # Whether to use IPv4 or IPv6
         has Str $.Protocol = 'TCP';
+        has Str $.RemoteHost;
+        has Int $.RemotePort;
+        has Str $.LocalHost;
+        has Int $.LocalPort;
         ...
     }
 
 =over
 
-=item has $.RemoteHost
-
-=item has $.RemotePort
-
-=item has $.LocalHost
-
-=item has $.LocalPort
-
 =item new
 
     method new(
-        Str :$RemoteHost, Str :$RemotePort, 
-        Str :$LocalHost, Str :$LocalPort, 
-        Str :$Protocol, # Initialises $.Protocol
-        Bool :$Blocking, 
-        Bool :$NoOpen,
-        Bool :$Listening, # Initialises $.Listening from IO::Socket
+        Str  :$RemoteHost, # Initialises $.RemoteHost
+        Str  :$RemotePort, # Initialises $.RemotePort (if it's not a numeric string, use getservbyname)
+        Str  :$LocalHost,  # Initialises $.LocalHost
+        Str  :$LocalPort,  # Initialises $.LocalPort (if it's not a numeric string, use getservbyname)
+        Str  :$Protocol,   # Initialises $.Protocol
+        Int  :$Version,    # Initialises $.Version (IPv4 vs. IPv6)
+
+        Bool :$Listener,   # Passed to IO::Socket.new()
+
+        Bool :$Blocking,   # Passed to IO::Streamable.new()
+        Bool :$NoOpen,     # Passed to IO::Streamable.new()
+
 	--> IO::Socket::INET
     ) {...}
-
-The C<NoOpen> option is passed to C<IO::Streamable.new()>.
-
-IPv6 is supported.  
 
 =back
 
 =head2 IO::Pipe
 
-    class IO::Pipe does IO::Streamable {
+    class IO::Pipe does IO::Streamable does IO::Readable does IO::Writable {
         ...
     }
 
-May also do C<IO::Readable> and C<IO::Writable>, depending on opening method.  
+Will need to set IO::Readable.isReadable and IO::Writable.isWriteable depending on opening 
+method.  
 
 =over
 
