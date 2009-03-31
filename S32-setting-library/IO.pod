@@ -451,8 +451,9 @@ themselves during destruction.
 
 =head2 IO::Socket
 
-    role IO::Socket {
+    role IO::Socket does IO::Closeable {
         has %.options;
+        has Bool $.Listening = 0;
         ...
     }
 
@@ -460,30 +461,41 @@ Accessing the C<%.options> would on Unix be done with I<getsockopt(2)>/I<setsock
 
 =over
 
-=item pair
+=item new
 
-    method pair(Int $domain, Int $type, Int $protocol --> List of IO)
-
-A wrapper for I<socketpair(2)>, returns a pair of C<IO> objects representing the
-reader and writer ends of the socket.
-
-   use Socket;
-   ($r, $w) = Socket.pair(AF_UNIX, SOCK_STREAM, PF_UNSPEC);
-
-
-=back
-
-=head2 IO::Listening
+    method new
 
 =item open
 
     method open()
 
-Does a I<bind(2)> and a I<listen(2)>.
+If $.Listening is true, does a I<bind(2)> and a I<listen(2)>, otherwise does a 
+I<connect(2)>.  
+
+It's end-user use case is intended for the case where NoOpen is passed to .new().  .new() 
+itself will presumably also call it.  
+
+=item close
+
+    method close()
+
+Reimplements the close() function from IO::Closeable by doing a shutdown on the connection 
+(see below) with @how set to ('Readable', 'Writeable').   
+
+=item shutdown
+
+    method shutdown(Array of Str @how)
+
+Does a I<shutdown(2)> on the connection.  See also IO::Readable.isReadable and 
+IO::Writeable.isWriteable.  
+
+$how can contain 1 or more of the strings 'Readable' and 'Writeable'.  
 
 =item accept
 
     method accept( --> IO::Socket)
+
+=back
 
 =head2 IO::FileDescriptor
 
@@ -872,6 +884,7 @@ Neither of these is "C<use portable>" compatible.
 =head2 IO::Socket::INET
 
     class IO::Socket::INET does IO::Socket does IO::Streamable {
+        has Str $.Protocol = 'TCP';
         ...
     }
 
@@ -890,23 +903,16 @@ Neither of these is "C<use portable>" compatible.
     method new(
         Str :$RemoteHost, Str :$RemotePort, 
         Str :$LocalHost, Str :$LocalPort, 
+        Str :$Protocol, # Initialises $.Protocol
         Bool :$Blocking, 
         Bool :$NoOpen,
-        Str :$Protocol = 'TCP'
+        Bool :$Listening, # Initialises $.Listening from IO::Socket
 	--> IO::Socket::INET
     ) {...}
 
 The C<NoOpen> option is passed to C<IO::Streamable.new()>.
 
 IPv6 is supported.  
-
-=item open
-
-    method open()
-
-If it's not an C<IO::Listening>, it does a C<connect()>.
-
-It's intended for the case where the creation of the object didn't do one.  
 
 =item method read($buf is rw, Int $bytes --> Int)
 
@@ -1041,6 +1047,24 @@ Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
 to true, and additional file tests may be performed on the value.  If
 the stat fails, all subsequent tests on the stat buffer also evaluate
 to false.
+
+=head2 IO::Socket::Unix
+
+=over
+
+=item pair
+
+    method pair(Int $domain, Int $type, Int $protocol --> List of IO)
+
+A wrapper for I<socketpair(2)>, returns a pair of C<IO> objects representing the
+reader and writer ends of the socket.
+
+   use IO::Socket;
+   ($r, $w) = IO::Socket::Unix.pair(AF_UNIX, SOCK_STREAM, PF_UNSPEC);
+
+
+=back
+
 
 =head2 IO::POSIX
 
