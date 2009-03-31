@@ -451,13 +451,23 @@ themselves during destruction.
 
 =head2 IO::Socket
 
-    role IO::Socket does IO::Closeable {
+    role IO::Socket 
+        does IO::Closeable 
+        does IO::Readable 
+        does IO::Writeable 
+        does IO::Streamable 
+    {
         has %.options;
         has Bool $.Listening = 0;
         ...
     }
 
 Accessing the C<%.options> would on Unix be done with I<getsockopt(2)>/I<setsockopt(2)>.
+
+The $.Listening attribute indicates whether the socket will be a listening socket when 
+opened, rather than indicating whether it is currently listening.
+
+[TODO: come up with a better name for it -- $.Server maybe?]
 
 =over
 
@@ -479,7 +489,7 @@ itself will presumably also call it.
 
     method close()
 
-Reimplements the close() function from IO::Closeable by doing a shutdown on the connection 
+Implements the close() function from IO::Closeable by doing a shutdown on the connection 
 (see below) with @how set to ('Readable', 'Writeable').   
 
 =item shutdown
@@ -494,6 +504,16 @@ $how can contain 1 or more of the strings 'Readable' and 'Writeable'.
 =item accept
 
     method accept( --> IO::Socket)
+
+=item method read($buf is rw, Int $bytes --> Int)
+
+Implementes the IO::Readable interface by doing a I<recv(2)>.  
+
+=item method write($buf, Int $bytes --> Int)
+
+Implementes the IO::Writeable interface by doing  a I<send(2)>.
+
+=item getpeername
 
 =back
 
@@ -883,7 +903,7 @@ Neither of these is "C<use portable>" compatible.
 
 =head2 IO::Socket::INET
 
-    class IO::Socket::INET does IO::Socket does IO::Streamable {
+    class IO::Socket::INET does IO::Socket {
         has Str $.Protocol = 'TCP';
         ...
     }
@@ -913,18 +933,6 @@ Neither of these is "C<use portable>" compatible.
 The C<NoOpen> option is passed to C<IO::Streamable.new()>.
 
 IPv6 is supported.  
-
-=item method read($buf is rw, Int $bytes --> Int)
-
-Does a I<recv(2)>.  
-
-=item method write($buf, Int $bytes --> Int)
-
-Does a I<send(2)>.
-
-=item IO.getpeername
-
-=item /[get|set][host|net|proto|serv|sock].*/
 
 =back
 
@@ -1122,6 +1130,10 @@ Gone, see C<IO::Endable>.
 =item IO.fileno
 
 See C<IO::FileDescriptor>.
+
+=item /(get|set)(host|net|proto|serv|sock).*/
+
+Should be implemented by an external library.  
 
 =item lstat
 
