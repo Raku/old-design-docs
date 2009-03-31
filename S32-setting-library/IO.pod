@@ -464,7 +464,7 @@ themselves during destruction.
         does IO::Streamable 
     {
         has %.options;
-        has Bool $.Listener = 0;
+        has Bool $.Listener;
         ...
     }
 
@@ -480,6 +480,15 @@ opened, rather than indicating whether it is currently listening.
     method new(
         :$Listener, # initialises $.Listener
     )
+
+The initial value of the $.Listener attribute is defined according to the following rules:
+
+ * If $Listener is passed to .new(), then that value is used
+ * If neither a local address nor a remote address are passed in, throw an exception
+ * If no remote address is passed, then $.Listener is set to SOMAXCONN
+ * If no local address is used, then $Listener is set to 0
+ * If both local and remote addresses are used, throw an exception that asks people to 
+   specify $Listener
 
 =item open
 
