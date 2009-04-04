@@ -1230,6 +1230,19 @@ returning C<Failure> when a lookup fails.  Note in particular that, since
 autovivification is defined in terms of protoobjects rather than failure,
 it still works under "use fatal".
 
+This table solidifies the intuition that an operation pertaining to some data
+structure causes the protoobject to autivivify to such an object:
+
+    operation                autovivifies to
+    =========                ===============
+    push, unshift, .[]       Array
+    .{}, .<>                 Hash
+
+In addition to the above data structures autovivifying, C<++> and C<--> will
+cause an C<Int> to appear, C<~=> will create a C<Str> etc; but these are
+natural consequences of the operators working on C<Failure>, qualitatively
+different from autovivifying containers.
+
 The type of the protoobject returned by a non-successful lookup should 
 be identical to the type that would be returned for a successful lookup.
 
