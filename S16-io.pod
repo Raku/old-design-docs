@@ -1,4 +1,3 @@
-
 =encoding utf8
 
 =head1 Title
@@ -62,8 +61,8 @@ a Unix shell does with its subprocesses, albeit with a different
 syntax:
 
     {
-	temp $*OUT = open $newfile, :w;
-	foo() # all stdout goes to $newfile
+        temp $*OUT = open $newfile, :w;
+        foo() # all stdout goes to $newfile
     }
     # stdout reverts to outer scope's definition
 
@@ -77,21 +76,23 @@ S32-setting-library/IO.pod.
 
 =head2 User role
 
-role	User {
-	has $username; # Username (some descendants(?) may want to implement a real $name)
-	has $id;  # User ID
-	has $dir; # Home directory for files
-}
+    role User {
+        has $username; # Username (some descendants(?) may want to implement a real $name)
+        has $id;  # User ID
+        has $dir; # Home directory for files
+    }
+
+=over
 
 =item new
 
- method User new($Username?, $UID?) {...}
+    method User new($Username?, $UID?) {...}
 
 Creates a new User object, fetching the information either by username or user ID.  
 
 =item write
 
- method write() {...}
+    method write() {...}
 
 Tries to write the current User object to the user database.  This may well fail.  
 
@@ -103,50 +104,56 @@ When converted to a Str, returns $username.
 
 When converted to a Num, returns $uid.  
 
+=back
+
 =head2 OS::Unix::User role
 
-role	OS::Unix::User does User {
-	has $password;
-	has $gid;
-	has $gecos;
-	has $shell;
-}
+    role OS::Unix::User does User {
+        has $password;
+        has $gid;
+        has $gecos;
+        has $shell;
+    }
 
 All the information is naturally fetched from the system via getpwuid, getpwnam, or the 
 like.  
 
 =head2 Group role
 
-role	Group {
-	has $name;
-	has $id;
-	has @members;
-}
+    role Group {
+        has $name;
+        has $id;
+        has @members;
+    }
+
+=over
 
 =item new
 
- method Group new(:$Name, :$ID);
+    method Group new(:$Name, :$ID);
 
 =item write
 
- method write();
+    method write();
 
 Tries to write the group entry into the system group database.  
 
-=head OS::Unix::NameServices role
+=back
+
+=head2 OS::Unix::NameServices role
 
 The NameServices role has a bunch of functions that between them will return the whole 
 Name Services database between them, as lists of objects.  The lists are specifically 
 intended to be lazy.  
 
-role	NameServices {
-	method List of User     users()     {...} # getpwent, setpwent, endpwent
-	method List of Group    groups()    {...} # getgrent, setgrent, endgrent
-	method List of Service  services()  {...} # getservent, setservent, endservent
-	method List of Protocol protocols() {...} # getprotoent, setprotoent, endprotoent
-	method List of Network  networks()  {...} # getnetent, setnetent, endnetent
-	method List of Host     hosts()     {...} # gethostent, sethostent, endhostent
-}
+    role NameServices {
+        method List of User     users()     {...} # getpwent, setpwent, endpwent
+        method List of Group    groups()    {...} # getgrent, setgrent, endgrent
+        method List of Service  services()  {...} # getservent, setservent, endservent
+        method List of Protocol protocols() {...} # getprotoent, setprotoent, endprotoent
+        method List of Network  networks()  {...} # getnetent, setnetent, endnetent
+        method List of Host     hosts()     {...} # gethostent, sethostent, endhostent
+    }
 
 =head1 Additions
 
@@ -155,5 +162,4 @@ a general laundry list, please separate messages by topic.
 
 =cut
 
-=encoding utf8
-
+=for vim:set expandtab sw=4:
