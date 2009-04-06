@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 13 Sep 2004
-  Last Modified: 18 Mar 2009
+  Last Modified: 6 Apr 2009
   Number: 9
-  Version: 31
+  Version: 32
 
 =head1 Overview
 
@@ -1040,6 +1040,23 @@ autothreading on that parameter.  Only individually declared parameters
 may autothread.  (Note that positional array and hash parameters are
 in fact scalar parameters, though, so you could pass a junction of
 array or hash objects.)
+
+The exact semantics of autothreading with respect to control structures
+are subject to change over time; it is therefore erroneous to pass
+junctions to any control construct that is not implemented via as a
+normal single or multi dispatch.  In particular, threading junctions
+through conditionals correctly could involve continuations, which
+are almost but not quite mandated in Perl 6.0.0.  Alternately, we
+may decide that boolean contexts always collapse the junction by
+default, and the exact value that allowed the collapse to "true"
+is not available.  A variant of that is to say that if you want
+autothreading of a control construct, you must assign or bind to
+a non-C<Object> container before the control construct, and that
+assignment or binding to any such container results in autothreading
+the rest of the dynamic scope. (The performance ramifications of this
+are not clear without further experimentation, however.)  So for now,
+please limit use of junctions to situations where the eventual binding
+to a scalar formal parameter is clear.
 
 =head1 Parallelized parameters and autothreading
 
