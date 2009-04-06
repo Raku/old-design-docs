@@ -15,8 +15,8 @@ DRAFT: Synopsis 32: Setting Library - Str
                 Moritz Lenz <moritz@faui2k3.org>
        	       	Tim Nelson <wayland@wayland.id.au>
  Date:          19 Mar 2009 extracted from S29-functions.pod
- Last Modified: 19 Feb 2009
- Version:       1
+ Last Modified: 6 Apr 2009
+ Version:       2
 
 The document is a draft.
 
@@ -317,8 +317,8 @@ works backwards. See C<index> for more detail.
 
 =item split
 
- our List multi method split ( Str $input: Str $delimiter, Int $limit = * ) is export
- our List multi method split ( Str $input: Rule $delimiter, Int $limit = * ) is export
+ our List multi method split ( Str $input: Str $delimiter, Int $limit = *) is export
+ our List multi method split ( Str $input: Regex $delimiter, Int $limit = *, Bool :$all = False) is export
 
 String delimiters must not be treated as rules but as constants.  The
 default is no longer S<' '> since that would be interpreted as a constant.
@@ -329,12 +329,16 @@ The C<split> function no longer has a default delimiter nor a default invocant.
 In general you should use C<comb> to split on whitespace now, or to break
 into individual characters.  See below.
 
-As with Perl 5's C<split>, if there is a capture in the pattern it is
-returned in alternation with the split values.  Unlike with Perl 5,
-multiple such captures are returned in a single Match object.  Also unlike
-Perl 5, the string to be split is always the invocant or first argument.
-A warning should be issued if the string appears to be a short constant
-string and the delimiter does not.
+If the C<:all> flag is supplied to the C<Regex> form, then the
+delimiters are returned as C<Match> objects in alternation with the
+split values.  Unlike with Perl 5, if the delimiter contains multiple
+captures they are returned as submatches of single C<Match> object.
+(And since C<Match> does C<Capture>, whether these C<Match> objects
+eventually flatten or not depends on whether the expression is bound
+into a list or slice context.)  Also unlike in Perl 5, the string to
+be split is always the invocant or first argument.  A warning should
+be issued if the string appears to be a short constant string and
+the delimiter does not.
 
 You may also split lists and filehandles.  C<$*ARGS.split(/\n[\h*\n]+/)>
 splits on paragraphs, for instance.  Lists and filehandles are automatically
@@ -344,7 +348,7 @@ a C<Cat> is undefined.
 
 =item comb
 
- our List multi method comb ( Str $input: Rule $matcher = /\S+/, Int $limit = * ) is export
+ our List multi method comb ( Str $input: Regex $matcher = /\S+/, Int $limit = * ) is export
 
 The C<comb> function looks through a string for the interesting bits,
 ignoring the parts that don't match.  In other words, it's a version
