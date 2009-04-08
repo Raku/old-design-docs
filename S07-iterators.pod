@@ -131,7 +131,7 @@ The iterator role represents the lazy access to a list, walking through:
 
 It's important to realize that the iterator of a list can be accessed
 by the .Iterator() method (but only the runtime will be calling that
-most of the time), and the implemenation of each iterator is private
+most of the time), and the implementation of each iterator is private
 to the list and implementation specific.
 
 This is a minimal API that should allow custom iterator
@@ -153,7 +153,7 @@ When it runs out of items, it will throw an OutOfItemsException.
 This role defines an iterator that knows how to receive values back to
 be consumed again as if they were never consumed. The iterator is free
 to refuse values that were not consumed first and in the correct
-order, since this role is not intened to modify the original data,
+order, since this role is not intended to modify the original data,
 only to modify the traversal of that data.
 
 =head2 method pushback($value) {}
@@ -181,41 +181,192 @@ the iterator.
 
 =head1 Auxiliary Implementations
 
-Perl's built-ins require that a number of auxiliary types.  
+Perl's built-ins require that a number of auxiliary types implement 
+Iterators.  These are available for general use, and are instantiated
+by ending a feed at a scalar, array, or sliced array.
 
 =head2 Generic Item Iterator
 
-Operators like map requires one item at a time as input, therefore
-they can use a generic item iterator to consolidate the access to the
-input iterator, doing additional iterators when an empty capture is
-returned and holding additional values if more than one item is
-returned. The following code will result in getting a generic item
-iterator:
+To create a generic item iterator, end a feed in a scalar:
 
-  my $foo <== @a;
+  my $it <== @a;
 
 You can later do:
 
-  my $item = =$foo;
+  my $item = =$it;
+
+Or if the double '=' bothers you in front:
+
+  my $item2 = $it.:<=>;
+
+(XXX TODO: decide whether the item iterator flattens, document)
+
+(XXX TODO: effect of type constraints of $it -- maybe to control flattening? )
+
+(XXX TODO:
+
+   What's this do?
+
+   my $it <== @a; my $it2 <== $it; my $it3 <== $it; =$it2; =$it3;
+
+   ...allow tag team suckling?
+
+   Is it worth the dwim, or do we just forbid it?
+
+)
+
 
 =head2 Generic Lazy List
 
-The generic lazy list accepts an iterator as input, and consumes the
-iterator as the elements of the list are accessed but flattening and
-storing the already-evaluated elements. To obtain a generic lazy list,
-just do:
+To obtain a generic lazy list, end a feed in a C<Positional>.
 
-  my @a <== @b;
+    my @it <== 1..2000;
+
+The generic lazy list consumes the feed on demand.  As the elements of 
+the list are accessed, values that were in each subsequently returned
+C<Capture> are placed at the end of the C<Positional>.  If a C<Capture> 
+with more than one value is returned, each value is stored at its own 
+index.  Empty C<Capture>s have no effect, and so the information that 
+they ever existed at all is lost.
+
+You can later do things like:
+
+    @c = @it[1..5];
+    $s = @it[4];
+
+...and this may run the iterator to find any values which are only
+lazily present.  Values which have already been retrieved from the
+iterator are kept available unless they are removed, so if you are
+working with a large sequence you may want to:
+
+    shift(@it);
+
+Reading and writing indices in a generic lazy list iterator will 
+force consumption and caching of values for all indices up to and 
+including the accessed one.
+
+    @it[4] = 2;  # @it[0..3] are cached now, @it[4] was consumed/destroyed
+
+Adding to the beginning of the list just stores values without
+touching the iterators.
+
+    @it.unshift(<a b c>);  # works as expected
+
+Trying to find the number of elements in any way may force 
+eager consumption of the remainder of the values in the iterator,
+and trying to access the end of the list certainly will.
+
+    @it.pop; # Eagerness happens.  Maybe bad things, too.
+
+...but you had better be very sure that the list is finite.  Attempts to 
+fiddle with the end of an infinite list may result in the interpreter 
+raising quite the exception, in the luckiest cases it may just deliver an 
+C<Inf>, but in some cases you may find yourself spending a very, very 
+long time doing laps around the yard.  The exact behavior may be 
+implementation specific.  
+
+So don't do that.
+
+If the list is known to be finite, the generic array iterator will
+revert to a normal array once the feed is exhausted.  So it is legal
+to:
+
+    @it.push; # eagerly exhausts the feed, then turns into to a normal array
+
+...with the same caveats about infinity.
+
+(XXX TODO: effect of type constraints/shape of @it? )
+
+(XXX TODO: 
+
+   my @a = (1,2); @a <<== ... promotes an occupied Positional to 
+   iterator, right? Should probably be explicitly mentioned.
+)
+
 
 =head2 Generic Lazy Slice
 
-The generic lazy slice accepts an iterator as input, and consumes the
-iterator as the elements of the list are accessed but storing the
-already-evaluated elements as a bi-dimensional list, where the first
-dimension holds each iteration, and the second contains the return of
-each iteration. To obtain a generic lazy slice, do:
+The generic lazy slice consumes the C<Capture>s from an iterator but 
+stores the results as a bi-dimensional list, where the first dimension 
+corresponds to an iteration, and the second contains the values in 
+the C<Capture> returned for that iteration.  Empty C<Capture>s are 
+stored just like the rest of the iterations.
 
-  my @@a <== map { ... }, 1,2,3;
+To obtain a generic lazy slice, end a feed in a sliced C<Positional>.
+
+    my @@it <== map { ... }, 1,2,3;
+
+(XXX TODO:  
+
+    @@it <== (1,mysub(),2;1,2,3); 
+    @@it[0];
+    @@it[0;1];
+
+ exactly when does mysub() get called?)
+
+
+=head1 Coroutines
+
+Perl6 does not have a formally defined sub-style coroutine.  Doubtless
+there will be external modules to do so in different flavors.  Such a 
+construct, where many calls made to the name of a sub with different 
+parameters, expecting to reach the same sub every time, is not really 
+compatible with multi-method-dispatch.  While it may suit some 
+programming styles which only use a subset of the Perl6 language, it 
+cannot be made generally applicable across the Perl6 feature set.
+
+This is not to say you cannot do coroutines in Perl6.  In fact, the
+gather/take construct is a simple coroutine.  But if you want to pass
+values back and forth Lua-style, you have to use a suplimentary 
+object:
+
+     sub my_coro (*@slurp) {
+        gather do {
+            my Int $initval;
+            my Str $secondval;
+            my Int $thirdval;
+            $initval = shift(@slurp);
+            $initval++;
+            take $initval;
+            $secondval = shift(@slurp);
+            take "$initval $secondval";
+            $thirdval = shift(@slurp);
+            take $thirdval + $initval;
+        }
+    }
+    my @a = (1);
+    my $it;
+    $it <== my_coro() <== while 1 { shift(@a) };
+    say "First result: " ~ =$it;
+    @a.push("Hello World");
+    say "Second result: " ~ =$it;
+    @a.push(500);
+    say "Third result: " ~ =$it;
+
+...if you want to pass multiple parameters on each call, you can
+use a slice slurpy instead, to pass a C<Capture>.  
+
+The iterator and array can of course be bundled up to give a more 
+natural feel:
+
+    class my_sub2coro {
+        has $!it = Failure;
+        has @!data = ();
+        has $.coro;
+        submethod BUILD {
+            $!it <== &($.coro)() <== while 1 { shift(@!data) };
+        }
+        method corocall($message) {
+            @!data.push($message);
+            =$!it;
+        }
+    }
+    my $c = my_sub2coro.new(coro => &my_coro);
+    say "First result" ~ $c.corocall(1);
+    say "Second result" ~ $c.corocall("Hello World");
+    say "Third result" ~ $c.corocall(500);
+
+(XXX TODO: As feeds are not implemented yet, above example code not tested)
 
 =head1 Additions
 

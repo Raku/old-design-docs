@@ -430,83 +430,9 @@ from a socket) will cause a fatal error when called inside the call chain
 of an Atomic Code block.
 
 
-=head2 Co-Routines
+=head2 Coroutines
 
-There is no real difference between a subroutine (or method) and a so-called
-'co-routine'.  The only difference is how control is relinquished by the
-subroutine.  If this is done with a C<return> statement, the subroutine
-is considered to be "normal" (i.e. the next time the subroutine is called,
-execution will start again at the top of the subroutine.
-
-A different situation occurs when the control is returned by a subroutine
-to its caller by means of a C<produce> statement.  From the caller's point
-of view, there is no difference with the C<return> statement.  However, the
-next time the subroutine is called, execution will continue after the last
-C<produce> statement, B<not> from the beginning of the subroutine.  If there
-are no statements after the last C<produce> statement executed, then execution
-will start from the start of the called subroutine again.
-
-Please note that there is no concurrency involved with the C<produce>
-statement.  Execution in the calling sub will halt until the called subroutine
-returns, regardless of whether this happens by a C<return> or a C<produce>
-statement.
-
-Parameters passed to a subroutine that has previously returned with C<produce>
-will be handled as if if was an initial call to the subroutine.  This means
-that the values of named parameters will be placed in their expected place
-inside the subroutine.  Positional parameters will be available to any code
-looking at them, but will B<not> be handled automatically.  It would seem that
-the use of named parameters is therefore advisable.
-
-=head3 Coroutine attributes
-
-=over
-
-=item finished
-
-True on return() and false on midway yield()
-
-=back
-
-=head3 Coroutine methods
-
-=over
-
-=item start
-
-Set starting parameter list.
-
-=back
-
-=head3 Coroutine examples
-
-=over
-
-=item Coro as a function
-
-  coro dbl { yield $_ * 2; yield $_; };
-  (1..4).map:{ dbl($_) }
-  # should result in 2 2 6 4
-
-  # coro parameters
-  coro perm ( @x is copy ) {
-      while @x { @x.splice($_,1).yield; }
-  }
-
-=item Constant coro
-
-  coro foo { yield 42 };
-  # always return 42
-
-=item Yield and return
-
-  coro foo ($x) {
-    yield $x;
-    # this point with $x bound to 10
-    yield $x+1;
-    return 5;
-    ... # this is never reached, I think we all agree
-  }
+Coroutines are covered in S07
 
 =back
 
