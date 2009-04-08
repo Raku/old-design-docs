@@ -15,8 +15,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
                 Moritz Lenz <moritz@faui2k3.org>
        	       	Tim Nelson <wayland@wayland.id.au>
  Date:          19 Feb 2009 extracted from S29-functions.pod
- Last Modified: 18 Mar 2009
- Version:       3
+ Last Modified: 8 Apr 2009
+ Version:       4
 
 The document is a draft.
 
@@ -28,19 +28,19 @@ the SVN repository if you would like to make changes.
 
 =head2 Positional
 
-role	Positional {...}
+    role Positional {...}
 
 The C<Positional> role implies the ability to support C<< postcircumfix:<[ ]> >>.
 
 =head2 Associative
 
-role	Associative {...}
+    role Associative {...}
 
 The C<Associative> role implies the ability to support C<< postcircumfix:<{ }> >>.
 
 =head2 Container
 
-role	Container {...}
+    role Container {...}
 
 =over
 
@@ -112,7 +112,7 @@ In C<@@> context a List of Array is returned instead of flat list.
 
 The following are defined in the C<List> role/class:
 
-role	List does Container does Positional {...}
+    role List does Container does Positional {...}
 
 =over
 
@@ -267,13 +267,6 @@ single list.
 
 =item reverse
 
- role Hash {
-     our Hash multi method reverse ( %hash: ) is export {
-       (my %result){%hash.values} = %hash.keys;
-       %result;
-     }
- }
-
  our List multi method reverse ( @values: ) is export
  our List multi reverse ( *@values ) {
     gather {
@@ -404,7 +397,7 @@ the values in the list matches.
 
 All these methods are defined in the C<Array> role/class.
 
-role	Array does List {...}
+    role Array does List {...}
 
 =over
 
@@ -554,7 +547,7 @@ been iterated.
 
 The following are defined in the C<Hash> role.
 
-role	Hash does Container does Associative {...}
+    role Hash does Container does Associative {...}
 
 =over 4
 
@@ -643,11 +636,44 @@ in the hash matches.
 Returns a junction which will only match against another value if none of 
 the keys in the hash matches.
 
+=item reverse
+
+ our List multi method reverse ( %hash: ) is export {
+     map -> $k, $v { $v X=> $k }, %hash.kv;
+ }
+
+Produces a backmapping of values to keys, expanding list values
+into multiple pairs.  (The C<< X=> >> expands C<$v> if it is a list.)
+[NB: this may need refinement to handle keys that do C<Positional>.]
+
+=item push
+
+ our Int multi method push ( @hash: *@values ) is export
+
+Like hash assignment insofar as it accepts either C<Pair> objects or
+alternating keys and values; however, unlike assignment, when
+a duplicate key is detected, coerces the colliding entry's value to an
+array and pushes the Pair's value onto that array.  Hence to reverse
+a hash containing duplicate values without losing information, say:
+
+    %out.push(%in.reverse)
+
+Note that when reading the values of such a hash, you must not assume
+that all the elements are arrays, since the first instance of a key
+merely sets the value without turning it into an array.  (Fortunately,
+most list operators create a list of one element when used on an object
+that is not a list.)
+
+The intention is that
+
+    %bar.push(%foo.reverse);
+    %baz.push(%bar.reverse);
+
 =back
 
 =head2 Tieable
 
-role	Tieable {...}
+    role Tieable {...}
 
 =head1 Classes
 
@@ -658,41 +684,47 @@ XXX So where are KeySet and KeyBag.
 
 =head2 Seq
 
-class	Seq does Positional {...}
+    class Seq does Positional {...}
 
 =head2 Range
 
-class	Range does Positional {
+    class Range does Positional {
 	method from() {...}
 	method to() {...}
 	method min() {...}
 	method max() {...}
 	method List minmax() {...}
-}
+    }
 
 =head2 Buf
 
-class	Buf does Positional {...}
+    class Buf does Positional {...}
 
 =head2 Pair
 
-class	Pair does Associative {...}
+    class Pair does Associative {...}
+
+=item reverse
+
+    our List multi method reverse ( $pair: ) is export {
+     $pair.value X=> $pair.key
+    }
 
 =head2 Mapping
 
-class	Mapping does Associative {...}
+    class Mapping does Associative {...}
 
 =head2 Set
 
-class	Set does Associative {...}
+    class Set does Associative {...}
 
 =head2 Bag
 
-class	Bag does Associative {...}
+    class Bag does Associative {...}
 
 =head2 KeyHash
 
-class	KeyHash does Associative {...}
+    class KeyHash does Associative {...}
 
 =head2 junction
 
