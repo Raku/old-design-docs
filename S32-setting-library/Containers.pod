@@ -214,17 +214,16 @@ of random picks from C<@values>:
 
 =item join
 
- our Str multi method join ( @values: Str $separator = ' ' )
- our Str multi join ( Str $separator = ' ', *@values )
+ our Str multi method join ( @values: Str $separator = '' )
+ our Str multi join ( Str $separator = '', *@values )
 
 C<join> returns a single string comprised of all of the elements
 of C<@values>, separated by C<$separator>.
 
 Given an empty list, C<join> returns the empty string.
 
-The separator defaults to a single space.  To join with no separator,
-you can use the C<[~]> reduce operator.  The C<cat> function also
-effectively does a concatenation with no separator.
+The separator defaults to the null string.  To join with space,
+just coerce to C<Str>.
 
 =item map
 
@@ -280,12 +279,6 @@ single list.
     gather {
         1 while take pop @values;
     }
- }
-
- role Str {
-     our Str multi method reverse ( $str: ) is export {
-        $str.split('').reverse.join;
-     }
  }
 
 =item sort
