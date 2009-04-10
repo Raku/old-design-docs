@@ -15,8 +15,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
                 Moritz Lenz <moritz@faui2k3.org>
        	       	Tim Nelson <wayland@wayland.id.au>
  Date:          19 Feb 2009 extracted from S29-functions.pod
- Last Modified: 8 Apr 2009
- Version:       4
+ Last Modified: 10 Apr 2009
+ Version:       5
 
 The document is a draft.
 
@@ -636,9 +636,9 @@ in the hash matches.
 Returns a junction which will only match against another value if none of 
 the keys in the hash matches.
 
-=item reverse
+=item invert
 
- our List multi method reverse ( %hash: ) is export {
+ our List multi method invert ( %hash: ) is export {
      map -> $k, $v { $v X=> $k }, %hash.kv;
  }
 
@@ -653,11 +653,11 @@ into multiple pairs.  (The C<< X=> >> expands C<$v> if it is a list.)
 Like hash assignment insofar as it accepts either C<Pair> objects or
 alternating keys and values; however, unlike assignment, when
 a duplicate key is detected, coerces the colliding entry's value to an
-array and pushes the Pair's value onto that array.  Hence to reverse
+array and pushes the Pair's value onto that array.  Hence to invert
 a hash containing duplicate values without losing (associative) information, 
 say:
 
-    %out.push(%in.reverse)
+    %out.push(%in.invert)
 
 Note that when reading the values of such a hash, you must not assume
 that all the elements are arrays, since the first instance of a key
@@ -703,9 +703,9 @@ XXX So where are KeySet and KeyBag.
 
     class Pair does Associative {...}
 
-=item reverse
+=item invert
 
-    our List multi method reverse ( $pair: ) is export {
+    our List multi method invert ( $pair: ) is export {
      $pair.value X=> $pair.key
     }
 
