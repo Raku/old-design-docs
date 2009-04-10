@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 9 Apr 2009
+  Last Modified: 10 Apr 2009
   Number: 3
-  Version: 161
+  Version: 162
 
 =head1 Overview
 
@@ -2902,7 +2902,7 @@ er, somehow.
 
 =back
 
-=head1 Range semantics
+=head1 Range and RangeIterator semantics
 
 =over
 
@@ -2910,13 +2910,14 @@ er, somehow.
 
 The C<..> range operator has variants with C<^> on either end to
 indicate exclusion of that endpoint from the range.  It always
-produces a C<Range> object.  Range objects are lazy iterators, and
-can be interrogated for their current C<.from> and C<.to> values
-(which change as they are iterated).  The C<.minmax> method returns
+produces a C<Range> object.  Range objects are immutable (but can
+spawn mutable C<RangeIterator> objects, and a C<RangeIterator> can
+be interrogated for its current C<.from> and C<.to> values,
+which change as they are iterated).  The C<.minmax> method returns
 both as a two-element list representing the interval.  Ranges are not
 autoreversing: C<2..1> is always a null range.  Likewise, C<1^..^2>
 produces no values when iterated, but does represent the interval from
-1 to 2 excluding the endpoints when used as a pattern.  To iterate
+1 to 2 excluding the endpoints when used as a pattern.  To specify
 a range in reverse use:
 
     2..1:by(-1)
@@ -2932,7 +2933,8 @@ C<Range> changes its direction, it swaps its C<.from> and C<.to> but
 not its C<.min> and C<.max>.
 
 Because C<Range> objects are lazy, they do not automatically generate
-a list.  One result of this is that a reversed C<Range> object is still lazy.
+a list.  They only do so when iterated.
+One result of this is that a reversed C<Range> object is still lazy.
 Another is that smart matching against a C<Range> object smartmatches the
 endpoints in the domain of the object being matched, so fractional
 numbers are C<not> truncated before comparison to integer ranges:
@@ -2959,22 +2961,6 @@ from being inferred other than the C<Ordered> role.
 Note: infinite lists are constructed lazily.  And even though C<*..*>
 can't be constructed at all, it's still useful as a selector object.
 
-Range objects may be iterated on either end as long as it is not
-infinite.  (Iterating an infinite end does not fail but just produces a
-lot of infinities.)  Ordinary iteration iterates the C<.from> value by
-adding the step.  Either C<< prefix:<=> >> or the C<shift> function
-may be used to iterate the front of a range object.  The C<pop>
-function iterates the C<.to> end by subtracting the step.  In either
-case, the value returned is either the old value if the endpoint
-was inclusive, or the next value if the endpoint was exclusive.
-In the case of ranges that are not an integral multiple of the step,
-no check is done to see that iterating the front would produce the
-same list as interating from the back and reversing.  So we have
-
-    $range = 1..^42.5;
-    $front = $range.shift;      # $front = 1, $range = 2..^42.5
-    $back = $range.pop;      # $back = 41.5, $range = 2..^41.5
-
 For any kind of zip or dwimmy hyper operator, any list ending with C<*>
 is assumed to be infinitely extensible by taking its final element
 and replicating it:
@@ -2985,7 +2971,7 @@ is short for something like:
 
     @array[0..^@array], @array[*-1] xx *
 
-An empty range cannot be iterated; it returns a C<Failure> instead.  An empty
+An empty range cannot be iterated; it returns a C<Nil> instead.  An empty
 range still has a defined min and max, but the min is greater than the max.
 
 If a range is generated using a magical autoincrement, it stops if the magical
