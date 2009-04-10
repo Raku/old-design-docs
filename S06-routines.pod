@@ -13,9 +13,9 @@ Allison Randal <al@shadowed.net>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 21 Mar 2003
-  Last Modified: 19 Mar 2009
+  Last Modified: 9 Apr 2009
   Number: 6
-  Version: 107
+  Version: 108
 
 
 This document summarizes Apocalypse 6, which covers subroutines and the
@@ -1216,7 +1216,7 @@ form so you can just bind it directly to a signature:
 
 Otherwise you'd have to say this:
 
-    for @@tmp.zip.@@() -> [$i, $a] { say "$i: $a" }
+    for @@tmp.zip.slice -> [$i, $a] { say "$i: $a" }
 
 In list context the C<@@foo> notation is really a shorthand for C<[;](@@foo)>.
 In particular, you can use C<@@foo> to interpolate a multidimensional slice
@@ -1232,13 +1232,13 @@ left to right in general regardless of the position of the receiver.
 So
 
     ('a'..*; 0..*) ==> *;
-     for zip(@@() <== @foo) -> $a, $i, $x { ... }
+     for zip(@@(*) <== @foo) -> $a, $i, $x { ... }
 
 is the same as
 
     'a'..* ==> *;
      0..*  ==> *;
-     for zip(@@ <== @foo) -> $a, $i, $x { ... }
+     for zip(@@(*) <== @foo) -> $a, $i, $x { ... }
 
 which is the same as
 
@@ -1254,6 +1254,8 @@ object that contains one, such as a C<Capture> or C<Match> object.  Like
 C<@()>, C<@@()> defaults to C<@@($/)>, and returns a multidimensional
 view of any match that repeatedly applies itself with C<:g> and
 the like.  In contrast, C<@()> would flatten those into one list.
+It is an error to use C<@(*)> or C<@@(*)> in a context that doesn't
+supply a feed somehow.
 
 =head2 Closure parameters
 

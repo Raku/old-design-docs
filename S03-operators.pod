@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 18 Mar 2009
+  Last Modified: 9 Apr 2009
   Number: 3
-  Version: 160
+  Version: 161
 
 =head1 Overview
 
@@ -1944,25 +1944,31 @@ Sigils as contextualizer listops
     @@          slice
     %           hash
 
-As listops, these look like terms from the left, but raise their
-precedence on the right sufficiently to govern list infix
-operators:
+These may only be used as functions with explicit parens:
 
-     $ 1,2 Z 3,4       # [\(1,3),\(2,4)]
-     @ 1,2 Z 3,4       # 1,3,2,4
-    @@ 1,2 Z 3,4       # [1,3],[2,4]
-     % 1,2 Z 3,4       # { 1 => 3, 2 => 4 }
+     $(1,2 Z 3,4)       # [\(1,3),\(2,4)]
+     @(1,2 Z 3,4)       # 1,3,2,4
+    @@(1,2 Z 3,4)       # [1,3],[2,4]
+     %(1,2 Z 3,4)       # { 1 => 3, 2 => 4 }
 
-     $ 1,2 X 3,4      # [\(1,3),\(1,4),\(2,3),\(2,4)]
-     @ 1,2 X 3,4      # 1,3,1,4,2,3,2,4
-    @@ 1,2 X 3,4      # [1,3],[1,4],[2,3],[2,4]
+     $(1,2 X 3,4)      # [\(1,3),\(1,4),\(2,3),\(2,4)]
+     @(1,2 X 3,4)      # 1,3,1,4,2,3,2,4
+    @@(1,2 X 3,4)      # [1,3],[1,4],[2,3],[2,4]
 
 These can also influence the result of functions that returns lists of captures:
 
-     $ map { $_, $_*2 }, ^4   # [\(0,0),\(1,2),\(2,4),\(3,6)]
-     @ map { $_, $_*2 }, ^4   # 0,0,1,2,2,4,3,6
-    @@ map { $_, $_*2 }, ^4   # [0,0],[1,2],[2,4],[3,6]
-     % map { $_, $_*2 }, ^4   # { 0 => 0, 1 => 2, 2 => 4, 3 => 6 }
+     $(map { $_, $_*2 }, ^4)   # [\(0,0),\(1,2),\(2,4),\(3,6)]
+     @(map { $_, $_*2 }, ^4)   # 0,0,1,2,2,4,3,6
+    @@(map { $_, $_*2 }, ^4)   # [0,0],[1,2],[2,4],[3,6]
+     %(map { $_, $_*2 }, ^4)   # { 0 => 0, 1 => 2, 2 => 4, 3 => 6 }
+
+The parens may not be omitted on the sigiled forms, but the alpha variants may
+be used as normal listops:
+
+     item map { $_, $_*2 }, ^4   # [\(0,0),\(1,2),\(2,4),\(3,6)]
+     list map { $_, $_*2 }, ^4   # 0,0,1,2,2,4,3,6
+    slice map { $_, $_*2 }, ^4   # [0,0],[1,2],[2,4],[3,6]
+     hash map { $_, $_*2 }, ^4   # { 0 => 0, 1 => 2, 2 => 4, 3 => 6 }
 
 =item *
 
@@ -2210,9 +2216,10 @@ Huffman-code the language, while others have changed precedence.
 
 Perl 5's C<${...}>, C<@{...}>, C<%{...}>, etc. dereferencing
 forms are now C<$(...)>, C<@(...)>, C<%(...)>, etc. instead.
-Listop-like forms use the bare sigil following by whitespace.
-Use of the Perl 5 curly forms will result in an error message
-pointing the user to the new forms.
+(Use of the Perl 5 curly forms will result in an error message
+pointing the user to the new forms.)
+As in Perl 5, the parens may be dropped when dereferencing
+a scalar variable.
 
 =item *
 
@@ -2321,9 +2328,12 @@ argument, and C<+> imposes a numeric (C<Num>) context (as opposed
 to being a no-op in Perl 5).  Along the same lines, C<?> imposes
 a boolean (C<Bool>) context, and the C<|> unary operator imposes
 a function-arguments (C<Capture>) context on its argument.
-Unary sigils impose the container context implied by their sigil.
+Unary sigils are allowed when followed by a C<$> sigil on a scalar variable;
+they impose the container context implied by their sigil.
 As with Perl 5, however, C<$$foo[bar]> parses as C<( $($foo) )[bar]>,
-so you need C<$($foo[bar])> to mean the other way.
+so you need C<$($foo[bar])> to mean the other way.  In other
+words, sigils are not really parsed as operators, and you must
+use the parenthetical form for anything complicated.
 
 =item *
 

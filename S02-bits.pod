@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 22 Mar 2009
+  Last Modified: 9 Apr 2009
   Number: 2
-  Version: 161
+  Version: 162
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1783,12 +1783,6 @@ operators:
     print $( foo() )    # foo called in item context
     print @@( foo() )   # foo called in slice context
 
-The bare sigil is parsed as a list operator in rvalue context, so
-these mean the same thing:
-
-    print $ foo()       # foo called in item context
-    print @@ foo()      # foo called in slice context
-
 In declarative contexts bare sigils may be used as placeholders for
 anonymous variables:
 
@@ -1798,6 +1792,13 @@ anonymous variables:
 Outside of declarative contexts you may use C<*> for a placeholder:
 
     ($a, *, $c) = 1..3;
+
+Attempts to say something like:
+
+    ($a, $, $c) = 1..3;
+
+will result in the message, "Anonymous variable requires declarator".
+
 
 =item *
 
