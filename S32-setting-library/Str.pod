@@ -322,6 +322,8 @@ works backwards. See C<index> for more detail.
  our List multi method split ( Str $input: Str $delimiter, Int $limit = * )
  our List multi method split ( Str $input: Regex $delimiter, Int $limit = *, Bool :$all = False)
 
+Splits a string up into pieces based on delimeters found in the string.
+
 String delimiters must not be treated as rules but as constants.  The
 default is no longer S<' '> since that would be interpreted as a constant.
 P5's C<< split('S< >') >> will translate to C<comb>.  Null trailing fields
@@ -331,7 +333,7 @@ The C<split> function no longer has a default delimiter nor a default invocant.
 In general you should use C<comb> to split on whitespace now, or to break
 into individual characters.  See below.
 
-If the C<:all> flag is supplied to the C<Regex> form, then the
+If the C<:all> adverb is supplied to the C<Regex> form, then the
 delimiters are returned as C<Match> objects in alternation with the
 split values.  Unlike with Perl 5, if the delimiter contains multiple
 captures they are returned as submatches of single C<Match> object.
@@ -347,29 +349,36 @@ a C<Cat> is undefined.
 
 =item comb
 
- our List multi method comb ( Str $input: Regex $matcher = /\S+/, Int $limit = * ) is export
+ our List multi comb ( Regex $matcher = /\S+/, Str $input, Int $limit = * )
+ our List multi method comb ( Str $input: Regex $matcher = /\S+/, Int $limit = * )
 
 The C<comb> function looks through a string for the interesting bits,
 ignoring the parts that don't match.  In other words, it's a version
 of split where you specify what you want, not what you don't want.
+
+That means the same restrictions apply to the matcher rule as do to
+split's delimiter rule.
+
 By default it pulls out all the words.  Saying
 
     $string.comb(/pat/, $n)
 
 is equivalent to
 
-    $string.match(rx:global:x(0..$n):c/pat/)
+    map {.Str}, $string.match(rx:global:x(0..$n):c/pat/)
 
 You may also comb lists and filehandles.  C<+$*IN.comb> counts the words on
-standard input, for instance.  C<comb($thing, /./)> returns a list of C<Char>
-from anything that can give you a C<Str>.  Lists and filehandles are
-automatically fed through C<cat> in order to pretend to be string.
-This C<Cat> is also lazy.
+standard input, for instance.  C<comb(/./, $thing)> returns a list of single
+C<Char> strings from anything that can give you a C<Str>.  Lists and 
+filehandles are automatically fed through C<cat> in order to pretend to 
+be string.  This C<Cat> is also lazy.
 
-If there are captures in the pattern, a list of C<Match> objects (one
-per match) is returned instead of strings.  The unmatched portions
-are never returned.  If the function is combing a lazy structure,
-the return values may also be lazy.  (Strings are not lazy, however.)
+If the C<:match> adverb is applied, a list of C<Match> objects (one
+per match) is returned instead of strings.  This can be used to 
+access capturing subrules in the matcher.  The unmatched portions
+are never returned -- if you want that, use C<split :all>.  If the 
+function is combing a lazy structure, the return values may also be 
+lazy.  (Strings are not lazy, however.)
 
 =item flip
 
