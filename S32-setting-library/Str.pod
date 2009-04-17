@@ -15,8 +15,8 @@ DRAFT: Synopsis 32: Setting Library - Str
                 Moritz Lenz <moritz@faui2k3.org>
        	       	Tim Nelson <wayland@wayland.id.au>
  Date:          19 Mar 2009 extracted from S29-functions.pod
- Last Modified: 6 Apr 2009
- Version:       2
+ Last Modified: 17 Apr 2009
+ Version:       3
 
 The document is a draft.
 
@@ -317,8 +317,10 @@ works backwards. See C<index> for more detail.
 
 =item split
 
- our List multi method split ( Str $input: Str $delimiter, Int $limit = *) is export
- our List multi method split ( Str $input: Regex $delimiter, Int $limit = *, Bool :$all = False) is export
+ our List multi split ( Str $delimiter, Str $input, Int $limit = * )
+ our List multi split ( Regex $delimiter, Str $input, Int $limit = * )
+ our List multi method split ( Str $input: Str $delimiter, Int $limit = * )
+ our List multi method split ( Str $input: Regex $delimiter, Int $limit = *, Bool :$all = False)
 
 String delimiters must not be treated as rules but as constants.  The
 default is no longer S<' '> since that would be interpreted as a constant.
@@ -335,10 +337,7 @@ split values.  Unlike with Perl 5, if the delimiter contains multiple
 captures they are returned as submatches of single C<Match> object.
 (And since C<Match> does C<Capture>, whether these C<Match> objects
 eventually flatten or not depends on whether the expression is bound
-into a list or slice context.)  Also unlike in Perl 5, the string to
-be split is always the invocant or first argument.  A warning should
-be issued if the string appears to be a short constant string and
-the delimiter does not.
+into a list or slice context.)
 
 You may also split lists and filehandles.  C<$*ARGS.split(/\n[\h*\n]+/)>
 splits on paragraphs, for instance.  Lists and filehandles are automatically
