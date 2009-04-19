@@ -10,8 +10,8 @@ Synopsis 7: Iterators and Laziness
  Contributions: Tim Nelson <wayland@wayland.id.au>
                 Daniel Ruoso <daniel@ruoso.com>
  Date:          27 Nov 2008
- Last Modified: 28 Dec 2008
- Version:       3
+ Last Modified: 19 Apr 2008
+ Version:       4
 
 =head1 Laziness and Eagerness
 
@@ -193,13 +193,8 @@ To create a generic item iterator, end a feed in a scalar:
 
 You can later do:
 
-  my $item = =$it;
-
-Or if the double '=' bothers you in front:
-
-  my $item2 = $it.:<=>;
-
-(XXX TODO: decide whether the item iterator flattens, document)
+  my $item = $it.get;
+  my @items = @$it;
 
 (XXX TODO: effect of type constraints of $it -- maybe to control flattening? )
 
@@ -207,7 +202,7 @@ Or if the double '=' bothers you in front:
 
    What's this do?
 
-   my $it <== @a; my $it2 <== $it; my $it3 <== $it; =$it2; =$it3;
+   my $it <== @a; my $it2 <== $it; my $it3 <== $it; get $it2; get $it3;
 
    ...allow tag team suckling?
 
@@ -337,11 +332,11 @@ object:
     my @a = (1);
     my $it;
     $it <== my_coro() <== while 1 { shift(@a) };
-    say "First result: " ~ =$it;
+    say "First result: " ~ get $it;
     @a.push("Hello World");
-    say "Second result: " ~ =$it;
+    say "Second result: " ~ get $it;
     @a.push(500);
-    say "Third result: " ~ =$it;
+    say "Third result: " ~ get $it;
 
 ...if you want to pass multiple parameters on each call, you can
 use a slice slurpy instead, to pass a C<Capture>.  
@@ -358,7 +353,7 @@ natural feel:
         }
         method corocall($message) {
             @!data.push($message);
-            =$!it;
+            get $!it;
         }
     }
     my $c = my_sub2coro.new(coro => &my_coro);

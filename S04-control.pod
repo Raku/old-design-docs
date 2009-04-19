@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 19 Aug 2004
-  Last Modified: 17 Apr 2009
+  Last Modified: 19 Apr 2009
   Number: 4
-  Version: 75
+  Version: 76
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -435,17 +435,19 @@ to read a file a line at a time as you would in Perl 5:
 
     while (my $line = <STDIN>) {...}
 
-in Perl 6 you should use a C<for> (plus a unary C<=> "iterate the
-iterator" operator) instead:
+in Perl 6 you should use a C<for> instead:
 
-    for =$*IN -> $line {...}
+    for $*IN.lines -> $line {...}
 
 This has the added benefit of limiting the scope of the C<$line>
 parameter to the block it's bound to.  (The C<while>'s declaration of
 C<$line> continues to be visible past the end of the block.  Remember,
 no implicit block scopes.)  It is also possible to write
 
-    while =$*IN -> $line {...}
+    while $*IN.get -> $line {...}
+
+However, this is likely to fail on autochomped filehandles, so use
+the C<for> loop instead.
 
 Note also that Perl 5's special rule causing
 
@@ -454,11 +456,11 @@ Note also that Perl 5's special rule causing
 to automatically assign to C<$_> is not carried over to Perl 6.  That
 should now be written:
 
-    for =<> {...}
+    for lines() {...}
 
 which is short for
 
-    for =$*ARGFILES {...}
+    for lines($*ARGFILES) {...}
 
 Arguments bound to the formal parameters of a pointy block are by
 default readonly within the block.  You can declare a parameter

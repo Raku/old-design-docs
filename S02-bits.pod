@@ -12,9 +12,9 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 10 Apr 2009
+  Last Modified: 19 Apr 2009
   Number: 2
-  Version: 163
+  Version: 164
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2502,7 +2502,7 @@ To force a single value to become a list object in item context,
 you should use C<< ['a'] >> for clarity as well as correctness.
 
 The degenerate case C<< <> >> is disallowed as a probable attempt to
-do IO in the style of Perl 5; that is now written C<< =<> >>.  (C<<
+do IO in the style of Perl 5; that is now written C<lines()>.  (C<<
 <STDIN> >> is also disallowed.)  Empty lists are better written with
 C<()> or C<Nil> in any case because C<< <> >> will often be misread
 as meaning C<('')>.  (Likewise the subscript form C<< %foo<> >>
@@ -3540,19 +3540,16 @@ then evaluated lazily.
 =item *
 
 To force non-lazy list flattening, use the C<eager> list operator.
-Don't use it on an infinite list unless you have a machine with
-infinite memory, and are willing to wait a long time.  To expand an
-iterator object to completion, iterate it with C<< prefix:<=> >>
-inside an eager list:
+List assignment is also implicitly eager.
 
-    @lines = eager =$filehandle;    # read all remaining lines
+    eager $filehandle.lines;    # read all remaining lines
 
 By contrast,
 
-    @lines = =$filehandle;
+    $filehandle.lines;
 
 makes no guarantee about how many lines ahead the iterator has read.
-Iterators appending to a list are allowed to process in batches, even
+Iterators feeding a list are allowed to process in batches, even
 when stored within an array.  The array knows that it is extensible,
 and calls the iterator as it needs more elements.  (Counting the elements
 in the array will also force eager completion.)
@@ -3651,20 +3648,11 @@ of
 
 you now write
 
-    for =$handle {...}
-
-As a unary prefix operator, you may also apply adverbs to C<=>:
-
-    for =$handle :prompt('$ ') { say $_ + 1 }
+    for @$handle {...}
 
 or
 
-    for =($handle):prompt('$ ') { say $_ + 1 }
-
-or you may even write it in its functional form, passing the adverbs
-as ordinary named arguments.
-
-    for prefix:<=>($handle, :prompt('$ ')) { say $_ + 1 }
+    for $handle.lines {...}
 
 =back
 

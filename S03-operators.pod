@@ -12,9 +12,9 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 10 Apr 2009
+  Last Modified: 19 Apr 2009
   Number: 3
-  Version: 162
+  Version: 163
 
 =head1 Overview
 
@@ -33,7 +33,7 @@ each level:
     L  Method postfix    .meth .+ .? .* .() .[] .{} .<> .«» .:: .= .^ .:
     N  Autoincrement     ++ --
     R  Exponentiation    **
-    L  Symbolic unary    ! + - ~ ? | +^ ~^ ?^ ^ =
+    L  Symbolic unary    ! + - ~ ? | +^ ~^ ?^ ^
     L  Multiplicative    * / % +& +< +> ~& ~< ~> ?& div mod
     L  Additive          + - +| +^ ~| ~^ ?| ?^
     L  Replication       x xx
@@ -677,28 +677,6 @@ C<< prefix:<^> >>, upto operator
 
 Constructs a range of C<0 ..^ $limit> or locates a metaclass as a shortcut
 for C<$limit.HOW>.  See L</Range semantics>.
-
-=item *
-
-C<< prefix:<=> >>, iterate iterator
-
-    =$iterator
-
-Unary C<=> reads lines from a filehandle or filename, or
-iterates an iterator, or in general causes a scalar to explode its guts
-when it would otherwise not.  How it does that is context sensitive.
-For instance, C<=$iterator> is item/list context sensitive and will
-produce one value in item context but many values in list context.
-The production of values is abstract here, so a lazy list merely
-remembers that it should iterate the iterator to completion upon
-demand.  Use an eager list to force completion.
-
-Use C<@$iterator> to produce a list of all the values even in item
-context, and C<$$iterator> to produce a single value even
-in list context.  On the other hand, C<=$capture> produces all
-parts of the capture that makes sense in the current list context,
-depending on what controls that list context.  [Conjecture: the
-previous sentence is non-sensical.]
 
 =back
 
