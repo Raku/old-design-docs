@@ -11,13 +11,14 @@ Synopsis 14: Roles and Parametric Types [DRAFT]
   Contributions: Tim Nelson <wayland@wayland.id.au>
                  Jonathan Worthington <jnthn@jnthn.net>
   Date: 24 Feb 2009, extracted from S12-objects.pod
-  Last Modified: 24 Feb 2009
+  Last Modified: 19 Apr 2009
   Number: 14
-  Version: 1
+  Version: 2
 
 =head1 Overview
 
-This synopsis summarizes Apocalypse 14, which discusses roles and parametric types.  
+This synopsis discusses roles and parametric types, which were
+originally discussed in A12.
 
 =head1 Roles
 
@@ -66,16 +67,6 @@ actual objects.  (However, if you use a role as if it were a class,
 an anonymous class is generated that composes the role, which provides
 a way to force a role to test its crony composition for infelicities.)
 
-A role's main type is generic by default, but you can also parameterize
-other types explicitly using type parameters:
-
-    role Pet[::Petfood = TableScraps] {
-        method feed (Petfood $food) {...}
-    }
-
-(Note that in this case you must not use ::Petfood in the inner declaration,
-or it would rebind the type to type of the actual food parameter.)
-
 If a role merely declares methods without defining them, it degenerates
 to an interface:
 
@@ -103,19 +94,12 @@ Roles may have attributes:
         method lose_collar () { undefine $.collar }
     }
 
-If you want to parameterize the initial value of a role attribute,
-be sure to put a double semicolon if you don't want the parameter to
-be considered part of the long name:
-
-    role Pet[::ID;; $tag] {
-        has ID $.collar .= new($tag);
-    }
-
 Within a role the C<has> declarator always indicates the declaration
 from the viewpoint of the class.  Therefore a private attribute declared
-using C<has> is private to the class, not to the role.  You may wish to declare an attribute
-that is hidden even from the class; a completely private role
-attribute may be declared like this:
+using C<has> is private to the class, not to the role.  You may wish to
+declare an attribute that is hidden even from the class; a completely
+private role attribute (that will exist per instance of the class) may
+be declared like this:
 
     my $!spleen;
 
@@ -274,7 +258,7 @@ Note that this initializer is in addition to any parametric type
 supplied in square brackets, which is considered part of the actual
 type name:
 
-    $myobj does Array[:of(Int)](@initial)
+    $myobj does Array[Int](@initial)
 
 The C<but> operator creates a copy and works on that.  It also knows
 how to generalize a particular enumerated value to its role.  So
@@ -287,18 +271,8 @@ is short for something like:
 
 A property is defined by a role like this:
 
-    role SomeRole {
-        has SomeType $.prop is rw = 1;
-    }
-
-You can declare a property with
-
-    my int property answer;
-
-and that declares a role whose name is the same as the accessor:
-
-    my role answer {
-        has int $.answer is rw;
+    role answer {
+        has Int $.answer is rw = 1;
     }
 
 Then you can say
@@ -391,23 +365,30 @@ appropriate C<trait_auxiliary:is()> routine yourself if you want it to
 do any extra shenanigans.  The compiler won't call it for you at run
 time like it would at compile time.
 
-=head1 Parametric Types
 
-Types can take parameters.  Parametric types are named using square brackets, so:
+=head1 Parametric Roles
 
-    my Hash of Array of Recipe %book;
+A role's main type is generic by default, but you can also parameterize
+other types explicitly using type parameters:
 
-actually means:
+    role Pet[::Petfood = TableScraps] {
+        method feed (Petfood $food) {...}
+    }
 
-    my Hash[of => Array[of => Recipe]] %book;
+(Note that in this case you must not use ::Petfood in the inner declaration,
+or it would rebind the type to type of the actual food parameter.)
 
-=head2 Parametric Roles
+If you want to parameterize the initial value of a role attribute,
+be sure to put a double semicolon if you don't want the parameter to
+be considered part of the long name:
 
-In Perl 6, roles can also take parameters. Roles exist to enable greater re-use of code 
-than we could get through having plain old classes, and by allowing them to be 
-parameterized we open the door to even more re-use. Taking a simple example, imagine we 
-wanted to factor out a "greet" method into a role, which takes somebody's name and greets 
-them. We want to parameterize it on the greeting.
+    role Pet[::ID;; $tag] {
+        has ID $.collar .= new($tag);
+    }
+
+You don't just have to parameterize on types; any value is fine. Imagine
+we wanted to factor out a "greet" method into a role, which takes
+somebody's name and greets them. We can parameterize it on the greeting.
 
     role Greet[Str $greeting] {
         method greet() { say "$greeting!"; }
@@ -431,12 +412,13 @@ Similarly, we could do a role for requests.
     Slovak.new.request("borovicka");
     Lolcat.new.request("CHEEZEBURGER");
 
-Sadly, the Slovak output sucks here. Borovicka is the nominative form of the word, and we 
-need to decline it into the accusative case. But some languages don't care about that, and 
-we don't want to have to make them all supply a transform. Thankfully, you can write many 
-roles with the same short name, and a different signature, and multi-dispatch will pick 
-the right one for you. So we write something to produce the accusative case in Slovak and 
-pass it in. Here's the new code.
+Sadly, the Slovak output sucks here. Borovicka is the nominative form
+of the word, and we need to decline it into the accusative case. But
+some languages don't care about that, and we don't want to have to make
+them all supply a transform. Thankfully, you can write many roles with
+the same short name, and a different signature, and multi-dispatch will
+pick the right one for you (it is the exact same dispatch algorithm used
+by multi-subs). So we can write:
 
     role Request[Str $statement] {
         method request($object) { say "$statement $object?"; }
@@ -460,30 +442,76 @@ pass it in. Here's the new code.
     Slovak.new.request("borovicka");
     Lolcat.new.request("CHEEZEBURGER");
 
-Which means we can now properly order our borovicka in Slovakia, which is awesome. Until 
-you do it in a loop and find the Headache['very bad'] role got mixed into yourself 
-overnight, anyway...
+Which means we can now properly order our borovicka in Slovakia, which
+is awesome. Until  you do it in a loop and find the Headache['very bad']
+role got mixed into yourself overnight, anyway...
 
-Role attributes can also be used to initialise attributes:
+=head2 Relationship Between of And Types
 
-    role AttrParams[$a, $b] {
-        has $.x = $a;
-        has $.y = $b;
-    }
+The of keyword is just syntactic sugar for providing a single
+parameter to a parametric type. Thus:
 
-...and to constrain types.  
+    my Array of Recipe %book;
 
-    role TypeParams[::T] {
-       method x(T $x) { return "got a " ~ T ~ " it was $x" }
-    }
+Actually means:
 
-    class IntShower does TypeParams[Int] { } # Shows Ints
-    class StrShower does TypeParams[Str] { } # Shows Strs
+    my Array[Recipe] %book;
 
-    print IntShower.new.x(42); # Prints 'got a Int it was 42'
-    print StrShower.new.x("OH HAI"); # Prints 'got a Str it was OH HAI'
-    print IntShower.new.x("OH HAI"); # Dies
+This can be nested, so:
 
+    my Hash of Array of Recipe @library;
 
+Is just:
+
+    my Hash[Array[Recipe]] @library;
+
+Therefore:
+
+    my Array @array;
+
+Means an Array of Array (actually, a Positional of Array).
+
+=head2 Parametric Subtyping
+
+If you have two types in a subtyping relationship such that T1 is
+narrower than T2, then also the roles:
+
+    role R[::T] { }
+    role R[::T1, ::T2] { }
+
+Will act such that R[T1] is narrower than R[T2]. This extends to multiple
+parameters, however they must all be narrower or the same (this is unlike
+in multiple dispatch where you can have one narrower and the rest narrower
+or tied). That is, assuming we have some unrelated type T3, then R[T2, T1]
+is narrower than R[T1,T1] but R[T2,T1] is not narrower than R[T1,T3].
+
+Nesting follows naturally from this definition, so a role R[R[T2]] is
+narrower than a role R[R[T1]].
+
+This all means that, for example, if you have a sub:
+
+    sub f(Num @arr) { ... }
+
+Then you can also call it with an array of Int.
+
+    my Int @a = 1,2,3;
+    f(@a);
+
+=head2 Interaction of typed and untyped data structures
+
+Certainly so far as Perl 6.0.0 goes, only types that have been declared
+on a container count in the type check. That is, if we have a sub:
+
+    sub f(Int @arr) { ... }
+    
+And call it with any of:
+
+    f([1,2,3]);
+    my @a = 1,2,3;
+    f(@a);
+
+Then neither of these calls will work. The type check is based on the
+declared type of the array, and the content is unknown to the type
+checker.
 
 =for vim:set expandtab sw=4:
