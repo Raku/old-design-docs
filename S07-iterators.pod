@@ -6,12 +6,12 @@ Synopsis 7: Iterators and Laziness
 
 =head1 Version
 
- Maintainer:    ???
+ Maintainer:    *
  Contributions: Tim Nelson <wayland@wayland.id.au>
                 Daniel Ruoso <daniel@ruoso.com>
  Date:          27 Nov 2008
- Last Modified: 19 Apr 2008
- Version:       4
+ Last Modified: 20 Apr 2008
+ Version:       5
 
 =head1 Laziness and Eagerness
 
@@ -32,12 +32,15 @@ Perl 6 defines 4 levels of laziness:
 =item Strictly Lazy
 
 Does not evaluate anything unless explictly required by the user,
-including not traversing non-lazy objects.
+including not traversing non-lazy objects.  This behavior is generally
+available only by pragma or by explicit programming with non-lazy
+primitives.
 
 =item Mostly Lazy
 
 Try to obtain available items without causing eager evaluation of
-other lazy objects.
+other lazy objects.  However, the implementation is allowed to do batching
+for efficiency.
 
 =item Mostly Eager
 
@@ -47,16 +50,18 @@ be infinite.
 =item Strictly Eager
 
 Obtain all items, fail in data structures known to be infinite.
+This behavior is generally available only by pragma or by explicit
+programming primitives.
 
 =back
 
-It's important to realize that the responsability of determining the
-level of lazyness/eagerness in each operation is external to each lazy
+It's important to realize that the responsibility of determining the
+level of laziness/eagerness in each operation is external to each lazy
 object, the runtime, depending on which operation is being performed,
-is going to assume the level of lazyness and perform the needed
+is going to assume the level of laziness and perform the needed
 operations to apply that level.
 
-=head2 The lazyness level of some common operations
+=head2 The laziness level of some common operations
 
 =over
 
@@ -91,7 +96,7 @@ list.
 =back
 
 But it's important to notice that eagerness takes precedence over
-lazyness, meaning that
+laziness, meaning that
 
   my @a = grep { ... } <== map { ... } <== grep { ... } <== 1, 2, 3
 
@@ -111,7 +116,7 @@ creates. On the other hand
   my @b <== map { ... }, @c;
   my @a = grep { ... }, @b;
 
-provides the same lazyness level of the first example.
+provides the same laziness level of the first example.
 
 =head1 The Iterator Role
 
@@ -142,11 +147,11 @@ The methods in this role are:
 
 =head2 method get {...}
 
-Returns the items for that iteration. The grouping of elements
+Returns the next item for that iteration. The grouping of elements
 returned in each iteration is visible if this iterator is being used
 to build a slice. While building a List, the items will be flattened.
 
-When it runs out of items, it will throw an OutOfItemsException.  
+When it runs out of items, it will return C<Nil>.  
 
 =head1 The Iterator::PushBack Role
 

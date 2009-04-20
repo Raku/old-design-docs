@@ -17,8 +17,8 @@ DRAFT: Synopsis 32: Setting Library - IO
                 Daniel Ruoso <daniel@ruoso.com>
                 Lyle Hopkins <webmaster@cosmicperl.com>
  Date:          19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
- Last Modified: 13 Apr 2009
- Version:       5
+ Last Modified: 20 Apr 2009
+ Version:       6
 
 The document is a draft.
 
@@ -830,6 +830,7 @@ Windows system, this can be a parent directory, as permissions are inherited.
 =item lines
 
     method lines ($handle:
+        Any  $limit = *,
 	Bool :$bin = False,
 	Str  :$enc = "Unicode",
 	Any  :$nl = "\n",
@@ -838,6 +839,7 @@ Windows system, this can be a parent directory, as permissions are inherited.
     ) is export
 
     multi lines (Str $filename,
+        Any  $limit = *,
 	Bool :$bin = False,
 	Str  :$enc = "Unicode",
 	Any  :$nl = "\n",
@@ -845,9 +847,28 @@ Windows system, this can be a parent directory, as permissions are inherited.
 	--> List
     )
 
-Returns all the lines of a file as a C<List> regardless of context.
+Returns some or all the lines of a file as a C<List> regardless of context.
 See also C<slurp>.  Note that lists are lazy by default, but you
-can always ask for C<eager lines>.
+can always ask for C<eager lines>.  Note that the limit semantics cannot be
+duplicated by subscripting, since
+
+    $fh.lines[^5]
+
+reads all the lines before the subscript gives you the first five,
+whereas
+
+    $fh.lines(5)
+
+reads only five lines from the handle.  Note that
+
+    $fh.lines(1)
+
+is equivalent to
+
+    $fh.get
+
+If fewer lines are available than the limit, it is not an error;
+you just get the number of lines available.
 
 =item slurp
 
