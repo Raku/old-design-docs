@@ -14,7 +14,7 @@ Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
   Last Modified: 24 Apr 2009
   Number: 2
-  Version: 165
+  Version: 166
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -81,7 +81,7 @@ since they're bidirectional but not in the Ps/Pe/Pi/Pf sets.
 
 Characters with no corresponding closing character do not qualify
 as opening brackets.  This includes the second section of the Unicode
-BidiMirroring data table, as well as C<U+201A> and C<U+201E>.
+BidiMirroring data table.
 
 If a character is already used in Ps/Pe/Pi/Pf mappings, then any entry
 in BidiMirroring is ignored (both forward and backward mappings).
@@ -96,6 +96,14 @@ The C<U+301D> codepoint has two closing alternatives, C<U+301E> and C<U+301F>;
 Perl 6 only recognizes the one with lower code point number, C<U+301E>,
 as the closing brace.  This policy also applies to new one-to-many
 mappings introduced in the future.
+
+However, many-to-one mappings are fine; multiple opening characters
+may map to the same closing character.  For instance, U+2018, U+201A,
+and U+201B may all be used as the opener for the U+2019 closer.
+Constructs that count openers and closers assume that only the given
+opener is special.  That is, if you open with one of the alternatives,
+all other alternatives are treated as non-bracketing characters within
+that construct.
 
 =back
 
