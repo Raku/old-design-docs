@@ -14,9 +14,9 @@ Allison Randal <al@shadowed.net>
    Maintainer: Patrick Michaud <pmichaud@pobox.com> and
                Larry Wall <larry@wall.org>
    Date: 24 Jun 2002
-   Last Modified: 19 Mar 2009
+   Last Modified: 29 Apr 2009
    Number: 5
-   Version: 95
+   Version: 96
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1074,82 +1074,7 @@ remaining variants, assuming they can be differentiated by type.
 
 =item *
 
-An interpolated hash provides a way of inserting various forms of
-run-time table-driven submatching into a regex.  An interpolated hash
-matches the longest possible token (typically the longest combination
-of key and value).  The match fails if no entry matches.  (A "" key
-will match anywhere, provided no other entry takes precedence by the
-longest token rule.)
-
-In a context requiring a set of initial token patterns, the initial
-token patterns are taken to be each key plus any initial token pattern
-matched by the corresponding value (if the value is a string or regex).
-The token patterns are considered to be canonicalized in the same way
-as any surrounding context, so for instance within a case-insensitive
-context the hash keys must match insensitively also.
-
-Subsequent matching depends on the hash value:
-
-=over 4
-
-=item *
-
-If the corresponding value of the hash element is a closure, it
-is executed.
-
-=item *
-
-If the value is a string, it is matched literally, starting after where
-the key left off matching.  As a natural consequence, if the value is
-C<"">, nothing special happens except that the key match succeeds.
-
-=item *
-
-If it is a C<Regex> object, it is executed as a subrule, with an
-initial position I<after> the matched key.  (This is further described
-below under the C<< <%hash> >> notation.)  As with scalar subrules,
-a tainted subrule always fails, and no capture is attempted.
-
-=item *
-
-If the value is a number, this entry represents a "false match".
-The match position is set back to before the current false match, and the
-key is rematched using the same hash, but this time ignoring any keys
-longer than the number.  (This is measured in the default Unicode
-level in effect where the hash was declared, usually graphemes. If
-the current Unicode level is lower, the results are as if the string
-to be matched had been upconverted to the hash's Unicode level.  If
-the current Unicode level is higher, the results are undefined if the
-string contains any characters whose interpretation would be changed
-by the higher Unicode level, such as language-dependent ligatures.)
-
-=item *
-
-Any other value causes the match to fail.
-
-=back
-
-All hash keys, and values that are strings, pay attention to the
-C<:ignorecase> and C<:ignoreaccent> settings.  (Subrules maintain their
-own case settings.)
-
-You may combine multiple hashes under the same longest-token
-consideration by using declarative alternation:
-
-    %statement | %prefix | %term
-
-This means that, despite being in a later hash, C<< %term<food> >>
-will be selected in preference to C<< %prefix<foo> >> because it's
-the longer token.  However, if there is a tie, the earlier hash wins,
-so C<< %statement<if> >> hides any C<< %prefix<if> >> or C<< %term<if> >>.
-
-In contrast, if you use a procedural alternation:
-
-    [ %prefix || %term ]
-
-a C<< %prefix<foo> >> would be selected in preference to a C<< %term<food> >>.
-(Which is not what you usually want if your language is to do longest-token
-consistently.)
+The use of a hash variable in patterns is reserved.
 
 =item *
 
@@ -1298,16 +1223,7 @@ This assertion is not automatically captured.
 
 =item *
 
-A leading C<%> matches like a bare hash except that a string value is
-always treated as a subrule, even if it is a string that must be compiled
-to a regex at match time.  (Numeric values may still indicate "false match".
-and a closure may do whatever it likes.)
-
-This assertion is not automatically captured.
-
-As with bare hash, the longest key matches according to the venerable
-I<longest-token rule>.  [Conjecture: <%foo> may not be supported in 6.0, or
-may be retargeted to matching an abbreviation table.]
+The use of a hash as an assertion is reserved.
 
 =item *
 
