@@ -12,9 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 13 Sep 2004
-  Last Modified: 6 Apr 2009
-  Number: 9
-  Version: 32
+  Last Modified: 30 Apr 2009
+  Version: 33
 
 =head1 Overview
 
@@ -1242,13 +1241,13 @@ But these bindings I<do> autovivify:
     %hash<foo><bar> = "foo"; # duh
 
 This rule applies to C<Array>, C<Hash>, and any other container type that
-chooses to return an autovivifiable protoobject (see S12) rather than simply
+chooses to return an autovivifiable type object (see S12) rather than simply
 returning C<Failure> when a lookup fails.  Note in particular that, since
-autovivification is defined in terms of protoobjects rather than failure,
+autovivification is defined in terms of type objects rather than failure,
 it still works under "use fatal".
 
 This table solidifies the intuition that an operation pertaining to some data
-structure causes the protoobject to autivivify to such an object:
+structure causes the type object to autivivify to such an object:
 
     operation                autovivifies to
     =========                ===============
@@ -1260,22 +1259,25 @@ cause an C<Int> to appear, C<~=> will create a C<Str> etc; but these are
 natural consequences of the operators working on C<Failure>, qualitatively
 different from autovivifying containers.
 
-The type of the protoobject returned by a non-successful lookup should 
+The type of the type object returned by a non-successful lookup should 
 be identical to the type that would be returned for a successful lookup.
+The only difference is whether it's officially instantiated (defined) yet.
+That is, you cannot distinguish them via C<.WHAT> or C<.HOW>, only via
+C<.defined>.
 
-Binding of an autovivifiable protoobject to a non-writeable container
-translates the protoobject into a similar protoobject without
-its autovivifying closure and puts that new protoobject into the
+Binding of an autovivifiable type object to a non-writeable container
+translates the type object into a similar type object without
+its autovivifying closure and puts that new type object into the
 container instead (with any pertinent historical diagnostic information
 carried over).  There is therefore no magical method you can call on
-the readonly parameter that can magically autovivify the protoobject
+the readonly parameter that can magically autovivify the type object
 after the binding.  The newly bound variable merely appears to be a
-simple uninitialized value.  (The original protoobject retains its
+simple uninitialized value.  (The original type object retains its
 closure in case it is rebound elsewhere to a read-write container.)
 
 Some implementation notes:  Nested autovivifications work by making
-nested protoobjects that depend on each other.  In the general case
-the containers must produce protoobjects any time they do not know
+nested type objects that depend on each other.  In the general case
+the containers must produce type objects any time they do not know
 how the container will be bound.  This includes when interpolated into
 any capture that has delayed binding:
 

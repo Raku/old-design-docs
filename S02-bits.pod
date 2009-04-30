@@ -12,9 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 24 Apr 2009
-  Number: 2
-  Version: 166
+  Last Modified: 30 Apr 2009
+  Version: 167
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -520,7 +519,7 @@ Constraints and container types can be used together:
     # and is implemented by the MyScalar class
     my Int $x is MyScalar;
 
-Note that C<$x> is also initialized to the C<Int> protoobject.  See below for more on this.
+Note that C<$x> is also initialized to the C<Int> type object.  See below for more on this.
 
 =item *
 
@@ -534,15 +533,15 @@ It merely assigns an undefined C<Dog> prototype object to C<$spot>:
     say $spot;              # "Dog"
 
 Any type name used as a value is an undefined instance of
-that type's prototype object, or I<protoobject>.  See S12 for more on that.
-Any type name in rvalue context is parsed as a single protoobject value and
-expects no arguments following it.  However, a protoobject responds to the function
-call interface, so you may use the name of a protoobject with parentheses as if it
+that type's prototype object, or I<type object> for short.  See S12 for more on that.
+Any type name in rvalue context is parsed as a single type value and
+expects no arguments following it.  However, a type object responds to the function
+call interface, so you may use the name of a type with parentheses as if it
 were a function, and any argument supplied to the call is coerced
-to the type indicated by the protoobject.  If there is no argument
-in the parentheses, the protoobject returns itself:
+to the type indicated by the type object.  If there is no argument
+in the parentheses, the type object returns itself:
 
-    my $type = Num;             # protoobject as a value
+    my $type = Num;             # type object as a value
     $num = $type($string)       # coerce to Num
 
 To get a real C<Dog> object, call a constructor method such as C<new>:
@@ -938,7 +937,7 @@ built-in C<undef> and C<fail> functions.  (See S04 for how failures
 are handled.)
 
     Nil         Empty list viewed as an item
-    Object      Uninitialized (derivatives serve as protoobjects of classes)
+    Object      Uninitialized (derivatives serve as type objects)
     Whatever    Wildcard (like undef, but subject to do-what-I-mean via MMD)
     Failure     Failure (lazy exceptions, thrown if not handled properly)
 
@@ -1386,8 +1385,9 @@ as any C<Block> or C<Routine>.  The C<Callable> role implies the ability
 to support C<< postcircumfix:<( )> >>.
 
 C<::x> may be bound to any object that does the C<Abstraction> role,
-such as a typename, package, module, class, role, grammar, or any other
-protoobject with C<.HOW> hooks.  This C<Abstraction> role implies the
+such as a package, module, class, role, grammar, or any other
+type object, or any immutable value object that can be used as a type.
+This C<Abstraction> role implies the
 ability to do various symbol table and/or typological manipulations which
 may or may not be supported by any given abstraction.  Mostly though it
 just means that you want to give some abstraction an official name that
@@ -1967,9 +1967,9 @@ the package name as a hash:
     PROCESS::<$IN>      # Same as $*IN
     Foo::<::Bar><::Baz> # same as Foo::Bar::Baz
 
-The C<::> before the subscript is required here, because the C<Foo::Bar{...}>
-syntax is reserved for defining an autovivifiable protoobject along with
-its initialization closure (see S12).
+The C<::> before the subscript is required here, because the
+C<Foo::Bar{...}> syntax is reserved for attaching a "WHENCE"
+initialization closure to an autovivifiable type object.  (see S12).
 
 Unlike C<::()> symbolic references, this does not parse the argument
 for C<::>, nor does it initiate a namespace scan from that initial
@@ -3457,18 +3457,21 @@ containers (such as slice and hash context; see S03 for details).
 =item *
 
 Unlike in Perl 5, objects are no longer always considered true.
-It depends on the state of their C<.true> property.  Classes get to decide
+It depends on the state of their C<.Bool> property.  Classes get to decide
 which of their values are true and which are false.  Individual objects
 can override the class definition:
 
     return 0 but True;
 
+This overrides the C<.Bool> method of the C<0> without changing its
+official type (by mixing the method into an anonymous derived type).
+
 =item *
 
-The definition of C<.true> for the most ancestral type (that is, the
-C<Object> type) is equivalent to C<.defined>.  Since protoobjects are
-considered undefined, all protoobjects (including C<Object> itself)
-are false unless the type overrides the definition of C<.true>
+The definition of C<.Bool> for the most ancestral type (that is, the
+C<Object> type) is equivalent to C<.defined>.  Since type objects are
+considered undefined, all type objects (including C<Object> itself)
+are false unless the type overrides the definition of C<.Bool>
 to include undefined values.  Instantiated objects default to true
 unless the class overrides the definition.  Note that if you could
 instantiate an C<Object> it would be considered defined, and thus true.

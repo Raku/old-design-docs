@@ -12,9 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 27 Apr 2009
-  Number: 12
-  Version: 80
+  Last Modified: 30 Apr 2009
+  Version: 81
 
 =head1 Overview
 
@@ -120,15 +119,20 @@ You may put these inside as well:
         ...
     }
 
-Every object (including any class object) delegates to an instance of
+Every object (including any class-based object) delegates to an instance of
 its metaclass.  You can get at the metaclass of any object via the
 C<HOW> method, which returns an instance of the metaclass.  A "class" object is just considered an "empty"
-instance in Perl 6, more properly called a "prototype" object, or just
-"protoobject".
-The actual class object is the metaclass object pointed to by the
+instance in Perl 6, more properly called a "prototype" or "generic" object, or just
+"type object".  Perl 6 doesn't really have any classes named C<Class>.
+Types of all kinds are instead named via these undefined type objects,
+which are considered to have exactly the same type as an instantiated
+version of themsleves.  But such type objects are inert, and do not
+manage the state of class instances.
+
+The actual object that manages instances is the metaclass object pointed to by the
 C<HOW> syntax.  So when you say "C<Dog>", you're referring to both a
-package and a protoobject, that latter of which points to the
-actual object representing the class via C<HOW>.  The protoobject
+package and a type object, the latter of which points to the
+object representing the class via C<HOW>.  The type object
 differs from an instance object not by having a different
 type but rather in the extent to which it is defined.  Some objects
 may tell you that they are defined, while others may tell you that
@@ -496,7 +500,7 @@ You can also get at the container through the appropriate symbol table:
 Other OO languages give you the ability to declare "class" methods that either don't
 need or actively prohibit calls on instances.  Perl 6 gives you a choice.
 If you declare an ordinary method, it can function as a "class" method when you
-pass it a protoobject such as "C<Dog>" regardless of how defined the prototype
+pass it a type object such as "C<Dog>" regardless of how defined the prototype
 object is, as long as the method body doesn't try to access any information that
 is undefined in the current instance.
 
@@ -683,11 +687,11 @@ the current class by calling C<CREATE>:
 
 In addition to the candidate position argument, C<bless> also
 allows one or more positional arguments representing autovivifying
-protoobjects.  Such an object looks like a prototype followed by a
+type objects.  Such an object looks like a type name followed by a
 hash subscript (see "Autovivifying objects" below).  These are used
 to initialize superclasses.
 
-Other than the candidate object and any autovivifying protoobjects,
+Other than the candidate object and any autovivifying type objects,
 all arguments to C<bless> must be named arguments, not positional.
 Hence, the main purpose of custom constructors is to turn positional
 arguments into named arguments for C<bless>.  The C<bless> method
@@ -717,17 +721,17 @@ so you need to write initialization routines only if you wish to
 modify the default behavior.  The C<bless> function automatically
 passes the appropriate argument list to the C<BUILD> of its various
 parent classes.  If the type of the parent class corresponds to one
-of the protoobjects passed to bless, that protoobject's argument
+of the type objects passed to bless, that type object's argument
 list is used.  Otherwise all the arguments to bless are passed to
 the parent class's C<BUILD>.  For the final C<BUILD> of the current
 object, all the arguments to C<bless> are passed to the C<BUILD>, so
-it can deal with any protoobjects that need special handling.  (It is
-allowed to pass protoobjects that don't correspond to any parent class.)
+it can deal with any type objects that need special handling.  (It is
+allowed to pass type objects that don't correspond to any parent class.)
 
     class Dog is Animal {...}
     my $pet = Dog.new( :name<Fido>, Animal{ :blood<warm>, :legs(4) } );
 
-Here we are using an autovivifying C<Animal> protoobject to specify what
+Here we are using an autovivifying C<Animal> type object to specify what
 the arguments to C<Animal>'s C<BUILD> routine should look like.  (It does
 not actually autovivify an C<Animal> apart from the one being created.)
 
@@ -1610,7 +1614,7 @@ Just use it in a boolean context.
 
 Like type names, enum names are parsed as standalone tokens
 representing scalar values, and don't look for any arguments.
-Unlike type names which are undefined protoobjects, enums are defined
+Unlike type names which are undefined type objects, enums are defined
 constant values.  Also unlike types, they do not respond to C<.()>
 unless you mix in C<Callable> somehow.
 They may not be post-declared.
@@ -1627,7 +1631,7 @@ still may only be called with parentheses, since the enum symbol
 is "poisoned".)
 
 Enum types (and perhaps certain other finite, enumerable types such
-as finite ranges) define a C<.pick> method on the protoobject of
+as finite ranges) define a C<.pick> method on the type object of
 that type.  Hence:
 
     my enum CoinFace <Heads Tails>;
@@ -1728,7 +1732,7 @@ C<hides Base> instead of C<is Base>.
 
 Metamethods for objects are named with interrogative pronouns in uppercase:
 
-    WHAT        the protoobject of the type, stringifies to short name ~ '()'
+    WHAT        the type object of the type, stringifies to short name ~ '()'
     WHICH       the object's identity value
     WHO         the package supporting the object, stringifies to long name
     WHERE       the memory address of the object
@@ -1761,8 +1765,8 @@ In particular, the C<.^> forms will automatically supply the invocant
 as the first argument to methods of the metaclass, while the other
 forms require you to pass this explicitly.
 
-Note that WHAT appends C<()> to indicate emptiness.  Use C<.perl> to get the
-bare name from a protoobject.
+Note that C<WHAT> appends C<()> to indicate emptiness.  Use C<.perl> to get the
+bare name from a type object.
 
 In general, use of these in ordinary code should be a red flag that
 Something Very Strange is going on.  (Hence the allcaps.)  Most code
@@ -1929,7 +1933,7 @@ attempting to create a punned class of the same name as the role.
 Whether this succeeds or not depends on whether the role is
 sufficiently complete to serve as a class on its own.  Regardless of
 whether such an attempt would succeed, it is always perfectly fine to
-define a lazy protoobject for a role just as long as it's only ever
+define a lazy type object for a role just as long as it's only ever
 used as an argument to C<bless>, since C<bless> will only be using
 its closure to construct the role's C<BUILD> arguments in the context
 of the complete new class.  (Of course, an inconsistent or incomplete
@@ -1938,11 +1942,11 @@ role autovivification mentioned above is likely to be implemented by
 failing at the point of class composition.)
 
 Note that when used as an argument to a method like C<bless>,
-the protoobject is sufficiently lazy that autovivifying is done
+the type object is sufficiently lazy that autovivifying is done
 only by the appropriate C<BUILD> routine.  It does not waste energy
 creating a C<Dog> object when that object's attributes would later
 have to be copied into the actual object.  (On top of which, such
-an implementation would make it impossible to use protoobjects to
+an implementation would make it impossible to use type objects to
 initialize incomplete roles.)
 
 The object autovivification syntax works only for literal named types,

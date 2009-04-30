@@ -12,9 +12,8 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 19 Apr 2009
-  Number: 3
-  Version: 163
+  Last Modified: 30 Apr 2009
+  Version: 164
 
 =head1 Overview
 
@@ -3468,11 +3467,12 @@ you must instead use a hyperoperator (see below):
 
     ($a,$b,$c) »+=» 1;  # add one to each of three variables
 
-If you apply an assignment operator to a protoobject, it is assumed that
+If you apply an assignment operator to a container containing a type object
+(which is undefined), it is assumed that
 you are implementing some kind of notional "reduction" to an accumulator
 variable.  To that end, the operation is defined in terms
-of the corresponding reduction operator, where the protoobject
-becomes the operator's identify value.  So if you say:
+of the corresponding reduction operator, where the type object
+autovivifies to the operator's identify value.  So if you say:
 
     $x -= 1;
 
@@ -4095,7 +4095,7 @@ in Perl 6 rather than retaining its previous value.)  Native integer
 containers that do not support the concept of undefined should be
 initialized to 0 instead.  (Native floating-point containers are
 by default initialized to C<NaN>.)  Typed object containers start
-out containing an undefined protoobject of the correct type.
+out containing an undefined type object of the correct type.
 
 List-context pseudo-assignment is supported for simple declarations but
 not for signature defaults:
@@ -4112,8 +4112,9 @@ the infix operator will be the variable's prototype object:
     constant Dog $fido = $fido.new; # wrong: invalid self-reference
     constant (Dog $fido .= new);    # wrong: cannot use .= with parens
 
-Note that very few mutating operators make sense on a protoobject, however,
-since protoobjects are a kind of undefined object.
+Note that very few mutating operators make sense on a type object, however,
+since type objects are a kind of undefined object.  (Those operators with
+an identity value are an exception, as noted above.)
 
 Parentheses must always be used when declaring multiple parameters:
 
