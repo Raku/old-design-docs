@@ -11,9 +11,9 @@ Synopsis 14: Roles and Parametric Types [DRAFT]
   Contributions: Tim Nelson <wayland@wayland.id.au>
                  Jonathan Worthington <jnthn@jnthn.net>
   Date: 24 Feb 2009, extracted from S12-objects.pod
-  Last Modified: 19 Apr 2009
+  Last Modified: 30 Apr 2009
   Number: 14
-  Version: 2
+  Version: 3
 
 =head1 Overview
 
@@ -157,6 +157,8 @@ that is considered an implementation detail:
         is Friend;
     }
 
+=head2 Compile-time Composition
+
 A class incorporates a role with the verb "does", like this:
 
     class Dog is Mammal does Pet does Sentry {...}
@@ -207,6 +209,8 @@ The proto method will be called if the multi fails:
 
     proto method shake { warn "They couldn't decide" }
 
+=head2 Run-time Mixins
+
 Run-time mixins are done with C<does> and C<but>.  The C<does> binary
 operator is a mutator that derives a new anonymous class (if necessary)
 and binds the object to it:
@@ -253,21 +257,16 @@ to the mixin class:
     $fido does Wag($tail);
     $line does taint($istainted);
 
-The supplied initializer will be coerced to type of the attribute.
+Note that the parenthesized form is I<not> a subroutine or method call.
+It's just special initializing syntax for roles that contain a single
+property.
+
+The supplied initializer will be coerced to the type of the attribute.
 Note that this initializer is in addition to any parametric type
 supplied in square brackets, which is considered part of the actual
 type name:
 
     $myobj does Array[Int](@initial)
-
-The C<but> operator creates a copy and works on that.  It also knows
-how to generalize a particular enumerated value to its role.  So
-
-    0 but True
-
-is short for something like:
-
-    0 but Bool::True
 
 A property is defined by a role like this:
 
@@ -275,22 +274,72 @@ A property is defined by a role like this:
         has Int $.answer is rw = 1;
     }
 
-Then you can say
+The property can then be mixed in or, alternatively, applied using the
+C<but> operator. C<but> is like C<does>, but creates a copy and mixes into
+that instead, leaving the original unmodified. Thus:
 
     $a = 0 but answer(42)
 
-Note that the parenthesized form is I<not> a subroutine or method call.
-It's just special initializing syntax for roles that contain a single
-property.  The above really means something like:
+Really means something like:
 
     $a = ($anonymous = 0) does answer(42);
 
-which really means:
+Which really means:
 
     (($anonymous = 0) does answer).answer = 42;
     $a = $anonymous;
 
 Which is why there's a C<but> operator.
+
+If you put something that is not a role on the right hand side of the
+C<does> or C<but> operators then an anonymous role will be auto-generated
+containing a single method that returns that value. The name of the method
+is determined by stringifying .WHAT on the value supplied on the RHS. The
+generated role is then mixed in to the object. For example:
+
+    $x does 42
+
+Is equivalent to:
+
+    $x does role { method Int() { return 42 } }
+
+Note that the role has no attributes and thus no storage; if you want that,
+then you should instead use:
+
+    $x does Int(42)
+
+Which mixes in the Int role and initializes the single storage location Int
+that it declares with 42, and provides an lvalue accessor.
+
+Note that .WHAT on an enumeration value stringifies to the name of the
+enumeration, and as a result:
+
+    0 but True
+
+Is equivalent to:
+
+    0 but role { method Bool() { return True } }
+
+And thus the resulting value will be considered true in boolean context.
+
+The list syntax for composing multiple roles in a single C<does> or C<but>
+by putting them in a list also applies here. Thus:
+
+    42 but ("the answer", False)
+
+Is equivalent to:
+
+    42 but (role { method Str() { return "the answer" } },
+            role { method Bool() { return False } })
+
+Which gives you a compact way to build context-sensitive return values.
+Note that multiple roles rather than a single one are generated, so that
+anything like:
+
+    42 but (True, False)
+
+Will fail as a result of standard role composition semantics (because two
+roles are both trying to provide a method Bool).
 
 =head1 Traits
 
