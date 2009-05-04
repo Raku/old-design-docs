@@ -12,8 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 30 Apr 2009
-  Version: 81
+  Last Modified: 4 May 2009
+  Version: 82
 
 =head1 Overview
 
@@ -653,7 +653,12 @@ When it is called at C<BUILD> time, the topic of the implicit closure
 will be the attribute being initialized, while "self" refers to the
 entire object being initialized.  The closure will be called at the
 end of the C<BUILD> only if the attribute is not otherwise initialized
-in either the signature or the body of the C<BUILD>.
+in either the signature or the body of the C<BUILD>.  The closure
+actually defines the body of an anonymous method, so C<self> is available
+with whatever attributes are constructed by that point in time (including
+all parent attributes).  The initializers are run in order of declaration
+within the class, so a given initializer may refer back to an attribute
+defined in a preceding C<has> declaration.
 
 Class attributes are declared with either C<my> or C<our>.  The only
 difference from ordinary C<my> or C<our> variables is that an accessor
