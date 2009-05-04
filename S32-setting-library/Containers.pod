@@ -15,8 +15,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
                 Moritz Lenz <moritz@faui2k3.org>
        	       	Tim Nelson <wayland@wayland.id.au>
  Date:          19 Feb 2009 extracted from S29-functions.pod
- Last Modified: 10 Apr 2009
- Version:       5
+ Last Modified: 3 May 2009
+ Version:       6
 
 The document is a draft.
 
@@ -190,10 +190,10 @@ C<first> works exactly like C<grep> but returns only the first matching value.
 
 =item pick
 
- our List multi method pick ( @values: Int $num = 1, Bool :$repl )
- our List multi method pick ( @values: Whatever, Bool :$repl )
- our List multi pick ( Int $num, Bool :$repl, *@values )
- our List multi pick ( Whatever, Bool :$repl, *@values )
+ our multi method pick ( @values: Int $num = 1, Bool :$repl )
+ our multi method pick ( @values: Whatever, Bool :$repl )
+ our multi pick ( Int $num, Bool :$repl, *@values )
+ our multi pick ( Whatever, Bool :$repl, *@values )
 
 C<pick> takes a list or array of values and returns a random
 selection of elements from the list (without replacement unless
@@ -211,6 +211,9 @@ of random picks from C<@values>:
 
     @byte = (0,1).pick(8, :repl);
     for (1..20).pick(*, :repl) -> $die_roll { ... }
+
+Due to the normal semantics of returning a C<Capture>, a pick of a
+single element may be used as an item without requiring C<.[0]>.
 
 =item join
 
@@ -273,6 +276,8 @@ single list.
         1 while take pop @values;
     }
  }
+
+Note that strings are now reversed with C<flip>.
 
 =item sort
 
@@ -433,13 +438,16 @@ non-existent state, as if they never had a value. Deleted elements at
 the end of an Array shorten the length of the Array, unless doing so
 would violate an C<is shape()> definition.
 
-C<@indices> is interpreted the same way as subscripting is in terms of
-slices and multidimensionality. See Synopsis 9 for details.
+The interpretation of C<@indices> is subject to change.
+The normal way to delete is by applying a C<:delete> adverb to
+any subscripting operation.
 
 Returns the value(s) previously held in deleted locations.
 
-An unary form is expected. See C<Hash::delete>.
+=item :delete
 
+This adverb may be applied to any subscripting operation.  The operation
+returns the elements normally, but reads them out destructively.
 
 =item exists
 
@@ -451,7 +459,15 @@ is not the same as being defined.
 Supplying a different number of indices than invocant has dimensions is
 an error.
 
-A unary form is expected. See C<Hash::delete>.
+The normal way to test for existence is to apply the C<:exists>
+adverb to a subscripting operation.
+
+=item :exists
+
+This adverb may be applied to any subscripting operation.  The
+operation returns true if specified element exists.  If a slice
+is specified by the subscript, a C<Capture> of C<Bool> is returned,
+which can be processed using junctions.
 
 
 =item pop
@@ -474,7 +490,7 @@ Remove the first element from C<@array> and return it.
 
 =item splice
 
- our List multi method splice( @array is rw: Int $offset = 0, Int $size?, *@values ) is export
+ our multi method splice( @array is rw: Int $offset = 0, Int $size?, *@values ) is export
 
 C<splice> fills many niches in array-management, but its fundamental behavior
 is to remove zero or more elements from an array and replace them with a
@@ -503,8 +519,8 @@ This behaves similarly to Perl 5's C<splice>.
 If C<@array> is multidimensional, C<splice> operates only on the first
 dimension, and works with Array References.
 
-C<splice> returns the list of deleted elements in list context, and a
-reference to a list of deleted elements in scalar context.
+C<splice> returns a C<Capture> of the deleted elements, which behaves as
+expected in either list or scalar context.
 
 
 =item unshift
@@ -521,25 +537,26 @@ C<unshift> adds the values onto the start of the C<@array>.
 
 =item values
 
- our List multi method keys ( @array: Matcher *@indextests ) is export
- our List multi method kv ( @array: Matcher *@indextests ) is export
- our List multi method pairs  (@array: Matcher *@indextests ) is export
- our List multi method values ( @array: Matcher *@indextests ) is export
+ multi method keys   ( @array: Matcher $indextests? ) is export
+ multi method kv     ( @array: Matcher $indextests? ) is export
+ multi method pairs  ( @array: Matcher $indextests? ) is export
+ multi method values ( @array: Matcher $indextests? ) is export
 
 Iterates the elements of C<@array>, in order.
 
-If C<@indextests> are provided, only elements whose indices match
-C<$index ~~ any(@indextests)> are iterated.
+If C<$indextests> is provided, only elements whose indices match
+C<$index ~~ @indextests> are iterated.  (To select on values use C<grep>.)
 
 What is returned at each element of the iteration varies with function.
 C<values> returns the value of the associated element; C<kv> returns
 a 2 element list in (index, value) order, C<pairs> a C<Pair(index, value)>.
 
-C<@array> is considered single dimensional. If it is in fact multi-dimensional,
-the values returned will be array references to the sub array.
+If C<@array> is declared to be multi-dimensional, the keys returned may
+in fact be slice lists.  (Arrays that are effectively multi-dimensional
+by containing other arrays or hashes are treat with their declared
+dimensionality, not their effective dimensionality.)
 
-In Scalar context, they all return the count of elements that would have
-been iterated.
+Note that C<kv @array> returns the same as C<zip(^@array; @array)>
 
 =back
 
@@ -553,25 +570,15 @@ The following are defined in the C<Hash> role.
 
 =item :delete
 
- our List  method :delete ( %hash: *@keys )
- our Scalar method :delete ( %hash: $key ) is default
+This adverb may be applied to any subscripting operation.  The operation
+returns the elements normally, but reads them out destructively.
 
-Deletes the elements specified by C<$key> or C<$keys> from the invocant.
-returns the value(s) that were associated to those keys:
+=item :exists
 
-    @deleted = %foo.:delete{ @keys }
-
-
-=item exists
-
- our Bool method :exists ( %hash: $key )
-
-True if invocant has an element whose key matches C<$key>, false
-otherwise.
-
-See also Code::exists to determine if a function has been declared.
-(Use defined() to determine whether the function body is defined.
-A body of ... counts as undefined.)
+This adverb may be applied to any subscripting operation.  The
+operation returns true if specified element exists.  If a slice
+is specified by the subscript, a C<Capture> of C<Bool> is returned,
+which can be processed using junctions.
 
 =item keys
 
@@ -581,26 +588,23 @@ A body of ... counts as undefined.)
 
 =item values
 
- multi Int|List keys ( %hash ; Matcher *@keytests )
- multi Int|List kv ( %hash ; Matcher *@keytests )
- multi Int|(List of Pair) pairs  (%hash ; Matcher *@keytests )
- multi Int|List values ( %hash ; Matcher *@keytests )
+ multi method keys   ( %hash: Matcher $keytests? ) is export
+ multi method kv     ( %hash: Matcher $keytests? ) is export
+ multi method pairs  ( %hash: Matcher $keytests? ) is export
+ multi method values ( %hash: Matcher $keytests? ) is export
 
 Iterates the elements of C<%hash> in no apparent order, but the order
 will be the same between successive calls to these functions, as long as
 C<%hash> doesn't change.
 
-If C<@keytests> are provided, only elements whose keys evaluate
-C<$key ~~ any(@keytests)> as true are iterated.
+If C<$keytests> is provided, only elements whose keys evaluate
+C<$key ~~ $keytests> as true are iterated.
 
 What is returned at each element of the iteration varies with function.
 C<keys> only returns the key; C<values> the value; C<kv> returns both as
 a 2 element list in (key, value) order, C<pairs> a C<Pair(key, value)>.
 
 Note that C<kv %hash> returns the same as C<zip(keys %hash; values %hash)>
-
-In Scalar context, they all return the count of elements that would have
-been iterated.
 
 The lvalue form of C<keys> is not longer supported. Use the C<.buckets>
 property instead.
@@ -743,6 +747,16 @@ C<1, 2, 3>.
 Note this is a private method; you must arrange for yourself to be trusted
 by the junctions class in order to call it, which probably involves evil
 MONKEY_PATCHING.
+
+Alternately, the values may be explicitly converted to a set value
+using C<.Set> or C<Set()>.  Note, however, that the set of eigenstates
+for a C<none> junction defines the values that are *not* there,
+so the resulting C<Set> will be the I<complement> to the universe of
+values recognized by the junction!  Also note that C<any> and C<all>
+junctions represent I<sets> of sets of items, not sets of items.
+Since set items are by definition unique, only the C<one> junction
+can be unthinkingly mapped to and from a given set.  (This is why we
+discourage casual use of the eigenstates as a set.)
 
 =back
 
