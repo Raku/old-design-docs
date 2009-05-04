@@ -12,8 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 19 Aug 2004
-  Last Modified: 19 Apr 2009
-  Version: 76
+  Last Modified: 3 May 2009
+  Version: 77
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -694,6 +694,29 @@ using function call syntax instead, and since Perl does not supply
 such a function, it will be assumed to be a user-defined function.)
 For purposes of flow control, none of these forms are considered loops,
 but they may easily be applied to a normal loop.
+
+Note that any construct in the statement_prefix category defines
+special syntax.  If followed by a block it does not parse as a
+list operator or even as a prefix unary; it will never look for any
+additional expression following the block.  In particular,
+
+    foo( try {...}, 2, 3 )
+
+calls the C<foo> function with three arguments.  And
+
+    do {...} + 1
+
+add 1 to the result of the do block.  On the other hand, if a
+statement_control is followed by a non-block statement, all nested
+blockless statement_controls will terminate at the same statement
+ending:
+
+    do do do foo(); bar 43;
+
+is parsed as:
+
+    do { do { do { foo(); }}}; bar(43);
+
 
 =head1 Switch statements
 X<given>X<when>X<switch>X<case>X<default>
