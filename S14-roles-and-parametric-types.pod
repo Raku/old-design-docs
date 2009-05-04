@@ -11,8 +11,8 @@ Synopsis 14: Roles and Parametric Types [DRAFT]
   Contributions: Tim Nelson <wayland@wayland.id.au>
                  Jonathan Worthington <jnthn@jnthn.net>
   Date: 24 Feb 2009, extracted from S12-objects.pod
-  Last Modified: 30 Apr 2009
-  Version: 4
+  Last Modified: 3 May 2009
+  Version: 5
 
 =head1 Overview
 
@@ -353,8 +353,8 @@ more multisubs into a property role like this:
 
     role xxx {
         has Int $.xxx;
-        multi trait_auxiliary:is(xxx $trait, Class $container; $arg?) {...}
-        multi trait_auxiliary:is(xxx $trait, Any $container; $arg?) {...}
+        multi trait_auxiliary:<is>(xxx $trait, Class $container; $arg?) {...}
+        multi trait_auxiliary:<is>(xxx $trait, Any $container; $arg?) {...}
     }
 
 Then it can function as a trait.  A well-behaved trait handler will say
@@ -366,19 +366,19 @@ Since a class can function as a role when it comes to parameter type
 matching, you can also say:
 
     class MyBase {
-        multi trait_auxiliary:is(MyBase $base, Class $class; $arg?) {...}
-        multi trait_auxiliary:is(MyBase $tied, Any $container; $arg?) {...}
+        multi trait_auxiliary:<is>(MyBase $base, Class $class; $arg?) {...}
+        multi trait_auxiliary:<is>(MyBase $tied, Any $container; $arg?) {...}
     }
 
 These capture control if C<MyBase> wants to capture control of how it gets
 used by any class or container.  But usually you can just let it call
 the generic defaults:
 
-    multi trait_auxiliary:is(Class $base, Class $class; $arg?) {...}
+    multi trait_auxiliary:<is>(Class $base, Class $class; $arg?) {...}
 
 which adds C<$base> to the "isa" list of C<$class>, or
 
-    multi trait_auxiliary:is(Class $tied, Any $container; $arg?) {...}
+    multi trait_auxiliary:<is>(Class $tied, Any $container; $arg?) {...}
 
 which sets the "tie" type of the container to the implementation type
 in C<$tied>.
@@ -389,8 +389,8 @@ or "C<should>", or "C<does>".  We call these helping verbs "trait
 auxiliaries". Here's "C<will>", which (being syntactic sugar) merely
 delegates to back to "is":
 
-    multi sub trait_auxiliary:will($trait, $container; &arg) {
-        trait_auxiliary:is($trait, $container, &arg);
+    multi sub trait_auxiliary:<will>($trait, $container; &arg) {
+        trait_auxiliary:<is>($trait, $container, &arg);
     }
 
 Other traits are applied with a single word, and we call one of those a
@@ -399,7 +399,7 @@ is defined something like this:
 
     role as {
         has ReturnType $.as;
-        multi sub trait_verb:as($container; ReturnType $arg) {
+        multi sub trait_verb:<as>($container; ReturnType $arg) {
             $container does as($arg);
         }
         ...
@@ -409,7 +409,7 @@ Unlike compile-time roles, which all flatten out in the same class,
 compile-time traits are applied one at a time, like mixin roles.
 You can, in fact, apply a trait to a container at run time, but
 if you do, it's just an ordinary mixin role. You have to call the
-appropriate C<trait_auxiliary:is()> routine yourself if you want it to
+appropriate C<trait_auxiliary:<is>()> routine yourself if you want it to
 do any extra shenanigans.  The compiler won't call it for you at run
 time like it would at compile time.
 
