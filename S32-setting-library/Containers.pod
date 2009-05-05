@@ -15,8 +15,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
                 Moritz Lenz <moritz@faui2k3.org>
        	       	Tim Nelson <wayland@wayland.id.au>
  Date:          19 Feb 2009 extracted from S29-functions.pod
- Last Modified: 3 May 2009
- Version:       6
+ Last Modified: 5 May 2009
+ Version:       7
 
 The document is a draft.
 
@@ -674,16 +674,10 @@ to the original hash.
 
 =back
 
-=head2 Tieable
-
-    role Tieable {...}
-
 =head1 Classes
 
 This documents Buf, List, Seq, Range, Set, Bag, Junction, Array, Hash, KeyHash, KeySet, 
 KeyBag, Pair, and Mapping.  
-
-XXX So where are KeySet and KeyBag.
 
 =head2 Seq
 
@@ -703,9 +697,14 @@ XXX So where are KeySet and KeyBag.
 
     class Buf does Positional {...}
 
+A mutable container for an array of integer values in contiguous
+memory.
+
 =head2 Pair
 
     class Pair does Associative {...}
+
+The value of a pair is mutable; the key is not.
 
 =item invert
 
@@ -717,17 +716,75 @@ XXX So where are KeySet and KeyBag.
 
     class Mapping does Associative {...}
 
+An immutable hash value, essentially.  The keys may
+not contain duplicates, while the values may.
+
 =head2 Set
 
     class Set does Associative {...}
+
+A set of unique values.  When used as a hash always treats the set's
+values as the keys of the hash, returning C<True> for set elements.
+See C<KeySet> for a container that can represent different sets
+as keys are added or delete.
+
+=over
+
+=item pick
+
+ our multi method pick ( $set: Int $num = 1, Bool :$repl )
+ our multi method pick ( $set: Whatever, Bool :$repl )
+
+Like an ordinary list pick, but returns keys of the bag weighted by
+values, as if the keys were replicated the number of times indicated
+by the corresponding value and then list pick used. C<KeySet> is the
+mutable form of C<Set>.  A C<Set> responds to hash operators as
+if it were a C<Hash of True>.
+
+=back
+
+=head2 KeySet
+
+A mutable Set container, represented as C<KeyHash of True>.
 
 =head2 Bag
 
     class Bag does Associative {...}
 
+=over
+
+=item pick
+
+ our multi method pick ( $bag: Int $num = 1, Bool :$repl )
+ our multi method pick ( $bag: Whatever, Bool :$repl )
+
+Like an ordinary list pick, but returns keys of the bag weighted by
+values, as if the keys were replicated the number of times indicated
+by the corresponding value and then list pick used.  C<KeyBag> is the
+mutable form of C<Bag>.  A C<Bag> responds to hash operators as
+if it were a C<Hash of UInt>.
+
+=back
+
+=head2 KeyBag
+
+A mutable C<Bag> container, represented as C<KeyHash of UInt>.
+
 =head2 KeyHash
 
     class KeyHash does Associative {...}
+
+A KeyHash represents a mutable set of values, represented as the keys
+of a C<Hash>.  When asked to behave as a list it ignores its values
+and returns only C<.keys>.  C<KeySet> and C<KeyBag> are derived from
+this type, but constrain their values to be C<Bool> and C<UInt>,
+respectively.  A C<KeyHash> automatically deletes any key whose
+value goes false.
+
+=head2 KeyWeight
+
+A C<KeyHash of Num>; like a C<KeyBag> but may have non-integral
+weights for use in weighted picking.
 
 =head2 junction
 
