@@ -336,7 +336,7 @@ P5's C<< split('S< >') >> will translate to C<comb>.  Null trailing fields
 are no longer trimmed by default.
 
 The C<split> function no longer has a default delimiter nor a default invocant.
-In general you should use C<comb> to split on whitespace now, or to break
+In general you should use C<words> to split on whitespace now, or to break
 into individual characters.  See below.
 
 If the C<:all> adverb is supplied to the C<Regex> form, then the
@@ -356,7 +356,7 @@ a C<Cat> is undefined.
 =item comb
 
  our List multi comb ( Regex $matcher, Str $input, Int $limit = * )
- our List multi method comb ( Str $input: Regex $matcher = /\S+/, Int $limit = * )
+ our List multi method comb ( Str $input: Regex $matcher = /./, Int $limit = * )
 
 The C<comb> function looks through a string for the interesting bits,
 ignoring the parts that don't match.  In other words, it's a version
@@ -365,7 +365,7 @@ of split where you specify what you want, not what you don't want.
 That means the same restrictions apply to the matcher rule as do to
 split's delimiter rule.
 
-By default it pulls out all the words.  Saying
+By default it pulls out all individual characters.  Saying
 
     $string.comb(/pat/, $n)
 
@@ -386,12 +386,20 @@ are never returned -- if you want that, use C<split :all>.  If the
 function is combing a lazy structure, the return values may also be 
 lazy.  (Strings are not lazy, however.)
 
+=item words
+
+ our List multi words ( Str $input, Int $limit = * )
+ our List multi method words ( Str $input: Int $limit = * )
+
+Returns a list of non-whitespace bits, i.e. the same as a call to
+C<$input.comb( / \S+ /, $limit )> would.
+
 =item flip
 
 The C<flip> function reverses a string character by character.
 
      our Str multi method flip ( $str: ) is export {
-        $str.comb(/./).reverse.join;
+        $str.comb.reverse.join;
      }
 
 This function will misplace accents if used at a Unicode
