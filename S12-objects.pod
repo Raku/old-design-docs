@@ -1821,7 +1821,7 @@ Class traits may include:
     subject       optics, boxes
     language      ja_JP
     licensed      Artistic|GPL
-    isa           list of parent classes
+    parents       list of parent classes
     roles         list of roles
     disambig      how to deal with ambiguous method names from roles
     layout        P6opaque, P6hash, P5hash, P5array, PyDict, Cstruct, etc.
@@ -1836,6 +1836,12 @@ delegated back to the package and prototype objects is up to the MOP.
 prototype objects, in which case stringification is not likely to
 produce something of interest to non-gurus.)
 
+The C<.^parents> method by default returns a flattened list of all
+parents sorted in MRO (dispatch) order. Other options are:
+
+    :local              just returns the immediate parents
+    :hierarchical       the inheritance heirarchy as nested arrays
+
 The C<.^methods> method returns method-descriptors containing:
 
     name                the name of the method
@@ -1848,6 +1854,10 @@ The C<.^methods> method has a selector parameter that lets you
 specify whether you want to see a flattened or hierarchical view,
 whether you're interested in private methods, and so forth.
 
+    :local              only methods defined in the current class
+    :hierarchical       methods by class structure (inheritance hierarchy)
+    :private            include private methods
+
 The C<.^attributes> method returns a list of attribute descriptors
 that have traits like these:
 
@@ -1859,6 +1869,11 @@ that have traits like these:
     accessor
     build
     readonly
+
+It also takes the parameters:
+
+    :local              only methods defined in the current class
+    :hierarchical       attributes by class structure (inheritance hierarchy)
 
 Strictly speaking, metamethods like C<.isa()>, C<.does()>, and C<.can()>
 should be called through the meta object:
