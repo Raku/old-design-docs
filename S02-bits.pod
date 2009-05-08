@@ -12,8 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 30 Apr 2009
-  Version: 167
+  Last Modified: 8 May 2009
+  Version: 168
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1429,6 +1429,7 @@ is subject to:
     $=foo       pod variable
     $<foo>      match variable, short for $/{'foo'}
     $!foo       object attribute private storage
+    $~foo       the foo sublanguage seen by the parser at this lexical spot
 
 Most variables with twigils are implicitly declared or assumed to
 be declared in some other scope, and don't need a "my" or "our".
@@ -2198,10 +2199,9 @@ Here are some possibilities:
 
     $?FILE      Which file am I in?
     $?LINE      Which line am I at?
-    $?PARSER    Which Perl grammar was used to parse this statement?
-    $?LANG      Which Perl parser should embedded closures parse with?
     &?ROUTINE   Which routine am I in?
     &?BLOCK     Which block am I in?
+    %?LANG      What is the current set of interwoven languages?
 
 The following return objects that contain all pertinent info:
 
@@ -2288,18 +2288,64 @@ exporter to bind names into the importer's namespace.
 =item *
 
 The currently compiling Perl parser is switched by modifying
-C<< COMPILING::<$?PARSER> >>.  Lexically scoped parser changes
+one of the braided languages in
+C<< COMPILING::<%?LANG> >>.  Lexically scoped parser changes
 should temporize the modification.  Changes from here to
 end-of-compilation unit can just assign or bind it.  In general,
 most parser changes involve deriving a new grammar and then pointing
-C<< COMPILING::<$?PARSER> >> at that new grammar.  Alternately, the
+one of the
+C<< COMPILING::<%?LANG> >> entries at that new grammar.  Alternately, the
 tables driving the current parser can be modified without derivation,
 but at least one level of anonymous derivation must intervene from
-the standard Perl grammar, or you might be messing up someone else's
-grammar.  Basically, the current grammar has to belong only to the
+the preceding Perl grammar, or you might be messing up someone else's
+grammar.  Basically, the current set of grammars in C<%?LANG> has to belong only to the
 current compiling scope.  It may not be shared, at least not without
 explicit consent of all parties.  No magical syntax at a distance.
 Consent of the governed, and all that.
+
+=item *
+
+Individual sublanguages ("slangs") may be referred to using the C<~> twigil.  The following
+are useful:
+
+    $~MAIN       the current main language (e.g. Perl statements)
+    $~Q          the current root of quoting language
+    $~Quasi      the current root of quasiquoting language
+    $~Regex      the current root of regex language
+    $~Trans      the current root of transliteration language
+    $~P5Regex    the current root of the Perl regex language
+
+Hence, when you are defining a normal Perl macro, you're replacing
+C<$~MAIN> with a derived language, but when you define a new regex
+backslash sequence, you're replacing C<$~Regex> with a derived
+language.  (There may or may not be a syntax in the main language
+to do this.)  Note that such changes are automatically scoped
+to the lexical scope; as with real slang, the definitions are
+temporary and embedded in a larger language inherited from
+the surrounding culture.
+
+Instead of defining macros directly you may also mix in one or more
+grammar rules by lexically scoped declaration of a new sublanguage:
+
+    augment slang Regex {  # derive from $~Regex and then modify $~Regex
+        token backslash:std<\Y> { YY };
+    }
+
+This tends to be more efficient since it only has to do one mixin
+at the the end of the block.  Note that the slang declaration has
+nothing to do with package C<Regex>, but only with C<$~Regex>.
+Sublanguages are in their own namespace (inside the current value
+of C<%?LANG>, in fact).  Hence C<augment> is modifying one of the local
+strands of a braided language, not a package somewhere else.
+
+You may also supersede a sublang entirely if, for example,
+you just want to disable that sublanguage in the current lexical scope:
+
+    supersede slang P5Regex {}
+    m:P5/./;             # kaboom
+
+If you supersede C<MAIN> then you're replacing the Perl parser entirely.
+This might be done by, say, the "use COBOL" declaration. C<:-)>
 
 =item *
 
