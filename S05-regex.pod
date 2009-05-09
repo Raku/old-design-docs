@@ -14,8 +14,8 @@ Allison Randal <al@shadowed.net>
    Maintainer: Patrick Michaud <pmichaud@pobox.com> and
                Larry Wall <larry@wall.org>
    Date: 24 Jun 2002
-   Last Modified: 29 Apr 2009
-   Version: 96
+   Last Modified: 8 May 2009
+   Version: 97
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -3718,21 +3718,17 @@ For example, to match an expression <expr> from $funnylang that is embedded in c
 
 =head1 Syntactic categories
 
-For writing your own backslash and assertion subrules or macros, you may
-use the following syntactic categories:
+For writing your own backslash and assertion subrules, you may augment
+(your copy of) the Regex sublanguage, using the following syntactic
+categories:
 
-     token rule_backslash:<w> { ... }     # define your own \w and \W
-     token rule_assertion:<*> { ... }     # define your own <*stuff>
-     macro rule_metachar:<,> { ... }     # define a new metacharacter
-     macro rule_mod_internal:<x> { ... } # define your own /:x() stuff/
-     macro rule_mod_external:<x> { ... } # define your own m:x()/stuff/
+    augment slang Regex {
+        token backslash:sym<y> { ... }   # define your own \y and \Y
+        token assertion:sym<*> { ... }   # define your own <*stuff>
+        token metachar:sym<,> { ... }    # define a new metacharacter
 
-As with any such syntactic shenanigans, the declaration must be
-visible in the lexical scope to have any effect.  It's possible
-the internal/external distinction is just a trait, and that some
-of those things are subs or methods rather than subrules or macros.
-(The numeric regex modifiers are recognized by fallback macros defined
-with an empty operator name.)
+        multi method tweak (:$x) {...}   # define your own :x modifier
+    }
 
 =head1 Pragmas
 
