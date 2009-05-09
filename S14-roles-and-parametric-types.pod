@@ -11,8 +11,8 @@ Synopsis 14: Roles and Parametric Types [DRAFT]
   Contributions: Tim Nelson <wayland@wayland.id.au>
                  Jonathan Worthington <jnthn@jnthn.net>
   Date: 24 Feb 2009, extracted from S12-objects.pod
-  Last Modified: 3 May 2009
-  Version: 5
+  Last Modified: 8 May 2009
+  Version: 6
 
 =head1 Overview
 
@@ -413,6 +413,13 @@ appropriate C<trait_auxiliary:<is>()> routine yourself if you want it to
 do any extra shenanigans.  The compiler won't call it for you at run
 time like it would at compile time.
 
+Note that the declarations above are insufficient to install new trait
+auxilliaries or verbs into the user's grammar, since macro definitions
+are lexically scoped, and in the declarations above extend only to
+the end of the role definition.  The user's lexical scope must somehow
+have processed (or imported) a proto declaration introducing the new
+syntax before it can be parsed correctly.  (This doesn't apply to
+pre-existing syntax such as C<is>, of course.)
 
 =head1 Parametric Roles
 
