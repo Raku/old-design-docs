@@ -3564,32 +3564,6 @@ To force a non-flattening item context, use the "C<item>" operator.
 
 =item *
 
-When evaluating chained operators, if an C<each()> occurs anywhere in that
-chain, the chain will be transformed first into a C<grep>.  That is,
-
-    for 0 <= each(@x) < all(@y) {...}
-
-becomes
-
-    for @x.grep:{ 0 <= $_ < all(@y) } {...}
-
-Because of this, the original ordering C<@x> is guaranteed to be
-preserved in the returned list, and duplicate elements in C<@x> are
-preserved as well.  In particular,
-
-    @result = each(@x) ~~ {...};
-
-is equivalent to
-
-    @result = @x.grep:{...};
-
-However, this I<each() comprehension> is strictly a syntactic transformation,
-so a list computed any other way will not trigger the rewrite:
-
-    @result = (@x = each(@y)) ~~ {...}; # not a comprehension
-
-=item *
-
 The C<|> prefix operator may be used to force "capture" context on its
 argument and I<also> defeat any scalar argument checking imposed by
 subroutine signature declarations.  Any resulting list arguments are
