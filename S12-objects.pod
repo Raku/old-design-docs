@@ -12,8 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 4 May 2009
-  Version: 82
+  Last Modified: 22 May 2009
+  Version: 83
 
 =head1 Overview
 
@@ -682,15 +682,18 @@ To bless a hash as in Perl 5, say:
 
     $object = $class.bless({k1 => $v1, k2 => $v2, ...});
 
-If the candidate is omitted, a candidate object is implicitly created in
-the current class by calling C<CREATE>:
+However, the normal way to create a candidate to bless is by calling
+C<CREATE>:
 
-    $object = $class.bless(k1 => $v1, k2 => $v2, ...)
-    $object = $class.bless(:k1($v1), :k2($v2), ...)  # same
+    $object = $class.bless($class.CREATE(), k1 => $v1, k2 => $v2, ...)
+    $object = $class.bless($class.CREATE(), :k1($v1), :k2($v2), ...)  # same
 
-(The default C<CREATE> makes an opaque object.)
+Alternatively, you can pass C<Whatever> and have C<bless> call CREATE
+for you.
 
-In addition to the candidate position argument, C<bless> also
+    $object = $class.bless(*, k1 => $v1, k2 => $v2, ...)
+
+In addition to the candidate positional argument, C<bless> also
 allows one or more positional arguments representing autovivifying
 type objects.  Such an object looks like a type name followed by a
 hash subscript (see "Autovivifying objects" below).  These are used
