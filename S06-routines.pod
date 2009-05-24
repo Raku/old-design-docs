@@ -13,8 +13,8 @@ Allison Randal <al@shadowed.net>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 21 Mar 2003
-  Last Modified: 9 Apr 2009
-  Version: 108
+  Last Modified: 23 May 2009
+  Version: 109
 
 
 This document summarizes Apocalypse 6, which covers subroutines and the
@@ -144,7 +144,7 @@ array or hash explicitly with the C<is rw> trait:
 
     sub swap (*@_ is rw, *%_ is rw) { @_[0,1] = @_[1,0]; %_<status> = "Q:S"; }
 
-Note: the "rw" container trait is automatically distributed to the
+Note: the C<rw> container trait is automatically distributed to the
 individual elements by the the slurpy star even though there's no
 actual array or hash passed in.  More precisely, the slurpy star
 means the declared formal parameter is I<not> considered readonly; only
@@ -164,8 +164,8 @@ simply fail if the signature cannot be bound.
 
 Raw blocks are also executable code structures in Perl 6.
 
-Every block defines an object of type C<Code>, which may either be
-executed immediately or passed on as a C<Code> object.  How a block is
+Every block defines an object of type C<Block> (which C<does Callable>), which may either be
+executed immediately or passed on as a C<Block> object.  How a block is
 parsed is context dependent.
 
 A bare block where an operator is expected terminates the current
@@ -176,7 +176,7 @@ This form of bare block requires leading whitespace because a bare
 block where a postfix is expected is treated as a hash subscript.
 
 
-A bare block where a term is expected merely produces a C<Code> object.
+A bare block where a term is expected merely produces a C<Block> object.
 If the term bare block occurs in a list, it is considered the final
 element of that list unless followed immediately by a comma or colon
 (intervening C<\h*> or "unspace" is allowed).
@@ -203,7 +203,7 @@ anywhere a bare block could be used:
 It also behaves like a block with respect to control exceptions.
 If you C<return> from within a pointy block, the block is transparent
 to the return; it will return from the innermost enclosing C<sub> or
-C<method>, not from the block itself.  It is referenced by C<&?BLOCK>,
+C<method> (et al.), not from the block itself.  It is referenced by C<&?BLOCK>,
 not C<&?ROUTINE>.
 
 A normal pointy block's parameters default to C<readonly>, just like
@@ -262,8 +262,8 @@ Subroutines and variables can be declared in the global namespace, and are
 thereafter visible everywhere in a program via the GLOBAL package.  They
 may be made directly visible by importation.
 
-Global subroutines and variables are normally referred to use of the C<*> twigil
-(short for "C<GLOBAL::>").
+Global subroutines and variables are normally referred to by prefixing
+their identifiers with C<*> (short for "C<GLOBAL::>").
 
     $*next_id = 0;
     sub GLOBAL::saith($text)  { print "Yea verily, $text" }
@@ -428,7 +428,7 @@ can be converted to a mutable object, such as might be returned
 by an array or hash that knows how to autovivify new elements).
 Otherwise the signature fails to bind, and this candidate routine
 cannot be considered for servicing this particular call.  (Other multi
-candidates, if any, may succeed if the don't require C<rw> for this
+candidates, if any, may succeed if they don't require C<rw> for this
 parameter.)  In any case, failure to bind does not by itself cause
 an exception to be thrown; that is completely up to the dispatcher.
 
@@ -534,14 +534,14 @@ instead:
     doit %hash{'b'}:p,1,2,3;
 
 The C<:p> stands for "pairs", not "positional"--the C<:p> adverb may be
-placed on any Hash access to make it mean "pairs" instead of "values".
-If you want the pair (or pairs) to be interpreted as a named argument,
+placed on any C<Associative> access subscript to make it mean "pairs" instead of "values".
+If you want the pair (or pairs) to be interpreted a named argument,
 you may do so by prefixing with the C<< prefix:<|> >> operator:
 
     doit |%hash<a>:p,1,2,3;
     doit |%hash{'b'}:p,1,2,3;
 
-Pair constructors are recognized syntactically at the call level and
+C<Pair> constructors are recognized syntactically at the call level and
 put into the named slot of the C<Capture> structure.  Hence they may be
 bound to positionals only by name, not as ordinary positional C<Pair>
 objects.  Leftover named arguments can be slurped into a slurpy hash.
@@ -770,8 +770,8 @@ In other words, if the first parameter is C<$a>, it will bind to
 a C<:a()> argument in preference to the first positional argument.
 It might seem that performance of binding would suffer by requiring
 a named lookup before a positional lookup, but the compiler is able
-to guarantee that subs with known fixed signatures (both onlys and
-multis with protos) translate named arguments to positional in the
+to guarantee that subs with known fixed signatures (both C<only>s and
+C<multi>s with C<proto>s) translate named arguments to positional in the
 first N positions.  Also, purely positional calls may obviously omit any
 named lookups, as may bindings that have already used up all the named
 arguments.  The compiler is also free to intuit proto signatures for
@@ -927,9 +927,9 @@ bound to a single array parameter declared with a double C<@@> sigil:
 
 Note that this is different from
 
-    sub foo (\$slice) { ... }
+    sub foo (|$slice) { ... }
 
-insofar as C<\$slice> is bound to a single argument-list object that
+insofar as C<|$slice> is bound to a single argument-list object that
 makes no commitment to processing its structure (and maybe doesn't
 even know its own structure yet), while C<*@@slice> has to create
 an array that binds the incoming dimensional lists to the array's
@@ -960,7 +960,7 @@ C<\()> in several ways:
     foo;        # +@@slice == 0
     foo();      # +@@slice == 1
 
-    sub bar (\$args = \(1,2,3)) {...}
+    sub bar (|$args = \(1,2,3)) {...}
     bar;        # $args === \(1,2,3)
     bar();      # $args === \()
 
@@ -991,8 +991,7 @@ an implicit promise that the code producing the lists may execute
 in parallel with the code receiving the lists.  (Feeds, hyperops,
 and junctions all have this promise of parallelizability in common,
 but differ in interface.  Code which violates these promises is
-erroneous, and will produce undefined results when parallelized.
-But see also "Strict Laziness", as defined in L<S07-iterators>.)
+erroneous, and will produce undefined results when parallelized.)
 
 However, feeds go a bit further than ordinary lazy lists in enforcing
 the parallel discipline: they explicitly treat the blunt end as a
@@ -1366,10 +1365,10 @@ the node itself:
     }
 
 In this, C<$left> and C<$right> are automatically bound to the left
-and right nodes of the tree.  If $top is an ordinary object, it binds
+and right nodes of the tree.  If C<$top> is an ordinary object, it binds
 the C<$top.left> and C<$top.right> attributes.  If it's a hash,
 it binds C<< $top<left> >> and C<< $top<right> >>.  If C<BinTree> is a
-signature type and $top is a List (argument list) object, the child types
+signature type and $top is a C<Capture> (argument list) object, the child types
 of the signature are applied to the actual arguments in the argument
 list object.  (Signature types have the benefit that you can view
 them inside-out as constructors with positional arguments, such that
@@ -1388,7 +1387,7 @@ like:
     multi traverse ( $leaf ) {...}
 
 The second candidate is called only if the parameter cannot be bound to
-both $top and to the "kids" parsing subparameter.
+both C<$top> and to the "kids" parsing subparameter.
 
 Likewise, to bind to a hash element of the node and then bind to
 keys in that hash by name:
@@ -1514,7 +1513,7 @@ Also, it is illegal to use placeholder variables in a block that already
 has a signature, because the autogenerated signature would conflict with that.
 Positional placeholder names consisting of a single uppercase letter are disallowed,
 not because we're mean, but because it helps us catch references to
-obsolete Perl 5 variables such as $^O.
+obsolete Perl 5 variables such as C<$^O>.
 
 A function containing placeholders may also refer to either C<@_>
 or C<%_> or both, each of which (if so used) will be added to the
@@ -2218,7 +2217,7 @@ variable, subroutine, context of a function call, or other object in a given sco
     } # Old values of $*foo and &bar reinstated at this point
 
 C<temp> invokes its argument's C<.TEMP> method. The method is expected
-to return a C<Code> object that can later restore the current
+to return a C<Callable> object that can later restore the current
 value of the object. At the end of the lexical scope in which the
 C<temp> was applied, the subroutine returned by the C<.TEMP> method is
 executed.
@@ -2280,7 +2279,7 @@ globals in the face of multithreading.
 =head2 Wrapping
 
 Every C<Routine> object has a C<.wrap> method. This method expects a
-single C<Code> argument. Within the code, the special C<callsame>,
+single C<Callable> argument. Within the code, the special C<callsame>,
 C<callwith>, C<nextsame> and C<nextwith> functions will invoke the
 original routine, but do not introduce an official C<CALLER> frame:
 
@@ -2293,22 +2292,24 @@ The C<callwith> function lets you pass your own arguments to the wrapped
 function.  The C<callsame> function takes no argument; it
 implicitly passes the original argument list through unchanged.
 
-The call to C<.wrap> replaces the original C<Routine> with the C<Code>
+The call to C<.wrap> replaces the original C<Routine>'s C<do> property with the C<Callable>
 argument, and arranges that any call to C<callsame>, C<callwith>,
 C<nextsame> or C<nextwith> invokes the previous version of the
 routine. In other words, the call to C<.wrap> has more or less the
 same effect as:
 
-    &old_thermo := &thermo;
-    &thermo := sub ($t) { old_thermo( ($t-32)/1.8 ) }
+    my &old_thermo := &thermo;
+    &thermo = sub ($t) { old_thermo( ($t-32)/1.8 ) }
 
-except that C<&thermo> is mutated in-place, so C<&thermo.WHICH> stays the same
-after the C<.wrap>.
+Note that C<&thermo.WHICH> stays the same after the C<.wrap>,
+as it does with the equivalent assignment shown since assignment
+to a C<Routine> works like a container, changing the contained C<do>
+property but not the container itself.
 
-The call to C<.wrap> returns a unique handle that can later be passed to
-the C<.unwrap> method, to undo the wrapping:
+The call to C<.wrap> returns a unique handle that has a C<restore> method 
+that will undo the wrapping:
 
-    &thermo.unwrap($handle);
+    $handle.restore;
 
 This does not affect any other wrappings placed to the routine.
 
@@ -2328,7 +2329,7 @@ It can then be passed to C<callwith> using that name:
 In this case only the return value is changed.
 
 The wrapper is not required to call the original routine; it can call another
-C<Code> object by passing the C<Capture> to its C<callwith> method:
+C<Callable> object by passing the C<Capture> to its C<callwith> method:
 
     # Transparently redirect all calls to &thermo to &other_thermo
     &thermo.wrap( sub (|$args) { &other_thermo.callwith(|$args) } );
@@ -2407,7 +2408,7 @@ block is being compiled, use the C<< COMPILING:: >> pseudopackage.]
 
 =head2 Currying
 
-Every C<Code> object has a C<.assuming> method. This method does a partial
+Every C<Callable> object has a C<.assuming> method. This method does a partial
 binding of a set of arguments to a signature and returns a new function
 that takes only the remaining arguments.
 
@@ -2421,7 +2422,7 @@ or even:
 
     &textfrom := &substr.assuming:str($text):len(Inf);
 
-It returns a C<Code> object that implements the same behaviour
+It returns a C<Callable> object that implements the same behaviour
 as the original subroutine, but has the values passed to C<.assuming>
 already bound to the corresponding parameters:
 
@@ -2606,7 +2607,7 @@ the macro call:
 
 C<{...}> is always a block.  However, if it is completely empty or
 consists of a single list, the first element of which is either a hash
-or a pair, it is executed immediately to compose a Hash object.  
+or a pair, it is executed immediately to compose a C<Hash> object.  
 
 The standard C<pair> list operator is equivalent to:
 
@@ -2877,7 +2878,7 @@ C<YOU_ARE_HERE>.
 
 The natural way to implement autothreading for multi subs is to
 simply have the junctional signatures (the ones that can accept
-Objects or junctions as well as Any parameters) match more loosely than
+C<Object>s or junctions as well as C<Any> parameters) match more loosely than
 the non-autothreading versions, and let multiple dispatch find the
 appropriate sub based on the signature.  Those generic routines
 then end up redispatching to the more specific ones.
