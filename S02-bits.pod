@@ -12,8 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 10 Aug 2004
-  Last Modified: 8 May 2009
-  Version: 168
+  Last Modified: 23 May 2009
+  Version: 169
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -583,9 +583,10 @@ does not specify a unit.
 
 Built-in object types start with an uppercase letter. This includes
 immutable types (e.g. C<Int>, C<Num>, C<Complex>, C<Rat>, C<Str>,
-C<Bit>, C<Regex>, C<Set>, C<Code>, C<Block>, C<List>,
+C<Bit>, C<Regex>, C<Set>, C<Block>, C<List>,
 C<Seq>), as well as mutable (container) types, such as C<Scalar>,
-C<Array>, C<Hash>, C<Buf>, C<Routine>, C<Module>, etc.
+C<Array>, C<Hash>, C<Buf>, C<Routine>, C<Module>, and non-instantiable Roles
+such as C<Callable>, C<Failure>, and C<Integral>.
 
 Non-object (native) types are lowercase: C<int>, C<num>, C<complex>,
 C<rat>, C<buf>, C<bit>.  Native types are primarily intended for
@@ -973,7 +974,6 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Complex     Perl complex number
     Bool        Perl boolean
     Exception   Perl exception
-    Code        Base class for all executable objects
     Block       Executable objects that have lexical scopes
     List        Lazy Perl list (composed of immutables and iterators)
     Seq         Completely evaluated (hence immutable) sequence
@@ -1609,7 +1609,7 @@ in parentheses:
 =item *
 
 Unlike in Perl 5, the notation C<&foo> merely stands for the C<foo>
-function as a Code object without calling it.  You may call any Code
+function as a C<Routine> object without calling it.  You may call any Code
 object by dereferencing it with parens (which may, of course, contain arguments):
 
     &foo($arg1, $arg2);
@@ -1659,7 +1659,7 @@ using a signature literal as a postfix operator:
 
     &foo:(Int,Num)
 
-It still just returns a C<Code> object.  A call may also be partially
+It still just returns the C<Routine> object.  A call may also be partially
 applied by using the C<.assuming> method:
 
     &foo.assuming(1,2,3,:mice<blind>)
