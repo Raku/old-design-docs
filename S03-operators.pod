@@ -12,8 +12,8 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 17 May 2009
-  Version: 165
+  Last Modified: 24 May 2009
+  Version: 166
 
 =head1 Overview
 
@@ -3060,8 +3060,8 @@ as a default because the more specific types listed above it didn't match.
 
     $_        X         Type of Match Implied   Match if (given $_)
     ======    =====     =====================   ===================
-    Any       Code:($)  item sub truth          X($_)
-    Any       Code:()   simple closure truth    X() (ignoring $_)
+    Any       Callable:($)  item sub truth          X($_)
+    Any       Callable:()   simple closure truth    X() (ignoring $_)
     Any       undef     undefined               not .defined
     Any       *         block signature match   block successfully binds to |$_
     Any       .foo      method truth            ?X       i.e. ?.foo
@@ -3105,7 +3105,7 @@ as a default because the more specific types listed above it didn't match.
     Any       Type      type membership         $_.does(X)
 
     Signature Signature sig compatibility       $_ is a subset of X      ???
-    Code      Signature sig compatibility       $_.signature is a subset of X  ???
+    Callable  Signature sig compatibility       $_.sig is a subset of X  ???
     Capture   Signature parameters bindable     $_ could bind to X (doesn't!)
     Any       Signature parameters bindable     |$_ could bind to X (doesn't!)
 
@@ -3150,7 +3150,9 @@ the table assumes the following types will behave similarly:
     ===========                 ===============
     List Seq                    Array
     KeySet KeyBag KeyHash       Hash
-    Class Enum Role             Type
+    named values created with
+	   Class, Enum, or Role,
+	   or generic type binding  Type
     Subst                       Regex
     Char Cat                    Str
     Int UInt etc.               Num
@@ -3208,7 +3210,7 @@ For example:
 
     $_      X    Type of Match Wanted   What to use on the right
     ======  ===  ====================   ========================
-    Code    Any  item sub truth         .ACCEPTS(X) or .(X)
+    Callable Any  item sub truth         .ACCEPTS(X) or .(X)
     Range   Any  in range               .ACCEPTS(X)
     Type    Any  type membership        .ACCEPTS(X) or .does(X)
     Regex   Any  pattern match          .ACCEPTS(X)
