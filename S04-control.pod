@@ -12,8 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 19 Aug 2004
-  Last Modified: 3 May 2009
-  Version: 77
+  Last Modified: 25 May 2009
+  Version: 78
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -100,7 +100,7 @@ may be initialized with a pseudo-assignment:
     constant Num $pi = 3;
     constant Num π  = atan2(2,2) * 4;
 
-The initializing expression is evaluated at BEGIN time.
+The initializing expression is evaluated at C<BEGIN> time.
 
 There is a new C<state> declarator that introduces a lexically scoped
 variable like C<my> does, but with a lifetime that persists for the
@@ -213,7 +213,7 @@ a closure parameter:
     else          -> $b { say $b }
 
 Note that the value being evaluated for truth and subsequently bound is
-not necessarily a value of type Bool.  (All normal types in Perl may
+not necessarily a value of type C<Bool>.  (All normal types in Perl may
 be evaluated for truth.  In fact, this construct would be relatively
 useless if you could bind only boolean values as parameters, since
 within the closure you already know whether it evaluated to true
@@ -316,7 +316,7 @@ conditional expression to a parameter of the block:
     while something() { ... $^thing ... }
 
 Nothing is ever bound implicitly, however, and many conditionals would
-simply bind True or False in an uninteresting fashion.  This mechanism
+simply bind C<True> or C<False> in an uninteresting fashion.  This mechanism
 is really only good for objects that know how to return a boolean
 value and still remain themselves.  In general, for most iterated
 solutions you should consider using a C<for> loop instead (see below).
@@ -347,7 +347,7 @@ or equivalently:
 
 Unlike Perl 5's C<do-while> loop, this is a real loop block now, so
 C<next>, C<last>, and C<redo> work as expected.  The loop conditional
-on a repeat block is required, so it will be recognized even if you
+on a C<repeat> block is required, so it will be recognized even if you
 put it on a line by its own:
 
     repeat
@@ -360,7 +360,7 @@ However, that's likely to be visually confused with a following
 C<while> loop at the best of times, so it's also allowed to put the
 loop conditional at the front, with the same meaning. (The C<repeat>
 keyword forces the conditional to be evaluated at the end of the loop,
-so it's still C's do-while semantics.)  Therefore, even under GNU style
+so it's still C's C<do-while> semantics.)  Therefore, even under GNU style
 rules, the previous example may be rewritten into a very clear:
 
     repeat while $x < 10
@@ -498,7 +498,7 @@ so you can modify the current list element in that case.
 When used as statement modifiers, C<for> and C<given> use a private
 instance of C<$_> for the left side of the statement.  The outer C<$_>
 can be referred to as C<$OUTER::_>.  (And yes, this implies that the
-compiler may have to retroactively change the binding of <$_> on the
+compiler may have to retroactively change the binding of C<$_> on the
 left side.  But it's what people expect of a pronoun like "it".)
 
 =head2 The do-once loop
@@ -609,7 +609,7 @@ This makes it easy to keep track of what you last "took":
     }
 
 The C<take> function essentially has two contexts simultaneously, the
-context in which the gather is operating, and the context in which the
+context in which the C<gather> is operating, and the context in which the
 C<take> is operating.  These need not be identical contexts, since they
 may bind or coerce the resulting captures differently:
 
@@ -683,7 +683,7 @@ lexical scope looks like at run time.  That's okay.)
 =head2 Other C<do>-like forms
 X<do>
 
-Other similar C<Code>-only forms may also take bare statements,
+Other similar forms, where a keyword is followed by code to be controlled by it, may also take bare statements,
 including C<try>, C<contend>, C<async>, and C<lazy>.  These constructs
 establish a dynamic scope without necessarily establishing a lexical
 scope.  (You can always establish a lexical scope explicitly by using
@@ -883,7 +883,7 @@ just let the block return the value of its final expression, or you
 can use C<leave>, which comes in both function and method forms.
 The function (or listop) form always exits from the innermost block,
 returning its arguments as the final value of the block exactly as
-return does.  The method form will leave any block in the dynamic
+C<return> does.  The method form will leave any block in the dynamic
 scope that can be named as an object and that responds to the C<.leave>
 method.
 
@@ -945,7 +945,7 @@ form we saw earlier.
 Warnings are produced in Perl 6 by throwing a resumable control
 exception to the outermost scope, which by default prints the
 warning and resumes the exception by extracting a resume continuation
-from the exception, which must be supplied by the warn() function
+from the exception, which must be supplied by the C<warn()> function
 (or equivalent).  Exceptions are not resumable in Perl 6 unless
 the exception object does the C<Resumable> role.  (Note that fatal
 exception types can do the C<Resumable> role even if thrown via
@@ -985,7 +985,7 @@ to C<goto> into the next case of a C<when> or into either the "then"
 or "else" branch of a conditional.  You may not go into a C<given>
 or a C<for>, though, because that would bypass a formal parameter
 binding (not to mention list generation in the case of C<for>).
-(Note: the implicit default binding of an outer $_ to an inner $_
+(Note: the implicit default binding of an outer C<$_> to an inner C<$_>
 can be emulated for a bare block, so that doesn't fall under the
 prohibition on bypassing formal binding.)
 
@@ -1002,7 +1002,7 @@ undefined value thereafter.  Any other use of the C<Failure> object to
 extract a normal value will throw its associated exception immediately.
 (The C<Failure> may, however, be stored in any container whose type
 allows the C<Failure> role to be mixed in.)  The C<.handled> method
-returns false on failures that have not been handled.  It returns true for
+returns C<False> on failures that have not been handled.  It returns C<True> for
 handled exceptions and for all non-C<Failure> objects. (That is,
 it is an C<Object> method, not a C<Failure> method.  Only C<Failure> objects
 need to store the actual status however; other types just return C<True>.)
@@ -1376,7 +1376,7 @@ possibly deferred.)
     sub foo {
 	# conceptual cloning happens to both blocks below
         my $x = 1;
-        my sub bar { print $x }         # already conceptually cloned, but can be lazily deferred
+        my sub bar { print $x }         # already conceptualy cloned, but can be lazily deferred
         my &baz := { bar(); print $x }; # block is cloned immediately, forcing cloning of bar
         my $code = &bar;                # this would also force bar to be cloned
         return &baz;
@@ -1393,7 +1393,7 @@ lexical scope it came from so that it can pass the info to the cloner,
 or it means that we need some special fat not-cloned-yet references
 that can carry the info lazily.  Neither approach is pretty.]
 
-Some closures produce C<Code> objects at compile time that cannot be
+Some closures produce C<Block> objects at compile time that cannot be
 cloned, because they're not attached to any runtime code that can
 actually clone them.  C<BEGIN>, C<CHECK>, C<INIT>, and C<END> blocks
 fall into this category.  Therefore you can't reliably refer to
