@@ -518,26 +518,22 @@ of an expression.  If you want to continue the expression after the
 statement, or if you want to attach multiple statements. you must either
 use the curly form or surround the entire expression in brackets of some sort:
 
-    @primes = (do (do $_ if .prime) for 1..100);
+    @primes = do $_ if prime($_) for 1..100;
 
 Since a bare expression may be used as a statement, you may use C<do>
 on an expression, but its only effect is to function as an unmatched
 left parenthesis, much like the C<$> operator in Haskell.  That is,
 precedence decisions do not cross a C<do> boundary, and the missing
 "right paren" is assumed at the next statement terminator or unmatched
-bracket.  A C<do> is assumed immediately after any opening bracket,
+bracket.  A C<do> is unnecessary immediately after any opening bracket as
+the syntax inside brackets is a semicolon-separated list of statements,
 so the above can in fact be written:
 
-    @primes = (($_ if .prime) for 1..100);
+    @primes = ($_ if prime($_) for 1..100);
 
 This basically gives us list comprehensions as rvalue expressions:
 
-    (for 1..100 { $_ if .prime}).say
-
-Since C<do> is defined as going in front of a statement, it follows
-that it can always be followed by a statement label.  This is particularly
-useful for the do-once block, since it is offically a loop and can take
-therefore loop control statements.
+    (for 1..100 { $_ if prime($_)}).say
 
 Another consequence of this is that any block just inside a
 left parenthesis is immediately called like a bare block, so a
@@ -549,6 +545,11 @@ multiple parameters fed by a C<for> modifier:
 or equivalently, using placeholders:
 
     @names = ({ "$^name.$^num" } for 'a'..'zzz' X 1..100);
+
+Since C<do> is defined as going in front of a statement, it follows
+that it can always be followed by a statement label.  This is particularly
+useful for the do-once block, since it is offically a loop and can take
+therefore loop control statements.
 
 =head2 Statement-level bare blocks
 
