@@ -38,7 +38,8 @@ are three ways to declare formal parameters to a closure.
     $func = -> $a, $b { .print if $a eq $b };     # a "pointy" block
     $func = { .print if $^a eq $^b }              # placeholder arguments
 
-A bare closure without placeholder arguments that uses C<$_>
+A bare closure (except the block associated with a conditional statement)
+without placeholder arguments that uses C<$_>
 (either explicitly or implicitly) is treated as though C<$_> were a
 formal parameter:
 
@@ -200,8 +201,7 @@ Perl 5.  However, you may omit the parentheses on the conditional:
     }
 
 If the final statement is a conditional which does not execute any
-branch, the return value is C<undef> in item context and C<()> in
-list context.
+branch, the return value is C<Nil>.
 
 The C<unless> statement does not allow an C<elsif> or C<else> in Perl 6.
 
@@ -242,14 +242,14 @@ invocant to the C<.haste> method.)
 
 Conditional statement modifiers work as in Perl 5.  So do the
 implicit conditionals implied by short-circuit operators.  Note though that
-the first expression within parens or brackets is parsed as a statement,
+the contents of parens or brackets is parsed as a semicolon-separated list of <I>statements</I>,
 so you can say:
 
     @x = 41, (42 if $answer), 43;
 
 and that is equivalent to:
 
-    @x = 41, ($answer ?? 42 !! ()), 43
+    @x = 41, ($answer ?? 42 !! Nil), 43
 
 =head1 Loop statements
 
@@ -515,10 +515,10 @@ return the value of that statement and use it in an expression:
 
 This construct only allows you to attach a single statement to the end
 of an expression.  If you want to continue the expression after the
-statement, or if you want to attach multiple statements. you must either
+statement, or if you want to attach multiple statements, you must either
 use the curly form or surround the entire expression in brackets of some sort:
 
-    @primes = do $_ if prime($_) for 1..100;
+    @primesquares = (do $_ if prime($_) for 1..100) [**] 2;
 
 Since a bare expression may be used as a statement, you may use C<do>
 on an expression, but its only effect is to function as an unmatched
@@ -529,7 +529,7 @@ bracket.  A C<do> is unnecessary immediately after any opening bracket as
 the syntax inside brackets is a semicolon-separated list of statements,
 so the above can in fact be written:
 
-    @primes = ($_ if prime($_) for 1..100);
+    @primesquares = ($_ if prime($_) for 1..100) [**] 2;
 
 This basically gives us list comprehensions as rvalue expressions:
 
@@ -556,10 +556,27 @@ therefore loop control statements.
 Although a bare block occuring as a single statement is no longer
 a do-once loop, it still executes immediately as in Perl 5, as if it
 were immediately dereferenced with a C<.()> postfix, so within such a
-block C<CALLER::> refers to the scope surrounding the block.
+block C<CONTEXT::> refers to the scope surrounding the block.  But unlike
+an explicit call, C<CALLER::> doesn't count it as a routine boundary.
 
 If you wish to return a closure from a function, you must use an
-explicit prefix such as C<return> or C<sub> or C<< -> >>.
+explicit prefix such as C<return> or C<sub> or C<< -> >>.  
+
+	sub f1
+	{
+		# lots of stuff ...
+		{ say "I'm a closure." }
+	}
+	
+	my $x1= f1;  # fall-off return is result of the say, not the closure.
+	
+	sub f2
+	{
+		# lots of stuff ...
+		return { say "I'm a closure." }
+	}
+	
+	my $x2= f2;  # returns a Block object.
 
 Use of a placeholder parameter in statement-level blocks triggers a
 syntax error, because the parameter is not out front where it can be
@@ -619,8 +636,8 @@ may bind or coerce the resulting captures differently:
         my $x = take $_, $_ * 10;   # $() context for individual capture
         push @y, $x;
     }
-    # @x returns 1,10,2,20
-    # @y returns [1,10],[2,20]
+    # @x contains 4 Ints:  1,10,2,20
+    # @y contains 2 Captures: (1,10),(2,20)
 
 Likewise, we can just remember the gather's result by binding and
 later coerce it:
@@ -628,9 +645,9 @@ later coerce it:
     $c := gather for 1..2 {
         take $_, $_ * 10;
     }
-    # @$c returns 1,10,2,20
-    # @@$c returns [1,10],[2,20]
-    # $$c returns [[1,10],[2,20]]
+    # @$c produces 1,10,2,20 -- flatten fully into a list of Ints.
+    # @@$c produces (1,10),(2,20) -- list of Captures, a 2-D list.
+    # $$c produces ((1,10),(2,20)) -- the saved Capture itself as one item in item context.
 
 Note that the C<take> itself is in void context in this example because
 the C<for> loop is in void context.
@@ -659,6 +676,10 @@ in the lexical scope of the immediately surrounding routine are considered concr
 All other names (including implicit names of operators) are looked up
 in the lexical scope of the caller when we actually know who the caller
 is at run time.  (Note the caller can vary from call to call!)
+
+This applies to anything that needs to be looked up at compile time, including
+names of variables, and named values such as types and subs.
+
 Through this mechanism, a generic multi can redirect execution to
 a more specific version, but the candidate list for this redirection
 is determined by the caller, not by the lexical scope of the multi,
@@ -874,12 +895,14 @@ your own C<CATCH> block.
 A C<return> always exits from the lexically surrounding sub
 or method definition (that is, from a function officially declared
 with the C<sub>, C<method>, or C<submethod> keywords).  Pointy blocks
-and bare closures are transparent to C<return>.  If you pass a closure
-object outside of its official "sub" scope, it is illegal to
-return from it.  You may only leave the displaced closure block itself
-by falling off the end of it or by explicitly calling C<leave>.
+and bare closures are transparent to C<return>, in that the C<return>
+statement still means C<&?ROUTINE.leave> from the C<Routine> that existed
+in dynamic scope when the closure was cloned.
 
-To return a value from any pointy block or bare closure, you either
+It is illegal to return from the closure if that C<Routine> no longer exists
+in the current chain of contexts.
+
+To return a value (to the dynamical caller) from any pointy block or bare closure, you either
 just let the block return the value of its final expression, or you
 can use C<leave>, which comes in both function and method forms.
 The function (or listop) form always exits from the innermost block,
@@ -992,7 +1015,7 @@ prohibition on bypassing formal binding.)
 
 =head1 Exceptions
 
-As in Perl 5, many built-in functions simply return undef when you ask
+As in Perl 5, many built-in functions simply return C<undef> when you ask
 for a value out of range, or the function fails somehow.  Perl 6 has
 C<Failure> objects, any of which refers to an unthrown C<Exception> object in
 C<$!> and knows whether it has been handled or not.
@@ -1223,7 +1246,7 @@ is interpreted as a hash subscript.
     if $term{$x}        # subscript because postfix expected
     if $term {$x}       # expression followed by statement block
     if $term.{$x}       # valid subscript with dot
-    if $term\ .{$x}     # valid subscript with "unspace"
+    if $term\  {$x}     # valid subscript with "unspace"
 
 Similar rules apply to array subscripts:
 
@@ -1231,7 +1254,7 @@ Similar rules apply to array subscripts:
     if $term[$x]        # subscript because postfix expected
     if $term [$x]       # syntax error (two terms in a row)
     if $term.[$x]       # valid subscript with dot
-    if $term\ .[$x]     # valid subscript with "unspace"
+    if $term\  [$x]     # valid subscript with "unspace"
 
 And to the parentheses delimiting function arguments:
 
@@ -1239,7 +1262,7 @@ And to the parentheses delimiting function arguments:
     if $term($x)        # function call because operator expected
     if $term ($x)       # syntax error (two terms in a row)
     if $term.($x)       # valid function call with explicit dot deref
-    if $term\ .($x)     # valid function call with "unspace" and dot
+    if $term\  .($x)    # valid function call with "unspace" and dot
 
 Outside of any kind of expression brackets, a final closing curly
 on a line (not counting whitespace or comments) always reverts
