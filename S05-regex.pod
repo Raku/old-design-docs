@@ -3714,6 +3714,30 @@ For example, to match an expression <expr> from $funnylang that is embedded in c
 
     token funnylang { '{' [ :lang($funnylang.unbalanced('}')) <expr> ] '}' }
 
+=item *
+
+A string can be matched against a grammar by calling C<.parse> on the grammar,
+and optionally pass an I<action> object to that grammar:
+
+    MyGrammar.parse($str, :action($action-object))
+
+Whenever a closure within the grammar returns a C<Whatever> object, the
+grammar engine tries to call a method of the same name as the name of the
+current regex on the action object, passing along the current Match object as
+the first positional argument.
+
+   grammar Integer {
+       token TOP {
+           \d+ {*}
+       }
+   }
+   class Twice {
+       method TOP($/) {
+           make 2 * $/;
+       }
+   }
+   Integer.parse('21', :action(Twice.new)).ast      # 42
+
 =back
 
 =head1 Syntactic categories
