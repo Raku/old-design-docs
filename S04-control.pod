@@ -1021,7 +1021,7 @@ has C<Failure> objects, any of which refers to an unthrown C<Exception>
 object in C<$!> and knows whether it has been handled or not.  C<$!>
 contains one main exception, the most recent, plus an internal list
 of unhandled exceptions that may be accessed via the C<.pending> method.
-Whenever a new exceptions is stored in C<$!>, it becomes the new main
+Whenever a new exception is stored in C<$!>, it becomes the new main
 exception, and if the old main exception is not marked as handled,
 it is pushed onto the internal list of unhandled exceptions.
 
@@ -1053,7 +1053,7 @@ in the current lexical scope, saying C<die $!> will rethrow all those
 exceptions as the new thrown exception, keeping the same structure of
 main exception and list of unhandled exceptions.  (The C<$!> seen in a
 C<CATCH> block is specially bound to this in-flight exception as the
-blocks initial value for C<$!>, but it may be modified by additional
+block's initial value for C<$!>, but it may be modified by additional
 failures as can any other block's C<$!> value.)  A C<fail> likewise
 moves all C<$!> exceptions up into C<< CALLER::<$!> >> before
 returning the current exception as normal return of a C<Failure>.
@@ -1064,7 +1064,7 @@ main exception or as any listed unhandled exception, it calls C<die>
 to throw those exceptions as a single new exception, which may then
 be caught with a C<CATCH> block in the current (or caller's) scope.
 The new main exception is the most recent one, with any older unhandled
-exceptions attached as additional.
+exceptions attached as pending.
 
 You can cause built-ins to automatically throw exceptions on failure using
 
@@ -1076,14 +1076,14 @@ Before you get too happy about this pragma, note that Perl 6 contains
 various parallel processing primitives that will tend to get blown
 up prematurely by thrown exceptions.  Unthrown exceptions are meant
 to provide a failsoft mechanism in which failures can be treated
-as data and dealt with one by one, without aborting executation
+as data and dealt with one by one, without aborting execution
 of what may be perfectly valid parallel computations.  If you
 I<don't> deal with the failures as data, then the block exit
 semantics will eventually trigger a thrown exception.
 
 In any case, the overriding design principle here is that no
 unhandled exception is ever dropped on the floor, but propagated
-onward through subsequent C<$!> variables until it is handled.  If
+outward through subsequent C<$!> variables until it is handled.  If
 that never happens, the implicit outermost exception handler will
 eventually decide to abort and print all unhandled exceptions found
 in the C<$!> that it is responsible for.
