@@ -12,8 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 19 Aug 2004
-  Last Modified: 25 May 2009
-  Version: 78
+  Last Modified: 29 May 2009
+  Version: 79
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1015,40 +1015,78 @@ prohibition on bypassing formal binding.)
 
 =head1 Exceptions
 
-As in Perl 5, many built-in functions simply return C<undef> when you ask
-for a value out of range, or the function fails somehow.  Perl 6 has
-C<Failure> objects, any of which refers to an unthrown C<Exception> object in
-C<$!> and knows whether it has been handled or not.
+As in Perl 5, many built-in functions simply return C<undef> when you
+ask for a value out of range, or the function fails somehow.  Perl 6
+has C<Failure> objects, any of which refers to an unthrown C<Exception>
+object in C<$!> and knows whether it has been handled or not.  C<$!>
+contains one main exception, the most recent, plus an internal list
+of unhandled exceptions that may be accessed via the C<.pending> method.
+Whenever a new exceptions is stored in C<$!>, it becomes the new main
+exception, and if the old main exception is not marked as handled,
+it is pushed onto the internal list of unhandled exceptions.
 
 If you test a C<Failure> for C<.defined> or C<.true>, it causes C<$!>
-to mark the exception as I<handled>; the exception acts as a relatively harmless
-undefined value thereafter.  Any other use of the C<Failure> object to
-extract a normal value will throw its associated exception immediately.
-(The C<Failure> may, however, be stored in any container whose type
-allows the C<Failure> role to be mixed in.)  The C<.handled> method
-returns C<False> on failures that have not been handled.  It returns C<True> for
-handled exceptions and for all non-C<Failure> objects. (That is,
-it is an C<Object> method, not a C<Failure> method.  Only C<Failure> objects
-need to store the actual status however; other types just return C<True>.)
+to mark the main exception as I<handled>; the exception acts as a
+relatively harmless undefined value thereafter.  Any other use of the
+C<Failure> object to extract a normal value will throw its associated
+exception immediately.  (The C<Failure> may, however, be stored in
+any container whose type allows the C<Failure> role to be mixed in.)
+The C<.handled> method returns C<False> on failures that have not
+been handled.  It returns C<True> for handled exceptions and for
+all non-C<Failure> objects. (That is, it is an C<Object> method,
+not a C<Failure> method.  Only C<Failure> objects need to store the
+actual status however; other types just return C<True>.)
 
-Because the contextual variable C<$!> contains all exceptions collected in the
-current lexical scope, saying C<die $!> will throw all exceptions,
-whether they were handled or not.  A bare C<die>/C<fail> takes C<$!> as the
-default argument.
+The C<.handled> method is C<rw>, so you may mark an exception as handled
+by assigning C<True> to it.  Note however that
 
-At scope exit, C<$!> discards all handled exceptions from itself, then performs
-a garbage-collection check for all remaining (unhandled) exceptions.  If all of
-them are still alive (e.g. by becoming part of the return value), then they are
-appended to C<< CALLER::<$!> >>.  Otherwise, it calls C<die> to throw those
-exceptions as a single new exception, which may then be caught with a C<CATCH>
-block in the current (or caller's) scope.
+    $!.handled = 1;
+
+marks only the main exception as handled.  To mark them all as handled
+you must access them individually via the C<.pending> method.
+
+A bare C<die>/C<fail> takes C<$!> as the default argument specifying
+the exception to be thrown or propagated outward to the caller's C<$!>.
+
+Because the contextual variable C<$!> contains all exceptions collected
+in the current lexical scope, saying C<die $!> will rethrow all those
+exceptions as the new thrown exception, keeping the same structure of
+main exception and list of unhandled exceptions.  (The C<$!> seen in a
+C<CATCH> block is specially bound to this in-flight exception as the
+blocks initial value for C<$!>, but it may be modified by additional
+failures as can any other block's C<$!> value.)  A C<fail> likewise
+moves all C<$!> exceptions up into C<< CALLER::<$!> >> before
+returning the current exception as normal return of a C<Failure>.
+
+At scope exit, C<$!> discards all handled exceptions from itself,
+then if there are any remaining unhandled exceptions, either as the
+main exception or as any listed unhandled exception, it calls C<die>
+to throw those exceptions as a single new exception, which may then
+be caught with a C<CATCH> block in the current (or caller's) scope.
+The new main exception is the most recent one, with any older unhandled
+exceptions attached as additional.
 
 You can cause built-ins to automatically throw exceptions on failure using
 
     use fatal;
 
-The C<fail> function responds to the caller's C<use fatal> state.  It
-either returns an unthrown exception, or throws the exception.
+The C<fail> function responds to the caller's C<use fatal> state.
+It either returns an unthrown exception, or throws the exception.
+Before you get too happy about this pragma, note that Perl 6 contains
+various parallel processing primitives that will tend to get blown
+up prematurely by thrown exceptions.  Unthrown exceptions are meant
+to provide a failsoft mechanism in which failures can be treated
+as data and dealt with one by one, without aborting executation
+of what may be perfectly valid parallel computations.  If you
+I<don't> deal with the failures as data, then the block exit
+semantics will eventually trigger a thrown exception.
+
+In any case, the overriding design principle here is that no
+unhandled exception is ever dropped on the floor, but propagated
+onward through subsequent C<$!> variables until it is handled.  If
+that never happens, the implicit outermost exception handler will
+eventually decide to abort and print all unhandled exceptions found
+in the C<$!> that it is responsible for.
 
 =head1 Closure traits
 
