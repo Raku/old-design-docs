@@ -15,8 +15,8 @@ Synopsis 29: Builtin Functions
                 Moritz Lenz <moritz@faui2k3.org>
                 Tim Nelson <wayland@wayland.id.au>
  Date:          12 Mar 2005
- Last Modified: 24 Feb 2009
- Version:       42
+ Last Modified: 30 May 2009
+ Version:       43
 
 The document is a draft.
 
@@ -262,19 +262,18 @@ B<TODO>: Research the exception handling system.
 
 =item bless
 
- our Object multi method bless( Object::RepCandidate $candidate )
- our Object multi method bless( *%args )
+ our Object method bless(Object::RepCandidate $candidate, *@protos, *%init_args)
 
-C<bless> is only available as a method which can be called on a prototype
-object like so:
+Calling C<bless> on any invocant (but typically a type object) to create a new
+object with the same class as the invocant.
 
- $object = $proto.bless(k1 => $v1, k2 => $v2, ...);
+C<$candidate> is used to provide the underlying representation of the object.
+The default is C<P6opaque>, but various other representations might be
+desired, especially when interoperating with other languages. C<@protos> and
+C<%init_args> both provide ways for values to be provided to the new
+object, just like in the default C<new> method.
 
-A newly created object, based on either the C<$candidate> representation
-or a newly created representation (initialized with the C<%args> that
-are passed in) when the second form is used.
-
-It automatically calls all appropriate C<BUILD> routines by calling the
+C<bless> automatically calls all appropriate C<BUILD> routines by calling the
 C<BUILDALL> routine for the current class, which initializes the object in
 least-derived to most-derived order. See L<S12/Objects>
 for more detailed information on object creation.
