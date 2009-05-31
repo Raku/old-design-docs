@@ -12,8 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 26 Mar 2009
-  Version: 27
+  Last Modified: 30 Mar 2009
+  Version: 28
 
 =head1 Overview
 
@@ -154,6 +154,52 @@ may also specify a different scoping default by use of C<:MY> or C<:OUR>
 tags as arguments to C<is export>.  (Of course, mixing incompatible scoping
 in different scopes is likely to lead to confusion.)
 
+The C<use> declaration is actually a composite of two other declarations,
+C<need> and C<defines>.  Saying
+
+    use Sense <common @horse>;
+
+breaks down into:
+
+    need Sense;
+    Sense defines <common @horse>;
+
+=head2 Loading without importing
+X<need>
+
+The C<need> declarator takes a list of modules and loads them (at
+compile time) without importing any symbols.  It's good for loading
+class modules that have nothing to export (or nothing that you want
+to import):
+
+    need ACME::Rocket;
+    my $r = ACME::ROCKET.new;
+
+This declaration is equivalent to Perl 5's:
+
+    use ACME::Rocket ();
+
+=head2 Importing without loading
+X<defines>
+
+The importation into your lexical scope may also be a separate declaration
+from loading.  This is primarily useful for modules declared inline, which
+do not automatically get imported into their surrounding scope:
+
+    my module Factorial {
+        multi fact (Int $n) is export { [*] 1..$n }
+    }
+    ...
+    Factorial defines 'fact';   # imports the multi
+
+Despite having the form of an infix operator, this form functions as
+a compile-time declarator, so that these notations can be combined:
+
+    role Silly {
+        enum Ness is export <Dilly String Putty>;
+    } defines <Ness>;
+
+
 =head1 Runtime Importation
 
 Importing via C<require> also installs names into the current lexical scope by
@@ -188,15 +234,12 @@ to the package scope instead:
 You may also import symbols from the various pseudo-packages listed in S02.
 They behave as if all their symbols are in the C<:ALL> export list:
 
-    use CONTEXT <$IN $OUT $ERR>;
-    require CALLER <$x $y>;
+    CONTEXT defines <$IN $OUT $ERR>;
+    CALLER defines <$x $y>;
 
     # Same as:
     #     my ($IN, $OUT, $ERR) ::= ($*IN, $*OUT, $*ERR)
     #     my ($x, $y) := ($CALLER::x, $CALLER::y)
-
-As pseudo-packages are always already preloaded, C<use> and C<require> will
-never attempt to load, for example, C<CALLER.pm> from an external source.
 
 =head1 Versioning
 
