@@ -13,8 +13,8 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 24 May 2009
-  Version: 166
+  Last Modified: 7 Jun 2009
+  Version: 167
 
 =head1 Overview
 
@@ -1342,6 +1342,54 @@ Flipflop ranges (sed style)
 
 =back
 
+=head1 Adverbs
+
+Operator adverbs
+are parsed as trailing unary operators at this precedence level,
+just tighter than item assignment.  (They're not officially "postfix" operators
+because those require the absense of whitespace, and these allow whitespace.
+These adverbs insert themselves in the spot where the parser is
+expecting an infix operator, but the parser continues to look for
+an infix after parsing the adverb and applying it to the previous
+term.)  Thus,
+
+    $a < 1 and $b == 2 :carefully
+
+does the C<==> carefully, while
+
+    $a < 1 && $b == 2 :carefully
+
+does the C<&&> carefully because C<&&> is of
+tighter precedence than "comma".  Use
+
+    $a < 1 && ($b == 2 :carefully)
+
+to apply the adverb to the C<==> operator instead.  We say that
+C<==> is the "topmost" operator in the sense that it is at the
+top of the parse tree that the adverb could possibly apply to.
+(It could not apply outside the parens.)  If you are unsure
+what the topmost operator is, just ask yourself which operator
+would be applied last.  For instance, in
+
+    +%hash{$key} :foo
+
+The subscript happens first and the C<+> operator happens last,
+so C<:foo> would apply to that.  Use
+
+    +(%hash{$key} :foo)
+
+to apply C<:foo> to the subscripting operator instead.
+
+Adverbs will generally attach the way you want when you say things like
+
+    1 .. $x+2 :by(2)
+
+The proposed internal testing syntax makes use of these precedence rules:
+
+    $x eqv $y+2  :ok<$x is equivalent to $y+2>;
+
+Here the adverb is considered to be modifying the C<eqv> operator.
+
 =head2 Item assignment precedence
 
 =over
@@ -1441,60 +1489,6 @@ C<< prefix:<not> >>
     not any(@args) eq '-v' | '-V'
 
 =back
-
-While the preceding are parsed as prefix operators, operator adverbs
-are parsed as trailing unary operators at this precedence level,
-just tighter than comma.  (They're not officially "postfix" operators
-because those require the absense of whitespace, and these allow whitespace.
-These adverbs insert themselves in the spot where the parser is
-expecting an infix operator, but the parser continues to look for
-an infix after parsing the adverb and applying it to the previous
-term.)  Thus,
-
-    $a < 1 and $b == 2 :carefully
-
-does the C<==> carefully, while
-
-    $a < 1 && $b == 2 :carefully
-
-does the C<&&> carefully because C<&&> is of
-tighter precedence than "comma".  Use
-
-    $a < 1 && ($b == 2 :carefully)
-
-to apply the adverb to the C<==> operator instead.  We say that
-C<==> is the "topmost" operator in the sense that it is at the
-top of the parse tree that the adverb could possibly apply to.
-(It could not apply outside the parens.)  If you are unsure
-what the topmost operator is, just ask yourself which operator
-would be applied last.  For instance, in
-
-    +%hash{$key} :foo
-
-The subscript happens first and the C<+> operator happens last,
-so C<:foo> would apply to that.  Use
-
-    +(%hash{$key} :foo)
-
-to apply C<:foo> to the subscripting operator instead.  Likewise
-
-    $x = 1..10:by(2)
-
-will apply the adverb to the item assignment (and fail), but since
-
-    @x = 1..10:by(2)
-
-is a (looser) list assignment, the adverb applies to the range operator
-as expected.  And in general note that adverbs will attach the way
-you want when you say things like
-
-    1 .. $x+2 :by(2)
-
-The new internal testing syntax makes use of these precedence rules:
-
-    $x eqv $y+2  :ok<$x is equivalent to $y+2>;
-
-Here the adverb is considered to be modifying the C<eqv> operator.
 
 =head2 Comma operator precedence
 
