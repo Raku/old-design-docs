@@ -12,8 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 27 Oct 2004
-  Last Modified: 22 May 2009
-  Version: 83
+  Last Modified: 9 Jun 2009
+  Version: 84
 
 =head1 Overview
 
@@ -1024,6 +1024,18 @@ That is, the shortest long name of a multi method includes I<only> the
 single invocant, and any additional semicolons may only indicate long names
 to be used as tiebreakers.
 
+The multi-method tiebreaking happens only within a given class; all
+parent classes' multis appear to the outside world to be C<only>
+methods (and indeed, a foreign object may have no clue how to
+advertise multiple methods anyway).  In other words, longnames from
+different classes don't intermix as do the longnames in ordinary
+multi-sub dispatch.  So multi methods work only within a class;
+outside the class, single-dispatch semantics are enforced to preserve
+encapsulation.  To put it another way, multi methods are only for
+convenience of implementation within a given class; and specifically
+to make it easier to compose roles with similar but not identical
+methods into a single class.
+
 Conjecture: In order to specify dispatch that includes the return
 type context, it is necessary to place the return type before the double
 semicolon:
@@ -1855,6 +1867,11 @@ whether you're interested in private methods, and so forth.
     :local              only methods defined in the current class
     :tree               methods by class structure (inheritance hierarchy)
     :private            include private methods
+
+Note that, since introspection is primarily for use by the outside
+world (the class already knows its own structure, after all), a set of
+multi methods are presented to be a single C<Routine> object.  You need to
+use C<.candidates> on that to break it down further.
 
 The C<.^attributes> method returns a list of attribute descriptors
 that have traits like these:
