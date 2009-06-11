@@ -13,8 +13,8 @@ Luke Palmer <luke@luqui.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 8 Mar 2004
-  Last Modified: 7 Jun 2009
-  Version: 167
+  Last Modified: 10 Jun 2009
+  Version: 168
 
 =head1 Overview
 
@@ -2290,9 +2290,13 @@ the ability to say C<$x.'foo'> does not imply that C<$x'foo'> will work.)
 The postfix interpretation of an operator may be overridden by
 use of a quoted method call, which calls the prefix form instead.
 So C<x().!> is always the postfix operator, but C<x().'!'> will always
-call C<!x()>.  In particular, you can say things like C<$array.'@'>
-and C<$fh.'='>, which will not be confused lexically with C<$fh.=new>
-due to the quotes.
+call C<!x()>.  In particular, you can say things like C<$array.'@'>.
+This also includes any operator that would look like something
+with a special meaning if used after the method-calling dot.  For example,
+If you defined a C<prefix:<=> >, and you wanted to write it using
+the method-call syntax instead of C<=$object>, the parser would take
+C<$object.=> as the mutation syntax (see S12, "Mutating methods).
+Writing C<$object.'='> will call your prefix operator.
 
 =item *
 
