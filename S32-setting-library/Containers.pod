@@ -478,7 +478,7 @@ Remove the last element of C<@array> and return it.
  our Array multi method push ( @array: *@values ) is export
 
 Add to the end of C<@array>, all of the subsequent arguments and
-returns the array.
+returns the modified array.
 
 =item rotate
 
@@ -492,6 +492,13 @@ is defined as:
 A negative shift of 1 is defined as:
 
     @array.unshift(@array.pop);
+
+If the magnitude of C<$n> is larger than the number of elements,
+the rotational semantics must be equivalent to doing:
+
+    @array.rotate(sign($n)) for ^abs($n)
+
+The modified array is returned.
 
 =item shift
 
@@ -539,7 +546,7 @@ expected in either list or scalar context.
  our Array multi method unshift ( @array: *@values ) is export
 
 C<unshift> adds the values onto the start of the C<@array> and
-returns the array.
+returns the modified array.
 
 =item keys
 
