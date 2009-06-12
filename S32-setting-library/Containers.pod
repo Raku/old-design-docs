@@ -269,6 +269,14 @@ single list.
 
 Note that strings are now reversed with C<flip>.
 
+=item rotate
+
+ our List multi method rotate ( @values is copy: Int $n = 1) is export
+
+Produces a new list with the same elements as the old list,
+rotated by the specified amount.  See Array::rotate for more
+info.
+
 =item sort
 
  our Array multi method sort( @values: *&by )
@@ -482,10 +490,10 @@ returns the modified array.
 
 =item rotate
 
- our Array multi method rotate ( @array: Int $n = 1) is export
+ our Array multi method rotate ( @array is copy: Int $n = 1, Int *@n) is export
 
-Rotates the array and returns it.  A positive rotation of 1
-is defined as:
+Produces a new array with the same elements as the old array,
+rotated by the specified amount.  A positive rotation of 1 is defined as:
 
     @array.push(@array.shift);
 
@@ -498,7 +506,18 @@ the rotational semantics must be equivalent to doing:
 
     @array.rotate(sign($n)) for ^abs($n)
 
-The modified array is returned.
+The new array to be returned contains nothing but aliases for
+the old array's elements; however, you can use this to get
+any of three different semantic behaviors:
+
+    @a.=rotate		# @a is rotated in place
+    @b = @a.rotate	# @b contains copied elements of rotated @a
+    @b := @a.rotate	# @b contains aliased elements of rotated @a
+
+If additional rotations are specified via the slurpy, they are
+applied to subdimensions of multidimensional arrays.  (To perform
+a flat rotation on a shaped array requires flattening to a list
+and rotating that instead.)
 
 =item shift
 
