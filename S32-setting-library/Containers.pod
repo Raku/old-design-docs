@@ -15,8 +15,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
                 Moritz Lenz <moritz@faui2k3.org>
        	       	Tim Nelson <wayland@wayland.id.au>
  Date:          19 Feb 2009 extracted from S29-functions.pod
- Last Modified: 5 May 2009
- Version:       7
+ Last Modified: 12 May 2009
+ Version:       8
 
 The document is a draft.
 
@@ -475,9 +475,23 @@ Remove the last element of C<@array> and return it.
 
 =item push
 
- our Int multi method push ( @array: *@values ) is export
+ our Array multi method push ( @array: *@values ) is export
 
-Add to the end of C<@array>, all of the subsequent arguments.
+Add to the end of C<@array>, all of the subsequent arguments and
+returns the array.
+
+=item rotate
+
+ our Array multi method rotate ( @array: Int $n ) is export
+
+Rotates the array and returns it.  A positive rotation of 1
+is defined as:
+
+    @array.push(@array.shift);
+
+A negative shift of 1 is defined as:
+
+    @array.unshift(@array.pop);
 
 =item shift
 
@@ -522,9 +536,10 @@ expected in either list or scalar context.
 
 =item unshift
 
- our Int multi method unshift ( @array: *@values ) is export
+ our Array multi method unshift ( @array: *@values ) is export
 
-C<unshift> adds the values onto the start of the C<@array>.
+C<unshift> adds the values onto the start of the C<@array> and
+returns the array.
 
 =item keys
 
