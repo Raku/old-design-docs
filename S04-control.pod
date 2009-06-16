@@ -12,8 +12,8 @@ Larry Wall <larry@wall.org>
 
   Maintainer: Larry Wall <larry@wall.org>
   Date: 19 Aug 2004
-  Last Modified: 29 May 2009
-  Version: 79
+  Last Modified: 16 Jun 2009
+  Version: 80
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -495,11 +495,24 @@ is actually short for:
 
 so you can modify the current list element in that case.
 
-When used as statement modifiers, C<for> and C<given> use a private
-instance of C<$_> for the left side of the statement.  The outer C<$_>
-can be referred to as C<$OUTER::_>.  (And yes, this implies that the
-compiler may have to retroactively change the binding of C<$_> on the
-left side.  But it's what people expect of a pronoun like "it".)
+When used as statement modifiers on implicit blocks (thunks), C<for>
+and C<given> privately temporize the current value of C<$_> for the
+left side of the statement and restore the original value at loop exit:
+
+    $_ = 42;
+    .say             # 42
+    .say for 1,2,3;  # 1,2,3
+    .say;            # 42
+
+The previous value of C<$_> is not available within the loop.  If you
+want it to be available, you must rewrite it as an explicit block
+using curlies:
+
+    { say OUTER::<$_>, $_ } for 1,2,3;  # 421,422,423
+
+No temporization is necessary with the explicit form since C<$_> is a
+formal parameter to the block.  Likewise, temporization is never needed
+for C<< statement_control:<for> >> because it always calls a closure.
 
 =head2 The do-once loop
 
@@ -586,7 +599,7 @@ followed by a statement modifier:
     # Syntax error: Statement-level placeholder block
     { say $^x };
 
-    # Not an syntax error, though $x doesn't get the argument it wants
+    # Not a syntax error, though $x doesn't get the argument it wants
     do { say $^x };
 
     # Not an error: Equivalent to "for 1..10 -> $x { say $x }"
