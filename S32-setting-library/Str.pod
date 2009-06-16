@@ -224,7 +224,7 @@ above U+FFFF count as a single codepoint.
 
 =item bytes
 
- our Int multi method bytes ( Str $string: $nf = $?NF, $enc = $?ENC) is export
+ our Int multi method bytes ( Str $string: $enc = $?ENC, :$nf = $?NF) is export
 
 Returns the number of bytes in the string if it were encoded in the
 specified way.  Note the inequality:
@@ -235,6 +235,13 @@ This is caused by the possibility of surrogate pairs, which are counted as one
 codepoint.  However, this problem does not arise for UTF-32:
 
     .bytes("C","UTF-32") * 4 == .codes("C")
+
+=item encode
+
+    our Buf multi method encode($encoding = 'UTF-8', $nf = $?NF)
+
+Returns a C<Buf> which represents the original string in the given encoding
+and normal form.
 
 =item index
 
