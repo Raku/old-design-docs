@@ -246,9 +246,11 @@ and normal form.
 =item index
 
  our StrPos multi method index( Str $string: Str $substring, StrPos $pos = StrPos(0) ) is export
+ our StrPos multi method index( Str $string: Str $substring, Int $pos ) is export
 
 C<index> searches for the first occurrence of C<$substring> in C<$string>,
-starting at C<$pos>.
+starting at C<$pos>. If $pos is an C<Int>, it is taken to be in the units
+of the calling scope, which defaults to "graphemes".
 
 The value returned is always a C<StrPos> object.  If the substring
 is found, then the C<StrPos> represents the position of the first
@@ -322,6 +324,7 @@ Do we even want this method at all?]
 X<rindex>
 
  our StrPos multi method rindex( Str $string: Str $substring, StrPos $pos? ) is export
+ our StrPos multi method rindex( Str $string: Str $substring, Int $pos ) is export
 
 Returns the position of the last C<$substring> in C<$string>. If C<$pos>
 is specified, then the search starts at that location in C<$string>, and
@@ -521,8 +524,11 @@ C<sprintf($format, $p.key, $p.value)>.
 =item substr
 
  our Str multi method substr (Str $string: StrPos $start, StrLen $length?) is rw is export
- our Str multi method substr (Str $string: StrPos $start, StrPos $end?) is rw is export
+ our Str multi method substr (Str $string: StrPos $start, StrPos $end) is rw is export
  our Str multi method substr (Str $string: StrPos $start, Int $length) is rw is export
+ our Str multi method substr (Str $string: Int $start, StrLen $length?) is rw is export
+ our Str multi method substr (Str $string: Int $start, StrPos $end) is rw is export
+ our Str multi method substr (Str $string: Int $start, Int $length) is rw is export
 
 C<substr> returns part of an existing string. You control what part by
 passing a starting position and optionally either an end position or length.
