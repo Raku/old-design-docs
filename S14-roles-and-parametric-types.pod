@@ -4,15 +4,18 @@
 
 Synopsis 14: Roles and Parametric Types [DRAFT]
 
+=head1 AUTHORS
+
+    Larry Wall <larry@wall.org>
+    Tim Nelson <wayland@wayland.id.au>
+    Jonathan Worthington <jnthn@jnthn.net>
+
 =head1 VERSION
 
-  Author:        Larry Wall <larry@wall.org>
-  Maintainer:    Larry Wall <larry@wall.org>
-  Contributions: Tim Nelson <wayland@wayland.id.au>
-                 Jonathan Worthington <jnthn@jnthn.net>
-  Date: 24 Feb 2009, extracted from S12-objects.pod
-  Last Modified: 8 May 2009
-  Version: 6
+    Created: 24 Feb 2009 (extracted from S12-objects.pod)
+
+    Last Modified: 26 Jun 2009
+    Version: 7
 
 =head1 Overview
 
@@ -342,8 +345,8 @@ roles are both trying to provide a method Bool).
 
 =head1 Traits
 
-Traits are just properties (roles) applied to declared items like
-containers or classes.  It's the declaration of the item itself that
+Traits are just properties (roles) applied to something that is being declared (the I<declarand>),
+such as containers or classes.  It's the declaration of the item itself that
 makes traits seem more permanent than ordinary properties.  In addition
 to adding the property, a trait can also have side effects.
 
@@ -353,63 +356,65 @@ more multisubs into a property role like this:
 
     role xxx {
         has Int $.xxx;
-        multi trait_auxiliary:<is>(xxx $trait, Class $container; $arg?) {...}
-        multi trait_auxiliary:<is>(xxx $trait, Any $container; $arg?) {...}
+        multi trait_mod:<is>(::?CLASS $declarand where {!.defined}, xxx $trait, $arg?) {...}
+        multi trait_mod:<is>(Any $declarand, xxx $trait, $arg?) {...}
     }
 
 Then it can function as a trait.  A well-behaved trait handler will say
 
-    $container does xxx($arg);
+    $declarand does xxx($arg);
 
-somewhere inside to set the metadata on the container correctly.
+somewhere inside to set the metadata on the declarand correctly.
 Since a class can function as a role when it comes to parameter type
 matching, you can also say:
 
     class MyBase {
-        multi trait_auxiliary:<is>(MyBase $base, Class $class; $arg?) {...}
-        multi trait_auxiliary:<is>(MyBase $tied, Any $container; $arg?) {...}
+        multi trait_mod:<is>(MyBase $declarand where {!.defined}, MyBase $base, $arg?) {...}
+        multi trait_mod:<is>(Any $declarand, MyBase $tied, $arg?) {...}
     }
 
 These capture control if C<MyBase> wants to capture control of how it gets
 used by any class or container.  But usually you can just let it call
 the generic defaults:
 
-    multi trait_auxiliary:<is>(Class $base, Class $class; $arg?) {...}
+    multi trait_mod:<is>($declarand where {!.defined}, $base, $arg?) {...}
 
-which adds C<$base> to the "isa" list of C<$class>, or
+which adds C<$base> to the "isa" list of class C<$declarand>, or
 
-    multi trait_auxiliary:<is>(Class $tied, Any $container; $arg?) {...}
+    multi trait_mod:<is>(Any $declarand, $tied, $arg?) {...}
 
-which sets the "tie" type of the container to the implementation type
+which sets the "tie" type of the container declarand to the implementation type
 in C<$tied>.
 
-Most traits are introduced by use of a "helping verb", which could
-be something like "C<is>", or "C<will>", or "C<can>", or "C<might>",
-or "C<should>", or "C<does>".  We call these helping verbs "trait
-auxiliaries". Here's "C<will>", which (being syntactic sugar) merely
-delegates to back to "is":
+Most traits are really just adverbial pairs which, instead of being
+introduce by a colon, are introduced by a (hopefully) more readable
+"helping verb", which could be something like "C<is>", or "C<will>", or
+"C<can>", or "C<might>", or "C<should>", or "C<does>".  Any trait verb
+that is parsed the same as trait_mod:<is> may be defined the same way.
+Here's "C<will>", which (being syntactic sugar) merely delegates to
+back to "is":
 
-    multi sub trait_auxiliary:<will>($trait, $container; &arg) {
-        trait_auxiliary:<is>($trait, $container, &arg);
+    multi sub trait_mod:<will>($declarand, $trait, &arg) {
+        trait_mod:<is>($declarand, $trait, &arg);
     }
 
-Other traits are applied with a single word, and we call one of those a
-"trait verb".  For instance, the "C<as>" trait
-is defined something like this:
+Other traits are applied with a single word, and require special
+parsing.  For instance, the "C<as>" trait is defined something
+like this:
 
     role as {
         has ReturnType $.as;
-        multi sub trait_verb:<as>($container; ReturnType $arg) {
-            $container does as($arg);
+        multi sub trait_mod:<as>($declarand, ReturnType $arg) is parsed /<typename>/ {
+            $declarand does as($arg);
         }
         ...
     }
 
 Unlike compile-time roles, which all flatten out in the same class,
 compile-time traits are applied one at a time, like mixin roles.
-You can, in fact, apply a trait to a container at run time, but
+You can, in fact, apply a trait to an object at run time, but
 if you do, it's just an ordinary mixin role. You have to call the
-appropriate C<trait_auxiliary:<is>()> routine yourself if you want it to
+appropriate C<trait_mod:<is>()> routine yourself if you want it to
 do any extra shenanigans.  The compiler won't call it for you at run
 time like it would at compile time.
 

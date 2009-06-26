@@ -4,16 +4,16 @@
 
 Synopsis 12: Objects
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-Larry Wall <larry@wall.org>
+    Larry Wall <larry@wall.org>
 
 =head1 VERSION
 
-  Maintainer: Larry Wall <larry@wall.org>
-  Date: 27 Oct 2004
-  Last Modified: 10 Jun 2009
-  Version: 85
+    Created: 27 Oct 2004
+
+    Last Modified: 10 Jun 2009
+    Version: 85
 
 =head1 Overview
 
@@ -1368,6 +1368,25 @@ preferred.
 To export a subset type, put the export trait just before the C<where>:
 
     subset Positive of Int is export where * > 0;
+
+=head2 Abstract vs Concrete types [Conjectural]
+
+For any named type, certain other types may automatically be derived
+from it by appending an appropriate adverbial to its name:
+
+    Int:A       Allow either defined or undefined Int values   
+    Int:U       Allow only undefined (abstract) Int values
+    Int:D       Allow only defined (concrete) Int values
+
+That is, these are equivalent:
+
+    Int:A       Any where Int
+    Int:U       Int where !*.defined
+    Int:D       Int where *.defined
+
+A bare C<Int> may default differently in different circumstances.
+In a variable declaration, C<:A> is assumed, whereas in a formal
+parameter that is not an invocant, C<:D> is assumed.
 
 =head2 Multiple constraints
 
