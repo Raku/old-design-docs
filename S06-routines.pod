@@ -4,17 +4,18 @@
 
 Synopsis 6: Subroutines
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-Damian Conway <damian@conway.org> and
+Damian Conway <damian@conway.org>
 Allison Randal <al@shadowed.net>
+Larry Wall <larry@wall.org>
 
 =head1 VERSION
 
-  Maintainer: Larry Wall <larry@wall.org>
-  Date: 21 Mar 2003
-  Last Modified: 23 May 2009
-  Version: 109
+  Created: 21 Mar 2003
+
+  Last Modified: 26 Jun 2009
+  Version: 110
 
 
 This document summarizes Apocalypse 6, which covers subroutines and the
@@ -1742,16 +1743,36 @@ Therefore these all have the same effect:
     sub postfix:<!> ($x) is equiv<++> {...}
     sub postfix:<!> ($x) {...}      # since equiv<++> is the default
 
-Prefix operators that are identifiers are handled specially.  Both of
+Prefix operators that are identifiers are handled specially.  The
+form with one argument defaults to named unary precedence
+instead of autoincrement precedence:
 
-    sub foo ($) {...}
-    sub prefix:<foo> ($) {...}
+    sub prefix:<foo> ($x) {...}
+    foo 1, 2, 3;        # means foo(1), 2, 3
 
-default to named unary precedence despite declaring a prefix operator.
 Likewise postfix operators that look like method calls are forced to
 default to the precedence of method calls.  Any prefix operator that
 requires multiple arguments defaults to listop precedence, even if it
-is not an identifier.
+is not an identifier:
+
+    sub prefix:<☎> ($x,$y) {...}
+    ☎ 1;                # ERROR, too few arguments
+    ☎ 1, 2;             # okay
+    ☎ 1, 2, 3;          # ERROR, too many arguments
+
+You must use the C<< prefix:<foo> >> form in order to mutate
+the grammar to parse as a named unary operator.  Normal function
+definitions never change the grammar, and when called always parse
+as listops, even if defined with a single argument:
+
+    sub foo ($x) {...}  # a listop
+    foo(1), 2, 3;       # okay
+    (foo 1), 2, 3;      # okay
+    foo 1, 2, 3;        # ERROR, too many arguments
+
+Likewise 0-ary functions parse as listops.  Use C<< term:<foo> >>
+(or a constant or enum declaration) to declare a term that expects
+no arguments.
 
 =item C<is assoc>
 
