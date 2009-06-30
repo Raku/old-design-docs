@@ -12,8 +12,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 10 Jun 2009
-    Version: 85
+    Last Modified: 29 Jun 2009
+    Version: 86
 
 =head1 Overview
 
@@ -965,13 +965,25 @@ They are sorted into an order according to how close the run-time types
 of the arguments match up with the declared types of the parameters of
 each candidate.  The best candidate is called, unless there's a tie,
 in which case the tied candidates are redispatched using any additional
-tiebreaker long names (see below).
+tiebreaker strategies (see below).  For the purpose of this nominal typing,
+no constrained type is considered to be a type name; instead the constrained type
+is unwound into its base type plus constraint.  Only the base type upon
+which the constrained type is based is considered for the nominal type
+match (along with the fact that it is constrained).  That is, if you have a parameter:
 
-If a tie still results, only candidates marked with the C<default> trait are
-considered, and the best matching default routine is used.  If there
-are no default routines, or if the available defaults are also tied,
-a final tie-breaking proto sub is called, if there is one (see above).
-Otherwise the dispatch fails.
+    subset Odd of Int where { $_ % 2 }
+    multi foo (Odd $i) {...}
+
+it is treated as if you'd instead said:
+
+    multi foo (Int $i where { $_ % 2 }) {...}
+
+Any constrained type is considered to have a base type that is "epsilon" narrower than
+the corresponding unconstrained type.  The compile-time topological sort
+takes into account the presence of at least one constraint, but nothing about the
+number or nature of any additional constraints.  If we think of Int' as
+any constrained version of Int, then Int' is always tighter nominally than Int.
+(Int' is a meta-notation, not Perl 6 syntax.)
 
 The order in which candidates are considered is defined by a
 topological sort based on the "type narrowness" of each candidate's
@@ -980,11 +992,55 @@ parameter that is participating.  Identical types are considered tied.
 Parameters whose types are not comparable are also considered tied.
 A candidate is considered narrower than another candidate if at least
 one of its parameters is narrower and all the rest of its parameters
-are either narrower or tied.  This defines the partial ordering of
-all the candidates.  If the topological sort detects a circularity in
-the partial ordering, all candidates in the circle are considered tied.
-A warning will be issued at C<CHECK> time if this is detected and there is
-no default candidate to fall back to.
+are either narrower or tied.  Also, if the signature has any additional
+required parameters not participating in the long name, the signature
+as a whole is considered epsilon tighter than any signature without
+extra parameters.  In essence, the remaining arguments are added to
+the longname as if the user had declared a capture parameter to bind
+the rest of the arguments, and that capture parameter has a constraint
+that it must bind successfully to the additional required parameters.
+All such signatures within a given rank are considered equivalent,
+and subject to tiebreaker A below.
+
+This defines the partial ordering of all the candidates.  If the
+topological sort detects a circularity in the partial ordering,
+all candidates in the circle are considered tied.  A warning will be
+issued at C<CHECK> time if this is detected and there is no suitable
+tiebreaker that could break the tie.
+
+There are three tiebreaking modes, in increasing order of desperation:
+
+    A) run-time constraint processing
+    B) use of a candidate marked with "is default"
+    C) use of a candidate marked as "proto"
+
+In the absence of any constraints, ties in the nominal typing
+immediately failover to tiebreaker B or C; if not resolved by B or C,
+they warn at compile time about an ambiguous dispatch.
+
+If there are any tied candidates with constraints, it follows from our
+definitions above that all of them are considered to be constrained.
+In the presence of longname parameters with constraints, or the
+implied constraint of extra required arguments, tiebreaker A is
+applied.  Candidates which are tied nominally but have constraints
+are considered to be a completely different situation, insofar as it
+is assumed the user knows exactly why each candidate has the extra
+constraints it has.  Thus, constrained signatures are considered to
+be much more like a switch defined by the user.  So for tiebreaker
+A the candidates are simply called in the order they were declared,
+and the first one that successfully binds (and completes without
+calling nextsame or nextwith) is considered the winner, and all the
+other tied candidates are ignored.  If all the constrained
+candidates fail, we throw out the rank of constrained variants and
+proceed to the next tighter rank, which may consist of the
+unconstrained variants without extra arguments.
+
+For ranks that are not decided by constraint (tiebreaker A),
+tiebreaker B is used: only candidates marked with the C<default>
+trait are considered, and the best matching default routine is used.
+If there are no default routines, or if the available defaults are
+also tied, tiebreaker C is used: a final tie-breaking proto sub is
+called, if there is one (see above).  Otherwise the dispatch fails.
 
 Ordinarily all the parameters of a multi sub are considered for dispatch.
 Here's a declaration for an integer range operator with two parameters
@@ -1004,6 +1060,44 @@ a multi.  (In the absence of that, a double semicolon is assumed
 after the last declared argument, but before any return signature.)
 Note that a call to the routine must still be compatible with
 subsequent arguments.
+
+Note that the C<$by> is not a required parameter, so doesn't impose
+the kind of constraint that allows tiebreaker A.  If the default
+were omitted, it would be a required parameter, and subject to tiebreaker A.
+Likewise an ordinary named parameter does not participate as a tiebreaker,
+but you can mark named parameters as required to effectively make
+a switch based on named binding:
+
+    multi foo (Int $a;; :$x!) {...}     # constrained
+    multi foo (Int $a;; :$y!) {...}     # constrained
+    multi foo (Int $a;; :$z!) {...}     # constrained
+
+    multi foo (Int $a;; *%_) {...}      # unconstrained
+
+The first three are dispatched under tiebreaker A as a constrained
+rank.  If none of them can match, the final one is dispatched as
+an unconstrained rank, since C<*%_> is not considered a required
+parameter.
+
+Likewise, constrained types sort before unconstrained:
+
+    multi bar (Even $a) {...}   # constrained
+    multi bar (Odd $a) {...}    # constrained
+
+    multi bar (Int $a) {...}    # unconstrained
+
+And values used as subset types also sort first, and are dispatched
+on a first-to-match basis:
+
+    multi baz (0) {...}         # constrained
+    multi baz (1) {...}         # constrained
+
+    multi baz (Int $x) {...}    # unconstrained
+
+If some of the constrained candidates come by import from other modules,
+they are all considered to be declared at the point of of importation
+for purposes of tiebreaking; subsequent tiebreaking is provided by
+the original order in the used module.
 
 [Conjecture: However, a given multi may advertise multiple long names,
 some of which are shorter than the complete long name.  This is done
