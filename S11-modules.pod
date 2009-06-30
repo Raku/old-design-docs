@@ -12,8 +12,8 @@ Synopsis 11: Modules
 
     Created: 27 Oct 2004
 
-    Last Modified: 29 Jun 2009
-    Version: 29
+    Last Modified: 30 Jun 2009
+    Version: 30
 
 =head1 Overview
 
@@ -162,6 +162,11 @@ breaks down into:
     need Sense;
     Sense defines <common @horse>;
 
+These further break down into:
+
+    BEGIN MY::($_) := load_module(find_module_defining($_)) for <Sense>;
+    BEGIN MY.import_alias(Sense, <common @horse>);
+
 =head2 Loading without importing
 X<need>
 
@@ -177,6 +182,14 @@ This declaration is equivalent to Perl 5's:
 
     use ACME::Rocket ();
 
+Saying
+
+    need A,B,C;
+
+is equivalent to:
+
+    BEGIN MY::($_) := load_module(find_module_defining($_)) for <A B C>;
+
 =head2 Importing without loading
 X<defines>
 
@@ -190,6 +203,10 @@ do not automatically get imported into their surrounding scope:
     ...
     Factorial defines 'fact';   # imports the multi
 
+The last declaration is syntactic sugar for:
+
+    BEGIN MY.import_alias(Factorial, <fact>);
+
 Despite having the form of an infix operator, this form functions as
 a compile-time declarator, so that these notations can be combined:
 
@@ -197,6 +214,14 @@ a compile-time declarator, so that these notations can be combined:
         enum Ness is export <Dilly String Putty>;
     } defines <Ness>;
 
+This really means:
+
+    BEGIN MY.import_alias(
+        role Silly {
+            enum Ness is export <Dilly String Putty>;
+        },
+        <Ness>
+    );
 
 =head1 Runtime Importation
 
@@ -204,9 +229,31 @@ Importing via C<require> also installs names into the current lexical scope by
 default, but delays the actual binding till runtime:
 
     require Sense <common @horse>;
+
+This means something like:
+
+    BEGIN MY.declare_stub_symbols('Sense', <common @horse>);
+    # run time!
+    MY.import_realias(:from(load_module(find_module_defining('Sense'))), 'Sense');
+    MY.import_realias(:from(Sense), <common @horse>);
+
+(The C<.import_realias> requires that the symbols to be imported already
+exist; this differs from C<.import_alias>, which requires that the
+imported symbols I<not> already exist in the target scope.)
+
+Alternately, a filename may be mentioned directly, which installs
+a package that is effectively that is anonymous to the current lexical
+scope, and may only be accessed by whatever global names the module
+installs:
+
     require "/home/non/Sense.pm" <common @horse>;
 
-Only explicitly mentioned names may be so installed.  In order
+which breaks down to:
+
+    BEGIN MY.declare_stub_symbols(<common @horse>);
+    MY.import_realias(:from(load_module("/home/non/Sense.pm")), <common @horse>);
+
+Only explicitly mentioned names may be so imported.  In order
 to protect the run-time sanctity of the lexical pad, it may not be
 modified by C<require>.  Tagsets are assumed to be unknown at compile
 time, hence tagsets are not allowed in the default import list to
