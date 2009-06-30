@@ -164,8 +164,24 @@ breaks down into:
 
 These further break down into:
 
-    BEGIN MY::($_) := load_module(find_module_defining($_)) for <Sense>;
-    BEGIN MY.import_alias(Sense, <common @horse>);
+    BEGIN {
+      my $target ::= OUTER;
+      for <Sense> {
+        my $scope = load_module(find_module_defining($_));
+        # install the name of the type
+        $target.install_alias($_, $scope{$_}) if $scope.exists{$_};
+        # get the package declared by the name in that scope,
+        my $package_name = $_ ~ '::';
+        # if there isn't any, then there's just the type...
+        my $loaded_package = $scope{$package_name} or next;
+        # get a copy of the package, to avoid action-at-a-distance
+        # install it in the target scope
+        $target{$package_name} := $loaded_package.copy;
+        # finally give the chance for the module to install
+        # the selected symbols
+        $loaded_package.EXPORTALL($target, <common @horse>);
+      }
+    }
 
 =head2 Loading without importing
 X<need>
@@ -188,7 +204,21 @@ Saying
 
 is equivalent to:
 
-    BEGIN MY::($_) := load_module(find_module_defining($_)) for <A B C>;
+    BEGIN {
+      my $target ::= OUTER;
+      for <A B C> {
+        my $scope = load_module(find_module_defining($_));
+        # install the name of the type
+        $target.install_alias($_, $scope{$_}) if $scope.exists{$_};
+        # get the package declared by the name in that scope,
+        my $package_name = $_ ~ '::';
+        # if there isn't any, then there's just the type...
+        my $loaded_package = $scope{$package_name} or next;
+        # get a copy of the package, to avoid action-at-a-distance
+        # install it in the target scope
+        $target{$package_name} := $loaded_package.copy;
+      }
+    }
 
 =head2 Importing without loading
 X<defines>
