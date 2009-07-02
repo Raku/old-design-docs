@@ -757,13 +757,37 @@ To explicit request a C<Buf> of a specific size, you can use
     Buf.new(127, :size(16))     # returns a buf16
     Buf.new(1024, :size(8))     # dies, because 1024 >= 2**8
 
+Subtypes with additional constraints like C<utf8> (which only allows valid
+UTF-8 byte sequences) exist and provide similar constructors. See
+L<S02/Built-In Data Types>.
+
 =head3 Methods
 
 =item decode
 
     our Str method decode($encoding = $?ENC, $nf = $?NF)
 
-Decode the C<Buf> into a C<Str>
+Decode the C<Buf> into a C<Str>. For subtypes that know their encoding (like
+C<utf8>, C<utf16>) the C<$encoding> parameter defaults to their intrisic
+encoding instead.
+
+=head3 C<Buf> Operators
+
+Two C<Buf> objects of the same bit size can be compared with the same
+operators as strings (in particular C<eq>, C<lt>, C<le>, C<gt>, C<ge>,
+C<ne> and C<leg>), but actually compares the stored integers, not
+characters. Concatenating two compatible C<Buf>s produces an object of the
+most specific type possible, for example C<buf8.new() ~ utf8.new()> results in
+a C<buf8> object.
+
+Comparing or concatenating two C<Buf> objects of different bit sizes,
+or a C<Buf> that doesn't know its encoding with a C<Str> throws an exception.
+
+Likewising coercing an encoding-unaware C<Buf> to C<Str> dies.
+
+[Conjecture: The behaviour of encoding-aware C<Buf> objects on string
+operators is intentially not defined yet, because I have no idea what
+implications on speed and usage they might have --moritz].
 
 =head2 Pair
 
