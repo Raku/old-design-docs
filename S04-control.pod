@@ -12,8 +12,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 16 Jun 2009
-    Version: 80
+    Last Modified: 3 Jul 2009
+    Version: 81
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1134,6 +1134,23 @@ Those marked with a C<*> can also be used within an expression:
 
     my $compiletime = BEGIN { localtime };
     our $temphandle = START { maketemp() };
+
+As with other statement prefixes, these value-producing constructs
+may be placed in front of either a block or a statement:
+
+    my $compiletime = BEGIN localtime;
+    our $temphandle = START maketemp();
+
+This can be particularly useful to expose a lexically scoped
+declaration to the surrounding context.  Hence these declare the same
+variables with the same scope as the preceding example, but run the
+statements as a whole at the indicated time:
+
+    BEGIN my $compiletime = localtime;
+    START our $temphandle = maketemp();
+
+(Note, however, that the value of a variable calculated at compile
+time may not persist under run-time cloning of any surrounding closure.)
 
 Code that is generated at run time can still fire off C<CHECK>
 and C<INIT> blocks, though of course those blocks can't do things that
