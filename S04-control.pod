@@ -575,21 +575,21 @@ an explicit call, C<CALLER::> doesn't count it as a routine boundary.
 If you wish to return a closure from a function, you must use an
 explicit prefix such as C<return> or C<sub> or C<< -> >>.  
 
-	sub f1
-	{
-		# lots of stuff ...
-		{ say "I'm a closure." }
-	}
-	
-	my $x1= f1;  # fall-off return is result of the say, not the closure.
-	
-	sub f2
-	{
-		# lots of stuff ...
-		return { say "I'm a closure." }
-	}
-	
-	my $x2= f2;  # returns a Block object.
+    sub f1
+    {
+        # lots of stuff ...
+        { say "I'm a closure." }
+    }
+
+    my $x1= f1;  # fall-off return is result of the say, not the closure.
+
+    sub f2
+    {
+        # lots of stuff ...
+        return { say "I'm a closure." }
+    }
+
+    my $x2= f2;  # returns a Block object.
 
 Use of a placeholder parameter in statement-level blocks triggers a
 syntax error, because the parameter is not out front where it can be
@@ -700,11 +700,11 @@ which can't see the caller's lexical scope except through the CALLER::
 pseudo package.  For example, Perl forces generic C<eq> to coerce to
 string comparison, like this:
 
-    proto infix:<eq> (Any $a, Any $b)	{ lift ~$a eq ~$b }		# user's eq, user's ~
-    multi infix:<eq> (Whatever, Any $b)	{ -> $a { lift $a eq $b } }	# user's eq
-    multi infix:<eq> (Any $a, Whatever)	{ -> $b { lift $a eq $b } }	# user's eq
-    multi infix:<eq> (&f:($), Any $b)	{ -> $a { lift f($a) eq $b } }	# user's eq
-    multi infix:<eq> (Str $a, Str $b)	{ !Str::leg($a, $b) }		# primitive leg, primitive !
+    proto infix:<eq> (Any $a, Any $b)   { lift ~$a eq ~$b }            # user's eq, user's ~
+    multi infix:<eq> (Whatever, Any $b) { -> $a { lift $a eq $b } }    # user's eq
+    multi infix:<eq> (Any $a, Whatever) { -> $b { lift $a eq $b } }    # user's eq
+    multi infix:<eq> (&f:($), Any $b)   { -> $a { lift f($a) eq $b } } # user's eq
+    multi infix:<eq> (Str $a, Str $b)   { !Str::leg($a, $b) }          # primitive leg, primitive !
 
 
 Note that in each piece of lifted code there are references to
@@ -1270,9 +1270,9 @@ Note that the parser cannot intuit how many arguments a list operator
 is taking, so if you mean 0 arguments, you must parenthesize the
 argument list to force the block to appear after a term:
 
-    if caller {...}	# WRONG, parsed as caller({...})
-    if caller() {...}	# okay
-    if (caller) {...}	# okay
+    if caller {...}    # WRONG, parsed as caller({...})
+    if caller() {...}  # okay
+    if (caller) {...}  # okay
 
 Note that common idioms work as expected though:
 
@@ -1466,7 +1466,7 @@ they perform a C<:=> binding to the lexical symbol at clone time
 possibly deferred.)
 
     sub foo {
-	# conceptual cloning happens to both blocks below
+        # conceptual cloning happens to both blocks below
         my $x = 1;
         my sub bar { print $x }         # already conceptualy cloned, but can be lazily deferred
         my &baz := { bar(); print $x }; # block is cloned immediately, forcing cloning of bar

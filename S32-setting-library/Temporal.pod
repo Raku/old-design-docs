@@ -73,38 +73,38 @@ C<localtime> have something to return.
 
 You probably want to use the Temporal::DateTime object instead.
 
-role	Temporal::Date {
+    role Temporal::Date {
         my subset Month of Int where { 1 <= $^a <= 12 };
         my subset Day of Int where { 1 <= $^a <= 31 };
         my subset DayOfWeek of Int where { 1 <= $^a <= 7 };
 
-	has Int   $.year;
-	has Month $.month = 1;
-	has Day   $.day = 1;
+        has Int   $.year;
+        has Month $.month = 1;
+        has Day   $.day = 1;
 
         # This can be cached internally, but it's a calculated value,
         # not an attribute.
-	our DayOfWeek method day-of-week ();
+        our DayOfWeek method day-of-week ();
 
         # These always return the long English names
         our Str method month-name () ; # "January"
         our Str method day-name ();   # "Tuesday"
 
         # returns the date formatted in ISO8601 style - 2008-01-25
-	our Str method iso8601 () {
+        our Str method iso8601 () {
             [ self.year, self.month, self.date ].join('-');
         }
 
         method Str { self.iso8601 };
 
-	multi method infix:{'<=>'} (Temporal::Date $self, Temporal::Date $other) {
+        multi method infix:{'<=>'} (Temporal::Date $self, Temporal::Date $other) {
             $self.year <=> $other.year
             ||
             $self.month <=> $other.month
             ||
             $self.day <=> $other.day;
         }
-}
+    }
 
 Example:
 
@@ -115,28 +115,28 @@ $date.month(); # 1
 
 You probably want to use the Temporal::DateTime object instead.
 
-role	Temporal::Time {
+    role Temporal::Time {
         my subset Hour   of Int where { 0 <= $^a <= 23 };
         my subset Minute of Int where { 0 <= $^a <= 59 };
         my subset Second of Num where { 0 <= $^a <= 60 };
 
-	has Hour   $.hour = 0;
-	has Minute $.minute = 0;
-	has Second $.second = 0;
+        has Hour   $.hour = 0;
+        has Minute $.minute = 0;
+        has Second $.second = 0;
 
-	our Str method iso8601 ()
+        our Str method iso8601 ()
             { [ self.hour, self.minute, self.second ].join(':') }
 
         method Str { self.iso8601() };
 
-	multi method infix:{'<=>'} (Temporal::Time $self, Temporal::Time $other) {
+        multi method infix:{'<=>'} (Temporal::Time $self, Temporal::Time $other) {
             $self.hour <=> $other.hour
             ||
             $self.minute <=> $other.minute
             ||
             $self.second <=> $other.second
         }
-}
+    }
 
 =head2 Temporal::TimeZone::Observance
 
@@ -173,12 +173,12 @@ able to give us proper time zone information.
 
 =head2 Temporal::DateTime
 
-role	Temporal::DateTime {
+    role Temporal::DateTime {
         has Temporal::Date $!date handles <year month day day-of-week>;
         has Temporal::Time $!time handles <hour minute second fractional-second>;
         has Temporal::TimeZone::Observance $!timezone handles <offset isdst>;
 
-	our Str method iso8601 () {
+        our Str method iso8601 () {
             self.date.iso8601 ~ 'T' ~ self.time.iso8601 ~ self.timezone.iso8601;
         }
 
@@ -191,7 +191,7 @@ role	Temporal::DateTime {
         method Int { self.epoch.truncate }
 
         method Num { self.epoch }
-}
+    }
 
 =head1 Additions
 

@@ -29,21 +29,21 @@ and Macro.
 
 =head2 Callable 
 
-role	Callable {...}
+    role Callable {...}
 
 The C<Callable> role implies the ability
 to support C<< postcircumfix:<( )> >>.
 
 =head2 Code
 
-# Base class for all executable objects
-role	Code {
-	method Signature signature() {...}
-	method Code      assuming(...) {...}
-	method           do() {...} # See L<S12/Introspection>
-	method Bool defined {...}
-	# XXX What does do() return?  I mean, it's a "method body", but what's that?  
-}
+    # Base class for all executable objects
+    role Code {
+        method Signature signature() {...}
+        method Code      assuming(...) {...}
+        method           do() {...} # See L<S12/Introspection>
+        method Bool defined {...}
+        # XXX What does do() return?  I mean, it's a "method body", but what's that?  
+    }
 
 For C<Code>, the C<.defined> method returns whether a body has
 been defined.  A body consisting only of C<...>, C<!!!>, or C<???>
@@ -54,35 +54,35 @@ appropriate symbol table.
 
 =head2 Block
 
-# Executable objects that have lexical scopes
-role	Block does Code does Callable {
-	method next() {...}
-	method last() {...}
-	method redo() {...}
-	method leave() {...}
-	method labels() {...}
-	method as() {...} # See L<S12/Introspection> and L<S02/Value types>
-}
+    # Executable objects that have lexical scopes
+    role Block does Code does Callable {
+        method next() {...}
+        method last() {...}
+        method redo() {...}
+        method leave() {...}
+        method labels() {...}
+        method as() {...} # See L<S12/Introspection> and L<S02/Value types>
+    }
 
 =head2 Signature
 
-# Function parameters (left-hand side of a binding)
-role	Signature {...}
+ # Function parameters (left-hand side of a binding)
+ role Signature {...}
 
 =head2 Capture
 
-# Function call arguments (right-hand side of a binding)
-role	Capture does Positional does Associative {...}
+ # Function call arguments (right-hand side of a binding)
+ role Capture does Positional does Associative {...}
 
 =head2 WrapHandle
 
-role	WrapHandle {...}
+ role WrapHandle {...}
 
 =head1 Classes
 
 =head2 Routine
 
- class	Routine does Block {
+ class Routine does Block {
       method WrapHandle wrap(Code $code) {...}
       method Routine    unwrap(Wraphandle $original) {...}
       method Str        name() {...}
@@ -101,19 +101,19 @@ See L<S06/Wrapping>.
 
 =head2 Sub
 
-class	Sub isa Routine {...}
+    class Sub isa Routine {...}
 
 =head2 Method
 
-class	Method isa Routine {...}
+    class Method isa Routine {...}
 
 =head2 Submethod
 
-class	Submethod isa Routine {...} # XXX or should this be isa Sub
+    class Submethod isa Routine {...} # XXX or should this be isa Sub
 
 =head2 Macro
 
-class	Macro isa Routine {...}
+    class Macro isa Routine {...}
 
 =head1 Additions
 
