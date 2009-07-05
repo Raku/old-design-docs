@@ -328,7 +328,7 @@ or
 
 you're really only giving one part of the name of the module.
 The full name of the module or class includes other metadata,
-in particular, the version, and the author.
+in particular, the author, and the version.
 
 Modules posted to CPAN or entered into any standard Perl 6 library
 are required to declare their full name so that installations can know
@@ -371,20 +371,20 @@ parts in which the non-identifier parts are specified in adverbial pair
 notation without intervening spaces.  Internally these are stored in
 a canonical string form which you should ignore.  You may write the
 various parts in any order, except that the bare identifer must come
-first.  The required parts for library insertion are the short name of
-the class/module, its version number, and a URI identifying the author
-(or authorizing authority, so we call it "auth" to be intentionally ambiguous).
+first.  The required parts for library insertion are the short name of the
+class/module, a URI identifying the author (or authorizing authority, so we
+call it "auth" to be intentionally ambiguous), and its version number.
 For example:
 
-    class Dog:ver<1.2.1>:auth<cpan:JRANDOM>;
-    class Dog:ver<1.2.1>:auth<http://www.some.com/~jrandom>;
-    class Dog:ver<1.2.1>:auth<mailto:jrandom@some.com>;
+    class Dog:auth<cpan:JRANDOM>:ver<1.2.1>;
+    class Dog:auth<http://www.some.com/~jrandom>:ver<1.2.1>;
+    class Dog:auth<mailto:jrandom@some.com>:ver<1.2.1>;
 
 Since these are somewhat unweildy to look at, we allow a shorthand in 
 which a bare subscripty adverb interprets its elements according to their
 form:
 
-    class Dog:<1.2.1 cpan:JRANDOM>
+    class Dog:<cpan:JRANDOM 1.2.1>
 
 The pieces are interpreted as follows:
 
@@ -397,11 +397,11 @@ package name
 
 =item *
 
-Anything matching C<< v? [\d+ '.']* \d+ >> is treated as a version number
+Anything matching C<< <alpha>+ \: \S+ >> is treated as an author(ity)
 
 =item *
 
-Anything matching C<< <alpha>+ \: \S+ >> is treated as an author(ity)
+Anything matching C<< v? [\d+ '.']* \d+ >> is treated as a version number
 
 =back
 
@@ -411,11 +411,11 @@ C<Dog> refers to the longer name.  The real library name can be
 specified separately as another adverb, in which case the identifier
 indicates only the alias within the current lexical scope:
 
-    class Pooch:name<Dog>:ver<1.2.1>:auth<cpan:JRANDOM>
+    class Pooch:name<Dog>:auth<cpan:JRANDOM>:ver<1.2.1>
 
 or 
 
-    class Pooch:<Dog 1.2.1 cpan:JRANDOM>
+    class Pooch:<Dog cpan:JRANDOM 1.2.1>
 
 for short.
 
@@ -434,7 +434,7 @@ the library system is concerned, when you say:
 
 you're really wildcarding the unspecified bits:
 
-    use Dog:ver(Any):auth(Any);
+    use Dog:auth(Any):ver(Any);
 
 And when you say:
 
@@ -442,7 +442,7 @@ And when you say:
 
 you're really asking for:
 
-    use Dog:ver<1.2.1>:auth(Any);
+    use Dog:auth(Any):ver<1.2.1>;
 
 Saying C<1.2.1> specifies an I<exact> match on that part of the
 version number, not a minimum match.  To match more than one version,
@@ -495,8 +495,8 @@ and this creation date is considered immutable.
 
 For wildcards any valid smartmatch selector works:
 
-    use Dog:ver(v1.2.1 | v1.3.4):auth(/:i jrandom/);
-    use Dog:ver(Any):auth({ .substr(0,5) eq 'cpan:'})
+    use Dog:auth(/:i jrandom/):ver(v1.2.1 | v1.3.4);
+    use Dog:auth({ .substr(0,5) eq 'cpan:'}):ver(Any);
 
 In any event, however you select the module, its full name is
 automatically aliased to the short name for the rest of your lexical
@@ -506,15 +506,15 @@ scope.  So you can just say
 
 and it knows (even if you don't) that you mean
 
-    my Dog:<1.3.4 cpan:JRANDOM> $spot .= new("woof");
+    my Dog:<cpan:JRANDOM 1.3.4> $spot .= new("woof");
 
 The C<use> statement allows an external language to be specified in
 addition to (or instead of) an authority, so that you can use modules
 from other languages.  The C<from> adverb also parses any additional
 parts as short-form arguments.  For instance:
 
-    use Whiteness:from<perl5>:name<Acme::Bleach>:ver<1.12>:auth<cpan:DCONWAY>;
-    use Whiteness:from<perl5 Acme::Bleach 1.12 cpan:DCONWAY>;  # same thing
+    use Whiteness:from<perl5>:name<Acme::Bleach>:auth<cpan:DCONWAY>:ver<1.12>;
+    use Whiteness:from<perl5 Acme::Bleach cpan:DCONWAY 1.12>;  # same thing
 
 The string form of a version recognizes the C<*> wildcard in place of any
 position.  It also recognizes a trailing C<+>, so
@@ -551,19 +551,19 @@ actually emulates the old version.
 
 To declare that a module emulates an older version, declare it like this:
 
-    class Dog:<1.2.1 cpan:JRANDOM> emulates :<1.2.0>;
+    class Dog:<cpan:JRANDOM 1.2.1> emulates :<1.2.0>;
 
 Or to simply exclude use of the older module and (presumably) force
 the user to upgrade:
 
-    class Dog:<1.2.1 cpan:JRANDOM> excludes :<1.2.0>;
+    class Dog:<cpan:JRANDOM 1.2.1> excludes :<1.2.0>;
 
 The name is parsed like a C<use> wildcard, and you can have more than one,
 so you can say things like:
 
-    class Dog:<1.2.1 cpan:JRANDOM>
+    class Dog:<cpan:JRANDOM 1.2.1>
         emulates Dog:auth(DCONWAY|JCONWAY|TCONWAY):ver<1.0+>
-        excludes Fox:<3.14159 http://oreillymedia.com>
+        excludes Fox:<http://oreillymedia.com 3.14159>
         emulates Wolf:from<C# 0.8..^1.0>;
 
 =head1 Forcing Perl 6
@@ -582,7 +582,7 @@ can just start your main program with any of:
 
 Those all specify the latest Perl 6 semantics, and are equivalent to
 
-    use Perl:ver(v6..*):auth(Any);
+    use Perl:auth(Any):ver(v6..*);
 
 To lock the semantics to 6.0.0, say one of:
 
