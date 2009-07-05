@@ -18,24 +18,24 @@ DRAFT: Synopsis 17: Processes and Concurrency
     Last Modified: 27 Feb 2009
     Version: 4
 
-This draft document is a paste together from various sources.  The bulk of it is simply 
-the old S17-concurrency.pod, which dealt only with concurrency.  Signals were added from 
-S16-io, but haven't been merged with the conflicting S17 signals doco.  An event loop 
-section has been added here because a) Larry mentioned the idea, and b) Moritz suggested 
-that http://www.seas.upenn.edu/~lipeng/homepage/unify.html be our model for concurrency, 
-and in that model, an event loop underlies the threads.  
+This draft document is a paste together from various sources.  The bulk of it is simply
+the old S17-concurrency.pod, which dealt only with concurrency.  Signals were added from
+S16-io, but haven't been merged with the conflicting S17 signals doco.  An event loop
+section has been added here because a) Larry mentioned the idea, and b) Moritz suggested
+that http://www.seas.upenn.edu/~lipeng/homepage/unify.html be our model for concurrency,
+and in that model, an event loop underlies the threads.
 
 =head1 Overview
 
-An event loop underlies everything in this document.  POSIX signals can interact with 
-this, and concurrency is built on top of it.  Naturally, IPC (inter-process communication) 
-is documented here too (XXX or should be :) ).  
+An event loop underlies everything in this document.  POSIX signals can interact with
+this, and concurrency is built on top of it.  Naturally, IPC (inter-process communication)
+is documented here too (XXX or should be :) ).
 
 =head1 The Event Loop
 
 =head1 POSIX Signals
 
-The %*SIG variable contains a Hash of Proc::Signals::Signal.  
+The %*SIG variable contains a Hash of Proc::Signals::Signal.
 
     class Proc::Signals::Signal {
         has $exception; # This specifies what exception will be raised when this signal is received
@@ -43,10 +43,10 @@ The %*SIG variable contains a Hash of Proc::Signals::Signal.
         has $blocked;   # Is this signal blocked?  cf. sigprocmask
     }
 
-The @*SIGQUEUE array contains a queue of the signals that are blocked and queued.  
+The @*SIGQUEUE array contains a queue of the signals that are blocked and queued.
 
-The standard POSIX signals simply raise control exceptions that are handled as normal 
-through the control signal handler, and caught by CONTROL blocks, as specified in S04.  
+The standard POSIX signals simply raise control exceptions that are handled as normal
+through the control signal handler, and caught by CONTROL blocks, as specified in S04.
 
 To declare your main program catches INT signals, put a CONTROL block anywhere
 in the toplevel to handle exceptions like this:
@@ -57,8 +57,8 @@ in the toplevel to handle exceptions like this:
 
 =head2 Signal defaults
 
-The signals have defaults as specified in the table below.  $blocked always defaults to 
-false.  
+The signals have defaults as specified in the table below.  $blocked always defaults to
+false.
 
  Signal     Default Exception
  ------     -----------------
@@ -98,7 +98,7 @@ false.
 
 =head2 Signal exceptions
 
-A table below describes the exceptions.  
+A table below describes the exceptions.
 
 Each of these has a default action as well.  The possible actions are:
 
@@ -112,8 +112,8 @@ Each of these has a default action as well.  The possible actions are:
 
  Cont   Default action is to continue the process if it is currently stopped.
 
-Some actions do the Resumeable role.  An exception listed in the table below that does the 
-Resumeable role is marked with a * in the R column.  
+Some actions do the Resumeable role.  An exception listed in the table below that does the
+Resumeable role is marked with a * in the R column.
 
 The exceptions are:
 
@@ -153,11 +153,11 @@ The exceptions are:
  ControlExceptionSigLOST   Term    ? File lock lost
  ControlExceptionSigWINCH  Ign     ? Window resize signal (4.3BSD, Sun)
 
-See L<S04-control> for details on how to handle exceptions.  
+See L<S04-control> for details on how to handle exceptions.
 
-XXX I'm unsure how the actions in the table above can be made to make sense.  The Ign 
-actions are already dealt with because %SIG{CHLD}.exception already defaults to undef.  
-The Term action will probably be self-solving (ie. will terminate the process).  The 
+XXX I'm unsure how the actions in the table above can be made to make sense.  The Ign
+actions are already dealt with because %SIG{CHLD}.exception already defaults to undef.
+The Term action will probably be self-solving (ie. will terminate the process).  The
 others I'm just plain unsure about.  XXX
 
 =head1 Alarm
@@ -188,7 +188,7 @@ One can set up multiple alarms using repeated alarm calls:
         sleep 10;
         CATCH {
             is critical; # if you don't want $a2 to be raised inside this
-            when Sig::ALARM { ... } 
+            when Sig::ALARM { ... }
         }
     }
 

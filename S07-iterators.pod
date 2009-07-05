@@ -21,12 +21,12 @@ Synopsis 7: Iterators and Laziness
 As we all know, one of the primary virtues of the Perl programmer is
 laziness.  This is also one of the virtues of Perl itself.  However,
 Perl 6 knows better than to succumb to false laziness, and so is eager
-sometimes, and lazy others.  
+sometimes, and lazy others.
 
 One thing that Perl understands is the difference between Laziness and
-Eagerness.  When something is Lazy, it says "just give me what you've 
-got; I'll get the rest later", whereas when it's eager, it says "More!  
-More!  Give me everything you can get!".  
+Eagerness.  When something is Lazy, it says "just give me what you've
+got; I'll get the rest later", whereas when it's eager, it says "More!
+More!  Give me everything you can get!".
 
 Perl 6 defines 4 levels of laziness:
 
@@ -84,7 +84,7 @@ known), therefore it will also be lazy. On the other hand
 
   my @a = grep { ... }, 1, 2, 3, 4;
 
-will be eagerly evaluated. 
+will be eagerly evaluated.
 
 =item Feed operators: my @a <== @something;
 
@@ -129,7 +129,7 @@ The iterator role represents the lazy access to a list, walking through:
 
 =item Data structure (list, tree, table, etc)
 
-=item Feed (map, grep, etc) 
+=item Feed (map, grep, etc)
 
 =item Stream (mostly for IO)
 
@@ -154,7 +154,7 @@ Returns the next item for that iteration. The grouping of elements
 returned in each iteration is visible if this iterator is being used
 to build a slice. While building a List, the items will be flattened.
 
-When it runs out of items, it will return C<Nil>.  
+When it runs out of items, it will return C<Nil>.
 
 =head1 The Iterator::PushBack Role
 
@@ -189,7 +189,7 @@ the iterator.
 
 =head1 Auxiliary Implementations
 
-Perl's built-ins require that a number of auxiliary types implement 
+Perl's built-ins require that a number of auxiliary types implement
 Iterators.  These are available for general use, and are instantiated
 by ending a feed at a scalar, array, or sliced array.
 
@@ -225,11 +225,11 @@ To obtain a generic lazy list, end a feed in a C<Positional>.
 
     my @it <== 1..2000;
 
-The generic lazy list consumes the feed on demand.  As the elements of 
+The generic lazy list consumes the feed on demand.  As the elements of
 the list are accessed, values that were in each subsequently returned
-C<Capture> are placed at the end of the C<Positional>.  If a C<Capture> 
-with more than one value is returned, each value is stored at its own 
-index.  Empty C<Capture>s have no effect, and so the information that 
+C<Capture> are placed at the end of the C<Positional>.  If a C<Capture>
+with more than one value is returned, each value is stored at its own
+index.  Empty C<Capture>s have no effect, and so the information that
 they ever existed at all is lost.
 
 You can later do things like:
@@ -244,8 +244,8 @@ working with a large sequence you may want to:
 
     shift(@it);
 
-Reading and writing indices in a generic lazy list iterator will 
-force consumption and caching of values for all indices up to and 
+Reading and writing indices in a generic lazy list iterator will
+force consumption and caching of values for all indices up to and
 including the accessed one.
 
     @it[4] = 2;  # @it[0..3] are cached now, @it[4] was consumed/destroyed
@@ -255,18 +255,18 @@ touching the iterators.
 
     @it.unshift(<a b c>);  # works as expected
 
-Trying to find the number of elements in any way may force 
+Trying to find the number of elements in any way may force
 eager consumption of the remainder of the values in the iterator,
 and trying to access the end of the list certainly will.
 
     @it.pop; # Eagerness happens.  Maybe bad things, too.
 
-...but you had better be very sure that the list is finite.  Attempts to 
-fiddle with the end of an infinite list may result in the interpreter 
-raising quite the exception, in the luckiest cases it may just deliver an 
-C<Inf>, but in some cases you may find yourself spending a very, very 
-long time doing laps around the yard.  The exact behavior may be 
-implementation specific.  
+...but you had better be very sure that the list is finite.  Attempts to
+fiddle with the end of an infinite list may result in the interpreter
+raising quite the exception, in the luckiest cases it may just deliver an
+C<Inf>, but in some cases you may find yourself spending a very, very
+long time doing laps around the yard.  The exact behavior may be
+implementation specific.
 
 So don't do that.
 
@@ -280,28 +280,28 @@ to:
 
 (XXX TODO: effect of type constraints/shape of @it? )
 
-(XXX TODO: 
+(XXX TODO:
 
-   my @a = (1,2); @a <<== ... promotes an occupied Positional to 
+   my @a = (1,2); @a <<== ... promotes an occupied Positional to
    iterator, right? Should probably be explicitly mentioned.
 )
 
 
 =head2 Generic Lazy Slice
 
-The generic lazy slice consumes the C<Capture>s from an iterator but 
-stores the results as a bi-dimensional list, where the first dimension 
-corresponds to an iteration, and the second contains the values in 
-the C<Capture> returned for that iteration.  Empty C<Capture>s are 
+The generic lazy slice consumes the C<Capture>s from an iterator but
+stores the results as a bi-dimensional list, where the first dimension
+corresponds to an iteration, and the second contains the values in
+the C<Capture> returned for that iteration.  Empty C<Capture>s are
 stored just like the rest of the iterations.
 
 To obtain a generic lazy slice, end a feed in a sliced C<Positional>.
 
     my @@it <== map { ... }, 1,2,3;
 
-(XXX TODO:  
+(XXX TODO:
 
-    @@it <== (1,mysub(),2;1,2,3); 
+    @@it <== (1,mysub(),2;1,2,3);
     @@it[0];
     @@it[0;1];
 
@@ -311,16 +311,16 @@ To obtain a generic lazy slice, end a feed in a sliced C<Positional>.
 =head1 Coroutines
 
 Perl6 does not have a formally defined sub-style coroutine.  Doubtless
-there will be external modules to do so in different flavors.  Such a 
-construct, where many calls made to the name of a sub with different 
-parameters, expecting to reach the same sub every time, is not really 
-compatible with multi-method-dispatch.  While it may suit some 
-programming styles which only use a subset of the Perl6 language, it 
+there will be external modules to do so in different flavors.  Such a
+construct, where many calls made to the name of a sub with different
+parameters, expecting to reach the same sub every time, is not really
+compatible with multi-method-dispatch.  While it may suit some
+programming styles which only use a subset of the Perl6 language, it
 cannot be made generally applicable across the Perl6 feature set.
 
 This is not to say you cannot do coroutines in Perl6.  In fact, the
 gather/take construct is a simple coroutine.  But if you want to pass
-values back and forth Lua-style, you have to use a suplimentary 
+values back and forth Lua-style, you have to use a suplimentary
 object:
 
      sub my_coro (*@slurp) {
@@ -347,9 +347,9 @@ object:
     say "Third result: " ~ get $it;
 
 ...if you want to pass multiple parameters on each call, you can
-use a slice slurpy instead, to pass a C<Capture>.  
+use a slice slurpy instead, to pass a C<Capture>.
 
-The iterator and array can of course be bundled up to give a more 
+The iterator and array can of course be bundled up to give a more
 natural feel:
 
     class my_sub2coro {
