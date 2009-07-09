@@ -15,8 +15,8 @@ Synopsis 14: Roles and Parametric Types [DRAFT]
 
     Created: 24 Feb 2009 (extracted from S12-objects.pod)
 
-    Last Modified: 26 Jun 2009
-    Version: 7
+    Last Modified: 8 Jul 2009
+    Version: 8
 
 =head1 Overview
 
@@ -357,8 +357,8 @@ more multisubs into a property role like this:
 
     role xxx {
         has Int $.xxx;
-        multi trait_mod:<is>(::?CLASS $declarand where {!.defined}, xxx $trait, $arg?) {...}
-        multi trait_mod:<is>(Any $declarand, xxx $trait, $arg?) {...}
+        multi trait_mod:<is>(::?CLASS $declarand where {!.defined}, :$xxx!) {...}
+        multi trait_mod:<is>(Any $declarand, :$xxx!) {...}
     }
 
 Then it can function as a trait.  A well-behaved trait handler will say
@@ -370,19 +370,19 @@ Since a class can function as a role when it comes to parameter type
 matching, you can also say:
 
     class MyBase {
-        multi trait_mod:<is>(MyBase $declarand where {!.defined}, MyBase $base, $arg?) {...}
-        multi trait_mod:<is>(Any $declarand, MyBase $tied, $arg?) {...}
+        multi trait_mod:<is>(MyBase $declarand where {!.defined}, MyBase $base) {...}
+        multi trait_mod:<is>(Any $declarand, MyBase $tied) {...}
     }
 
 These capture control if C<MyBase> wants to capture control of how it gets
 used by any class or container.  But usually you can just let it call
 the generic defaults:
 
-    multi trait_mod:<is>($declarand where {!.defined}, $base, $arg?) {...}
+    multi trait_mod:<is>($declarand where {!.defined}, $base) {...}
 
 which adds C<$base> to the "isa" list of class C<$declarand>, or
 
-    multi trait_mod:<is>(Any $declarand, $tied, $arg?) {...}
+    multi trait_mod:<is>(Any $declarand, $tied) {...}
 
 which sets the "tie" type of the container declarand to the implementation type
 in C<$tied>.
@@ -395,8 +395,8 @@ that is parsed the same as trait_mod:<is> may be defined the same way.
 Here's "C<will>", which (being syntactic sugar) merely delegates to
 back to "is":
 
-    multi sub trait_mod:<will>($declarand, $trait, &arg) {
-        trait_mod:<is>($declarand, $trait, &arg);
+    multi sub trait_mod:<will>($declarand, :$trait) {
+        trait_mod:<is>($declarand, :$trait);
     }
 
 Other traits are applied with a single word, and require special
