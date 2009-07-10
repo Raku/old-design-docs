@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 10 Jun 2009
-    Version: 168
+    Last Modified: 10 Jul 2009
+    Version: 169
 
 =head1 Overview
 
@@ -2215,15 +2215,15 @@ is likewise C<~=>.
 The filetest operators are gone.  We now use a C<Pair> as a
 pattern that calls an object's method:
 
-    if $filename ~~ :e { say "exists" }
+    if $filename.IO ~~ :e { say "exists" }
 
 is the same as
 
-    if $filename.e { say "exists" }
+    if $filename.IO.e { say "exists" }
 
 The 1st form actually translates to the latter form, so the object's
 class decides how to dispatch methods.  It just happens that
-C<Str> (filenames), C<IO> (filehandles), and C<Statbuf> (stat buffers)
+C<IO> (filehandles) and C<Statbuf> (stat buffers)
 default to the expected filetest semantics, but C<$regex.i> might
 tell you whether the regex is case insensitive, for instance.
 
@@ -2245,19 +2245,31 @@ is equivalent to either of:
     when :r & :w & :x
     when all(:r,:w,:x)
 
-The advantage of the method form is that it can be used in places that
-require tighter precedence than C<~~> provides:
+The pair forms are useful only for boolean tests, so the
+method form must be used for any numeric-based tests:
 
-    sort { $^a.M <=> $^b.M }, @files
+    if stat($filename).s > 1024 {...}
+
+However, these still work:
+
+    given $fh {
+        when :s  {...} # file has size > 0
+        when :!s {...} # file size == 0
+    }
+
+One advantage of the method form is that it can be used in places that
+require tighter precedence than C<~~> provides
+
+    sort { $^a.M <=> $^b.M }, @files».IO
 
 though that's a silly example since you could just write:
 
-    sort { .M }, @files
+    sort { .M }, @files».IO
 
 But that demonstrates the other advantage of the method form, which is
 that it allows the "unary dot" syntax to test the current topic.
 
-Unlike in earlier versions of Perl 6, these filetests do not return
+Unlike in earlier versions of Perl 6, these filetest methods do not return
 stat buffers, but simple scalars of type C<Bool>, C<Int>, or C<Num>.
 
 In general, the user need not worry about caching the stat buffer
@@ -2271,11 +2283,6 @@ a C<.file> method that can be queried for its filename (if known);
 the C<.io> method returns the handle (if known).  If the C<Statbuf>
 object doesn't know its filename but does know its IO handle, then
 C<.file> attempts to return C<.io.file>.
-
-Note that C<:s> still returns the filesize, but C<:!s> is true
-only if the file is of size 0, since it is smartmatched
-against the implicit False argument.  By the same token,
-C<:s(0..1024)> will be true only for files of size 1K or less.
 
 (Inadvertent use of the Perl 5 forms will normally result in treatment
 as a negated postdeclared subroutine, which is likely to produce an
@@ -3077,7 +3084,7 @@ as a default because the more specific types listed above it didn't match.
     Any       Str       string equality         ~$_ eq X
 
     Hash      Pair      test hash mapping       $_{X.key} ~~ X.value
-    Any       Pair      test object attribute   ."{X.key}" ~~ X.value (e.g. filetests)
+    Any       Pair      test object attribute   ?."{X.key}" === ?X.value (e.g. filetests)
 
     Set       Set       identical sets          $_ === X
     Hash      Set       hash keys same set      $_.keys === X
@@ -3538,7 +3545,7 @@ is specially allowed for testing even divisibility by an integer.
 Note that logical operators such as C<||> and C<^^> do not return a Bool,
 but rather one of the operands.
 
-=head2 Reversed comparison operators
+=head2 Reversed operators
 
 Any infix operator may be called with its two arguments reversed
 by prefixing with C<R>.  For instance, to do reversed comparisons:
