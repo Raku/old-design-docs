@@ -2222,9 +2222,8 @@ is the same as
     if $filename.IO.e { say "exists" }
 
 The 1st form actually translates to the latter form, so the object's
-class decides how to dispatch methods.  It just happens that
-C<IO> (filehandles) and C<Statbuf> (stat buffers)
-default to the expected filetest semantics, but C<$regex.i> might
+class decides how to dispatch methods.  It just happens that the
+C<IO> role defaults to the expected filetest semantics, but C<$regex.i> might
 tell you whether the regex is case insensitive, for instance.
 
 Using the pattern form, multiple tests may be combined via junctions:
@@ -2276,13 +2275,10 @@ In general, the user need not worry about caching the stat buffer
 when a filename is queried.  The stat buffer will automatically be
 reused if the same object has recently been queried, where "recently"
 is defined as less than a second or so.  If this is a concern, an
-explicit stat() or lstat() may be used to return an explicit stat
-buffer object that will not be subject to timeout, and may be tested
-repeatedly just as a filename or handle can.  A C<Statbuf> object has
-a C<.file> method that can be queried for its filename (if known);
-the C<.io> method returns the handle (if known).  If the C<Statbuf>
-object doesn't know its filename but does know its IO handle, then
-C<.file> attempts to return C<.io.file>.
+explicit stat() or lstat() may be used to return an explicit C<IO>
+object that will not be subject to timeout, and may be tested
+repeatedly just as a filename or handle can.  An C<IO> object has
+a C<.file> method that can be queried for its filename (if known).
 
 (Inadvertent use of the Perl 5 forms will normally result in treatment
 as a negated postdeclared subroutine, which is likely to produce an
