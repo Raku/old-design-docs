@@ -215,10 +215,14 @@ See L<S06/"The C<context> and C<caller> functions">.
 
 =item eval
 
- multi eval ( Str $code, Grammar :$lang = CALLER::<$?PARSER>)
+ multi eval ( Str|Buf $code, Grammar :$lang = CALLER::<$?PARSER>)
 
-Execute C<$code> as if it were code written in C<$lang>.  The default
-is the language in effect at the exact location of the eval call.
+Execute C<$code> as if it were code written in C<$lang>. If C<$code> 
+is of type C<Buf>, the same decoding techniques are applied as a compiler
+for C<$lang> would usually do to input files.
+
+The default for C<$lang> is the language in effect at the exact
+location of the eval call.
 
 Returns whatever C<$code> returns, or fails.
 
