@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Numeric
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 19 Feb 2009
-    Version: 1
+    Last Modified: 18 Jul 2009
+    Version: 2
 
 The document is a draft.
 
@@ -228,16 +228,19 @@ Returns the imaginary part of a complex number.
 
 =back
 
-=head2 The :Trig tag
+=head2 Trigonometric functions
 
-The following are also defined in C<Num> but not exported without a C<:Trig>
-tag.  (Which installs their names into C<Num::Trig>, as it happens.)
+The following are also defined in C<Num>.  The trig functions
+depend on the current (lexically scoped) trig base:
+
+ enum TrigBase is export <Radians Degrees Gradians Circles>;
+ constant $?TRIGBASE = Radians;
 
 =over 4
 
 =item I<Standard Trig Functions>
 
- Num multi method func ( Num  $x: $base = 'radians' ) is export(:Trig)
+ Num multi method func ( Num  $x: TrigBase $base = $?TRIGBASE ) is export
 
 where I<func> is one of:
 sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
@@ -249,19 +252,17 @@ Performs the various trigonometric functions.
 Option C<$base> is used to declare how you measure your angles.
 Given the value of an arc representing a single full revolution.
 
- $base      Result
- ----       -------
- /:i ^r/    Radians  (2*pi)
- /:i ^d/    Degrees  (360)
- /:i ^g/    Gradians (400)
- Num        Units of 1 revolution.
+ $base       Subdivisions of circle
+ ----        ----------------------
+ Radians     2*pi
+ Degrees     360
+ Gradians    400
+ Circles     1
 
-Note that module currying can be used within a lexical scope to specify
-a consistent base so you don't have to supply it with every call:
+To change the base within your own lexical scope, it suffices to redefine the
+compiler constant:
 
- my module Trig ::= Num::Trig.assuming(:base<degrees>);
-
-This overrides the default of "radians".
+ constant $?TRIGBASE = Degrees;
 
 =item atan2
 
@@ -277,3 +278,5 @@ the quadrant into account. Otherwise behaves as other trigonometric functions.
 
 Please post errors and feedback to perl6-language.  If you are making
 a general laundry list, please separate messages by topic.
+
+=for vim:set expandtab sw=4:
