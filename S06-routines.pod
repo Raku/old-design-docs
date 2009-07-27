@@ -2090,7 +2090,6 @@ the returned context object supports at least the following methods:
     .context
     .caller
     .leave
-    .want
     .inline
     .package
     .file
@@ -2101,8 +2100,7 @@ the returned context object supports at least the following methods:
 The C<.context> and C<.caller> methods work the same as the functions
 except that they are relative to the context supplied as invocant.
 The C<.leave> method can force an immediate return from the
-specified context.  The C<.want> method returns known smart-matchable
-characteristics of the specified context.
+specified context.
 
 The C<.inline> method says whether this block was entered implicitly
 by some surrounding control structure.  Any time you invoke a block or
@@ -2124,43 +2122,20 @@ object that is nevertheless mutable.
 
 =head2 The C<want> function
 
-The C<want> function returns a C<Signature> object that contains
-information about the context in which the current block, closure,
-or subroutine was called.  The C<want> function is really just
-short for C<caller.want>.  (Note that this is what your current
-routine's caller wants from your routine, not necessarily the same as
-C<context.want> when you are embedded in a block within a subroutine.
-Use C<context.want> if that's what you want.)
+The C<want> function is gone. If you want context specific behavior,
+return an object instead that responds accordingly to the various contextual
+methods.
 
-As with normal function signatures, you can test the result of C<want> with a
-smart match (C<~~>) or a C<when>:
+(Conjecture: in future we might want to provide some syntactic sugar that
+makes it easier to create such objects. Or maybe a type that takes values
+or code references for the various contexts, so that you can write
 
-   given want {
-        when :($)       {...}   # called in item context
-        when :(*@)      {...}   # called in list context
-        when :($ is rw) {...}   # expected to return an lvalue
-        when :($,$)     {...}   # expected to return two values
-        ...
-    }
-
-Or use its shorthand methods to reduce line noise:
-
-    if    want.item      {...}  # called in non-lvalue item context
-    elsif want.list      {...}  # called in list context
-    elsif want.void      {...}  # called in void context
-    elsif want.rw        {...}  # expected to return an lvalue
-
-The C<.arity> and C<.count> methods also work here:
-
-    if want.arity > 2    {...}  # must return more than two values
-    if want.count > 2    {...}  # can return more than two values
-
-Their difference is that C<.arity> considers only mandatory parts,
-while C<.count> considers also optional ones, including C<*$>:
-
-    ($x, $y) = f();     # Within &f, want === :(*$?, *$?, *@)
-                        #            want.arity === 0
-                        #            want.count === 2
+   return ContextProxy.new:
+        Int   => 3,
+        item  => { @.list.join(', ') },
+        liste => { ...               },
+        ;
+or something similar.)
 
 =head2 The C<leave> function
 
