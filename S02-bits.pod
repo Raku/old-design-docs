@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 17 Jun 2009
-    Version: 171
+    Last Modified: 6 Aug 2009
+    Version: 172
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -980,8 +980,24 @@ The C<Nil> type is officially undefined as an item but interpolates
 as a null list into list context, and an empty capture into slice
 context.  A C<Nil> object may also carry failure information,
 but if so, the object behaves as a failure only in item context.
-Use C<Failure>/C<undef> when you want to return a hard failure that
-will not evaporate in list context.
+Use C<Failure> when you want to return a hard failure that
+will not evaporate in list context.  Casting to C<Nil> is one
+way of evaluating an expression and throwing the result away:
+
+    @inclist = map { $_ + 1 }, @list || Nil( warn 'Empty @list!' );
+
+    @inclist = do for @list || Nil( warn 'Empty @list!' ) {
+        $_ + 1;
+    }
+
+Or if you want to test the how many results you got back from
+the C<map> or C<for>:
+
+    @inclist = map { $_ + 1 }, @list or Nil( warn 'Empty @list!' );
+
+    @inclist = do for @list {
+        $_ + 1;
+    } or Nil( warn 'Empty @list!' )
 
 =head2 Immutable types
 
@@ -1399,7 +1415,7 @@ object containing multiple items.
 
 C<@x> may be bound to an object of the C<Array> class, but it may also
 be bound to any object that does the C<Positional> role, such as a
-C<List>, C<Seq>, C<Range>, C<Buf>, or C<Capture>.  The C<Positional>
+C<List>, C<Seq>, C<Range>, C<Buf>, C<Parcel>, or C<Capture>.  The C<Positional>
 role implies the ability to support C<< postcircumfix:<[ ]> >>.
 
 Likewise, C<%x> may be bound to any object that does the C<Associative>
@@ -1568,6 +1584,27 @@ values.  There's a new C<:=> binding operator that lets you bind
 names to C<Array> and C<Hash> objects without copying, in the same way
 as subroutine arguments are bound to formal parameters.  See S06
 for more about binding.
+
+=item *
+
+A list of one or more objects may be grouped together by parentheses
+into a "parenthesis cell", or C<Parcel>.  This kind of list should
+not be confused with the flattening list context.  Instead, this is
+a raw syntactic list; no interpretation is made of the list without
+knowing what context it will be evaluated in.  For example, when
+you say:
+
+    (1,2,3,:mice<blind>)
+
+the result is a C<Parcel> object containing three C<Int> objects
+and a C<Pair> object, that is, four positional objects.  When, however,
+you say something like:
+
+    rhyme(1,2,3,:mice<blind>)
+
+the C<Parcel> is translated (at compile time, in this case)
+into a C<Capture> with 3 positionals and one named argument
+in preparation for binding.
 
 =item *
 
