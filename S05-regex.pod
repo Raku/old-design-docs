@@ -42,13 +42,13 @@ most recent match is through this variable, even when
 it doesn't look like it.  The individual capture variables (such as C<$0>,
 C<$1>, etc.) are just elements of C<$/>.
 
-By the way, unlike in Perl 5, the numbered capture variables now
+By the way, unlike in Perl 5, the numbered capture variables now
 start at C<$0> instead of C<$1>.  See below.
 
 
 =head1 Unchanged syntactic features
 
-The following regex features use the same syntax as in Perl 5:
+The following regex features use the same syntax as in Perl 5:
 
 =over
 
@@ -83,7 +83,7 @@ below on "Longest-token matching".
 
 =head1 Simplified lexical parsing of patterns
 
-Unlike traditional regular expressions, Perl 6 does not require
+Unlike traditional regular expressions, Perl 6 does not require
 you to memorize an arbitrary list of metacharacters.  Instead it
 classifies characters by a simple rule.  All glyphs (graphemes)
 whose base characters are either the underscore (C<_>) or have
@@ -96,7 +96,7 @@ but any immediately following alphanumeric character is not).
 All other glyphs--including whitespace--are exactly the opposite:
 they are always considered metasyntactic (i.e. non-self-matching) and
 must be escaped or quoted to make them literal.  As is traditional,
-they may be individually escaped with C<\>, but in Perl 6 they may
+they may be individually escaped with C<\>, but in Perl 6 they may
 be also quoted as follows.
 
 Sequences of one or more glyphs of either type (i.e. any glyphs at all)
@@ -126,7 +126,7 @@ escaped), non-identifier glyphs are metasyntactic (or literal when
 escaped), and single quotes make everything inside them literal.
 
 Note, however, that not all non-identifier glyphs are currently
-meaningful as metasyntax in Perl 6 regexes (e.g. C<\1> C<\_> C<->
+meaningful as metasyntax in Perl 6 regexes (e.g. C<\1> C<\_> C<->
 C<!>). It is more accurate to say that all unescaped non-identifier
 glyphs are I<potential> metasyntax, and reserved for future use.
 If you use such a sequence, a helpful compile-time error is issued
@@ -388,13 +388,13 @@ which language's rules to use for this match.]
 
 =item *
 
-The new C<:Perl5>/C<:P5> modifier allows Perl 5 regex syntax to be
+The new C<:Perl5>/C<:P5> modifier allows Perl 5 regex syntax to be
 used instead.  (It does not go so far as to allow you to put your
 modifiers at the end.)  For instance,
 
      m:P5/(?mi)^(?:[a-z]|\d){1,2}(?=\s)/
 
-is equivalent to the Perl 6 syntax:
+is equivalent to the Perl 6 syntax:
 
     m/ :i ^^ [ <[a..z]> || \d ] ** 1..2 <?before \s> /
 
@@ -921,7 +921,7 @@ allow whitespace after the comma but not before, you can say:
 =item *
 
 C<< <...> >> are now extensible metasyntax delimiters or I<assertions>
-(i.e. they replace Perl 5's crufty C<(?...)> syntax).
+(i.e. they replace Perl 5's crufty C<(?...)> syntax).
 
 =back
 
@@ -931,7 +931,7 @@ C<< <...> >> are now extensible metasyntax delimiters or I<assertions>
 
 =item *
 
-In Perl 6 regexes, variables don't interpolate.
+In Perl 6 regexes, variables don't interpolate.
 
 =item *
 
@@ -942,11 +942,11 @@ how to handle them (more on that below).
 
 The default way in which the engine handles a string scalar is to match it
 as a C<< '...' >> literal (i.e. it does not treat the interpolated string
-as a subpattern).  In other words, a Perl 6:
+as a subpattern).  In other words, a Perl 6:
 
      / $var /
 
-is like a Perl 5:
+is like a Perl 5:
 
      / \Q$var\E /
 
@@ -1047,7 +1047,7 @@ you can write:
 
 as long as you're careful to put a space after the initial angle so that
 it won't be interpreted as a subrule.  With the space it is parsed
-like angle quotes in ordinary Perl 6 and treated as a literal array value.
+like angle quotes in ordinary Perl 6 and treated as a literal array value.
 
 =item *
 
@@ -1543,7 +1543,7 @@ These tokens are considered declarative, but may force backtracking behavior.
 
 A C<«> or C<<< << >>> token indicates a left word boundary.  A C<»> or
 C<<< >> >>> token indicates a right word boundary.  (As separate tokens,
-these need not be balanced.)  Perl 5's C<\b> is replaced by a C<< <?wb> >>
+these need not be balanced.)  Perl 5's C<\b> is replaced by a C<< <?wb> >>
 "word boundary" assertion, while C<\B> becomes C<< <!wb> >>.  (None of
 these are dependent on the definition of C<< <.ws> >>, but only on the C<\w>
 definition of "word" characters.)
@@ -1763,11 +1763,11 @@ hexadecimal).
 
 =item *
 
-The Perl 5 C<qr/pattern/> regex constructor is gone.
+The Perl 5 C<qr/pattern/> regex constructor is gone.
 
 =item *
 
-The Perl 6 equivalents are:
+The Perl 6 equivalents are:
 
      regex { pattern }    # always takes {...} as delimiters
      rx    / pattern /    # can take (almost) any chars as delimiters
@@ -1780,7 +1780,7 @@ but only if you interpose whitespace:
      rx ( pattern )      # okay
      rx( 1,2,3 )         # tries to call rx function
 
-(This is true for all quotelike constructs in Perl 6.)
+(This is true for all quotelike constructs in Perl 6.)
 
 =item *
 
@@ -1809,7 +1809,7 @@ longer an interpolating quote-like operator.  C<rx> is short for I<regex>,
 =item *
 
 As the syntax indicates, it is now more closely analogous to a C<sub {...}>
-constructor.  In fact, that analogy runs I<very> deep in Perl 6.
+constructor.  In fact, that analogy runs I<very> deep in Perl 6.
 
 =item *
 
@@ -1900,7 +1900,7 @@ A C<rule> is really short for:
 
 =item *
 
-The Perl 5 C<?...?> syntax (I<succeed once>) was rarely used and can be
+The Perl 5 C<?...?> syntax (I<succeed once>) was rarely used and can be
 now emulated more cleanly with a state variable:
 
     $result = do { state $x ||= m/ pattern /; }    # only matches first time
@@ -1932,15 +1932,15 @@ and C<token> declarations, backtracking must be explicit.
 To force the preceding atom to do eager backtracking,
 append a C<:?> or C<?> to the atom.  If the preceding token is
 a quantifier, the C<:> may be omitted, so C<*?> works just as
-in Perl 5.
+in Perl 5.
 
 =item *
 
 To force the preceding atom to do greedy backtracking in a
 spot that would default otherwise, append a C<:!> to the atom.
 If the preceding token is a quantifier, the C<:> may be omitted.
-(Perl 5 has no corresponding construct because backtracking always
-defaults to greedy in Perl 5.)
+(Perl 5 has no corresponding construct because backtracking always
+defaults to greedy in Perl 5.)
 
 =item *
 
@@ -2206,7 +2206,7 @@ is usually excluded from such patterns, give or take a little
 lookahead.)  Basically, Perl automatically derives a lexer
 from the grammar without you having to write one yourself.
 
-To that end, every regex in Perl 6 is required to be able to
+To that end, every regex in Perl 6 is required to be able to
 distinguish its "pure" patterns from its actions, and return its
 list of initial token patterns (transitively including the token
 patterns of any subrule called by the "pure" part of that regex, but
@@ -2632,7 +2632,7 @@ pushed onto the array inside the C<Match> object for the entire regex
 
 =item *
 
-As a result of these semantics, capturing parentheses in Perl 6 are
+As a result of these semantics, capturing parentheses in Perl 6 are
 hierarchical, not linear (see L<Nested subpattern captures>).
 
 =back
@@ -2656,7 +2656,7 @@ is the same as:
 
 =item *
 
-Note that, in Perl 6, the numeric capture variables start from $0, not
+Note that, in Perl 6, the numeric capture variables start from $0, not
 $1, with the numbers corresponding to the element's index inside C<$/>.
 
 =item *
@@ -2688,7 +2688,7 @@ object, not to the array of C<$/>.
 
 =item *
 
-This behavior is quite different from Perl 5 semantics:
+This behavior is quite different from Perl 5 semantics:
 
       # Perl 5...
       #
@@ -2700,7 +2700,7 @@ This behavior is quite different from Perl 5 semantics:
 
 =item *
 
-In Perl 6, nested parens produce properly nested captures:
+In Perl 6, nested parens produce properly nested captures:
 
       # Perl 6...
       #
@@ -2859,11 +2859,11 @@ C<|> or C<||> (but not after each C<&> or C<&&>). Hence:
 This means that if the second alternation matches, the C<@$/> array will
 contain C<('every', 'green', 'BEM', 'devours', 'faces')> rather than
 C<(undef, undef, undef, undef, undef, undef, 'every', 'green', 'BEM',
-'devours', 'faces')> (as the same regex would in Perl 5).
+'devours', 'faces')> (as the same regex would in Perl 5).
 
 =item *
 
-Note that it is still possible to mimic the monotonic Perl 5 capture
+Note that it is still possible to mimic the monotonic Perl 5 capture
 indexing semantics.  See L<Numbered scalar aliasing> below for details.
 
 
@@ -3206,8 +3206,8 @@ Perl5 semantics for consecutive subpattern numbering in alternations:
 
 =item *
 
-It also provides an easy way in Perl 6 to reinstitute the unnested
-numbering semantics of nested Perl 5 subpatterns:
+It also provides an easy way in Perl 6 to reinstitute the unnested
+numbering semantics of nested Perl 5 subpatterns:
 
       # Perl 5...
       #               $1
@@ -3710,7 +3710,7 @@ C<line>, etc.
 
 =item *
 
-Perl 6 will come with at least one grammar predefined:
+Perl 6 will come with at least one grammar predefined:
 
      grammar STD {    # Perl's own standard grammar
 
@@ -3809,7 +3809,7 @@ to the particular declarator in question:
     use token :foo;     # control token defaults
     use rule :foo;      # control rule defaults
 
-(It is a general policy in Perl 6 that any pragma designed to influence
+(It is a general policy in Perl 6 that any pragma designed to influence
 the surface behavior of a keyword is identical to the keyword itself, unless
 there is good reason to do otherwise.  On the other hand, pragmas designed
 to influence deep semantics should not be named identically, though of
@@ -3831,7 +3831,7 @@ Use the C<.=> form to do a translation in place:
 
      $str.=trans( %mapping.pairs.sort );
 
-(Perl 6 does not support the C<y///> form, which was only in C<sed> because
+(Perl 6 does not support the C<y///> form, which was only in C<sed> because
 they were running out of single letters.)
 
 =item *
@@ -3928,8 +3928,8 @@ Only non-bracket characters may be used for the "triple quote".  The
 right side is always evaluated as if it were a double-quoted string
 regardless of the quote chosen.
 
-As with Perl 5, a bracketing form is also supported, but unlike Perl 5,
-Perl 6 uses the brackets I<only> around the pattern.  The replacement
+As with Perl 5, a bracketing form is also supported, but unlike Perl 5,
+Perl 6 uses the brackets I<only> around the pattern.  The replacement
 is then specified as if it were an ordinary item assignment, with ordinary
 quoting rules.  To pick your own quotes on the right just use one of the C<q>
 forms.  The substitution above is equivalent to:
@@ -3983,7 +3983,7 @@ the C<< <at($pos)> >> assertion to say that the current position
 is the same as the position object you supply.  You may set the
 current match position via the C<:c> and C<:p> modifiers.
 
-However, please remember that in Perl 6 string positions are generally
+However, please remember that in Perl 6 string positions are generally
 I<not> integers, but objects that point to a particular place in
 the string regardless of whether you count by bytes or codepoints or
 graphemes.  If used with an integer, the C<at> assertion will assume

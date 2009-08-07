@@ -19,15 +19,15 @@ Synopsis 9: Data Structures
 =head1 Overview
 
 This synopsis summarizes the non-existent Apocalypse 9, which
-discussed in detail the design of Perl 6 data structures.  It was
-primarily a discussion of how the existing features of Perl 6 combine
+discussed in detail the design of Perl 6 data structures.  It was
+primarily a discussion of how the existing features of Perl 6 combine
 to make it easier for the PDL folks to write numeric Perl.
 
 =head1 Lazy lists
 
 All list contexts are lazy by default.  They still flatten eventually,
 but only when forced to.  You have to use the C<eager> list operator to get a
-non-lazy flattening list context (that is, to flatten immediately like Perl 5).
+non-lazy flattening list context (that is, to flatten immediately like Perl 5).
 
 =head1 Sized types
 
@@ -292,7 +292,7 @@ higher-level abstraction into some buffer type.)
 
 =head1 Multidimensional arrays
 
-Perl 6 arrays are not restricted to being one-dimensional (that's simply
+Perl 6 arrays are not restricted to being one-dimensional (that's simply
 the default). To declare a multidimensional array, you specify it with a
 semicolon-separated list of dimension lengths:
 
@@ -657,8 +657,8 @@ in the preceding example:
 Using a negative index on an array of fixed size will fail if the
 resulting number of elements exceeds the defined size.
 
-Note that the behaviour of negative indices in Perl 6 is
-different to that in Perl 5:
+Note that the behaviour of negative indices in Perl 6 is
+different to that in Perl 5:
 
     # Perl 5...
     ............_____________________________..................
@@ -675,7 +675,7 @@ different to that in Perl 5:
      [-2]  [-1]  [0]   [1]   [2]   [3]   [4]   [5]   [6]   [7]
     [*-7] [*-6] [*-5] [*-4] [*-3] [*-2] [*-1] [*+0] [*+1] [*+2]
 
-The Perl 6 semantics avoids indexing discontinuities (a source of subtle
+The Perl 6 semantics avoids indexing discontinuities (a source of subtle
 runtime errors), and provides ordinal access in both directions at both
 ends of the array.
 
@@ -861,12 +861,12 @@ The zero-dimensional slice:
     @x[]
 
 is assumed to want everything, not nothing.  It's particularly handy
-because Perl 6 (unlike Perl 5) won't interpolate a bare array without brackets:
+because Perl 6 (unlike Perl 5) won't interpolate a bare array without brackets:
 
     @x = (1,2,3);
     say "@x = @x[]";    # prints @x = 1 2 3
 
-Lists are lazy in Perl 6, and the slice lists are no exception.
+Lists are lazy in Perl 6, and the slice lists are no exception.
 In particular, things like range objects are not flattened until they
 need to be, if ever.  So a PDL implementation is free to steal the
 values from these ranges and "piddle" around with them:
@@ -877,12 +877,12 @@ values from these ranges and "piddle" around with them:
     @nums[1..*:by(2)]           # the odds
     @nums[0..*:by(2)]           # the evens
 
-That's all just the standard Perl 6 notation for ranges.  Additional
+That's all just the standard Perl 6 notation for ranges.  Additional
 syntactic relief is always available as long as it's predeclared
 somehow.  It's possible the range operator could be taught that C<:2>
 means C<:by(2)>, for instance.  (But I rather dislike the RFC-proposed
 C<0:10:2> notation that makes colon mean two different things so close
-together, plus it conflicts with Perl 6's general adverb notation if
+together, plus it conflicts with Perl 6's general adverb notation if
 the next thing is alphabetic.  On top of which, we're using C<:2> as
 a general radix notation.)
 
@@ -905,7 +905,7 @@ That's why we have C<..*> to mean C<..Inf>.
 
 =head1 PDL signatures
 
-To rewrite a Perl 5 PDL definition like this:
+To rewrite a Perl 5 PDL definition like this:
 
        pp_def(
             'inner',
@@ -950,8 +950,8 @@ come back into the signature via C<where> constraints on the types.
 This would presumably make multimethod dispatch possible on similarly
 typed arrays with differing constraints.
 
-(The special destruction problems of Perl 5's PDL should go away with
-Perl 6's GC approach, as long as PDL's objects are registered with Parrot
+(The special destruction problems of Perl 5's PDL should go away with
+Perl 6's GC approach, as long as PDL's objects are registered with Parrot
 correctly.)
 
 =head1 Junctions
@@ -1231,14 +1231,14 @@ Any mention of an expression within a C<Capture> delays the autovivification
 decision to binding time.  (Binding to a "ref" parameter also defers the
 decision.)
 
-This is as opposed to Perl 5, where autovivification could happen
+This is as opposed to Perl 5, where autovivification could happen
 unintentionally, even when the code looks like a non-destructive test:
 
     # This is Perl 5 code
     my %hash;
     exists $hash{foo}{bar}; # creates $hash{foo} as an empty hash reference
 
-In Perl 6 these read-only operations are indeed non-destructive:
+In Perl 6 these read-only operations are indeed non-destructive:
 
     my %hash;
     %hash<foo><bar> :exists; # %hash is still empty
