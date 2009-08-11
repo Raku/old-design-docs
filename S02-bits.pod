@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 6 Aug 2009
-    Version: 172
+    Last Modified: 11 Aug 2009
+    Version: 173
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -135,7 +135,7 @@ embedded documentation.
 
 Except within a string literal, a C<#> character always introduces a comment in
 Perl 6.  There are two forms of comment based on C<#>.  Embedded
-comments require the C<#> to be followed by one
+comments require the C<#> to be followed by a backtick (C<`>) plus one
 or more opening bracketing characters.
 
 All other uses of C<#> are interpreted as single-line comments that
@@ -147,65 +147,34 @@ may I<not> be used as the delimiter in quoting constructs.
 =item *
 
 Embedded comments are supported as a variant on quoting syntax, introduced
-by C<#> plus any user-selected bracket characters (as defined in
+by C<#`> plus any user-selected bracket characters (as defined in
 L</Lexical Conventions> above):
 
-    say #( embedded comment ) "hello, world!";
+    say #`( embedded comment ) "hello, world!";
 
-    $object\#{ embedded comments }.say;
+    $object\#`{ embedded comments }.say;
 
-    $object\ #「
+    $object\ #`「
         embedded comments
     」.say;
 
 Brackets may be nested, following the same policy as ordinary quote brackets.
 
-There must be no space between the C<#> and the opening bracket character.
+There must be no space between the C<#`> and the opening bracket character.
 (There may be the I<visual appearance> of space for some double-wide
 characters, however, such as the corner quotes above.)
 
-An embedded comment is not allowed as the first thing on the line.
+For multiline comments it is recommended (but not required) to use two or
+more brackets both for visual clarity and to avoid relying too much on
+internal bracket counting heuristics when commenting code that may accidentally
+miscount single brackets:
 
-    #sub foo                    # line-end comment
-    #{                          # ILLEGAL, syntax error
-    #   ...
-    #}
+    #`{{
+        say "here is an unmatched } character";
+    }}
 
-If you wish to have a comment there, you must disambiguate it to
-either an embedded comment or a line-end comment.  You can put a
-space in front of it to make it an embedded comment:
-
-    #sub foo                    # line end comment
-     #{                         # okay, comment
-       ...                      # extends
-    }                           # to here
-
-Or you can put something other than a single C<#>
-to make it a line-end comment.  Therefore, if you are commenting out a
-block of code using the line-comment form, we recommend that you use
-C<##>, or C<#> followed by some whitespace, preferably a tab to keep
-any tab formatting consistent:
-
-    ##sub foo
-    ##{                         # okay
-    ##   ...
-    ##}
-
-    # sub foo
-    # {                         # okay
-    #    ...
-    # }
-
-
-    #       sub foo
-    #       {                   # okay
-    #          ...
-    #       }
-
-However, it's often better to use pod comments because they are
-implicitly line-oriented.  And if you have an intelligent syntax
-highlighter that will mark pod comments in a different color, there's
-less visual need for a C<#> on every line.
+However, it's sometimes better to use pod comments because they are
+implicitly line-oriented.
 
 =item *
 
@@ -214,14 +183,14 @@ with multiple identical bracket characters, which must be closed by the
 same number of closing brackets.  Counting of nested brackets applies only
 to pairs of brackets of the same length as the opening brackets:
 
-    say #{{
+    say #`{{
         This comment contains unmatched } and { { { {   (ignored)
         Plus a nested {{ ... }} pair                    (counted)
     }} q<< <<woot>> >>   # says " <<woot>> "
 
 Note however that bare circumfix or postcircumfix C<<< <<...>> >>> is
 not a user-selected bracket, but the ASCII variant of the C<< «...» >>
-interpolating word list.  Only C<#> and the C<q>-style quoters (including
+interpolating word list.  Only C<#`> and the C<q>-style quoters (including
 C<m>, C<s>, C<tr>, and C<rx>) enable subsequent user-selected brackets.
 
 =item *
@@ -264,7 +233,7 @@ Other postfix operators may also make use of unspace:
     $number\  --;
     1+3\      i;
     $object\  .say();
-    $object\#{ your ad here }.say
+    $object\#`{ your ad here }.say
 
 Another normal use of a you-don't-see-this-space is typically to put
 a dotted postfix on the next line:
@@ -272,7 +241,7 @@ a dotted postfix on the next line:
     $object\ # comment
     .say
 
-    $object\#[ comment
+    $object\#`[ comment
     ].say
 
     $object\
@@ -286,8 +255,7 @@ you override the unspace rule itself...)
 Although we say that the unspace hides the whitespace from the parser,
 it does not hide whitespace from the lexer.  As a result, unspace is not
 allowed within a token.  Additionally, line numbers are still
-counted if the unspace contains one or more newlines.  A C<#> following
-such a newline is always an end-of-line comment, as described above.
+counted if the unspace contains one or more newlines.
 Since Pod chunks count as whitespace to the language, they are also
 swallowed up by unspace.  Heredoc boundaries are suppressed, however,
 so you can split excessively long heredoc intro lines like this:
@@ -320,13 +288,17 @@ An unspace may contain a comment, but a comment may not contain an unspace.
 In particular, end-of-line comments do not treat backslash as significant.
 If you say:
 
-    #\ (...
+    #`\ (...
+
+or
+
+    #\ `(...
 
 it is an end-of-line comment, not an embedded comment.  Write:
 
-    \ #(
-        ...
-       )
+    \ #`(
+         ...
+        )
 
 to mean the other thing.
 
@@ -366,8 +338,8 @@ be written in any of these forms:
 
     $x\ .++
 
-    $x\#( comment ).++
-    $x\#((( comment ))).++
+    $x\#`( comment ).++
+    $x\#`((( comment ))).++
 
     $x\
     .++
@@ -380,11 +352,11 @@ be written in any of these forms:
                 # inside unspace
     ++          # (but without the optional postfix dot)
 
-    $x\#『      comment
+    $x\#`『      comment
                 more comment
     』.++
 
-    $x\#[   comment 1
+    $x\#`[   comment 1
     comment 2
     =begin podstuff
     whatever (pod comments ignore current parser state)
@@ -990,14 +962,32 @@ way of evaluating an expression and throwing the result away:
         $_ + 1;
     }
 
-Or if you want to test the how many results you got back from
+Or if you want to test whether you got any results back from
 the C<map> or C<for>:
 
-    @inclist = map { $_ + 1 }, @list or Nil( warn 'Empty @list!' );
+    @inclist = do map { $_ + 1 }, @list or Nil( warn 'Empty @list!' );
 
     @inclist = do for @list {
         $_ + 1;
     } or Nil( warn 'Empty @list!' )
+
+Since the construct is in the form of a type cast, the parens are required.
+If that syntax is unappealing or you wish to run multiple statements
+in a block, it happens that the C<void> statement prefix also converts
+any value to C<Nil>, so the examples above can be expressed
+without parentheses:
+
+    @inclist = map { $_ + 1 }, @list || void warn 'Empty @list!';
+
+    @inclist = do for @list || void { warn 'Empty @list!'; $warnings++; } {
+        $_ + 1;
+    }
+
+    @inclist = do map { $_ + 1 }, @list or void warn 'Empty @list!';
+
+    @inclist = do for @list {
+        $_ + 1;
+    } or void { warn 'Empty @list!'; $warnings++; }
 
 =head2 Immutable types
 
@@ -1686,7 +1676,7 @@ postfix forms:
 
     &foo\   ($arg1, $arg2);
     &foo\   .($arg1, $arg2);
-    &foo\#[
+    &foo\#`[
         embedded comment
     ].($arg1, $arg2);
 
@@ -2646,11 +2636,10 @@ returned as C<Pair> objects.
 Colon pairs (but not arrow pairs) are recognized within double angles.
 In addition, the double angles allow for comments beginning with C<#>.
 These comments work exactly like ordinary comments in Perl code.
-That is, C<#> at beginning of line is always a line-end comment,
-otherwise a following bracket sequence implies an inline comment;
-also, unlike in the shells, any literal C<#> must be quoted, even
+Unlike in the shells, any literal C<#> must be quoted, even
 ones without whitespace in front of them, but note that this comes
-more or less for free with a colon pair like C<< :char<#x263a> >>.
+more or less for free with a colon pair like C<< :char<#x263a> >>, since
+comments only work in double angles, not single.
 
 =item *
 

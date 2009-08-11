@@ -82,8 +82,8 @@ will get the following values for C<$x>: C<1, 1, 1, 2, 2, 3>
 
 =item zip
 
- our List of Capture multi zip ( *@@list )
- our List of Capture multi infix:<Z> ( *@@list )
+ our List of Parcel multi zip ( *@@list )
+ our List of Parcel multi infix:<Z> ( *@@list )
 
 zip takes any number of arrays and returns one tuple for every index.
 This is easier to read in an example:
@@ -187,10 +187,10 @@ in the multi form.
 
 =item first
 
- our Item multi method first ( @values: Matcher $test )
- our Item multi first ( Matcher $test, *@values )
+ our Parcel multi method first ( @values: Matcher $test )
+ our Parcel multi first ( Matcher $test, *@values )
 
-C<first> works exactly like C<grep> but returns only the first matching value.
+C<first> searches exactly like C<grep> but returns only the first matching value.
 
 =item pick
 
@@ -216,7 +216,7 @@ of random picks from C<@values>:
     @byte = (0,1).pick(8, :repl);
     for (1..20).pick(*, :repl) -> $die_roll { ... }
 
-Due to the normal semantics of returning a C<Capture>, a pick of a
+Due to the normal semantics of returning a C<Parcel>, a pick of a
 single element may be used as an item without requiring C<.[0]>.
 
 =item join
@@ -234,8 +234,8 @@ just coerce to C<Str>.
 
 =item map
 
- our List of Capture multi method map ( @values: Code *&expression )
- our List of Capture multi map ( Code $expression, *@values )
+ our List of Parcel multi method map ( @values: Code *&expression )
+ our List of Parcel multi map ( Code $expression, *@values )
 
 C<map> returns a lazily evaluated list which is comprised of
 the return value of the expression, evaluated once for every
@@ -417,7 +417,7 @@ All these methods are defined in the C<Array> role/class.
 
 =item shape
 
- our Capture method shape (@array: ) is export
+ our Parcel method shape (@array: ) is export
 
 Returns the declared shape of the array, as described in S09.
 
@@ -475,7 +475,7 @@ adverb to a subscripting operation.
 
 This adverb may be applied to any subscripting operation.  The
 operation returns true if specified element exists.  If a slice
-is specified by the subscript, a C<Capture> of C<Bool> is returned,
+is specified by the subscript, a C<Parcel> of C<Bool> is returned,
 which can be processed using junctions.
 
 
@@ -560,7 +560,7 @@ This behaves similarly to Perl 5's C<splice>.
 If C<@array> is multidimensional, C<splice> operates only on the first
 dimension, and works with Array References.
 
-C<splice> returns a C<Capture> of the deleted elements, which behaves as
+C<splice> returns a C<Parcel> of the deleted elements, which behaves as
 expected in either list or scalar context.
 
 
@@ -619,7 +619,7 @@ returns the elements normally, but reads them out destructively.
 
 This adverb may be applied to any subscripting operation.  The
 operation returns true if specified element exists.  If a slice
-is specified by the subscript, a C<Capture> of C<Bool> is returned,
+is specified by the subscript, a C<Parcel> of C<Bool> is returned,
 which can be processed using junctions.
 
 =item keys
