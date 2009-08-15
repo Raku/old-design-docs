@@ -587,19 +587,18 @@ This does file input and output.
         :$Readable
     );
 
-The C<FSNode>, C<Filename> and C<fd> options are mutually exclusive.  If "C<use portable>" is in
-effect, the C<Filename> option throws an error; use an C<FSNode> instead.
+The C<FSNode> and C<fd> options are mutually exclusive.  
 
 C<NoOpen> is passed to C<IO::Streamable.new()>
 
 Examples:
 
-    # Read -- throws errors with 'use portable'
-    $fobj = new IO::File(Filename => $filename);
+    # Read, no interpolation
+    $fobj = new IO::File(FSNode => q:io{/path/to/file});
 
-    # Write -- works with 'use portable'
+    # Write, interpolation
     $fobj = new IO::File(
-        FSNode => IO::FSNode.new(type => 'Unix', Filename => $filename),
+        FSNode => q:io:qq{$filename},
         Writeable => 1
     );
 
