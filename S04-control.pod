@@ -1232,6 +1232,21 @@ Likewise C<PRE> blocks fire off before any C<ENTER> or C<FIRST> (though not
 before C<BEGIN>, C<CHECK>, or C<INIT>, since those are done at compile or
 process initialization time).
 
+If an exception is thrown through a block without a C<CATCH> block, the
+C<LEAVE>, C<UNDO> and C<POST> blocks will be run at that point, with
+C<$!> set to the in-flight exception.  If there is no in-flight
+exception when these blocks are run, C<$!> will be C<undef>.  The last
+exception caught in the outer block is available as C<< OUTER::<$!> >>,
+as usual. 
+
+An exception thrown from an C<ENTER> block will abort the C<ENTER>
+queue, but one thrown from a C<LEAVE> block will not.  The exceptions
+thrown by failing C<PRE> and C<POST> blocks cannot be caught by a
+C<CATCH> in the same block, which implies that C<POST> blocks are not
+run if a C<PRE> block fails.  If a C<POST> fails while an exception is in
+flight the C<POST> failure doesn't replace C<$!> but goes straight into
+C<$!.pending>.
+
 For blocks such as C<KEEP> and C<POST> that are run when exiting a
 scope normally, the return value (if any) from that scope is available
 as the current topic.  (It is presented as a C<Capture> object.)
