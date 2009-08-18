@@ -653,11 +653,20 @@ filesystem path).
 
 =over 4
 
-=item glob
+=item chdir FILENAME
+X<chdir> X<cd>
+
+=item chdir
+
+Changes the current working directory to the one specified by FILENAME.
+If it succeeds it returns true, otherwise it returns C<Failure> and
+sets C<$!> (errno).
+
+=item find
 
 Returns C<Path> objects.
 
-=item find
+=item glob
 
 Returns C<Path> objects.
 
@@ -674,7 +683,7 @@ file, link, or something else OS-specific.
     role Path {
         has Str $.Type;
         has Array of Str @.Elements;
-        has Array of IO::FSNodeACL @.ACLs;
+        has Array of IO::ACL @.ACLs;
         has Hash of %.times;
     ...
     }
@@ -686,7 +695,8 @@ The C<%times> has keys that can be eg. C<ctime>, C<Modification>, and
 C<Access> (and maybe others on other operating systems), and the values are 
 all C<Temporal::Instant> objects.
 
-C<$.Type> can be C<File>, C<Directory>, or C<Link>.  
+C<$.Type> can be C<File>, C<Directory>, C<Link>, or C<Other>.  See 
+C<.create()> method documentation for how it is set.  
 
 =head3 Methods
 
@@ -704,7 +714,7 @@ This is called automatically on object creation.
         Array of Str @:PathElements,
 
         Array of Str $:Constraints, 
-        Str $:Type,
+        Str $:Protocol,
 
         Str $:Target,
         Str $:LinkType,
@@ -715,8 +725,18 @@ Path and PathElements are mutually exclusive.
 $:Constraints determines whether the $:Path and $:Target strings should be
 assumed to be Unix-style, Windows-style, or something else.  
 
-$:Type defaults to "File", unless the $:Target parameter is passed, in which
-case it is assumed to be "Link".  
+The Path.Type attribute is initialised as follows:
+
+    Value        Condition
+    =====        =========
+    Directory    $:Path ends in a separator (ie. /)
+    Link         $:Target is specified
+    Other        $:Protocol is specified
+    Undefined    All other cases
+
+If the $.Type attribute is read, but is still undefined, then an attempt is 
+made to determine what its type should be from the filesystem.  If no 
+answers are found using this method, then it defaults to "File".  
 
 The C<Target> and C<LinkType> options are only relevant for links that have
 not been created yet, or are to be overwritten; in all other cases, 
@@ -794,6 +814,68 @@ X<rmdir> X<rd> X<directory, remove>
 This deletes the C<Path> from the filesystem.  If the node has children, it 
 throws an error unless the C<Recursive> option is specified.  It returns the 
 number of nodes deleted, and may throw an exception.  
+
+=item lines
+
+    method lines ($handle:
+        Any  $limit = *,
+        Bool $:bin = False,
+        Str  $:enc = "Unicode",
+        Any  $:nl = "\n",
+        Bool $:chomp = True,
+        --> List
+    ) is export
+
+    multi lines (Str $filename,
+        Any  $limit = *,
+        Bool $:bin = False,
+        Str  $:enc = "Unicode",
+        Any  $:nl = "\n",
+        Bool $:chomp = True,
+        --> List
+    )
+
+Returns some or all the lines of a file or entries in a directory
+as a C<List> regardless of context.
+See also C<slurp>.  Note that lists are lazy by default, but you
+can always ask for C<eager lines>.  Note that the limit semantics cannot be
+duplicated by subscripting, since
+
+    $fh.lines[^5]
+
+reads all the lines before the subscript gives you the first five,
+whereas
+
+    $fh.lines(5)
+
+reads only five lines from the handle.  Note that
+
+    $fh.lines(1)
+
+is equivalent to
+
+    $fh.get
+
+If fewer lines are available than the limit, it is not an error;
+you just get the number of lines available.
+
+=item slurp
+
+    method slurp ($handle:
+        Bool $:bin = False,
+        Str  $:enc = "Unicode",
+        --> Str|Buf
+    ) is export
+    multi slurp (Str $filename,
+        Bool $:bin = False,
+        Str  $:enc = "Unicode",
+        --> Str|Buf
+    )
+
+Slurps the entire file into a C<Str> (or C<Buf> if C<:bin>) regardless of context.
+(See also C<lines>.)
+
+In the case of a directory, it uses "\n" to separate entries.  
 
 =back
 
@@ -894,12 +976,12 @@ Or pass multiple tests together in OO style:
 
 =back
 
-=head2 IO::FSNodeACL
+=head2 IO::ACL
 
 This is a basic abstraction; for better control, use the operating-system specific
 interfaces, over which this is a thin veneer.
 
-    class IO::FSNodeACL {
+    class IO::ACL {
         has Str $.type; # "User", "Group", "Everyone", ???
         has Str $.id; # username or groupname; unused for $type eq "Everyone"
         has %.permissions;
@@ -935,77 +1017,8 @@ done with groups too.  Works on Unix, at least.
 
 =back
 
-The C<$.owningObject> attribute of C<FSNodeACL> shows what the ACL is set on.  On a
+The C<$.owningObject> attribute of C<ACL> shows what the ACL is set on.  On a
 Windows system, this can be a parent directory, as permissions are inherited.
-
-=head2 IO::FileNode
-
-    role IO::FileNode does Path {
-        ...
-    }
-
-=over
-
-=item lines
-
-    method lines ($handle:
-        Any  $limit = *,
-        Bool $:bin = False,
-        Str  $:enc = "Unicode",
-        Any  $:nl = "\n",
-        Bool $:chomp = True,
-        --> List
-    ) is export
-
-    multi lines (Str $filename,
-        Any  $limit = *,
-        Bool $:bin = False,
-        Str  $:enc = "Unicode",
-        Any  $:nl = "\n",
-        Bool $:chomp = True,
-        --> List
-    )
-
-Returns some or all the lines of a file as a C<List> regardless of context.
-See also C<slurp>.  Note that lists are lazy by default, but you
-can always ask for C<eager lines>.  Note that the limit semantics cannot be
-duplicated by subscripting, since
-
-    $fh.lines[^5]
-
-reads all the lines before the subscript gives you the first five,
-whereas
-
-    $fh.lines(5)
-
-reads only five lines from the handle.  Note that
-
-    $fh.lines(1)
-
-is equivalent to
-
-    $fh.get
-
-If fewer lines are available than the limit, it is not an error;
-you just get the number of lines available.
-
-=item slurp
-
-    method slurp ($handle:
-        Bool $:bin = False,
-        Str  $:enc = "Unicode",
-        --> Str|Buf
-    ) is export
-    multi slurp (Str $filename,
-        Bool $:bin = False,
-        Str  $:enc = "Unicode",
-        --> Str|Buf
-    )
-
-Slurps the entire file into a C<Str> (or C<Buf> if C<:bin>) regardless of context.
-(See also C<lines>.)
-
-=back
 
 =head2 IO::Socket::INET
 
@@ -1251,13 +1264,6 @@ Should there be an IO::Interactive role?
 =head1 Removed functions
 
 =over
-
-=item chdir FILENAME
-X<chdir> X<cd>
-
-=item chdir
-
-Gone, just set $*CWD (which throws an exception if it fails).  
 
 =item IO.eof
 
