@@ -43,11 +43,11 @@ method is actually declared in.]
 X<open>
 
     multi open (Str $name,
-        Bool :$rw = False,
-        Bool :$bin = False,
-        Str  :$enc = "Unicode",
-        Any  :$nl = "\n",
-        Bool :$chomp = True,
+        Bool $:rw = False,
+        Bool $:bin = False,
+        Str  $:enc = "Unicode",
+        Any  $:nl = "\n",
+        Bool $:chomp = True,
         ...
         --> IO
     ) is export
@@ -258,8 +258,8 @@ which means that data might not be available at request.
 =item new()
 
     method new(
-        Bool :$NoOpen,
-        Bool :$Blocking,
+        Bool $:NoOpen,
+        Bool $:Blocking,
         --> IO::Streamable
     ) {...}
 
@@ -497,7 +497,7 @@ opened, rather than indicating whether it is currently listening.
 =item new
 
     method new(
-        :$Listener, # initialises $.Listener
+        $:Listener, # initialises $.Listener
     )
 
 The initial value of the $.Listener attribute is defined according to the following rules:
@@ -579,26 +579,25 @@ This does file input and output.
 =item new
 
     method new(
-        FSNode :$FSNode,
-        Str :$Filename,
-        :$fd
-        Bool :$NoOpen,
-        :$Writeable,
-        :$Readable
+        Path $:Path,
+        $:fd
+        Bool $:NoOpen,
+        $:Writeable,
+        $:Readable
     );
 
-The C<FSNode> and C<fd> options are mutually exclusive.  
+The C<Path> and C<fd> options are mutually exclusive.  
 
 C<NoOpen> is passed to C<IO::Streamable.new()>
 
 Examples:
 
     # Read, no interpolation
-    $fobj = new IO::File(FSNode => q:io{/path/to/file});
+    $fobj = new IO::File(Path => p{/path/to/file});
 
     # Write, interpolation
     $fobj = new IO::File(
-        FSNode => q:io:qq{$filename},
+        Path => p:qq{$filename},
         Writeable => 1
     );
 
@@ -620,6 +619,26 @@ Available only as a handle method.
 
 =back
 
+=head2 IO::Directory
+
+    role IO::Directory does IO::Streamable {
+        ...
+    }
+
+=over
+
+=item open
+
+    $dir.open(
+        Str  $:enc = "Unicode",
+    );
+
+Opens a directory for processing, if the C<new> method was passed the C<NoOpen> option.
+Makes the directory looks like
+a list of autochomped lines, so just use ordinary C<IO> operators after the open.
+
+=back
+
 =head2 IO::FileSystems
 
 This represents the file systems mounted on the current machine (ie. accessible via a 
@@ -636,28 +655,149 @@ filesystem path).
 
 =item glob
 
-Returns C<FSNode> objects.
+Returns C<Path> objects.
 
 =item find
 
-Returns C<FSNode> objects.
+Returns C<Path> objects.
 
 =item rename
 
 =back
 
-=head2 IO::FSNode
+=head2 Path
 
-    class IO::FSNode {
+The "Path" role covers both the path to the file, and the file metadata.  They
+are usually created with the p{/path/to/file} syntax.  It could be a directory,
+file, link, or something else OS-specific.  
+
+    role Path {
+        has Str $.Type;
+        has Array of Str @.Elements;
         has Array of IO::FSNodeACL @.ACLs;
         has Hash of %.times;
     ...
     }
 
-The C<%times> has keys that can be eg. C<ctime>, C<Modification>, and C<Access> (and maybe others on
-other operating systems), and the values are all C<Temporal::Instant> objects.
+The <@.Elements> array is a list of Str that contain the path elements, but
+all are checked before being pushed onto the array.  
 
-When C<.path> is implemented, it should return the path that this was opened with.
+The C<%times> has keys that can be eg. C<ctime>, C<Modification>, and 
+C<Access> (and maybe others on other operating systems), and the values are 
+all C<Temporal::Instant> objects.
+
+C<$.Type> can be C<File>, C<Directory>, or C<Link>.  
+
+=head3 Methods
+
+=over 4
+
+=item new
+
+While new Path objects will normally be created with the p{/path/to/file} 
+syntax, there are also OO-related alternatives.  
+
+This is called automatically on object creation.
+
+    method new(
+        Str $:Path,
+        Array of Str @:PathElements,
+
+        Array of Str $:Constraints, 
+        Str $:Type,
+
+        Str $:Target,
+        Str $:LinkType,
+    );
+
+Path and PathElements are mutually exclusive.  
+
+$:Constraints determines whether the $:Path and $:Target strings should be
+assumed to be Unix-style, Windows-style, or something else.  
+
+$:Type defaults to "File", unless the $:Target parameter is passed, in which
+case it is assumed to be "Link".  
+
+The C<Target> and C<LinkType> options are only relevant for links that have
+not been created yet, or are to be overwritten; in all other cases, 
+they will be determined from the filesystem.  If Target is not specified,
+this Path is assumed not to be a link.  If LinkType is not specified, 
+then the default is used (symbolic, on a Unix system).  
+
+Examples:
+
+    # These three do the same thing (on a Unix machine)
+    $path = p{/home/wayland};
+    $path = new Path(PathElements => ['home', 'wayland']);
+    $path = new Path(Constraints => ['Unix'], Path => p{/home/wayland});
+    $path = new Path(Path => p{/home/wayland});
+
+    # This creates a symlink from /home/wayland/m to /home/wayland/Music
+    $path = new Path(
+        Path => p{/home/wayland/m},
+        Target => p{/home/wayland/Music},
+    );
+
+=item path
+
+method path( --> Str);
+
+Returns @.elements concatenated together for use as a string.  Usually this 
+is the path that it was originally created with.  
+
+=item realpath
+
+    method realpath( --> Str);
+
+Gets the real path to the object, resolving softlinks/shortcuts, etc
+
+=item realisepath
+
+    method realisepath();
+
+Changes the Path object to point at whatever is returned by C<.realpath()>.  
+
+=item ACCEPTS
+
+    multi method ACCEPTS(Path $filename);
+
+Test whether the specified filename is the same file as this file.  On a 
+Unix system, this would presumably be done by comparing inode numbers or 
+something.  
+
+=item create
+X<mkdir> X<md> X<directory, create> X<touch>
+
+    method create(
+        Bool $:Recursive,
+        Bool $:Truncate,
+    )
+
+Creates/touches the specified path.  In the case of a link or a directory, no 
+parameters are required.  If a file doesn't exist, then no parameters are 
+required.  If the path already exists, then an exception is thrown, unless
+the file is an ordinary file or a link, and $:Truncate is true.  
+
+The $:Recursive option specifies that any necessary parent directories should
+also be created.  
+
+=item touch
+
+Update timestamps on a file.  
+
+=item delete
+
+X<rmdir> X<rd> X<directory, remove>
+
+    method delete(Bool $:Recursive --> Int);
+
+This deletes the C<Path> from the filesystem.  If the node has children, it 
+throws an error unless the C<Recursive> option is specified.  It returns the 
+number of nodes deleted, and may throw an exception.  
+
+=back
+
+=head3 Other things
 
 =over 4
 
@@ -752,45 +892,6 @@ Or pass multiple tests together in OO style:
 
   if $filename.TEST(:e,:x) {...}
 
-
-=item realpath
-
-    method realpath( --> Str);
-
-Gets the real path to the object, resolving softlinks/shortcuts, etc
-
-=item === operator
-
-    method infix:<===>(Str $filename);
-
-Test whether the specified filename is the same file as this file.  On a Unix system,
-this would presumably be done by comparing inode numbers or something.
-
-=item new
-
-This is called automatically on object creation.
-
-    multi method new(Array of Str :@PathElements);
-    multi method new(Str :$Type, Str :$Path, Str :$Create);
-    multi method new(Str :$Path);
-
-This last throws an error if "C<use portable>" pragma is used.
-
-If the C<Create> option is passed in, and the node doesn't exist in the filesystem, it
-attempts to create the node; this can be used for I<mkdir>, I<link>, and similar
-functionality.
-
-Examples:
-
-    $fsnode = new IO::FSNode(PathElements => ['home', 'wayland']);
-    $fsnode = new IO::FSNode(Type => 'Unix', Path => '/home/wayland');
-    $fsnode = new IO::FSNode(Path => '/home/wayland'); # portability error
-
-=item delete
-
-This deletes the C<FSNode> from the filesystem.  If the node has children, it throws an error
-unless the C<Recursive> option is specified.  Returns the number of nodes deleted.
-
 =back
 
 =head2 IO::FSNodeACL
@@ -804,7 +905,7 @@ interfaces, over which this is a thin veneer.
         has %.permissions;
                 # Unsupported values may (or may not) throw
                 # UnsupportedPermission when set or read
-        has IO::FSNode $.owningObject;
+        has Path $.owningObject;
         ...
     }
 
@@ -839,7 +940,7 @@ Windows system, this can be a parent directory, as permissions are inherited.
 
 =head2 IO::FileNode
 
-    role IO::FileNode does IO::FSNode {
+    role IO::FileNode does Path {
         ...
     }
 
@@ -849,19 +950,19 @@ Windows system, this can be a parent directory, as permissions are inherited.
 
     method lines ($handle:
         Any  $limit = *,
-        Bool :$bin = False,
-        Str  :$enc = "Unicode",
-        Any  :$nl = "\n",
-        Bool :$chomp = True,
+        Bool $:bin = False,
+        Str  $:enc = "Unicode",
+        Any  $:nl = "\n",
+        Bool $:chomp = True,
         --> List
     ) is export
 
     multi lines (Str $filename,
         Any  $limit = *,
-        Bool :$bin = False,
-        Str  :$enc = "Unicode",
-        Any  :$nl = "\n",
-        Bool :$chomp = True,
+        Bool $:bin = False,
+        Str  $:enc = "Unicode",
+        Any  $:nl = "\n",
+        Bool $:chomp = True,
         --> List
     )
 
@@ -891,85 +992,18 @@ you just get the number of lines available.
 =item slurp
 
     method slurp ($handle:
-        Bool :$bin = False,
-        Str  :$enc = "Unicode",
+        Bool $:bin = False,
+        Str  $:enc = "Unicode",
         --> Str|Buf
     ) is export
     multi slurp (Str $filename,
-        Bool :$bin = False,
-        Str  :$enc = "Unicode",
+        Bool $:bin = False,
+        Str  $:enc = "Unicode",
         --> Str|Buf
     )
 
 Slurps the entire file into a C<Str> (or C<Buf> if C<:bin>) regardless of context.
 (See also C<lines>.)
-
-=back
-
-=head2 IO::DirectoryNode
-
-    role IO::DirectoryNode does IO::FSNode {
-        ...
-    }
-
-=over
-
-=item open
-
-    $dir.open(
-        Str  :$enc = "Unicode",
-    );
-
-Opens a directory for processing, if the C<new> method was passed the C<NoOpen> option.
-Makes the directory looks like
-a list of autochomped lines, so just use ordinary C<IO> operators after the open.
-
-=item rmdir FILENAME
-X<rmdir> X<rd> X<directory, remove>
-
-=item rmdir
-
-Deletes the directory specified by FILENAME if that directory is
-empty.  If it succeeds it returns true, otherwise it returns C<Failure> and
-sets C<$!> (errno).
-
-=item chdir FILENAME
-X<chdir> X<cd>
-
-=item chdir
-
-Changes the current working directory to the one specified by FILENAME.
-If it succeeds it returns true, otherwise it returns C<Failure> and
-sets C<$!> (errno).
-
-=back
-
-=head2 IO::LinkNode
-
-    role IO::LinkNode does IO::FSNode {
-        ...
-    }
-
-=over
-
-=item new
-
-Creates a new link in the filesystem.
-
-    IO::LinkNode.new(
-        Name => '/home/wayland/symlink.txt'
-        Target => '/home/wayland/realfile.txt',
-        Type => 'Hard', # Default is Symbolic
-    );
-
-Reads in the previously created symlink.
-
-    $link = IO::LinkNode.new(
-        Name => '/home/wayland/symlink.txt',
-    );
-    print $link.target; # prints /home/wayland/realfile.txt
-
-Neither of these is "C<use portable>" compatible.
 
 =back
 
@@ -990,17 +1024,17 @@ Neither of these is "C<use portable>" compatible.
 =item new
 
     method new(
-        Str  :$RemoteHost, # Initialises $.RemoteHost
-        Str  :$RemotePort, # Initialises $.RemotePort (if it's not a numeric string, use getservbyname)
-        Str  :$LocalHost,  # Initialises $.LocalHost
-        Str  :$LocalPort,  # Initialises $.LocalPort (if it's not a numeric string, use getservbyname)
-        Str  :$Protocol,   # Initialises $.Protocol
-        Int  :$Version,    # Initialises $.Version (IPv4 vs. IPv6)
+        Str  $:RemoteHost, # Initialises $.RemoteHost
+        Str  $:RemotePort, # Initialises $.RemotePort (if it's not a numeric string, use getservbyname)
+        Str  $:LocalHost,  # Initialises $.LocalHost
+        Str  $:LocalPort,  # Initialises $.LocalPort (if it's not a numeric string, use getservbyname)
+        Str  $:Protocol,   # Initialises $.Protocol
+        Int  $:Version,    # Initialises $.Version (IPv4 vs. IPv6)
 
-        Bool :$Listener,   # Passed to IO::Socket.new()
+        Bool $:Listener,   # Passed to IO::Socket.new()
 
-        Bool :$Blocking,   # Passed to IO::Streamable.new()
-        Bool :$NoOpen,     # Passed to IO::Streamable.new()
+        Bool $:Blocking,   # Passed to IO::Streamable.new()
+        Bool $:NoOpen,     # Passed to IO::Streamable.new()
 
         --> IO::Socket::INET
     ) {...}
@@ -1061,7 +1095,7 @@ reader and writer ends of the pipe.
 
 =head2 Unix
 
-=head2 IO::FSNode::Unix
+=head2 Path::Unix
 
 =over
 
@@ -1123,7 +1157,7 @@ successfully changed.
 
 =item IO.stat
 
-    $node.stat(Bool :$link); # :link does an lstat instead
+    $node.stat(Bool $:link); # :link does an lstat instead
 
 Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
 to true, and additional file tests may be performed on the value.  If
@@ -1144,13 +1178,13 @@ to false.
 =item new
 
     method new(
-        Str  :$RemoteAddr,
-        Str  :$LocalAddr,
+        Str  $:RemoteAddr,
+        Str  $:LocalAddr,
 
-        Bool :$Listener,   # Passed to IO::Socket.new()
+        Bool $:Listener,   # Passed to IO::Socket.new()
 
-        Bool :$Blocking,   # Passed to IO::Streamable.new()
-        Bool :$NoOpen,     # Passed to IO::Streamable.new()
+        Bool $:Blocking,   # Passed to IO::Streamable.new()
+        Bool $:NoOpen,     # Passed to IO::Streamable.new()
 
         --> IO::Socket::Unix
     ) {...}
@@ -1180,7 +1214,7 @@ operations. It implies C<IO::Readable> and C<IO::Writeable>.
 
 =item has Bool $.blocking is rw
 
-=item method flock(:$r,:$w --> Bool)
+=item method flock($:r,$:w --> Bool)
 
 =item method funlock( --> Bool)
 
@@ -1217,6 +1251,13 @@ Should there be an IO::Interactive role?
 =head1 Removed functions
 
 =over
+
+=item chdir FILENAME
+X<chdir> X<cd>
+
+=item chdir
+
+Gone, just set $*CWD (which throws an exception if it fails).  
 
 =item IO.eof
 
@@ -1268,7 +1309,7 @@ Gone, see C<IO::Writeable.read()>.
 
 =item utime
 
-Gone, see C<IO::FSNode.times>.
+Gone, see C<Path.times>.
 
 =back
 

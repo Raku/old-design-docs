@@ -82,16 +82,54 @@ S32-setting-library/IO.pod.
 
 The use of filenames requires a special quoting syntax.  It works as follows:
 
-    q:io{/path/to/file}
+    p{/path/to/file}
+    q:p{/path/to/file}
+
+Both of the above result in the same thing.  
 
 The quote characters can be any of the usual ones, although / is probably a bad choice
 for filenames.  
 
-The code shown above returns an IO::FSNode object (or a descendant thereof).  
+The code shown above returns a Path object (or a descendant thereof).  
 
 Naturally you can also ask for interpolation in filenames:
 
-    qq:io{$directory/$file}
+    p:qq{$directory/$file}
+    qq:p{$directory/$file}
+
+There are a number of special adverbs that can be applied to the file quoting 
+operator.  Most of these are filesystem-specific.  They confine what can be
+included in a filename.  
+
+=head3 Default constraints
+
+The default p{} only allows "/" as separator and does not allow path elements 
+to contain
+characters that won't work on modern Windows and Unix like \ / ? % * : | " > <,
+etc. The reason for this is that portable paths are the default. If
+platform/filesystem specific behavior is really needed it should be shown in 
+the code by applying different sets of constraints (see below).  
+
+=head3 Windows-style constraints
+
+We allow windows style paths so converting and maintaining code on this
+platform is not a pain.
+
+my Path $path = p:win{C:\Program Files\MS Access\file.file};
+
+Note that this specifically excludes the backslash quoting usually used with 
+q{}.  
+
+=head3 Unix-style constraints
+
+For Unix specific behavior we have a p:unix{} literal.  Here the only
+limits are what is defined by the locale and the filesystem type. So we won't 
+be able to write full Unicode if locale is set to Latin1. 
+
+my Path $path = p:unix{/usr/src/bla/myfile?:%.file};
+
+And for cases where this is a problem p:bin{} can be used as no checking is
+done here, other than assuming that / is the separator.  
 
 =head1 Name Services
 
