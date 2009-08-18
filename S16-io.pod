@@ -103,16 +103,21 @@ included in a filename.
 
 =head3 Default constraints
 
-The default p{} only allows "/" as separator and does not allow path elements 
-to contain
-characters that won't work on modern Windows and Unix like \ / ? % * : | " > <,
-etc. The reason for this is that portable paths are the default. If
-platform/filesystem specific behavior is really needed it should be shown in 
+The default paths are portable paths.  These are POSIX-compatible (see 
+POSIX.1-2008 sections4.7 and 3.276).  If
+platform/filesystem specific behavior is needed it should be shown in 
 the code by applying different sets of constraints (see below).  
+
+The default constraints are to only allow "/" as separator and only allows 
+POSIX filenames.  That means A-Z, a-z, 0-9, <period>, <underscore>, and 
+<hyphen>.  Additionally, hyphen may not be the first character in the path.  
+
+Any path that starts with a "/" is considered an absolute path, otherwise
+the path is considered relative.  
 
 =head3 Windows-style constraints
 
-We allow windows style paths so converting and maintaining code on this
+We allow Windows style paths so converting and maintaining code on this
 platform is not a pain.
 
 my Path $path = p:win{C:\Program Files\MS Access\file.file};
@@ -130,6 +135,11 @@ my Path $path = p:unix{/usr/src/bla/myfile?:%.file};
 
 And for cases where this is a problem p:bin{} can be used as no checking is
 done here, other than assuming that / is the separator.  
+
+=head3 Other constraints
+
+It is expected that other sets of constraints, such as VMS, DOS, and old-style
+Mac will be provided by modules.  
 
 =head1 Name Services
 

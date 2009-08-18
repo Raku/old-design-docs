@@ -680,7 +680,7 @@ The "Path" role covers both the path to the file, and the file metadata.  They
 are usually created with the p{/path/to/file} syntax.  It could be a directory,
 file, link, or something else OS-specific.  
 
-    role Path {
+    role Path does Str does Array {
         has Str $.Type;
         has Array of Str @.Elements;
         has Array of IO::ACL @.ACLs;
@@ -697,6 +697,10 @@ all C<Temporal::Instant> objects.
 
 C<$.Type> can be C<File>, C<Directory>, C<Link>, or C<Other>.  See 
 C<.create()> method documentation for how it is set.  
+
+When used as a Str, it allows some operations, so that it can be concatenated
+easily with other strings.  When used as an Array, it acts as an array of 
+path elements.  
 
 =head3 Methods
 
