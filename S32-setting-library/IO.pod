@@ -22,8 +22,8 @@ DRAFT: Synopsis 32: Setting Library - IO
 
     Created: 19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
 
-    Last Modified: 20 Apr 2009
-    Version: 6
+    Last Modified: 18 Aug 2009
+    Version: 7
 
 The document is a draft.
 
@@ -43,11 +43,11 @@ method is actually declared in.]
 X<open>
 
     multi open (Str $name,
-        Bool $:rw = False,
-        Bool $:bin = False,
-        Str  $:enc = "Unicode",
-        Any  $:nl = "\n",
-        Bool $:chomp = True,
+        Bool :$rw = False,
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+        Any  :$nl = "\n",
+        Bool :$chomp = True,
         ...
         --> IO
     ) is export
@@ -258,8 +258,8 @@ which means that data might not be available at request.
 =item new()
 
     method new(
-        Bool $:NoOpen,
-        Bool $:Blocking,
+        Bool :$NoOpen,
+        Bool :$Blocking,
         --> IO::Streamable
     ) {...}
 
@@ -497,7 +497,7 @@ opened, rather than indicating whether it is currently listening.
 =item new
 
     method new(
-        $:Listener, # initialises $.Listener
+        :$Listener, # initialises $.Listener
     )
 
 The initial value of the $.Listener attribute is defined according to the following rules:
@@ -579,11 +579,11 @@ This does file input and output.
 =item new
 
     method new(
-        Path $:Path,
-        $:fd
-        Bool $:NoOpen,
-        $:Writeable,
-        $:Readable
+        Path :$Path,
+        :$fd
+        Bool :$NoOpen,
+        :$Writeable,
+        :$Readable
     );
 
 The C<Path> and C<fd> options are mutually exclusive.  
@@ -630,7 +630,7 @@ Available only as a handle method.
 =item open
 
     $dir.open(
-        Str  $:enc = "Unicode",
+        Str  :$enc = "Unicode",
     );
 
 Opens a directory for processing, if the C<new> method was passed the C<NoOpen> option.
@@ -714,28 +714,28 @@ syntax, there are also OO-related alternatives.
 This is called automatically on object creation.
 
     method new(
-        Str $:Path,
-        Array of Str @:PathElements,
+        Str :$Path,
+        Array of Str :@PathElements,
 
-        Array of Str $:Constraints, 
-        Str $:Protocol,
+        Array of Str :$Constraints, 
+        Str :$Protocol,
 
-        Str $:Target,
-        Str $:LinkType,
+        Str :$Target,
+        Str :$LinkType,
     );
 
 Path and PathElements are mutually exclusive.  
 
-$:Constraints determines whether the $:Path and $:Target strings should be
+$Constraints determines whether the $Path and $Target strings should be
 assumed to be Unix-style, Windows-style, or something else.  
 
 The Path.Type attribute is initialised as follows:
 
     Value        Condition
     =====        =========
-    Directory    $:Path ends in a separator (ie. /)
-    Link         $:Target is specified
-    Other        $:Protocol is specified
+    Directory    $Path ends in a separator (ie. /)
+    Link         $Target is specified
+    Other        $Protocol is specified
     Undefined    All other cases
 
 If the $.Type attribute is read, but is still undefined, then an attempt is 
@@ -793,16 +793,16 @@ something.
 X<mkdir> X<md> X<directory, create> X<touch>
 
     method create(
-        Bool $:Recursive,
-        Bool $:Truncate,
+        Bool :$Recursive,
+        Bool :$Truncate,
     )
 
 Creates/touches the specified path.  In the case of a link or a directory, no 
 parameters are required.  If a file doesn't exist, then no parameters are 
 required.  If the path already exists, then an exception is thrown, unless
-the file is an ordinary file or a link, and $:Truncate is true.  
+the file is an ordinary file or a link, and $Truncate is true.  
 
-The $:Recursive option specifies that any necessary parent directories should
+The $Recursive option specifies that any necessary parent directories should
 also be created.  
 
 =item touch
@@ -813,7 +813,7 @@ Update timestamps on a file.
 
 X<rmdir> X<rd> X<directory, remove>
 
-    method delete(Bool $:Recursive --> Int);
+    method delete(Bool :$Recursive --> Int);
 
 This deletes the C<Path> from the filesystem.  If the node has children, it 
 throws an error unless the C<Recursive> option is specified.  It returns the 
@@ -823,19 +823,19 @@ number of nodes deleted, and may throw an exception.
 
     method lines ($handle:
         Any  $limit = *,
-        Bool $:bin = False,
-        Str  $:enc = "Unicode",
-        Any  $:nl = "\n",
-        Bool $:chomp = True,
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+        Any  :$nl = "\n",
+        Bool :$chomp = True,
         --> List
     ) is export
 
     multi lines (Str $filename,
         Any  $limit = *,
-        Bool $:bin = False,
-        Str  $:enc = "Unicode",
-        Any  $:nl = "\n",
-        Bool $:chomp = True,
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+        Any  :$nl = "\n",
+        Bool :$chomp = True,
         --> List
     )
 
@@ -866,13 +866,13 @@ you just get the number of lines available.
 =item slurp
 
     method slurp ($handle:
-        Bool $:bin = False,
-        Str  $:enc = "Unicode",
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
         --> Str|Buf
     ) is export
     multi slurp (Str $filename,
-        Bool $:bin = False,
-        Str  $:enc = "Unicode",
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
         --> Str|Buf
     )
 
@@ -1041,17 +1041,17 @@ Windows system, this can be a parent directory, as permissions are inherited.
 =item new
 
     method new(
-        Str  $:RemoteHost, # Initialises $.RemoteHost
-        Str  $:RemotePort, # Initialises $.RemotePort (if it's not a numeric string, use getservbyname)
-        Str  $:LocalHost,  # Initialises $.LocalHost
-        Str  $:LocalPort,  # Initialises $.LocalPort (if it's not a numeric string, use getservbyname)
-        Str  $:Protocol,   # Initialises $.Protocol
-        Int  $:Version,    # Initialises $.Version (IPv4 vs. IPv6)
+        Str  :$RemoteHost, # Initialises $.RemoteHost
+        Str  :$RemotePort, # Initialises $.RemotePort (if it's not a numeric string, use getservbyname)
+        Str  :$LocalHost,  # Initialises $.LocalHost
+        Str  :$LocalPort,  # Initialises $.LocalPort (if it's not a numeric string, use getservbyname)
+        Str  :$Protocol,   # Initialises $.Protocol
+        Int  :$Version,    # Initialises $.Version (IPv4 vs. IPv6)
 
-        Bool $:Listener,   # Passed to IO::Socket.new()
+        Bool :$Listener,   # Passed to IO::Socket.new()
 
-        Bool $:Blocking,   # Passed to IO::Streamable.new()
-        Bool $:NoOpen,     # Passed to IO::Streamable.new()
+        Bool :$Blocking,   # Passed to IO::Streamable.new()
+        Bool :$NoOpen,     # Passed to IO::Streamable.new()
 
         --> IO::Socket::INET
     ) {...}
@@ -1174,7 +1174,7 @@ successfully changed.
 
 =item IO.stat
 
-    $node.stat(Bool $:link); # :link does an lstat instead
+    $node.stat(Bool :$link); # :link does an lstat instead
 
 Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
 to true, and additional file tests may be performed on the value.  If
@@ -1195,13 +1195,13 @@ to false.
 =item new
 
     method new(
-        Str  $:RemoteAddr,
-        Str  $:LocalAddr,
+        Str  :$RemoteAddr,
+        Str  :$LocalAddr,
 
-        Bool $:Listener,   # Passed to IO::Socket.new()
+        Bool :$Listener,   # Passed to IO::Socket.new()
 
-        Bool $:Blocking,   # Passed to IO::Streamable.new()
-        Bool $:NoOpen,     # Passed to IO::Streamable.new()
+        Bool :$Blocking,   # Passed to IO::Streamable.new()
+        Bool :$NoOpen,     # Passed to IO::Streamable.new()
 
         --> IO::Socket::Unix
     ) {...}
@@ -1231,7 +1231,7 @@ operations. It implies C<IO::Readable> and C<IO::Writeable>.
 
 =item has Bool $.blocking is rw
 
-=item method flock($:r,$:w --> Bool)
+=item method flock(:$r,:$w --> Bool)
 
 =item method funlock( --> Bool)
 
