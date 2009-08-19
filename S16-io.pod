@@ -174,6 +174,23 @@ done here, other than assuming that / is the separator.
 It is expected that other sets of constraints, such as VMS, DOS, and old-style
 Mac will be provided by modules.  
 
+=head2 $*CWD
+
+The global variable $*CWD is a Path object with certain special properties, 
+mainly:
+ * It must check whether the path exists before changing its value
+ * It can only be assigned an absolute path; if you want to make relative 
+   changes, use the Array interface
+
+$*CWD is specific to the current thread, unlike %*ENV<PATH> or the native 
+getcwd/chdir path, which are both usually process-wide.  
+
+The variable is used in at least these cases:
+* When a Path object is created, if the string it is given is not an absolute 
+  path, then $*CWD is prepended to it.  
+* When a subprocess is executed, it is executed with the current thread's 
+  $*CWD as its working directory.  
+
 =head1 Name Services
 
 =head2 User role

@@ -660,7 +660,9 @@ X<chdir> X<cd>
 
 Changes the current working directory to the one specified by FILENAME.
 If it succeeds it returns true, otherwise it returns C<Failure> and
-sets C<$!> (errno).
+sets C<$!> (errno).  Note, though, that chdir affects only the system 
+directory; most things in Perl 6 that need a current directory depend
+on their thread's copy of $*CWD.  
 
 =item find
 
@@ -682,11 +684,20 @@ file, link, or something else OS-specific.
 
     role Path does Str does Array {
         has Str $.Type;
-        has Array of Str @.Elements;
+        has Str $.Encoding;
+        has Array of Buf @.Elements;
         has Array of IO::ACL @.ACLs;
         has Hash of %.times;
     ...
     }
+
+C<$.Type> can be C<File>, C<Directory>, C<Link>, or C<Other>.  See 
+C<.create()> method documentation for how it is set.  
+
+$.Encoding tells us what the encoding is, if known.  If $.Encoding is 
+undefined, then there are a number of things that can't be done with it,
+such as treating is the Path as a Str, using say/print/any other display
+method on it, and those kinds of things.  
 
 The <@.Elements> array is a list of Str that contain the path elements, but
 all are checked before being pushed onto the array.  
@@ -695,12 +706,9 @@ The C<%times> has keys that can be eg. C<ctime>, C<Modification>, and
 C<Access> (and maybe others on other operating systems), and the values are 
 all C<Temporal::Instant> objects.
 
-C<$.Type> can be C<File>, C<Directory>, C<Link>, or C<Other>.  See 
-C<.create()> method documentation for how it is set.  
-
-When used as a Str, it allows some operations, so that it can be concatenated
-easily with other strings.  When used as an Array, it acts as an array of 
-path elements.  
+When a Path is used as a Str, it allows some operations, so that it can 
+be concatenated easily with other strings.  When used as an Array, it 
+acts as an array of path elements.  
 
 =head3 Methods
 
