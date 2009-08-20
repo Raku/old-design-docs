@@ -528,7 +528,7 @@ Implements the close() function from IO::Closeable by doing a shutdown on the co
 
 =item shutdown
 
-    method shutdown(Array of Str @how)
+    method shutdown(Str @how)
 
 Does a I<shutdown(2)> on the connection.  See also IO::Readable.isReadable and
 IO::Writeable.isWriteable.
@@ -644,7 +644,7 @@ a list of autochomped lines, so just use ordinary C<IO> operators after the open
 This represents the file systems mounted on the current machine (ie. accessible via a 
 filesystem path).  
 
-    class IO::FileSystem does IO::Streamable {
+    class IO::FileSystems {
         has Str $.illegal-chars; # ie. /\x0
         has Int $.max-path;
 	has Int $.max-path-element;
@@ -662,15 +662,20 @@ Changes the current working directory to the one specified by FILENAME.
 If it succeeds it returns true, otherwise it returns C<Failure> and
 sets C<$!> (errno).  Note, though, that chdir affects only the system 
 directory; most things in Perl 6 that need a current directory depend
-on their thread's copy of $*CWD.  
+on their thread's copy of $*CWD, so you probably want to set $*CWD
+instead of using chdir().  
 
 =item find
 
-Returns C<Path> objects.
+Returns C<Path> objects.  Path.Encoding is set to $?ENC unless the 
+$Encoding parameter is passed in (see Path for further discussion of
+encoding).  
 
 =item glob
 
-Returns C<Path> objects.
+Returns C<Path> objects.  Path.Encoding is set to $?ENC unless the 
+Encoding parameter is passed in (see Path for further discussion of
+encoding).  
 
 =item rename
 
@@ -684,9 +689,10 @@ file, link, or something else OS-specific.
 
     role Path does Str does Array {
         has Str $.Type;
+        has Str @.Elements;
         has Str $.Encoding;
-        has Array of Buf @.Elements;
-        has Array of IO::ACL @.ACLs;
+        has Buf $.Binary;
+        has IO::ACL @.ACLs;
         has Hash of %.times;
     ...
     }
@@ -694,13 +700,9 @@ file, link, or something else OS-specific.
 C<$.Type> can be C<File>, C<Directory>, C<Link>, or C<Other>.  See 
 C<.create()> method documentation for how it is set.  
 
-$.Encoding tells us what the encoding is, if known.  If $.Encoding is 
-undefined, then there are a number of things that can't be done with it,
-such as treating is the Path as a Str, using say/print/any other display
-method on it, and those kinds of things.  
-
-The <@.Elements> array is a list of Str that contain the path elements, but
-all are checked before being pushed onto the array.  
+The C<@.Elements> array is a list of Str that contain the path elements, but
+all are checked before being pushed onto the array.  Note that @.Elements
+can not be accessed unless $.Encoding is defined.  
 
 The C<%times> has keys that can be eg. C<ctime>, C<Modification>, and 
 C<Access> (and maybe others on other operating systems), and the values are 
@@ -721,23 +723,31 @@ syntax, there are also OO-related alternatives.
 
 This is called automatically on object creation.
 
-    method new(
-        Str :$Path,
-        Array of Str :@PathElements,
+    multi method new(
+        Str|Buf :$Path,
+        Str :@PathElements,
+        Str :$Encoding,
 
-        Array of Str :$Constraints, 
+        Str :@Constraints, 
         Str :$Protocol,
 
         Str :$Target,
         Str :$LinkType,
+	Str :$Type,
     );
 
 Path and PathElements are mutually exclusive.  
 
+If the $Encoding parameter is not defined, then, if Path is a Buf, 
+the $.Encoding attribute remains undefined, otherwise it is set to 
+$?ENC.  There are
+a number of features that don't work without the encoding being set.  
+
 $Constraints determines whether the $Path and $Target strings should be
 assumed to be Unix-style, Windows-style, or something else.  
 
-The Path.Type attribute is initialised as follows:
+If the Type option is not passed in, the Path.Type attribute is initialised 
+as follows:
 
     Value        Condition
     =====        =========
@@ -746,7 +756,9 @@ The Path.Type attribute is initialised as follows:
     Other        $Protocol is specified
     Undefined    All other cases
 
-If the $.Type attribute is read, but is still undefined, then an attempt is 
+If the $.Type attribute is read (which will happen in a number of cases,
+including when you read $.Target and $.LinkType), but is still undefined, 
+then an attempt is 
 made to determine what its type should be from the filesystem.  If no 
 answers are found using this method, then it defaults to "File".  
 
@@ -791,7 +803,7 @@ Gets the real path to the object, resolving softlinks/shortcuts, etc
 
 =item resolvepath
 
-    method resolvepath(Array of Str @:Types --> Str);
+    method resolvepath(Str :@Types --> Str);
 
 @Types can contain "real" and "canon", in any order, and the
 method will run realpath and canonpath in the order specified.

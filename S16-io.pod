@@ -104,6 +104,9 @@ included in a filename.
 Any path that starts with a "/" is considered an absolute path, otherwise
 the path is considered relative.  
 
+When creating a path with p{}, the Path.Encoding attribute is set to $?ENC, unless
+the :bin modifier (see below) is used.  
+
 =head3 Default constraints
 
 The default constraints can be set with the "use path" pragma, for example:
@@ -167,7 +170,9 @@ my Path $path = p:unix{/usr/src/bla/myfile?:%.file};
 =head3 :bin constraints (no constraints at all)
 
 If the above are causing problems, p:bin{} can be used as no checking is
-done here, other than assuming that / is the separator.  
+done here.  However, this leaves the Path.Encoding attribute undefined, which 
+means that certain features of Path will remain unavailable unless this 
+attribute is set.  
 
 =head3 Other constraints
 
