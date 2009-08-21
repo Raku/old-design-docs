@@ -827,7 +827,7 @@ indicating the desire to create a function of a single unknown, so:
 
     * - 1
 
-produces a function of a single argument:
+produces a closure of a single argument:
 
     { $_ - 1 }
 
@@ -836,13 +836,18 @@ so it can be used where patterns are expected:
 
     @primes = grep *.prime, 2..*;
 
+If multiple C<*> appear as terms within a single expression, the resulting
+closure binds them all to the same argument, so C<* * *> translates to
+C<{ $_ * $_ }>.
+
 These closures are of type C<Code:($)>, not C<Whatever>, so that constructs can distinguish
 via multiple dispatch:
 
     1,2,3 ... *
     1,2,3 ... *+1
 
-The bare C<*> form may also be called as a function, and represents the identify function:
+A bare C<*> which is immediately followed by a C<(...)> or C<.(...)> is parsed
+as the unary identity closure:
 
     *(42) == 42
     (* + 1)(42) == 43
