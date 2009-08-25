@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 11 Aug 2009
-    Version: 173
+    Last Modified: 24 Aug 2009
+    Version: 174
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -840,7 +840,7 @@ If multiple C<*> appear as terms within a single expression, the resulting
 closure binds them all to the same argument, so C<* * *> translates to
 C<{ $_ * $_ }>.
 
-These closures are of type C<Code:($)>, not C<Whatever>, so that constructs can distinguish
+These closures are of type C<WhateverCode>, not C<Whatever>, so that constructs can distinguish
 via multiple dispatch:
 
     1,2,3 ... *
@@ -864,7 +864,7 @@ The C<...> operator is instead dispatching bare C<*> to a routine that
 does dwimmery, and in this case decides to supply a function { * + 1 }.
 
 The final element of an array is subscripted as C<@a[*-1]>,
-which means that when the subscripting operation discovers a C<Code>
+which means that when the subscripting operation discovers a C<WhateverCode>
 object for a subscript, it calls it and supplies an argument indicating
 the number of elements in (that dimension of) the array.  See S09.
 
@@ -872,7 +872,7 @@ A variant of C<*> is the C<**> term, which is of type C<HyperWhatever>.
 It is generally understood to be a multidimension form of C<*> when
 that makes sense.  When modified by an operator that would turn C<*>
 into a function of one argument, C<**> instead turns into a function
-with a slurpy argument, of type C<Code:(*@)>.  That is:
+with a slurpy argument, of type C<HyperWhateverCode>.  That is:
 
     * - 1    means                -> $x { $x - 1 }
     ** - 1   means   -> *@x { map -> $x { $x - 1 }, @x }
@@ -2893,6 +2893,7 @@ A colon may never be used as the delimiter since it will always be
 taken to mean another adverb regardless of what's in front of it.
 Nor may a C<#> character be used as the delimiter since it is always
 taken as whitespace (specifically, as a comment).
+You may not use whitespace or alphanumerics for delimiters.
 
 =item *
 
