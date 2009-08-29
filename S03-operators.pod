@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 10 Jul 2009
-    Version: 169
+    Last Modified: 29 Aug 2009
+    Version: 170
 
 =head1 Overview
 
@@ -699,7 +699,16 @@ C<< infix:</> >>
 
     $numerator / $denominator
 
-If either operand is of C<Num> type, converts both operands to C<Num>
+Performs division of real or complex numbers, returning a real or complex
+number of appropriate type.
+
+If both operands are of integer type, the operator returns the
+corresponding C<Rat> value.
+
+Otherwise, if either operand is of C<Complex> type, converts both
+operands to C<Complex> and does division returning C<Complex>.
+
+Otherwise, if either operand is of C<Num> type, converts both operands to C<Num>
 and does division returning C<Num>.  If the denominator is zero,
 returns an object representing either C<+Inf>, C<NaN>, or C<-Inf>
 as the numerator is positive, zero, or negative.  (This is construed
@@ -711,19 +720,17 @@ IEEE concepts, and if you subsequently try to use one of these values
 in a non-parallel computation, it will likely throw an exception at
 that point.)
 
-If both operands are of integer type, you still get a C<Num>, but the
-C<Num> type is allowed to do the division lazily; internally it may
-store a C<Rat> until the time a value is called for.  If converted
-to C<Rat> directly no division ever need be done.
-
 =item *
 
 C<< infix:<div> >>, generic division
 
     $numerator div $denominator
 
-Dispatches to the C<< infix:<div> >> multi most appropriate to the operand
-types.  Policy on what to do about division by zero is up to the type,
+Dispatches to the C<< infix:<div> >> multi most appropriate to the
+operand types, typically returning a value of the same type.
+Not coercive, so fails on differing types.
+
+Policy on what to do about division by zero is up to the type,
 but for the sake of hyperoperators and junctions those types that
 can represent overflow (or that can contain an unthrown exception)
 should try to do so rather than simply throwing an exception.  (And in
@@ -731,7 +738,10 @@ general, other operators that might fail should also consider their
 use in hyperops and junctions, and whether they can profitably benefit
 from a lazy exception model.)
 
-Use of C<div> on two C<Int> values results in a ratio of the C<Rat> type.
+Use of C<div> on built-in integer types is equivalent to taking the
+floor of a real division:
+
+    $x div $y == floor($x/$y);
 
 =item *
 
@@ -739,7 +749,14 @@ C<< infix:<%> >>, modulus
 
     $x % $mod
 
-Always floor semantics using C<Num> or C<Int>.
+Coerces to C<Num> (or C<Int> as an optimization) before performing C<mod>.
+That is, has results equivalent to:
+
+    floor( Num($x) / Num($y) )
+
+Also preserves the identity:
+
+    $x % $y == $x - floor($x / $y) * $y
 
 =item *
 
@@ -747,7 +764,13 @@ C<< infix:<mod> >>, generic modulus
 
     $x mod $mod
 
-Dispatches to the C<< infix:<mod> >> multi most appropriate to the operand types.
+Dispatches to the C<< infix:<mod> >> multi most appropriate to
+the operand types, typically returning a value of the same type.
+Not coercive, so fails on differing types.
+
+For built-in types, preserves the identity
+
+    $x mod $y == $x - ($x div $y) * $y
 
 =item *
 
