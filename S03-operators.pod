@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 29 Aug 2009
-    Version: 170
+    Last Modified: 31 Aug 2009
+    Version: 171
 
 =head1 Overview
 
@@ -1465,13 +1465,27 @@ specially as the equivalent of binding to a typeless variable.
 
 =item *
 
-C<< infix:<::=> >>, compile-time binding
+C<< infix:<::=> >>, bind and make readonly
 
     $signature ::= $capture
 
-This does the same as C<:=> except it does it at compile time.  (This implies
-that the expression on the right is also evaluated at compile time; it does
-not bind a lazy thunk.)
+This does the same as C<:=>, then marks any destination parameters as
+readonly (unless the individual parameter overrides this with either
+the C<rw> trait or the C<copy> trait).  It's particularly useful
+for establishing readonly context variables for a dynamic scope:
+
+    {
+        my $*OUT ::= open($file, :w) || die $!;
+        doit();     # runs with redirected stdout
+    }
+    doit();     # runs with original stdout
+
+If C<doit> wants to change C<$*OUT>, it must declare its own
+contextual variable.  It may not simply assign to C<$*OUT>.
+
+Note that the semantics of C<::=> are virtually identical to
+the normal binding of arguments to formal subroutine parameters
+(which also default to readonly).
 
 =item *
 
