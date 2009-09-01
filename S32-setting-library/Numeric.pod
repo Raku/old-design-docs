@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Numeric
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 18 Jul 2009
-    Version: 2
+    Last Modified: 1 Sep 2009
+    Version: 3
 
 The document is a draft.
 
@@ -58,13 +58,11 @@ The following are all defined in the C<Num> role:
 
 B<API document>: L<Num>
 
-C<Num> provides a number of constants in addition to the basic
-mathematical functions. To get these constants, you must request
-them:
+C<Num> provides some constants in addition to the basic
+mathematical functions.
 
- use Num :constants;
-
-or use the full name, e.g. C<Num::pi>.
+    constant pi is export = 3.14159_26535_89793_23846_26433_83279_50288;
+    constant e  is export = 2.71828_18284_59045_23536_02874_71352_66249;
 
 =over
 
@@ -112,13 +110,14 @@ Returns the nearest integer to C<$x>.  The algorithm is C<floor($x + 0.5)>.
 =item truncate
 
  our Int multi method truncate ( Num $x: ) is export
- our Int multi method int ( Num $x: ) is export
 
 Returns the closest integer to C<$x> whose absolute value is not greater
 than the absolute value of C<$x>.  (In other words, just chuck any
-fractional part.)  This is the default rounding function used by an
-C<int()> cast, for historic reasons.  But see Int constructor above
-for a rounded version.
+fractional part.)  This is the default rounding function used by
+implicit integer conversions.
+
+You may also truncate using explicit integer casts, either C<Int()> for
+an arbitrarily large integers, or C<int()> for native integers.
 
 =item exp
 
@@ -142,14 +141,13 @@ A base C<10> logarithm, othewise identical to C<log>.
 
 =item rand
 
- our Num method rand ( Num $x: )
  our Num term:<rand>
 
-Pseudo random number in range C<< 0 ..^ $x >>.  That is, C<0> is
-theoretically possible, while C<$x> is not.  The C<rand> function
-is 0-ary and always produces a number from C<0..^1>.  In any case,
-for picking a random integer you probably want to use something like
-C<(1..6).pick> instead.
+Pseudo random number in range C<< 0 ..^ 1 >>.  That is, C<0> is
+theoretically possible, while C<1> is not.  Note that there is no
+unary C<rand> function in Perl 6, so just multiply C<rand> by your
+desired multiplier.  For picking a random integer you probably want
+to use something like C<(1..6).pick> instead.
 
 =item sign
 
@@ -195,10 +193,14 @@ Returns a complex number specified in polar coordinates.  Angle is in radians.
 
 =item i
 
- our Num multi method i ( Num $x: )
+ our Num multi postfix:<i> ( Num $x )
 
 Returns a complex number representing the parameter multiplied by the imaginary
-unit C<i>.
+unit C<i>.  Note that there is no C<.i> method.  To follow a variable name
+with the postfix, it's necessary to use a backslash or parentheses:
+
+    $land\i
+    ($land)i
 
 =back
 
