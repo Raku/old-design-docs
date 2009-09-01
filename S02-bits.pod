@@ -14,7 +14,7 @@ Synopsis 2: Bits and Pieces
     Created: 10 Aug 2004
 
     Last Modified: 31 Aug 2009
-    Version: 175
+    Version: 176
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2091,7 +2091,8 @@ scoped) caller.  The caller's lexical scope is allowed to hide any
 user-defined variable from you.  In fact, that's the default, and a
 lexical variable must have the trait "C<is context>" to be
 visible via C<CALLER>.  (C<$_>, C<$!> and C<$/> are always
-contextual.) If the variable is not visible in the caller, it returns
+contextual, as are any variables whose declared names contain a C<*> twigil.)
+If the variable is not visible in the caller, it returns
 failure.  Variables whose names are visible at the point of the call but that
 come from outside that lexical scope are controlled by the scope
 in which they were originally declared as contextual.
@@ -2100,13 +2101,11 @@ C<$*foo> is actually declared, not by the caller's scope (unless that's where
 it happens to be declared).  Likewise C<< CALLER::CALLER::<$x> >>
 depends only on the declaration of C<$x> visible in your caller's caller.
 
-Any lexical declared with the C<is context> trait is by default
-considered readonly outside the current lexical scope.  You may
-add a trait argument of C<< <rw> >> to allow called routines to
-modify your value.  C<$_>, C<$!>, and C<$/> are C<< context<rw> >>
-by default.  In any event, the declaring scope can always access the
-variable as if it were an ordinary variable; the restriction on writing
-applies only to access via the C<*> twigil.
+User-defined contextual variables should generally be initialized with
+C<::=> unless it is necessary for variable to be modified.  (Marking
+dynamic variables as readonly is very helpful in terms of sharing
+the same value among competing threads, since a readonly variable
+need not be locked.)
 
 =item *
 
@@ -2128,26 +2127,25 @@ is of the form C<@*FOO> the string will be split either on colons or
 semicolons as appropriate to the current operating system.  Usage of
 the C<%*FOO> form is currently undefined.
 
-Unlike C<CALLER>, C<CONTEXT> will see a contextual variable that is declared in
-the current scope, however it will not be writeable via C<CONTEXT> unless
-declared "C<< is context<rw> >>", even if the variable itself is
-modifiable in that scope.  (If it is, you should just use the bare
-variable itself to modify it.)  Note that C<$*_> will always see
-the C<$_> in the current scope, not the caller's scope.  You may
-use C<< CALLER::<$*foo> >> to bypass a contextual definition of C<$foo>
-in your current context, such as to initialize it with the outer
-contextual value:
+Unlike C<CALLER>, C<CONTEXT> will see a contextual variable that is
+declared in the current scope, since it starts search 0 scopes up the
+stack rather than 1.  You may, however, use C<< CALLER::<$*foo> >>
+to bypass a contextual definition of C<$*foo> in your current context,
+such as to initialize it with the outer contextual value:
 
-    my $foo is context = CALLER::<$*foo>;
+    my $*foo ::= CALLER::<$*foo>;
 
-The C<temp> maybe used on a contextual variable to perform a similar operation:
+The C<temp> maybe used without an initializer on a contextual variable
+to perform a similar operation:
 
     temp $*foo;
 
 The main difference is that by default it initializes the new
-C<$*foo> with its previous value, rather than the caller's value.
-The temporized contextual variable takes its read/write policy from
-the previous C<$*foo> container.
+C<$*foo> with its current value, rather than the caller's value.
+Also, it is allowed only on read/write contextual variables, since
+the only reason to make a copy of the outer value would be
+because you'd want to override it later and then forget the
+changes at the end of the current dynamic scope.
 
 The C<CONTEXT> package is primarily for internal overriding of contextual
 information, modelled on how environmental variables work among
