@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 31 Aug 2009
-    Version: 171
+    Last Modified: 2 Sep 2009
+    Version: 172
 
 =head1 Overview
 
@@ -1080,16 +1080,22 @@ Range object constructor
     $min ..^ $max
     $min ^..^ $max
 
-Constructs Range objects, optionally excluding one or both endpoints.
+Constructs C<Range> objects, optionally excluding one or both endpoints.
 See L</Range and RangeIterator semantics>.
 
-Note that these differ:
+Ranges do no coercions, and are defined specifically for numeric
+or stringish arguments (including enumerated types); in particular,
+it is illegal to use a C<Range> or a C<List> as implicitly numeric:
 
     0 ..^ 10  # 0 .. 9
-    0 .. ^10  # 0 .. (0..9)
+    0 .. ^10  # ERROR
 
-(It's not yet clear what the second one should mean, but whether it
-succeeds or fails, it won't do what you want.)
+However, C<Array> types in the second argument are assumed to be intended as numeric:
+
+    0 ..^ @x    # okay
+    0 ..^ +@x   # same thing
+
+C<Whatever> types are also supported.  See L</Range and RangeIterator semantics>.
 
 =back
 
