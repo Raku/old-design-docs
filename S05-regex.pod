@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 11 Aug 2009
-    Version: 101
+    Last Modified: 2 Sep 2009
+    Version: 102
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -553,6 +553,29 @@ To use parens for your delimiters you have to separate:
 or you'll end up with:
 
          m:fuzzy(fuzzyargs); pattern ;
+
+=item *
+
+Any grammar regex is really just a kind of method, and you may
+declare variables in such a routine using a colon followed by any
+scope declarator parsed by the Perl6 grammar, including C<my>,
+C<our>, C<state>, and C<constant>.  A single statement (up through
+a terminating semicolon) is parsed as normal Perl 6 code:
+
+    token prove-nondeterministic-parsing {
+        :my $threshold = rand;
+        'maybe' \s+ <it($threshold)>
+    }
+
+Such declarations do not terminate longest-token-matching,
+so an otherwise useless declaration may be used as a peg
+to hang side effects on without changing how the subsequent
+pattern matches:
+
+    rule breaker {
+        :state $ = say "got here at least once";
+        ...
+    }
 
 =back
 
