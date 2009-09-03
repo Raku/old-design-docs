@@ -14,7 +14,7 @@ Synopsis 2: Bits and Pieces
     Created: 10 Aug 2004
 
     Last Modified: 2 Sep 2009
-    Version: 177
+    Version: 178
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2110,16 +2110,17 @@ need not be locked.)
 =item *
 
 The C<CONTEXT> pseudo-package is just like C<CALLER> except that
-it starts in the current dynamic scope and from there
-scans outward through all dynamic scopes until it finds a
-contextual variable of that name in that context's lexical scope.
-(Use of C<$*FOO> is equivalent to C<< CONTEXT::<$FOO> >> or C<< $CONTEXT::FOO >>.)
-If after scanning all the lexical scopes of each dynamic scope,
-there is no variable of that name, it looks in the C<GLOBAL> package followed
-by the C<PROCESS> package.
-If there is no such package variable,
-it then looks in C<< CONTEXT::<%ENV> >> for the identifier of the variable,
-which, if not overridden in a dynamic scope, finds C<< PROCESS::<%ENV> >>,
+it starts in the current dynamic scope and from there scans outward
+through all dynamic scopes until it finds a contextual variable of that
+name in that dynamic context's associated lexical pad.  (This search
+is implied for variables with the C<*> twigil; hence C<$*FOO> is
+equivalent to C<< CONTEXT::<$*FOO> >>.)  If, after scanning outward
+through all those dynamic scopes, there is no variable of that name
+in any immediately associated lexical pad, it looks in the C<GLOBAL>
+package followed by the C<PROCESS> package.  If there is no such
+package variable, it then looks in C<< CONTEXT::<%*ENV> >> for the
+identifier of the variable, which, if not overridden in a dynamic
+scope, rescans outward and eventually finds C<< PROCESS::<%*ENV> >>,
 that is, in the environment variables passed to program.  If the
 value is not found there, it returns failure.  If the variable is
 of the form C<$*FOO>, the complete environment value is returned.  If it
@@ -2135,8 +2136,8 @@ such as to initialize it with the outer contextual value:
 
     my $*foo ::= CALLER::<$*foo>;
 
-The C<temp> maybe used without an initializer on a contextual variable
-to perform a similar operation:
+The C<temp> declarator may be used (without an initializer) on a
+contextual variable to perform a similar operation:
 
     temp $*foo;
 
@@ -2146,6 +2147,13 @@ Also, it is allowed only on read/write contextual variables, since
 the only reason to make a copy of the outer value would be
 because you'd want to override it later and then forget the
 changes at the end of the current dynamic scope.
+
+You may also use C<< OUTER::<$*foo> >> to mean you want to start the
+search in your outer lexical scope, but this will succeed only if
+that outer lexical scope also happens to be be one of your current
+I<dynamic> scopes.  That is, the same search is done as with the bare
+C<$*foo>, but any "hits" are ignored until we've got to the C<OUTER>
+scope in our traversal.
 
 The C<CONTEXT> package is primarily for internal overriding of contextual
 information, modelled on how environmental variables work among
