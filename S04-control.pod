@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 3 Jul 2009
-    Version: 81
+    Last Modified: 4 Sep 2009
+    Version: 82
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -813,17 +813,30 @@ of any C<when> statements within the loop.
 
 You can explicitly break out of a C<when> block (and its surrounding
 topicalizer block) early using the C<break> verb.  More precisely,
-it leaves the innermost block outside the C<when> that uses C<$_>
-as one of its formal parameters, either explicitly or implicitly.
-It does this essentially by going to the end of the block and
-returning normally from that block.  In other words, a break (either
-implicit or explicit) is assumed to indicate success, not failure.
+it first scans outward (lexically) for the innermost containing
+C<when> block.  From there it continues to scan outward to find the
+innermost block outside the C<when> that uses C<$_> as one of its
+formal parameters, either explicitly or implicitly.  (Note that
+both of these scans are done at compile time; if the scans fail,
+it's a compile-time semantic error.)  Typically, such an outer
+block will be a C<given> or a C<for> statement, but any block that
+sets the topic in its signature can be broken out of.  At run time,
+C<break> uses a control exception to scan up the dynamic chain to
+find the activation record belonging to that same outer block, and
+when it has found that scope, it does a C<.leave> on it to unwinde
+the contexts.  If any arguments are supplied to the C<break> function,
+they are passed out via the C<leave> method.  Since leaving a block is
+considered a successful return, breaking out of one is also considered
+a successful return.  (And in fact, the implicit break of a normal
+C<when> block works the same way, returning the value of the final
+statement via an implicit C<.leave>.)
 
 You can explicitly leave a C<when> block and go to the next statement
 following the C<when> by using C<continue>.  (Note that, unlike C's
 idea of "falling through", subsequent C<when> conditions are evaluated.
 To jump into the next C<when> block without testing its condition,
-you must use a C<goto>.)
+you must use a C<goto>.  But generally that means you should refactor
+instead.)
 
 If you have a switch that is the main block of a C<for> loop, and
 you break out of the switch either implicitly or explicitly (that is,
