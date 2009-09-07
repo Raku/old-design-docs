@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 29 Jun 2009
-    Version: 86
+    Last Modified: 7 Sep 2009
+    Version: 87
 
 =head1 Overview
 
@@ -42,22 +42,42 @@ standard class-based model.
 There are two basic class declaration syntaxes:
 
     class Foo;          # rest of file is class definition
-    ...
+    has $.foo;
 
-    class Bar {...}     # block is class definition
+    class Bar { has $.bar }     # block is class definition
 
 The first form is allowed only as the first declaration in a compilation
 unit (that is, file or eval string).
 
-In either case, the code represented by C<...> executes at compile
-time as the body of a method of the metaclass, which is responsible
-for interpreting the keywords of the class definition.  (And since a
-class is also a module, it also handles any module-oriented keywords.
-You can export subs from a class at "use" time, for instance.)
+If the class body consists of a single statement consisting of a
+single C<< prefix:<...> >> (yada) listop, the class name is introduced
+without a definition, and a second declaration of that class in the
+same scope does not complain about redefinition.  Thus you may
+forward-declare your classes:
 
-If the class body consists only of a  literal C<...> (yada) term, it is
-interpreted as a forward declaration that just tells the compiler that the
-class name is a type name, to be defined later on.
+    class A {...}     # introduce A as a class name without definition
+    class B {...}     # introduce B as a class name without definition
+
+    my A $root .= new(:a(B));
+
+    class A { 
+        has B $.a;
+    }
+
+    class B { 
+        has A $.b;
+    }
+
+As this example demonstrates, this allows for mutually recursive class
+definitions (though, of course, it can't allow recursive inheritance).
+
+It is also possible to extend classes via the C<augment> declarator,
+but that is considered somewhat antisocial and should not be used
+for forward declarations.
+
+[Conjecture: we may also allow the C<proto> and C<multi> modifiers
+to explicitly declare classes with multiple bodies participating in
+a single definition intentionally.]
 
 A named class declaration can occur as part of an expression, just like
 named subroutine declarations.

@@ -13,8 +13,8 @@ Synopsis 10: Packages
 
     Created: 27 Oct 2004
 
-    Last Modified: 13 Feb 2009
-    Version: 9
+    Last Modified: 7 Sep 2009
+    Version: 10
 
 =head1 Overview
 
@@ -84,6 +84,44 @@ with the
 
 syntax that lets you do a lookup in a particular symbol table.  In this case,
 the key is not parsed for C<::>.  It's just a hash lookup.
+
+All package bodies (including module and class bodies) execute at the
+normal execution time of the code in which they are embedded.  For normal
+mainline code, this is the normal flow of execution; if this is too late
+to initialize something in the package that you want to be initialized, consider
+use of a MAIN subroutine, which is invoked at the end of normal execution.
+See L<S06/Declaring a C<MAIN> subroutine>.
+
+For packages (modules, classes, roles, etc.) defined in separate files
+from the mainline code, there can be no mainline code by definition,
+but the top-level code in the used module needs to be executed at
+some point in case things need initialization.  Invocation of this
+pseudo-mainline code in the module notionally happens no later than at
+the point of the C<use> or C<need> call in the process of compilation,
+but the module's code is assumed to be sufficiently uninteresting that
+it need be executed only once regardless of how many times the module
+is used subsequently in the compilation.  (In fact, it might not need
+to run at all if the result of some previous compilation's run has
+been cached.)
+
+If it is desired to have code that varies in meaning from run to run,
+then you should put such code into an INIT block.  (Likewise, you
+could put code into a CHECK block that has inconsistent semantics
+from compilation to compilation, but that's probably a bad idea.)
+
+In any case, it is erroneous for any external module to depend
+on any knowledge of its user with respect to compilation order or
+other contextual information, since other users may also depend on
+this single "first-use" execution and expect consistent semantics.
+(Really, all such contextual dependencies should be passed in at run
+time to the routines or methods of your module as normal parameters or
+contextual variables.  For instance, you cannot know at module compile
+time whether your caller is going to be using 'fatal' semantics or not.
+That is dynamically scoped info.)
+
+If you wish to have a module that does something extra if invoked
+standalone, define a MAIN subroutine, which will be ignored if
+the module is merely used/needed elsewhere.
 
 =head1 Package nesting
 
