@@ -55,6 +55,22 @@ for interpreting the keywords of the class definition.  (And since a
 class is also a module, it also handles any module-oriented keywords.
 You can export subs from a class at "use" time, for instance.)
 
+If the class body throws an exception from a literal C<...> (yada) term,
+the class defintion is considered incomplete, and a second definition of
+that class does not complain, so you can write
+
+    class Foo {
+        has $!some_attr;
+
+        ...     # literal ... here interrrupts class definition
+    }
+
+    # other code here
+
+    class Foo { 
+        # rest of class defintion here
+    }
+
 A named class declaration can occur as part of an expression, just like
 named subroutine declarations.
 
