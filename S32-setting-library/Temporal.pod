@@ -30,7 +30,9 @@ If you read the HTML version, it is generated from the pod in the pugs
 repository under /docs/Perl6/Spec/S32-setting-library/Temporal.pod so edit it there in
 the SVN repository if you would like to make changes.
 
-=head1 Current Time
+=head1 Roles
+
+=head2 Instant
 
 The epoch used in Perl 6 to represent time instants is the
 International Atomic Time - TAI - which is independent of calendars,
@@ -39,11 +41,9 @@ machine to get a real TAI value, but it should perform any
 platform-specific transformation to give you the most precise value it
 can for the TAI.
 
- our Rat sub time()
+ our Instant sub time()
 
 Returns a TAI epoch value for the current time.
-
-=head1 Roles
 
 =head2 Calendar
 
@@ -148,10 +148,11 @@ Duration objects describe an amount of time, it's the fundamental type
 for DateTime math. It is also very calendar-dependent, in a way that
 only a very fundamental data is seen here.
 
-As with DateTime, to make the most common case easier, this type
-delegates the constructor to Gregorian::Duration.
+The base Duration object is only TAI-seconds aware, but if you use its
+constructor with any other parameters it will delegate to
+Gregorian::Duration in order to make the most common cases easier.
 
-The following method is implemented by all Duration objects.
+The following attribute is declared:
 
 =over
 
@@ -223,6 +224,20 @@ The gregorian DateTime declares the following additional attributes.
 =item nanosecond
 
 =item time-zone
+
+=back
+
+The following methods provide additional information
+
+=over
+
+=item week-of-year
+
+=item day-of-week
+
+=item week-of-month
+
+=item year-of-week
 
 =back
 
