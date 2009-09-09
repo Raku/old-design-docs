@@ -21,8 +21,8 @@ DRAFT: Synopsis 32: Setting Library - Temporal
 =head1 VERSION
 
     Created: 19 Mar 2009 extracted from S29-functions.pod and S16-IO.pod
-    Last Modified: 23 Feb 2009
-    Version: 3
+    Last Modified: 8 Sep 2009
+    Version: 4
 
 The document is a draft.
 
@@ -30,168 +30,215 @@ If you read the HTML version, it is generated from the pod in the pugs
 repository under /docs/Perl6/Spec/S32-setting-library/Temporal.pod so edit it there in
 the SVN repository if you would like to make changes.
 
-=head2 Time
+=head1 Current Time
 
-=over
+The epoch used in Perl 6 to represent time instants is the
+International Atomic Time - TAI - which is independent of calendars,
+timezones as well as leap seconds. Of course Perl can't go beyond the
+machine to get a real TAI value, but it should perform any
+platform-specific transformation to give you the most precise value it
+can for the TAI.
 
-=item gmtime
+ our Rat sub time()
 
- our Temporal::DateTime multi gmtime ( Num $epoch )
- our Temporal::DateTime multi gmtime ( Rat $epoch = time() )
-
-Identical to:
-
- Time::localtime(:$time,:tz<GMT>)
-
-=item localtime
-
- our Temporal::DateTime multi localtime ( Num $epoch )
- our Temporal::DateTime multi localtime ( Rat $epoch = time() )
-
-These functions take an epoch value and return a C<Temporal::DateTime>
-object. For C<localtime> the time zone is taken from the local
-system. For C<gmtime> the time zone is aways UTC.
-
-If no time is provided, the current time is used.
-
-=item time
-
- our Rat time()
-
-Returns an epoch value for the current time.
-
-=back
+Returns a TAI epoch value for the current time.
 
 =head1 Roles
 
-The intent behind these classes is to provide an absolutely minimal,
-but still useful, set of core behavior. The assumption is that the
-core will ship with a simple set of classes so that C<gmtime> and
-C<localtime> have something to return.
+=head2 Calendar
 
-=head2 Temporal::Date
+Every DateTime needs to follow the rules of a given calendar. The
+default is the Gregorian calendar, but several other calendars exist
+in the real world.
 
-You probably want to use the Temporal::DateTime object instead.
+The current default calendar is stored in $*CALENDAR.
 
-    role Temporal::Date {
-        my subset Month of Int where { 1 <= $^a <= 12 };
-        my subset Day of Int where { 1 <= $^a <= 31 };
-        my subset DayOfWeek of Int where { 1 <= $^a <= 7 };
+=over
 
-        has Int   $.year;
-        has Month $.month = 1;
-        has Day   $.day = 1;
+=item method calendartime($epoch = time(), *%options)
+=item multi calendartime($epoch = time(), $calendar = $*CALENDAR, *%options)
 
-        # This can be cached internally, but it's a calculated value,
-        # not an attribute.
-        our DayOfWeek method day-of-week ();
+Returns a DateTime object in the current calendar for the given TAI
+epoch time. Each calendar type might accept different options.
 
-        # These always return the long English names
-        our Str method month-name () ; # "January"
-        our Str method day-name ();   # "Tuesday"
+Note that simply changing the current calendar is not magically going
+to make any code portable to different calendars. The code using it
+should either use only the methods in the generic Calendar and
+DateTime roles, or special case for the known Calendars.
 
-        # returns the date formatted in ISO8601 style - 2008-01-25
-        our Str method iso8601 () {
-            [ self.year, self.month, self.date ].join('-');
-        }
+=item method formatter is rw
 
-        method Str { self.iso8601 };
+The default formatter object used for DateTime objects in this
+calendar.
 
-        multi method infix:{'<=>'} (Temporal::Date $self, Temporal::Date $other) {
-            $self.year <=> $other.year
-            ||
-            $self.month <=> $other.month
-            ||
-            $self.day <=> $other.day;
-        }
-    }
+=back
 
-Example:
+=head2 Calendar::TimeZoneObservant
 
-$date = Date.new( :year(2008), :month(1), :day(25) );
-$date.month(); # 1
+This is a generic role used to identify all calendars that observe the
+time zones. Not all calendars are time-zone observants. One way or
+another, two multi subs will be available that depend on a time-zone
+observant calendar. They will fail if you try to call them with a
+non-tz calendar.
 
-=head2 Temporal::Time
+This role also implies that the calendartime method might receive a
+time-zone named parameter.
 
-You probably want to use the Temporal::DateTime object instead.
+=over
 
-    role Temporal::Time {
-        my subset Hour   of Int where { 0 <= $^a <= 23 };
-        my subset Minute of Int where { 0 <= $^a <= 59 };
-        my subset Second of Num where { 0 <= $^a <= 60 };
+=item method gmtime($epoch = time(), *%options )
+=item multi gmtime($epoch = time(), $calendar = $*CALENDAR, *%options)
 
-        has Hour   $.hour = 0;
-        has Minute $.minute = 0;
-        has Second $.second = 0;
+Returns a DateTime object in the GMT timezone, considering $epoch to
+be TAI. Same as:
 
-        our Str method iso8601 ()
-            { [ self.hour, self.minute, self.second ].join(':') }
+ calendartime($epoch, $calendar, :time-zone('GMT'))
 
-        method Str { self.iso8601() };
+=item method localtime($epoch = time(), *%options )
+=item multi localtime($epoch = time(), $calendar = $*CALENDAR, *%options)
 
-        multi method infix:{'<=>'} (Temporal::Time $self, Temporal::Time $other) {
-            $self.hour <=> $other.hour
-            ||
-            $self.minute <=> $other.minute
-            ||
-            $self.second <=> $other.second
-        }
-    }
+Returns a DateTime object in the local timezone taken from the system,
+considering $epoch to be TAI. Same as:
 
-=head2 Temporal::TimeZone::Observance
+ calendartime($epoch, $calendar, :time-zone('local'))
 
-role    Temporal::TimeZone::Observance {
-        my subset Offset of Int where { -86400 < $^a < 86400 };
+=back
 
-        has Offset $.offset;
-        has Bool   $.isdst;
-        has Str    $.abbreviation; # CST, AST
+=head2 DateTime
 
-        # The ISO8601 standard does not allow for offsets with
-        # sub-minute resolutions. In real-world practice, this is not
-        # an issue.
-        our Str method iso8601 {
-            my $hours = self.offset.abs / 3600;
-            my $minutes = self.offset.abs % 3600;
+The generic DateTime role specifies the basic operations that should
+be possible independent of the Calendar being used, and are,
+therefore, considerably restricted.
 
-            return self.offset < 0 ?? '-' :: '+'
-                   ~ $hours.fmt('%02d')
-                   ~ $minutes.truncate.fmt('%02d');
-        }
+In order to make it easier to deal with the most common scenario, the
+contructor of the bare DateTime type will delegate to
+Gregorian::DateTime.
 
-        method Str { self.iso8601 }
-}
+It defines the following attributes.
 
-This is called an I<observance> because it represents the state of a
-time zone for a given instant. A real Temporal::TimeZone role would
-return an observance when given a particular datetime.
+=over
 
-We don't specify a proper C<Temporal::TimeZone> role because time
-zones are messy and complex. The system libraries are able to give us
-sufficient information to create an observance for a time, but are not
-able to give us proper time zone information.
+=item formatter
 
-=head2 Temporal::DateTime
+The object that will stringify this specific object.
 
-    role Temporal::DateTime {
-        has Temporal::Date $!date handles <year month day day-of-week>;
-        has Temporal::Time $!time handles <hour minute second fractional-second>;
-        has Temporal::TimeZone::Observance $!timezone handles <offset isdst>;
+=item calendar
 
-        our Str method iso8601 () {
-            self.date.iso8601 ~ 'T' ~ self.time.iso8601 ~ self.timezone.iso8601;
-        }
+Returns the calendar that governs this datetime.
 
-        method Str { self.iso8601 }
+=back
 
-        # This involves a whole bunch of code - see Perl 5's
-        # Time::Local
-        our Num method epoch { ... }
+And the following methods
 
-        method Int { self.epoch.truncate }
+=over
 
-        method Num { self.epoch }
-    }
+=item tai
+
+Returns the TAI value for this specific datetime, usefull for
+inter-calendar comparison and conversion.
+
+=back
+
+=head2 Duration
+
+Duration objects describe an amount of time, it's the fundamental type
+for DateTime math. It is also very calendar-dependent, in a way that
+only a very fundamental data is seen here.
+
+As with DateTime, to make the most common case easier, this type
+delegates the constructor to Gregorian::Duration.
+
+The following method is implemented by all Duration objects.
+
+=item tai
+
+Returns the amount of TAI seconds described in this duration. Note
+that usually you shouldn't be doing math with the result of .tai for
+different datetime and duration objects. The result of .tai might also
+be an estimated value for Duration types that depend on an anchor date
+(i.e.: 1 month).
+
+=head2 TimeZone
+
+This is the base for the entire time-zone database with the complete
+information about daylight-saving-time and other variations that can
+happen.
+
+This should be a straight port from perl 5 DateTime::TimeZone module.
+
+=head2 TimeRange
+
+This object represents a given period of time, it might be composed
+by:
+
+=over
+
+=item Start and end DateTime
+=item Start DateTime and Duration
+=item Duration and end DateTime
+
+=back
+
+It might also contain a "step" Duration, which should allow iterating
+a set of values within the range. A TimeRange might be obtained with
+the infix:<..> operator and optionally using a :by adverb to indicate
+the step.
+
+For instance
+
+  $datetime .. $duration :by($step_duration)
+  $datetime ^.. $datetime :by($step_duration)
+  $duration ..^ $datetime :by($step_duration)
+
+=head2 Gregorian::Calendar
+
+Also known as the "civil" calendar. This is the calendar used in most
+of the world, specially in the western countries.
+
+=head2 Gregorian::DateTime
+
+The gregorian DateTime declares the following additional attributes.
+
+=over
+
+=item year
+
+=item month
+
+=item day
+
+=item minute
+
+=item second
+
+=item nanosecond
+
+=item time-zone
+
+=back
+
+=head2 Gregorian::Duration
+
+The gregorian Duration declares the following attributes.
+
+=over
+
+=item year
+
+=item month
+
+=item day
+
+=item minute
+
+=item second
+
+=item nanosecond
+
+=item time-zone
+
+=back
+
 
 =head1 Additions
 
