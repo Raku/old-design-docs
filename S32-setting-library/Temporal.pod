@@ -45,6 +45,27 @@ can for the TAI.
 
 Returns a TAI epoch value for the current time.
 
+=head2 Duration
+
+Duration objects describe an amount of time, it's the fundamental type
+for time math. The base Duration object is only TAI-seconds aware, but
+if you use its constructor with any other parameters it will delegate
+to Gregorian::Duration in order to make the most common cases easier.
+
+The following attribute is declared:
+
+=over
+
+=item tai
+
+Returns the amount of TAI seconds described in this duration. Note
+that usually you shouldn't be doing math with the result of .tai for
+different datetime and duration objects. The result of .tai might also
+be an estimated value for Duration types that depend on an anchor date
+(i.e.: 1 month).
+
+=back
+
 =head2 Calendar
 
 Every DateTime needs to follow the rules of a given calendar. The
@@ -139,30 +160,6 @@ And the following methods
 
 Returns the TAI value for this specific datetime, useful for
 inter-calendar comparison and conversion.
-
-=back
-
-=head2 Duration
-
-Duration objects describe an amount of time, it's the fundamental type
-for DateTime math. It is also very calendar-dependent, in a way that
-only a very fundamental data is seen here.
-
-The base Duration object is only TAI-seconds aware, but if you use its
-constructor with any other parameters it will delegate to
-Gregorian::Duration in order to make the most common cases easier.
-
-The following attribute is declared:
-
-=over
-
-=item tai
-
-Returns the amount of TAI seconds described in this duration. Note
-that usually you shouldn't be doing math with the result of .tai for
-different datetime and duration objects. The result of .tai might also
-be an estimated value for Duration types that depend on an anchor date
-(i.e.: 1 month).
 
 =back
 
