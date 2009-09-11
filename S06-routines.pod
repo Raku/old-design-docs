@@ -15,8 +15,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 7 Sep 2009
-    Version: 114
+    Last Modified: 11 Sep 2009
+    Version: 115
 
 
 This document summarizes Apocalypse 6, which covers subroutines and the
@@ -833,10 +833,19 @@ elements of the variadic array:
 
 Slurpy scalars still impose list context on their arguments.
 
-Slurpy parameters are treated lazily -- the list is only flattened
+Single slurpy parameters are treated lazily -- the list is only flattened
 into an array when individual elements are actually accessed:
 
     @fromtwo = tail(1..Inf);        # @fromtwo contains a lazy [2..Inf]
+
+[Conjecture: However, if you use two or more slurpy arrays in a
+signature, the list is instead evaluated in hyper context, and will
+be asked to split itself into the number of lists corresponding to
+the number of slurpies so declared.  A non-hyperable list will return
+failure for this splitting operation, so the signature should only bind
+on parallelizable list operations.  Likewise a list that "too short to
+split" fails to bind, so a separate signature may match empty lists,
+and perhaps singletons, if we define "too short" that way).]
 
 You can't bind to the name of a slurpy parameter: the name is just there
 so you can refer to it within the body.
