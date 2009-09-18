@@ -10,14 +10,14 @@ Synopsis 6: Subroutines
     Damian Conway <damian@conway.org>
     Allison Randal <al@shadowed.net>
     Larry Wall <larry@wall.org>
+    Daniel Ruoso <daniel@ruoso.com>
 
 =head1 VERSION
 
     Created: 21 Mar 2003
 
-    Last Modified: 11 Sep 2009
-    Version: 115
-
+    Last Modified: 18 Sep 2009
+    Version: 116
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -2920,5 +2920,36 @@ that junctional processing is likely to be fairly heavyweight most of
 the time compared to the cost of failing to bind, that tends to argue
 for failing over every time.  This is also more conducive to inlining,
 since it's difficult to rewrite inlined calls.
+
+=head2 Introspection
+
+This section describes the methods implemented by the routine objects
+that allow introspection of the inner works of that routine.
+
+=head3 Routine
+
+=over
+
+=item .candidates
+
+This method returns a list of the candites associated with the current
+routine. A "only" routine should return a list with itself as the
+single item.
+
+=item .signature
+
+This method returns the signature of the current routine. If this is a
+multi, it should return a "any" junction of the signature of each
+candidate.
+
+=item .cando(\$capture)
+
+This method returns a list of the candidates that match the given
+capture.
+
+=back
+
+=head3 Signature
+
 
 =for vim:set expandtab sw=4:
