@@ -1,0 +1,61 @@
+
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 8: Capture and Parcel
+
+=head1 AUTHORS
+
+    Daniel Ruoso <daniel@ruoso.com>
+
+=head1 VERSION
+
+    Created: 20 Sep 2009
+
+    Last Modified: 20 Sep 2009
+    Version: 1
+
+=head1 Introduction
+
+Unlike most programming languages, the data structure that is used to
+send the parameters into a routine invocation (be it a method or a
+sub) is exposed to the language as a built-in type like any
+other. This represents a very important aspect of the Perl 6 runtime
+requirements.
+
+Additionally to the fact that this data structure is visible in the
+language type system, it is not assumed that the capture is a native
+type, which means that the internal representation of the data is
+subject to change. The only thing the runtime can assume is the API
+described here.
+
+Of course the runtime can cheat whenever it knows the capture is
+implemented by its own internal data structure for optimization
+purposes, but it should allow the use of foreign types when invoking a
+routine, as long as it says true to .^does(Capture).
+
+Captures and Parcels are also the basis for the multidimensionality of
+lists in Perl 6. Unlike Perl 5, no flattening happens unless it's
+explicitly required by the user, which is done by enforcing the List
+context. If you use the scalar context the dimensionality should be
+preserved.
+
+In addition to the List and Scalar context, there's also a special
+context, which is, in a simplified way, called "Capture context", but
+it actually means "deferred context", in a way that the Capture or
+Parcel is kept as-is while they are manipulated in the code. This is
+usefull to avoid unwanted flattening as well as avoiding the DWIMmy
+features that might change the capture's behavior.
+
+This is the main point on why Capture and Parcel replace Perl 5
+references, they allow you to send data untouched from one place to
+another. The second reason is that as in Perl 6 everything is an
+object, there isn't really "pass-by-value" anymore, you're always
+sending a reference, Captures and Parcels simply carry other objects
+without enforcing any context on them.
+
+=head1 Additions
+
+Please post errors and feedback to perl6-language.  If you are making
+a general laundry list, please separate messages by topic.
