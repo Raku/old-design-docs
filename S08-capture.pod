@@ -55,6 +55,58 @@ object, there isn't really "pass-by-value" anymore, you're always
 sending a reference, Captures and Parcels simply carry other objects
 without enforcing any context on them.
 
+=head1 Capture or Parcel
+
+While a Capture is the object that holds the parameters sent to a
+routine (positional and named), a Parcel is a more fundamental data
+structure that doesn't really differentiate named arguments from
+positional arguments (but it still lets you access the named ones by
+their name).
+
+The basic underlying concept is that a Parcel behaves much like a
+list, but it doesn't enforce any context, in a way that no flattening
+or coercion is made. When you use the Positional API on a Parcel, it
+will include all the listed items, no matter they look like named
+arguments or positional arguments. In example:
+
+  1, 2, :a<b>
+
+The Parcel represented here has 3 positional items and allows you to
+access the element 'a' through the Associative interface. A Parcel
+might be statically converted to a Capture if it's clear to the parser
+that it's being used as the arguments to a routine call.
+
+A Capture, on the other hand, is not required to keep the positional
+information for the named arguments, in example:
+
+  foo(1,:a<b>,2)
+
+In the call to the routine foo, there are only two positional
+arguments and one named argument, and you won't be able to find "b"
+from the Positional interface, but only from the Associative.
+
+The differentiation from Parcel and Capture is important to keep the
+regular use of inline declarations consistent, let's say you do the
+following:
+
+  my $a = 0, :a<b>, 2;
+  say $a[2];
+
+If we had Capture and Parcel as the same data structure, you wouldn't
+get "2" as the result of the above code, because there are only two
+positional arguments, not three. Using the same example:
+
+  sub foo($p1, $p2, :$a) {...}
+  foo(|$a);
+
+In that case, the Parcel is converted into a Capture, and therefore
+the pair :a<b> is no longer visible as a positional argument, only as
+named.
+
+Note that once you convert a Parcel into a Capture, you won't be able
+to get the original Parcel again, because a Capture doesn't hold the
+information about the position of named arguments.
+
 =head1 Additions
 
 Please post errors and feedback to perl6-language.  If you are making
