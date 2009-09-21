@@ -21,7 +21,7 @@ Synopsis 8: Capture and Parcel
 Unlike most programming languages, the data structure that is used to
 send the parameters into a routine invocation (be it a method or a
 sub) is exposed to the language as a built-in type like any
-other. This represents a very important aspect of the Perl 6 runtime
+other. This represents a very important aspect of the Perl 6 runtime
 requirements.
 
 Additionally to the fact that this data structure is visible in the
@@ -33,10 +33,10 @@ described here.
 Of course the runtime can cheat whenever it knows the capture is
 implemented by its own internal data structure for optimization
 purposes, but it should allow the use of foreign types when invoking a
-routine, as long as the object says true to .^does(Capture).
+routine, as long as the object says true to C<.^does(Capture)>.
 
 Captures and Parcels are also the basis for the multidimensionality of
-lists in Perl 6. Unlike Perl 5, no flattening happens unless it's
+lists in Perl 6. Unlike Perl 5, no flattening happens unless it's
 explicitly required by the user, which is done by enforcing the List
 context. If you use the scalar context the dimensionality should be
 preserved.
@@ -48,31 +48,31 @@ Parcel is kept as-is while they are manipulated in the code. This is
 useful to avoid unwanted flattening as well as avoiding the DWIMmy
 features that might change the capture's behavior.
 
-This is the main point of why Capture and Parcel replace Perl 5
+This is the main point of why Capture and Parcel replace Perl 5
 references, they allow you to send data untouched from one place to
-another. The second reason is that as in Perl 6 everything is an
+another. The second reason is that as in Perl 6 everything is an
 object, there isn't really "pass-by-value" anymore, you're always
 sending a reference, Captures and Parcels simply carry other objects
 without enforcing any context on them.
 
 =head1 Capture or Parcel
 
-While a Capture is the object that holds the parameters sent to a
-routine (positional and named), a Parcel is a more fundamental data
+While a C<Capture> is the object that holds the parameters sent to a
+routine (positional and named), a C<Parcel> is a more fundamental data
 structure that doesn't really differentiate named arguments from
 positional arguments (but it still lets you access the named ones by
 their name).
 
 The basic underlying concept is that a Parcel behaves much like a
 list, but it doesn't enforce any context, in a way that no flattening
-or coercion is done. When you use the Positional API on a Parcel, it
+or coercion is done. When you use the C<Positional> API on a Parcel, it
 will include all the listed items, whether they look like named
 arguments or positional arguments. For example:
 
   1, 2, :a<b>
 
 The Parcel represented here has 3 positional items and allows you to
-access the element 'a' through the Associative interface. A Parcel
+access the element 'a' through the C<Associative> interface. A Parcel
 might be statically converted to a Capture if it's clear to the parser
 that it's being used as the arguments to a routine call.
 
@@ -83,7 +83,7 @@ information for the named arguments, for example:
 
 In the call to the routine foo, there are only two positional
 arguments and one named argument, and you won't be able to find "b"
-from the Positional interface, but only from the Associative.
+from the C<Positional> interface, but only from the Associative.
 
 The differentiation from Parcel and Capture is important to keep the
 regular use of inline declarations consistent, let's say you do the
@@ -93,15 +93,15 @@ following:
   say $a[2];
 
 If we had Capture and Parcel as the same data structure, you wouldn't
-get "2" as the result of the above code, because there are only two
+get C<2> as the result of the above code, because there are only two
 positional arguments, not three. Using the same example:
 
   sub foo($p1, $p2, :$a) {...}
   foo(|$a);
 
 In that case, the Parcel is converted into a Capture, and therefore
-the pair :a<b> is no longer visible as a positional argument, only as
-named.
+the pair C<< :a<b> >> is no longer visible as a positional argument,
+only as named.
 
 Note that once you convert a Parcel into a Capture, you won't be able
 to get the original Parcel again, because a Capture doesn't hold the
@@ -110,7 +110,7 @@ information about the position of named arguments.
 =head1 Multidimensionality
 
 Probably the most important task of Parcels and Captures is to
-implement the multidimensionality of lists in Perl 6, this means that
+implement the multidimensionality of lists in Perl 6, this means that
 the barrier used to detect the dimensionality of the data structures
 by the operators is whatever the item inside it implements Parcel or
 Capture. For instance:
@@ -118,17 +118,17 @@ Capture. For instance:
   my $a = (1, (2, (3, 4)));
   say $a[1];
 
-In that case, you'll get "2, (3, 4)" (or whatever is implemented in
+In that case, you'll get C<2, (3, 4)> (or whatever is implemented in
 the .Str method of that specific Parcel). But, you should be able to:
 
   say $a[1;0];
 
-Which is going to return "2", which is almost the same as:
+Which is going to return C<2>, which is almost the same as:
 
   say $a[1][0];
 
 But the first provides a more convenient and optimizeable way of
-asking for it. If you want to get the value "4" from that data
+asking for it. If you want to get the value C<4> from that data
 structure you need to:
 
   say $a[1;1;1];
@@ -139,21 +139,21 @@ so:
   my @a = 1, (2, (3, 4));
   say @a[3];
 
-Would print "4", at the same time that trying to ask for
+Would print C<4>, at the same time that trying to ask for
 multidimensionality information from that list would result in a
 failure:
 
   say @a[1;1;1];
 
-As the element 1 of the array @a is not a Capture or a Parcel, it is
-not possible for the .[] operator to traverse it.
+As the element 1 of the array C<@a> is not a Capture or a Parcel, it is
+not possible for the C<.[]> operator to traverse it.
 
 [Conjecture: It is still not clear if the multidimensional access
-should be able to get into regular arrays, i.e.: [1,[2,[3,[4]]]] ]
+should be able to get into regular arrays, i.e.: C<[1,[2,[3,[4]]]] ]>
 
 It is important to realize that it's not the parens that are creating
-the Parcel, but the infix:<,>. The parens are only required in order
-to define a sub-parcel.
+the Parcel, but the C<< infix:<,> >>. The parens are only required in
+order to define a sub-parcel.
 
 On the other hand, if you bind a parcel to a variable, it doesn't
 really matter which sigil it uses:
@@ -203,11 +203,11 @@ Both the Parcel and the Capture are able to preserve the values as-is,
 in a way that you can later apply any context and have the same result
 as if the context was applied immediately.
 
-Context deferral is actually the reason why Perl 6 no longer supports
+Context deferral is actually the reason why Perl 6 no longer supports
 the "wantarray" operator, nor does it provide any substitute. The way
 you should implement wantarray-like behavior is by properly overriding
 the coercion for each context. The Contextual::Return module is an
-implementation of that concept in Perl 5.
+implementation of that concept in Perl 5.
 
 In order to use the context deferral in your code, you need to use the
 "capture sigil", which can be presented in two forms:
