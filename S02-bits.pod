@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 5 Sep 2009
-    Version: 179
+    Last Modified: 20 Sep 2009
+    Version: 180
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -832,17 +832,39 @@ produces a closure of a single argument:
 
     { $_ - 1 }
 
-Likewise, the single dispatcher recognizes C<*.meth> and returns C<{ $_.meth }>,
-so it can be used where patterns are expected:
+This closure is officially returned at run time, so it is I<not>
+subject to the rule that bare closures execute immediately when used as
+a statement.  However, in most cases the result of a multiple dispatch
+can be determined at compile time, so the compiler is expected to
+optimize away the run-time call.  Hence, despite the fact that the
+inside of parentheses is considered a statement, if you say
+
+    (* + 7)(3)  # 10
+
+the generated C< { $_ + 7 } > closure is returned uncalled
+by those parentheses and then invoked by the C<.(3)> postfix.  In
+contrast,
+
+    ( { $_ + 7 } )(3)
+
+evaluates the bare block immediately with whatever C<$_> is already in
+scope, and then fails because a number doesn't know how to respond
+to the C<.(3)> invocation.
+
+Likewise, the single dispatcher offically recognizes C<*.meth> at run time
+and returns C<{ $_.meth }>, so it can be used where patterns are expected:
 
     @primes = grep *.prime, 2..*;
 
+This also should be optimized to a closure by the compiler.  Basically,
+dispatches to C<Whatever> are assumed to be subject to constant folding.
+
 If multiple C<*> appear as terms within a single expression, the resulting
-closure binds them all to the same argument, so C<* * *> translates to
+closure binds them all to the same argument, so C<* * *> returns the closure
 C<{ $_ * $_ }>.
 
-These closures are of type C<WhateverCode>, not C<Whatever>, so that constructs can distinguish
-via multiple dispatch:
+These returned closures are of type C<WhateverCode>, not C<Whatever>,
+so that constructs can distinguish via multiple dispatch:
 
     1,2,3 ... *
     1,2,3 ... *+1
@@ -863,6 +885,9 @@ would end up meaning:
 
 The C<...> operator is instead dispatching bare C<*> to a routine that
 does dwimmery, and in this case decides to supply a function { * + 1 }.
+There is no requirement that an operator return a closure when C<Whatever>
+is used as an argument; that's just the I<typical> behavior for functions
+that have no intrinsic "globbish" meaning for C<*>.
 
 The final element of an array is subscripted as C<@a[*-1]>,
 which means that when the subscripting operation discovers a C<WhateverCode>
