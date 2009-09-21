@@ -13,8 +13,8 @@ Synopsis 9: Data Structures
 
     Created: 13 Sep 2004
 
-    Last Modified: 17 Jun 2009
-    Version: 34
+    Last Modified: 21 Sep 2009
+    Version: 35
 
 =head1 Overview
 
@@ -203,10 +203,52 @@ Attempting to access an index outside an array's defined range will fail:
 
     @dwarves[7] = 'Sneaky';   # Fails with "invalid index" exception
 
+However, it is legal for a C<Range> object to extend beyond the end
+of an array as long as its min value is a valid subscript; the range
+is truncated as necessary to map only valid locations.
+
 It's also possible to explicitly specify a normal autoextending array:
 
     my @vices[*];             # Length is: "whatever"
                               # Valid indices are 0..*
+
+For subscripts containing ranges extending beyond the end of
+autoextending arrays, the range is truncated to the actual current
+size of the array rather than the declared size of that dimension.
+It is allowed for such a range to start one after the end, so that
+
+    @array[0..*]
+
+merely returns Nil if C<@array> happens to be empty.  However,
+
+    @array[1..*]
+
+would fail because the range's min is too big.
+
+Going the other way, it is allowed for a range to start with a negative
+number as long as the endpoint is at least -1; in this case the
+front of the range is truncated.
+
+Note that these rules mean it doesn't matter whether you say
+
+    @array[*]
+    @array[0 .. *]
+    @array[0 .. *-1]
+    @array[-Inf .. *-1 ]
+
+because they all end up meaning the same thing.
+
+As a special form, numeric subscripts may be declared as cyclical
+using an initial C<%>:
+
+    my @seasons[%4];
+
+In this case, all numeric values are taken modulo 4, and no range truncation can
+ever happen.  If you say
+
+    @seasons[-4..7] = 'a' .. 'l';
+
+then each element is written three times and the array ends up with C<['i','j','k','l']>.
 
 =head1 Typed arrays
 
@@ -492,7 +534,6 @@ just like standard indices). That is, you can specify:
 but not:
 
     my @virtue{*..6};
-    my @koalas{*..*};
     my @celebs{*};
 
 These last three are not allowed because there is no first index, and
@@ -633,47 +674,14 @@ More specifically:
     @array[*+1]       # Second element after the end of the array
 
     @array[*-3..*-1]  # Slice from third-last element to last element
+    @array[*-3..*]    # (Same thing via range truncation)
 
 (Note that, if a particular array dimension has fixed indices, any
-attempt to index elements after the last defined index will fail.)
+attempt to index elements after the last defined index will fail,
+except in the case of range truncation described earlier.)
 
-Using a standard index less than zero prepends the corresponding number
-of elements to the start of the array and then maps the negative index
-back to zero:
-
-    @results[-1] = 42;      # Same as: @results.unshift(42)
-
-    @dwarves[-2..-1]        # Same as: @dwarves.unshift(<Groovy Sneaky>)
-        = <Groovy Sneaky>;
-
-Note that, as with a normal C<unshift>, the new elements are
-actually stored starting at standard index zero, after pre-existing
-elements have been bumped to the right. Hence after the assignments
-in the preceding example:
-
-    say @results[0];        # 42
-    say @dwarves[0];        # Groovy
-
-Using a negative index on an array of fixed size will fail if the
-resulting number of elements exceeds the defined size.
-
-Note that the behaviour of negative indices in Perl 6 is
-different to that in Perl 5:
-
-    # Perl 5...
-    ............_____________________________..................
-         :     |     |     |     |     |     |     :     :
-    .....:.....|_____|_____|_____|_____|_____|.....:.....:.....
-                 [0]   [1]   [2]   [3]   [4]   [5]   [6]   [7]
-     [-7]  [-6]  [-5]  [-4]  [-3]  [-2]  [-1]
-
-
-    # Perl 6...
-    ............_____________________________..................
-         :     |     |     |     |     |     |     :     :
-    .....:.....|_____|_____|_____|_____|_____|.....:.....:.....
-     [-2]  [-1]  [0]   [1]   [2]   [3]   [4]   [5]   [6]   [7]
-    [*-7] [*-6] [*-5] [*-4] [*-3] [*-2] [*-1] [*+0] [*+1] [*+2]
+Negative subscripts are never allowed for standard subscripts unless
+the subscript is declared modular.
 
 The Perl 6 semantics avoids indexing discontinuities (a source of subtle
 runtime errors), and provides ordinal access in both directions at both

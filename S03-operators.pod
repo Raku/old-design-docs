@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 2 Sep 2009
-    Version: 172
+    Last Modified: 21 Sep 2009
+    Version: 173
 
 =head1 Overview
 
@@ -270,7 +270,7 @@ so you never have to worry about precedence in that case.  Hence:
 
 Pair composers
 
-    :by(2)
+    :limit(5)
     :!verbose
 
 =item *
@@ -1413,7 +1413,7 @@ to apply C<:foo> to the subscripting operator instead.
 
 Adverbs will generally attach the way you want when you say things like
 
-    1 .. $x+2 :by(2)
+    1 op $x+2 :mod($x)
 
 The proposed internal testing syntax makes use of these precedence rules:
 
@@ -1751,10 +1751,11 @@ lot of the venerable Fibonacci sequence:
 More typically the function is unary, in which case any extra values
 in the list may be construed as human-readable documentation:
 
-    0,2,4 ... { $_ + 2 }    # same as 1..*:by(2)
+    0,2,4 ... { $_ + 2 }    # all the evens
+    0,2,4 ... *+2           # same thing
     <a b c> ... { .succ }   # same as 'a'..*
 
-The function need not be monotonic, of course:
+The function need not be monotoniccaly increasing, of course:
 
     1 ... { -$_ }          # 1, -1, 1, -1, 1, -1...
     False ... &prefix:<!>  # False, True, False...
@@ -1763,7 +1764,7 @@ The function can be 0-ary as well:
 
     () ... { rand }   # list of random numbers
 
-The function may also be slurpy (*-ary), in which case all the
+The function may also be slurpy (n-ary), in which case all the
 preceding values are passed in (which means they must all be cached
 by the operator, so performance may suffer).
 
@@ -1773,26 +1774,24 @@ if they do match you may interleave unrelated sequences:
     1,1 ... { $^a + 1, $^b * 2 }   # 1,1,2,2,3,4,4,8,5,16,6,32...
 
 If the right operand is C<*> (Whatever) and the sequence is obviously
-arithmetic or geometric, the appropriate function is deduced:
+arithmetic or geometric (from examining its I<last> 3 values), the appropriate function is deduced:
 
     1, 3, 5 ... *   # odd numbers
     1, 2, 4 ... *   # powers of 2
 
+If there are only two values so far, C<*> assumes an arithmentic
+progression.  If there is only one value (or if the final values do
+not support the requisite arithmetic), C<*> assumes incrementation
+via C<.succ>.  Hence these come out the same:
+
+    1..*
+    1...*
+    1,2,3...*
+
+If list on the left is C<Nil>, C<*> will return a single C<Nil>.
+
 Conjecture: other such patterns may be recognized in the future,
 depending on which unrealistic benchmarks we want to run faster.  C<:)>
-
-Note: the yada operator is recognized only where a term is expected.
-This operator may only be used where an infix is expected.  If you
-put a comma before the C<...> it will be taken as a yada list operator
-expressing the desire to fail when the list reaches that point:
-
-    1..20, ... "I only know up to 20 so far mister"
-
-If the yada operator finds a closure for its argument at compile time,
-it should probably whine about the fact that it's difficult to turn
-a closure into an error message.  Alternately, we could treat
-an ellipsis as special when it follows a comma to better support
-traditional math notation.
 
 The function may choose to terminate its list by returning ().
 Since this operator is list associative, an inner function may be
@@ -1809,9 +1808,82 @@ produces
     10,20,30,40,50,60,70,80,90,
     100,200,300,400,500,600,700,800,900
 
+If the right operand is a list and the first element of the list is
+a function or C<*>, the second element of the list imposes a limit
+on the prior sequence.  (The limit is inclusive on an exact match,
+and in general is compared using C<!after> semantics, so an inexact
+match is *not* included.)  Hence the preceding example may be rewritten
+
+    1   ... * + 1, 9
+    10  ... * + 10, 90
+    100 ... * + 100, 1000
+
+or as
+
+    1, 2, 3 ... *,
+    10, 20, 30 ... *,
+    100, 200, 300 ... *, 1000
+
+In the latter case the preceding 3 elements are used to deduce
+the correct arithmetic progression, so the 3, 30, and 300
+terms are necessary.
+
+If the first element of the list is numeric, a C<*> is assumed
+before it, and the first element is again taken as the limit.
+So the preceding example reduces to:
+
+    1, 2, 3 ...
+    10, 20, 30 ...
+    100, 200, 300 ... 1000
+
+These rules may seem complicated, but they're essentially just replicating
+what a human does naturally when you say "and so on".
+
+Note that the sequence
+
+    1.0 ... *+0.2, 2.0
+
+is calculated in C<Rat> arithmetic, not C<Num>, so the C<2.0> matches
+exactly and terminates the sequence.
+
+Note: the yada operator is recognized only where a term is expected.
+This operator may only be used where an infix is expected.  If you
+put a comma before the C<...> it will be taken as a yada list operator
+expressing the desire to fail when the list reaches that point:
+
+    1..20, ... "I only know up to 20 so far mister"
+
+If the yada operator finds a closure for its argument at compile time,
+it should probably whine about the fact that it's difficult to turn
+a closure into an error message.  Alternately, we could treat
+an ellipsis as special when it follows a comma to better support
+traditional math notation.
+
 In slice context the function's return value is appended as a capture
 rather than as a flattened list of values, and the argument to each
 function call is the previous capture in the list.
+
+If a series is generated using a non-monotonic C<.succ> function, it is
+possible for it never to reach the endpoint.  The following matches:
+
+    'A' ... 'Z'
+
+but since 'Z' increments to 'AA', none of these ever terminate:
+
+    'A' ... 'z'
+    'A' ... '_'
+    'A' ... '~'
+
+The compiler is allowed to complain if it notices these, since if you
+really want the infinite list you can always write:
+
+    'A' ... *
+
+To preserve Perl 5 semantics, you'd need something like:
+
+    'A' ... { my $new = $_.succ; $_ ne $endpoint and $new.chars <= 1 ?? $new !! () }
+
+But since lists are lazy in Perl 6, we don't try to protect the user this way.
 
 =back
 
@@ -2937,32 +3009,40 @@ er, somehow.
 
 The C<..> range operator has variants with C<^> on either end to
 indicate exclusion of that endpoint from the range.  It always
-produces a C<Range> object.  Range objects are immutable (but can
-spawn mutable C<RangeIterator> objects, and a C<RangeIterator> can
-be interrogated for its current C<.from> and C<.to> values,
-which change as they are iterated).  The C<.minmax> method returns
-both as a two-element list representing the interval.  Ranges are not
-autoreversing: C<2..1> is always a null range.  Likewise, C<1^..^2>
-produces no values when iterated, but does represent the interval from
-1 to 2 excluding the endpoints when used as a pattern.  To specify
-a range in reverse use:
+produces a C<Range> object.  Range objects are immutable, and primarily
+used for matching intervals.  C<1..2> is the interval from 1 to 2
+inclusive of the endpoints, whereas 1^..^2 excludes the endpoints
+but matches any real number in between.
 
-    2..1:by(-1)
+Range objects support C<.min> and a C<.max> methods representing
+their left and right arguments.  The C<.minmax> method returns both
+values as a two-element list representing the interval.  Ranges are
+not autoreversing: C<2..1> is always a null range.
+
+If used in a list context, a C<Range> object returns an iterator that
+produces a series of values starting at the min and ending at the max.
+Either endpoint may be excluded using C<^>.  Hence C<1..2> produces
+C<(1,2)> but C<1^..^2> is equivalent to C<2..1> and produces no values (Nil).
+To specify a series that counts down, use a reverse:
+
     reverse 1..2
+    reverse 'a'..'z'
 
-(The C<reverse> is preferred because it works for alphabetic ranges
-as well.)  Note that, while C<.minmax> normally returns C<(.from,.to)>,
-a negative C<:by> causes the C<.minmax> method returns C<(.to,.from)>
-instead.  You may also use C<.min> and C<.max> to produce the individual
-values of the C<.minmax> pair, but again note that they are reversed
-from C<.from> and C<.to> when the step is negative.  Since a reversed
-C<Range> changes its direction, it swaps its C<.from> and C<.to> but
-not its C<.min> and C<.max>.
+Alternately, for numeric sequences, you can use the series operator instead
+of the range operator:
 
-Because C<Range> objects are lazy, they do not automatically generate
-a list.  They only do so when iterated.
-One result of this is that a reversed C<Range> object is still lazy.
-Another is that smart matching against a C<Range> object smartmatches the
+    100,99,98 ... 0
+    100 ... *-1, 0      # same thing
+
+In other words, any C<Range> used as a list assumes C<.succ> semantics,
+never C<.pred> semantics.  No other increment is allowed; if you wish
+to increment a numeric sequence by some number other than 1, you must
+use the C<...> series operator.  (The C<Range> operator's C<:by> adverb
+is hereby deprecated.)
+
+    0 ... *+0.1, 100    # 0, 0.1, 0.2, 0.3 ... 100
+
+Smart matching against a C<Range> object smartmatches the
 endpoints in the domain of the object being matched, so fractional
 numbers are C<not> truncated before comparison to integer ranges:
 
@@ -2974,42 +3054,20 @@ of a range, it is taken to mean "positive infinity" in whatever
 typespace the range is operating, as inferred from the left operand.
 A C<*> on the left means "negative infinity" for types that support
 negative values, and the first value in the typespace otherwise as
-inferred from the right operand.  (For signed infinities the signs
-reverse for a negative step.)  A star on both sides prevents any type
-from being inferred other than the C<Ordered> role.
+inferred from the right operand.  (A star on both sides is not allowed.)
 
     0..*        # 0 .. +Inf
-    'a'..*      # 'a' .. 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzz...'
+    'a'..*      # 'a' le $_
     *..0        # -Inf .. 0
-    *..*        # "-Inf .. +Inf", really Ordered
+    *..*        # Illegal
     1.2.3..*    # Any version higher than 1.2.3.
     May..*      # May through December
-
-Note: infinite lists are constructed lazily.  And even though C<*..*>
-can't be constructed at all, it's still useful as a selector object.
-
-For any kind of zip or dwimmy hyper operator, any list ending with C<*>
-is assumed to be infinitely extensible by taking its final element
-and replicating it:
-
-    @array, *
-
-is short for something like:
-
-    @array[0..^@array], @array[*-1] xx *
 
 An empty range cannot be iterated; it returns a C<Nil> instead.  An empty
 range still has a defined min and max, but the min is greater than the max.
 
-If a range is generated using a magical autoincrement, it stops if the magical
-increment would "carry" and make the next value longer (in graphemes) than the "to" value, on the
-assumption that the sequence can never match the final value exactly.  Hence,
-all of these produce 'A' .. 'Z':
-
-    'A' .. 'Z'
-    'A' .. 'z'
-    'A' .. '_'
-    'A' .. '~'
+Ranges that are iterated transmute into the corresponding series operator,
+and hence use C<!after> semantics to determine an end to the sequence.
 
 =item *
 
@@ -3788,6 +3846,16 @@ to have the union of keys.
 Unary hash hypers and binary hypers that have only one hash operand
 will apply the hyper operator to just the values but return a new
 hash value with the same set of keys as the original hash.
+
+For any kind of zip or dwimmy hyper operator, any list ending with C<*>
+is assumed to be infinitely extensible by taking its final element
+and replicating it:
+
+    @array, *
+
+is short for something like:
+
+    @array[0..^@array], @array[*-1] xx *
 
 =head2 Reduction operators
 
