@@ -107,6 +107,119 @@ Note that once you convert a Parcel into a Capture, you won't be able
 to get the original Parcel again, because a Capture doesn't hold the
 information about the position of named arguments.
 
+=head1 Multidimensionality
+
+Probably the most important task of Parcels and Captures is to
+implement the multidimensionality of lists in Perl 6, this means that
+the barrier used to detect the dimensionality of the data structures
+by the operators is whatever the item inside it implements Parcel or
+Capture. For instance:
+
+  my $a = 1, (2, (3, 4));
+  say $a[1];
+
+In that case, you'll get "2, (3, 4)" (or whatever is implemented in
+the .Str method of that specific Parcel). But, you should be able to:
+
+  say $a[1;0];
+
+Which is going to return "2", which is almost the same as:
+
+  say $a[1][0];
+
+But the first provides a more convenient and optimizeable way of
+asking for it. If you want to get the value "4" from that data
+structure you need to:
+
+  say $a[1;1;1];
+
+Note that if you assign that parcel to list, it will be flattened, so:
+
+  my @a = 1, (2, (3, 4));
+  say @a[3];
+
+Would print "4", at the same time that trying to ask for
+multidimensionality information from that list would result in a
+failure:
+
+  say @a[1;1;1];
+
+As the element 1 of the list @a is not a Capture or a Parcel, it is
+not possible for the .[] operator to traverse it.
+
+[Conjecture: It is still not clear if the multidimensional access
+should be able to get into regular arrays, i.e.: [1,[2,[3,[4]]]] ]
+
+It is important to realize that it's not the parens that are creating
+the Parcel, but the infix:<,>. The parens are only required in order
+to define a sub-parcel.
+
+On the other hand, if you bind a parcel to a variable, it doesn't
+really matter which sigil it uses:
+
+  my @a := 1, (2, (3, 4));
+  say @a[1;1;1]; # "4"
+  say @a[3]; # failure
+
+Captures and Parcels are seen the same way regarding
+multidimensionality, for instance:
+
+  my $a = (map { $_ * 2 }, 1..5),(map { $_ / 2 }, 1..5);
+  say $a[0;0]; # 2
+  say $a[1;0]; # 0.5
+
+The same way, if each map closure returns more than one item inside
+its capture:
+
+  my $a = (map { $_ * 2, $_ / 2 }, 1..5),(map { $_ / 2, $_ * 2 }, 1..5);
+  say $a[0;0;0]; # 2
+  say $a[0;0;1]; # 0.5
+  say $a[1;0;0]; # 0.5
+  say $a[1;0;0]; # 2
+
+The flattening process will traverse into Parcels and Captures, so:
+
+  1, (2, (3, 4))
+
+will result in:
+
+  1, 2, 3, 4
+
+after flattening, while:
+
+  1, [2, [3, 4]]
+
+Would remain as-is.
+
+=head1 Context deferral
+
+Also known as "Capture Context", defines how you can defer the context
+coercion for a given value. That is a fundamental feature because
+something as simple as assigning to a scalar might imply context
+coercion that would get you a modified value.
+
+Both the Parcel and the Capture are able to preserve the values as-is,
+in a way that you can later apply any context and have the same result
+as if the context was applied immediatly.
+
+Context deferral is actually the reason why Perl 6 no longer supports
+the "wantarray" operator, nor does it provide any substitute. The way
+you should implement wantarray-like behavior is by properly overriding
+the coercion for each context. The Contextual::Return module is an
+implementation of that concept in Perl 5.
+
+In order to use the context deferral in your code, you need to use the
+"capture sigil", which can be presented in two forms:
+
+  my ¢a = 1, (2, (3, 4));
+
+or
+
+  my @%a = 1, (2, (3, 4));
+
+The latter is provided as an alternative for situations where you want
+to preserve the code in 7-bits only.
+
 =head1 Additions
 
 Please post errors and feedback to perl6-language.  If you are making
