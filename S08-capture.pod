@@ -115,7 +115,7 @@ the barrier used to detect the dimensionality of the data structures
 by the operators is whatever the item inside it implements Parcel or
 Capture. For instance:
 
-  my $a = 1, (2, (3, 4));
+  my $a = (1, (2, (3, 4)));
   say $a[1];
 
 In that case, you'll get "2, (3, 4)" (or whatever is implemented in
@@ -165,14 +165,14 @@ really matter which sigil it uses:
 Captures and Parcels are seen the same way regarding
 multidimensionality, for instance:
 
-  my $a = (map { $_ * 2 }, 1..5),(map { $_ / 2 }, 1..5);
+  my $a = ((map { $_ * 2 }, 1..5),(map { $_ / 2 }, 1..5));
   say $a[0;0]; # 2
   say $a[1;0]; # 0.5
 
 The same way, if each map closure returns more than one item inside
 its capture:
 
-  my $a = (map { $_ * 2, $_ / 2 }, 1..5),(map { $_ / 2, $_ * 2 }, 1..5);
+  my $a = ((map { $_ * 2, $_ / 2 }, 1..5),(map { $_ / 2, $_ * 2 }, 1..5));
   say $a[0;0;0]; # 2
   say $a[0;0;1]; # 0.5
   say $a[1;0;0]; # 0.5
