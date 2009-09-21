@@ -33,7 +33,7 @@ described here.
 Of course the runtime can cheat whenever it knows the capture is
 implemented by its own internal data structure for optimization
 purposes, but it should allow the use of foreign types when invoking a
-routine, as long as it says true to .^does(Capture).
+routine, as long as the object says true to .^does(Capture).
 
 Captures and Parcels are also the basis for the multidimensionality of
 lists in Perl 6. Unlike Perl 5, no flattening happens unless it's
@@ -45,10 +45,10 @@ In addition to the List and Scalar context, there's also a special
 context, which is, in a simplified way, called "Capture context", but
 it actually means "deferred context", in a way that the Capture or
 Parcel is kept as-is while they are manipulated in the code. This is
-usefull to avoid unwanted flattening as well as avoiding the DWIMmy
+useful to avoid unwanted flattening as well as avoiding the DWIMmy
 features that might change the capture's behavior.
 
-This is the main point on why Capture and Parcel replace Perl 5
+This is the main point of why Capture and Parcel replace Perl 5
 references, they allow you to send data untouched from one place to
 another. The second reason is that as in Perl 6 everything is an
 object, there isn't really "pass-by-value" anymore, you're always
@@ -65,9 +65,9 @@ their name).
 
 The basic underlying concept is that a Parcel behaves much like a
 list, but it doesn't enforce any context, in a way that no flattening
-or coercion is made. When you use the Positional API on a Parcel, it
-will include all the listed items, no matter they look like named
-arguments or positional arguments. In example:
+or coercion is done. When you use the Positional API on a Parcel, it
+will include all the listed items, wether they look like named
+arguments or positional arguments. For example:
 
   1, 2, :a<b>
 
@@ -77,7 +77,7 @@ might be statically converted to a Capture if it's clear to the parser
 that it's being used as the arguments to a routine call.
 
 A Capture, on the other hand, is not required to keep the positional
-information for the named arguments, in example:
+information for the named arguments, for example:
 
   foo(1,:a<b>,2)
 
@@ -200,7 +200,7 @@ coercion that would get you a modified value.
 
 Both the Parcel and the Capture are able to preserve the values as-is,
 in a way that you can later apply any context and have the same result
-as if the context was applied immediatly.
+as if the context was applied immediately.
 
 Context deferral is actually the reason why Perl 6 no longer supports
 the "wantarray" operator, nor does it provide any substitute. The way
