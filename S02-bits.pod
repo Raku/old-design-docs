@@ -66,8 +66,8 @@ line numbers matches what your editor thinks about Unicode lines.
 Unicode horizontal whitespace is counted as whitespace, but it's better
 not to use thin spaces where they will make adjoining tokens look like
 a single token.  On the other hand, Perl doesn't use indentation as syntax,
-so you are free to use any amount of whitespace anywhere that whitespace makes sense.
-Comments always count as whitespace.
+so you are free to use any amount of whitespace anywhere that whitespace
+makes sense. Comments always count as whitespace.
 
 =item *
 
@@ -113,9 +113,9 @@ that construct.
 
 =item *
 
-POD sections may be used reliably as multiline comments in Perl 6.
-Unlike in Perl 5, POD syntax now lets you use C<=begin comment>
-and C<=end comment> delimit a POD block correctly without the need
+Pod sections may be used reliably as multiline comments in Perl 6.
+Unlike in Perl 5, Pod syntax now lets you use C<=begin comment>
+and C<=end comment> delimit a Pod block correctly without the need
 for C<=cut>.  (In fact, C<=cut> is now gone.)  The format name does
 not have to be C<comment> -- any unrecognized format name will do
 to make it a comment.  (However, bare C<=begin> and C<=end> probably
@@ -127,7 +127,7 @@ That lets C<=for> keep its meaning as the equivalent of a C<=begin>
 and C<=end> combined.  As with C<=begin> and C<=end>, a comment started
 in code reverts to code afterwards.
 
-Since there is a newline before the first C<=>, the POD form of comment
+Since there is a newline before the first C<=>, the Pod form of comment
 counts as whitespace equivalent to a newline.  See S26 for more on
 embedded documentation.
 
@@ -173,7 +173,7 @@ miscount single brackets:
         say "here is an unmatched } character";
     }}
 
-However, it's sometimes better to use pod comments because they are
+However, it's sometimes better to use Pod comments because they are
 implicitly line-oriented.
 
 =item *
@@ -359,7 +359,7 @@ be written in any of these forms:
     $x\#`[   comment 1
     comment 2
     =begin podstuff
-    whatever (pod comments ignore current parser state)
+    whatever (Pod comments ignore current parser state)
     =end podstuff
     comment 3
     ].++
@@ -1492,7 +1492,7 @@ is subject to:
     $:foo       self-declared formal named parameter
     $*foo       contextualizable global variable
     $?foo       compiler hint variable
-    $=foo       pod variable
+    $=foo       Pod variable
     $<foo>      match variable, short for $/{'foo'}
     $!foo       object attribute private storage
     $~foo       the foo sublanguage seen by the parser at this lexical spot
@@ -2231,7 +2231,7 @@ subroutine" in S06.
 
 Magical file-scoped values live in variables with a C<=> secondary
 sigil.  C<$=DATA> is the name of your C<DATA> filehandle, for instance.
-All pod structures are available through C<%=POD> (or some such).
+All Pod structures are available through C<%=POD> (or some such).
 As with C<*>, the C<=> may also be used as a package name: C<$=::DATA>.
 
 =item *
@@ -3419,14 +3419,14 @@ The double-underscore forms are going away:
     __END__             =begin END
     __DATA__            =begin DATA
 
-The C<=begin END> pod stream is special in that it assumes there's
+The C<=begin END> Pod stream is special in that it assumes there's
 no corresponding C<=end END> before end of file.  The C<DATA>
-stream is no longer special--any POD stream in the current file
+stream is no longer special--any Pod stream in the current file
 can be accessed via a filehandle, named as C<< %=POD{'DATA'} >> and such.
-Alternately, you can treat a pod stream as a scalar via C<$=DATA>
+Alternately, you can treat a Pod stream as a scalar via C<$=DATA>
 or as an array via C<@=DATA>.  Presumably a module could read all
 its COMMENT blocks from C<@=COMMENT>, for instance.  Each chunk of
-pod comes as a separate array element.  You have to split it into lines
+Pod comes as a separate array element.  You have to split it into lines
 yourself.  Each chunk has a C<.range> property that indicates its
 line number range within the source file.
 
