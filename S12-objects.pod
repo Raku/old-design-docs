@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 7 Sep 2009
-    Version: 87
+    Last Modified: 27 Sep 2009
+    Version: 88
 
 =head1 Overview
 
@@ -296,7 +296,11 @@ as a quote and then the result of that is used as the method name.
     $obj."$methodname"(1,2,3)   # use contents of $methodname as method name
     $obj.'$methodname'(1,2,3)   # no interpolation; call method with $ in name!
 
-    $obj!"$methodname"          # indirect call to private method name
+    $obj!"$methodname"()          # indirect call to private method name
+
+As an aid to catching Perl 5 brainos, this quoted form always requires
+a parenthesized argument list to distinguish it from code that looks
+like a Perl 5 concatenation.
 
 Within an interpolation, the double-quoted form may not contain
 whitespace.  This does what the user expects in the common case of
@@ -307,7 +311,7 @@ a quoted string ending with a period:
 If you really want to call a method with whitespace, you may work
 around this restriction with a closure interpolation:
 
-    say "Foo = {$foo."a method"}";  # OK
+    say "Foo = {$foo."a method"()}";  # OK
 
 [Note: to help catch the mistaken use of C<< infix:<.> >> as a string
 concatenation operator, Perl 6 will warn you about "useless use of
