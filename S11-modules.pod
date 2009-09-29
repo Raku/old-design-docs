@@ -154,14 +154,14 @@ tags as arguments to C<is export>.  (Of course, mixing incompatible scoping
 in different scopes is likely to lead to confusion.)
 
 The C<use> declaration is actually a composite of two other declarations,
-C<need> and C<defines>.  Saying
+C<need> and C<import>.  Saying
 
     use Sense <common @horse>;
 
 breaks down into:
 
     need Sense;
-    Sense defines <common @horse>;
+    import Sense <common @horse>;
 
 These further break down into:
 
@@ -232,18 +232,18 @@ do not automatically get imported into their surrounding scope:
         multi fact (Int $n) is export { [*] 1..$n }
     }
     ...
-    Factorial defines 'fact';   # imports the multi
+    import Factorial 'fact';   # imports the multi
 
 The last declaration is syntactic sugar for:
 
     BEGIN MY.import_alias(Factorial, <fact>);
 
-Despite having the form of an infix operator, this form functions as
-a compile-time declarator, so that these notations can be combined:
+This form functions as a compile-time declarator, so that these
+notations can be combined by putting a declarator in parentheses:
 
-    role Silly {
+    import (role Silly {
         enum Ness is export <Dilly String Putty>;
-    } defines <Ness>;
+    }) <Ness>;
 
 This really means:
 
@@ -253,6 +253,8 @@ This really means:
         },
         <Ness>
     );
+
+Without an import list, C<import> imports the C<:DEFAULT> imports.
 
 =head1 Runtime Importation
 
@@ -310,8 +312,8 @@ to the package scope instead:
 You may also import symbols from the various pseudo-packages listed in S02.
 They behave as if all their symbols are in the C<:ALL> export list:
 
-    CONTEXT defines <$IN $OUT $ERR>;
-    CALLER defines <$x $y>;
+    import CONTEXT <$IN $OUT $ERR>;
+    import CALLER <$x $y>;
 
     # Same as:
     #     my ($IN, $OUT, $ERR) ::= ($*IN, $*OUT, $*ERR)
@@ -381,7 +383,7 @@ For example:
     class Dog:auth<http://www.some.com/~jrandom>:ver<1.2.1>;
     class Dog:auth<mailto:jrandom@some.com>:ver<1.2.1>;
 
-Since these are somewhat unwieldy to look at, we allow a shorthand in
+Since these are somewhat unweildy to look at, we allow a shorthand in
 which a bare subscripty adverb interprets its elements according to their
 form:
 
