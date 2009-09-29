@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 12 May 2009
-    Version: 8
+    Last Modified: 29 Sep 2009
+    Version: 9
 
 The document is a draft.
 
@@ -719,7 +719,7 @@ to the original hash.
 =head1 Classes
 
 This documents Buf, List, Seq, Range, Set, Bag, Junction, Array, Hash, KeyHash, KeySet,
-KeyBag, Pair, and Mapping.
+KeyBag, Pair, and PairSet.
 
 =head2 Seq
 
@@ -809,11 +809,18 @@ The value of a pair is mutable; the key is not.
 
 =back
 
-=head2 Mapping
+=head2 PairValSet
 
-    class Mapping does Associative {...}
+    class PairValSet does Associative {...}
 
 An immutable hash value, essentially.  The keys may
+not contain duplicates, while the values may.
+
+=head2 PairSet
+
+    class PairSet does Associative {...}
+
+A hash value that is mutable only in values.  The keys may
 not contain duplicates, while the values may.
 
 =head2 Set
@@ -869,9 +876,9 @@ A mutable C<Bag> container, represented as C<KeyHash of UInt>.
 
 =head2 KeyHash
 
-    class KeyHash does Associative {...}
+    role KeyHash[::T $t, $default = 0] does Associative {...}
 
-A KeyHash represents a mutable set of values, represented as the keys
+A C<KeyHash> represents a mutable set of values, represented as the keys
 of a C<Hash>.  When asked to behave as a list it ignores its values
 and returns only C<.keys>.  C<KeySet> and C<KeyBag> are derived from
 this type, but constrain their values to be C<Bool> and C<UInt>,
