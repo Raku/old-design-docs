@@ -175,9 +175,12 @@ Returns the square root of the parameter.
 
 =item roots
 
-  (in Num) method roots (Num $x: Int $n --> List of Num) is export
+  (in Num) method roots (Numeric $x: Int $n --> List of Num) is export
 
-Returns a list of all C<$n>th (complex) roots of C<$x>
+Returns a list of all C<$n>th (complex) roots of C<$x>. Returns C<NaN> if
+C<< $n <= 0 >>, itself if C<$n == 0>,  and is free to return a single C<NaN>
+if C<$x> is C<NaN> or C<Inf>, or in case of complex numbers if one of the
+components is.
 
 =item cis
 
@@ -207,6 +210,16 @@ with the postfix, it's necessary to use a backslash or parentheses:
 
 =head2 Complex
 
+C<Complex> is an immutable type. Each C<Complex> object stores two numbers,
+the real and imaginary part. For all practical purposes a C<Complex> with
+a C<NaN> in real or imaginary part may be considered a C<NaN> itself (and
+C<(NaN + 1i) ~~ NaN> is C<True>).
+
+Coercion of a C<Complex> to any C<Real> returns the real part (coerced, if
+necessary) if the imaginary part is 0, and fails otherwise. Comparison
+between a C<Real> number and a C<Complex> must be smart enough not to coerce
+the C<Complex> to a real number blindly.
+
 =over 4
 
 =item polar
@@ -218,13 +231,13 @@ The magnitude is non-negative, and the angle in the range C<-π ..^ π>.
 
 =item re
 
-    method re() {...}
+    our Real multi method re()
 
 Returns the real part of the complex number.
 
 =item im
 
-    method im() {...}
+    our Real multi method im()
 
 Returns the imaginary part of a complex number.
 
