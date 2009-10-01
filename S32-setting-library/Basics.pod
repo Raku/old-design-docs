@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Basics
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 30 Apr 2009
-    Version: 2
+    Last Modified: 1 Oct 2009
+    Version: 3
 
 The document is a draft.
 
@@ -191,8 +191,19 @@ on the returned string reproduces the object as accurately as possible.
 
  our multi method warn ( Object $o: ) is export
 
-Prints a warning to C<$*ERR>, which is usually finds C<$PROCESS::ERR>. See
-C<Synopsis 16: IPC / IO / Signals> for details.
+Throws a resumable warning exception, which is considered a control
+exception, and hence is invisible to most normal exception handlers.
+The outermost control handler will print the warning to C<$*ERR>
+(which is usually finds C<$PROCESS::ERR>; see C<Synopsis 16: IPC /
+IO / Signals> for details).  After printing the warning, the exception
+is resumed where it was thrown.  To override this behavior, catch the
+exception in a CONTROL block.  A quietly {...} block is the opposite of a
+try {...} block in that it will suppress any warnings but pass fatal
+exceptions through.
+
+To simply print to C<$*ERR>, please use C<note> instead.  C<warn>
+should be reserved for use in threatening situations when you don't
+quite want to throw an exception.
 
 =back
 
