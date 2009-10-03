@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 18 Sep 2009
-    Version: 116
+    Last Modified: 3 Oct 2009
+    Version: 117
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -1686,12 +1686,6 @@ sub's argument capture to write your own memoization with complete
 control from within the subroutine itself, or from within a wrapper
 around your subroutine.
 
-=item C<is inline>
-
-I<Suggests> to the compiler that the subroutine is a candidate for
-optimization via inlining.  Basically promises that nobody is going
-to try to wrap this subroutine (or that if they do, you don't care).
-
 =item C<is tighter>/C<is looser>/C<is equiv>
 
 Specifies the precedence of an operator relative to an existing
@@ -2382,6 +2376,72 @@ current routine may defer to candidates further down the candidate
 list.  Although not necessarily related by a class hierarchy, such
 later candidates are considered more generic and hence likelier
 to be able to handle various unforeseen conditions (perhaps).
+
+Note that all routines are (by default) considered to be candidates
+for inlining and constant folding.  The optimizer is allowed to start
+making these optimizations after the main program's C<CHECK> time,
+but not before.  After any routine is "hard" inlined or constant
+folded, it is explicitly retyped as immutable; any attempt to
+wrap an immutable routine will result in failure of the wrap call.
+An immutable routine is so marked by recasting to type C<HardRoutine>,
+a subclass of C<Routine>.
+
+On the other hand, it is also possible to explicitly mark a routine
+as mutable, and then the ability to wrap it must be preserved even
+after C<CHECK> time.  This is done by recasting to C<SoftRoutine>.
+Explicitly marking a routine as either mutable or immutable should
+be considered permanent.  It is still possible to inline soft
+routines, but only if the possibility of indirection is detected
+inline as well, and provision made (either inline or via external
+rewriting) for dealing with any wrappers.
+
+Hence, any routine marked as soft before C<CHECK> time is exempt
+from hard inlining or folding.  There are several methods of
+marking a routine as soft, however no method is provided for marking
+routines as hard, since that is the job of the optimizer.
+A routine may be marked as soft:
+
+=over
+
+=item *
+
+if it is declared using "our" explicitly
+
+=item *
+
+if it is mentioned in the argument list of a C<use soft> pragma,
+
+=item *
+
+if its name matches any wildcard pattern (TBD) in a C<use soft>,
+
+=item *
+
+if the module or class in which it is defined is mentioned in a C<use soft>,
+
+=item *
+
+or if there is a general C<use soft *;> declaration, which basically
+turns on AOP for everything at run time.  Be aware that this may turn
+your optimizer into more of a "pessimizer".
+
+=back
+
+For any normal standalone application, any C<use soft> pragma applies
+to the entire program in which it participates, provided it is
+performed before C<CHECK> time.  The optimizer may then harden
+anything that was not requested to remain soft.
+
+A plug-in system, such as for a web server, may choose either to allow
+individual plug-ins to behave as independent programs by letting the
+optimizer harden individual plug-ins independently, or treat all
+plug-ins as a part of the same program by softening all plug-ins.
+(Similar considerations apply to optimizing classes to closed/final.)
+
+Note that installing a wrapper before C<CHECK> time is specifcally
+I<not> one of the ways to mark a routine as soft.  Such a routine
+may still be hardened at C<CHECK> time despite being wrapped during
+compile time.
 
 =head2 The C<&?ROUTINE> object
 
