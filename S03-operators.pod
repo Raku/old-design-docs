@@ -3084,6 +3084,17 @@ their left and right arguments.  The C<.minmax> method returns both
 values as a two-element list representing the interval.  Ranges are
 not autoreversing: C<2..1> is always a null range.
 
+Range objects support the C<.excl_min> and C<.excl_max> methods
+representing the exclusion (has C<^>) or inclusion (no C<^>) of each
+endpoint in the Range.
+
+    Range      | .min | .max | .excl_min   | .excl_max
+    -----------+------+------+-------------+------------
+    1..10      | 1    | 10   | Bool::False | Bool::False
+    2.7..^9.3  | 2.7  | 9.3  | Bool::False | Bool::True
+    'a'^..'z'  | 'a'  | 'z'  | Bool::True  | Bool::False
+    1^..^10    | 1    | 10   | Bool::True  | Bool::True
+
 If used in a list context, a C<Range> object returns an iterator that
 produces a series of values starting at the min and ending at the max.
 Either endpoint may be excluded using C<^>.  Hence C<1..2> produces
