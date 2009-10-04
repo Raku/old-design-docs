@@ -28,7 +28,7 @@ If you read the HTML version, it is generated from the Pod in the pugs
 repository under /docs/Perl6/Spec/S32-setting-library/Numeric.pod so edit it there in
 the SVN repository if you would like to make changes.
 
-This documents Bit, Int, Num, Rat, Complex, and Bool.
+This documents Bit, Int, Numeric, Rat, Complex, and Bool.
 
 XXX So where are Bit, Int, and Rat
 
@@ -52,13 +52,17 @@ Returns C<Bool::False>.
 
 =back
 
-=head2 Num
+=head2 Numeric
 
-The following are all defined in the C<Num> role:
+C<Numeric> is a role for everything that's a scalar number. So C<Num>, C<Int>,
+C<Rat>, C<Complex> and other numeric types do that role. However it is an
+abstract interface, so C<$number.WHAT> will never return C<Numeric>. Users who
+provide their own scalar numeric types are encouraged to implement the
+C<Numeric> role.
 
-B<API document>: L<Num>
+The following are all defined in the C<Numeric> role:
 
-C<Num> provides some constants in addition to the basic
+C<Numeric> provides some constants in addition to the basic
 mathematical functions.
 
     constant pi is export = 3.14159_26535_89793_23846_26433_83279_50288;
@@ -68,74 +72,43 @@ mathematical functions.
 
 =item succ
 
- our Num multi method succ ( Num $x: ) is export
- our Int multi method succ ( Int $x: ) is export
+ our Numeric multi method succ ( Numeric $x: ) is export
+ our Int     multi method succ ( Int $x: )     is export
 
 Returns the successor of C<$x>. This method is used by C<< prefix:<++> >> and
 C<< postfix:<++> >> to increment the value in a container.
 
 =item pred
 
- our Num multi method pred ( Num $x: ) is export
- our Int multi method pred ( Int $x: ) is export
+ our Numeric multi method pred ( Numeric $x: ) is export
+ our Int     multi method pred ( Int $x:     ) is export
 
 Returns the predeccessor of C<$x>. This method is used by C<< prefix:<--> >>
 and C<< postfix:<--> >> to decrement the value in a container.
 
 =item abs
 
- our Num multi method abs ( Num $x: ) is export
+ our Numeric multi method abs ( Numeric $x: ) is export
 
 Absolute Value.
 
-=item floor
-
- our Int multi method floor ( Num $x: ) is export
-
-Returns the highest integer not greater than C<$x>.
-
-=item ceiling
-
- our Int multi method ceiling ( Num $x: ) is export
-
-Returns the lowest integer not less than C<$x>.
-
-=item round
-
- our Int multi method round ( Num $x: ) is export
-
-Returns the nearest integer to C<$x>.  The algorithm is C<floor($x + 0.5)>.
-(Other rounding algorithms will be given extended names beginning with "round".)
-
-=item truncate
-
- our Int multi method truncate ( Num $x: ) is export
-
-Returns the closest integer to C<$x> whose absolute value is not greater
-than the absolute value of C<$x>.  (In other words, just chuck any
-fractional part.)  This is the default rounding function used by
-implicit integer conversions.
-
-You may also truncate using explicit integer casts, either C<Int()> for
-an arbitrarily large integers, or C<int()> for native integers.
-
 =item exp
 
- our Num multi method exp ( Num $exponent: Num :$base = Num::e ) is export
+ our Numeric multi method exp ( Numeric $exponent: Numeric :$base = Num::e ) is export
 
 Performs similar to C<$base ** $exponent>. C<$base> defaults to the
 constant I<e>.
 
 =item log
 
- our Num multi method log ( Num $x: Num $base = Num::e ) is export
+ our Numeric multi method log ( Numeric $x: Numeric $base = Num::e ) is export
 
 Logarithm of base C<$base>, default Natural. Calling with C<$x == 0> is an
 error.
 
 =item log10
 
- our Num multi method log10 (Num $x:) is export
+ our Numeric multi method log10 (Numeric $x:) is export
 
 A base C<10> logarithm, othewise identical to C<log>.
 
@@ -148,34 +121,9 @@ theoretically possible, while C<1> is not.  Note that there is no
 unary C<rand> function in Perl 6, so just multiply C<rand> by your
 desired multiplier.  For picking a random integer you probably want
 to use something like C<(1..6).pick> instead.
-
-=item sign
-
- our Int multi method sign ( Num $x: ) is export
-
-Returns 1 when C<$x> is greater than 0, -1 when it is less than 0, 0 when it
-is equal to 0, or undefined when the value passed is undefined.
-
-=item srand
-
- multi method srand ( Num $seed: )
- multi srand ( Num $seed = default_seed_algorithm())
-
-Seed the generator C<rand> uses. C<$seed> defaults to some combination
-of various platform dependent characteristics to yield a non-deterministic seed.
-Note that you get one C<srand()> for free when you start a Perl program, so
-you I<must> call C<srand()> yourself if you wish to specify a deterministic seed
-(or if you wish to be differently nondeterministic).
-
-=item sqrt
-
- our Num multi method sqrt ( Num $x: ) is export
-
-Returns the square root of the parameter.
-
 =item roots
 
-  (in Num) method roots (Numeric $x: Int $n --> List of Num) is export
+  method roots (Numeric $x: Int $n --> List of Num) is export
 
 Returns a list of all C<$n>th (complex) roots of C<$x>. Returns C<NaN> if
 C<< $n <= 0 >>, itself if C<$n == 0>,  and is free to return a single C<NaN>
@@ -184,13 +132,13 @@ components is.
 
 =item cis
 
-    our Complex multi method cis (Num $angle:) is export
+    our Complex multi method cis (Real $angle:) is export
 
 Returns 1.unpolar($angle)
 
 =item unpolar
 
-    our Complex multi method unpolar (Num $mag: Num $angle) is export
+    our Complex multi method unpolar (Real $mag: Real $angle) is export
 
 Returns a complex number specified in polar coordinates.  Angle is in radians.
 
@@ -208,6 +156,80 @@ with the postfix, it's necessary to use a backslash or parentheses:
 =back
 
 
+=head2 Real
+
+    role Real does Numeric;
+
+C<Real>, like C<Numeric>, is an abstract role that represents the interface of
+a real scalar number (ie neither C<Complex> nor vector-like). For example
+C<Num>, C<Int>, C<Bool> and C<Rat> implement the C<Real> role.
+
+=over
+
+=item floor
+
+ our Int multi method floor ( Real $x: ) is export
+
+Returns the highest integer not greater than C<$x>.
+
+=item ceiling
+
+ our Int multi method ceiling ( Real $x: ) is export
+
+Returns the lowest integer not less than C<$x>.
+
+=item round
+
+ our Int multi method round ( Real $x: ) is export
+
+Returns the nearest integer to C<$x>.  The algorithm is C<floor($x + 0.5)>.
+(Other rounding algorithms will be given extended names beginning with "round".)
+
+=item truncate
+
+ our Int multi method truncate ( Real $x: ) is export
+
+Returns the closest integer to C<$x> whose absolute value is not greater
+than the absolute value of C<$x>.  (In other words, just chuck any
+fractional part.)  This is the default rounding function used by
+implicit integer conversions.
+
+You may also truncate using explicit integer casts, either C<Int()> for
+an arbitrarily large integers, or C<int()> for native integers.
+
+=item sign
+
+ our Int multi method sign ( Real $x: ) is export
+
+Returns 1 when C<$x> is greater than 0, -1 when it is less than 0, 0 when it
+is equal to 0, or undefined when the value passed is undefined.
+
+=item srand
+
+ multi method srand ( Real $seed: )
+ multi srand ( Real $seed = default_seed_algorithm())
+
+Seed the generator C<rand> uses. C<$seed> defaults to some combination
+of various platform dependent characteristics to yield a non-deterministic seed.
+Note that you get one C<srand()> for free when you start a Perl program, so
+you I<must> call C<srand()> yourself if you wish to specify a deterministic seed
+(or if you wish to be differently nondeterministic).
+
+=item sqrt
+
+ our Real multi method sqrt ( Real $x: ) is export
+
+Returns the square root of the parameter.
+
+
+=back
+
+=head2 Num
+
+    class Num does Real;
+
+C<Num> is a machine-precision numeric real value.
+
 =head2 Complex
 
 C<Complex> is an immutable type. Each C<Complex> object stores two numbers,
@@ -221,6 +243,13 @@ between a C<Real> number and a C<Complex> must be smart enough not to coerce
 the C<Complex> to a real number blindly.
 
 =over 4
+
+=item new
+
+    our Complex multi method new(Real $re, Real $im)
+
+Constructs a C<Complex> number from real and imaginary part. This is the
+method form of C<$re + ($im)i>.
 
 =item polar
 
@@ -245,7 +274,7 @@ Returns the imaginary part of a complex number.
 
 =head2 Trigonometric functions
 
-The following are also defined in C<Num>.  The trig functions
+The following are also defined in C<Numeric>.  The trig functions
 depend on the current (lexically scoped) trig base:
 
  enum TrigBase is export <Radians Degrees Gradians Circles>;
@@ -255,7 +284,7 @@ depend on the current (lexically scoped) trig base:
 
 =item I<Standard Trig Functions>
 
- Num multi method func ( Num  $x: TrigBase $base = $?TRIGBASE ) is export
+ Nuermic multi method func ( Nuermic  $x: TrigBase $base = $?TRIGBASE ) is export
 
 where I<func> is one of:
 sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
@@ -281,13 +310,57 @@ compiler constant:
 
 =item atan2
 
- our Num multi method atan2 ( Num $y: Num $x = 1 )
- our Num multi atan2 ( Num $y, Num $x = 1 )
+ our Nuermic multi method atan2 ( Nuermic $y: Nuermic $x = 1 )
+ our Nuermic multi atan2 ( Nuermic $y, Nuermic $x = 1 )
 
 This second form of C<atan> computes the arctangent of C<$y/$x>, and takes
 the quadrant into account. Otherwise behaves as other trigonometric functions.
 
 =back
+
+=head2 Int
+
+An C<Int> is an immutable, integral number of arbitrary size.
+
+=head2 Rat
+
+    class Rat does Real;
+
+An immutable rational number, represented by two C<Int>s, a numerator and
+a denominator. All interface methods return values as if the numerator and
+denominator were stored in a normal form: both numerator and denominator are
+minimal in their magnitude, and the denominator is positive. So
+C<Rat.new(2, -4).denominator> return C<2>, because the normal form is C<-1/2>.
+
+=over
+
+=item new
+
+    multi method new(Int $num, Int $denom)
+
+Constructs a C<Rat> object from the numerator and denominator.
+Fails if C<$denom == 0>.
+
+=item nude
+
+    our Seq[Int] multi method nude()
+
+Returns a C<Seq> of numerator and denominator
+
+=item denominator
+
+    our Int multi method denominator()
+
+Returns the denominator
+
+=item numerator
+
+    our Int multi method numerator()
+
+Returns the numerator
+
+=back
+
 
 =head1 Additions
 
