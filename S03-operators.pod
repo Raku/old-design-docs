@@ -678,7 +678,7 @@ C<< prefix:<^> >>, upto operator
 
     ^$limit
 
-Constructs a range of C<0 ..^ $limit> or locates a metaclass as a shortcut
+Constructs a range of C<0 ..^ +$limit> or locates a metaclass as a shortcut
 for C<$limit.HOW>.  See L</Range and RangeIterator semantics>.
 
 =back
@@ -3109,7 +3109,7 @@ is hereby deprecated.)
 
 Smart matching against a C<Range> object smartmatches the
 endpoints in the domain of the object being matched, so fractional
-numbers are C<not> truncated before comparison to integer ranges:
+numbers are I<not> truncated before comparison to integer ranges:
 
     1.5 ~~ 1^..^2  # true, equivalent to 1 < 1.5 < 2
     2.1 ~~ 1..2    # false, equivalent to 1 <= 2.1 <= 2
@@ -3141,10 +3141,6 @@ The unary C<^> operator generates a range from C<0> up to
 
     for ^4 { say $_ } # 0, 1, 2, 3
 
-or with :by
-
-    for ^4 :by(0.5) { say $_ } # 0, 0.5, 1.5, 2.0, 2.5, 3.0, 3.5
-
 If applied to a type name, it indicates the metaclass instance instead,
 so C<^Moose> is short for C<HOW(Moose)> or C<Moose.HOW>.  It still kinda
 means "what is this thing's domain" in an abstract sort of way.
@@ -3171,14 +3167,6 @@ which is equivalent to something like:
 
 In other words, operators of numeric and other ordered types are
 generally overloaded to do something sensible on C<Range> objects.
-In particular, multiplicative operators not only multiply the endpoints
-but also the "by" of the C<Range> object:
-
-    (1..11:by(2)) * 5           # same as 5..55:by(10)
-    5,15,25,35,45,45,55
-
-Conjecture: non-linear functions might even produce non-uniform "by" values!
-Think of log scaling, for instance.
 
 =back
 
