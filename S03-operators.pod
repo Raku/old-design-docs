@@ -3079,12 +3079,12 @@ used for matching intervals.  C<1..2> is the interval from 1 to 2
 inclusive of the endpoints, whereas 1^..^2 excludes the endpoints
 but matches any real number in between.
 
-Range objects support C<.min> and a C<.max> methods representing
+Range objects support C<.min> and C<.max> methods representing
 their left and right arguments.  The C<.minmax> method returns both
 values as a two-element list representing the interval.  Ranges are
 not autoreversing: C<2..1> is always a null range.
 
-Range objects support the C<.excl_min> and C<.excl_max> methods
+Range objects support C<.excl_min> and C<.excl_max> methods
 representing the exclusion (has C<^>) or inclusion (no C<^>) of each
 endpoint in the Range.
 
@@ -3140,7 +3140,11 @@ inferred from the right operand.  (A star on both sides is not allowed.)
     May..*      # May through December
 
 An empty range cannot be iterated; it returns a C<Nil> instead.  An empty
-range still has a defined min and max, but the min is greater than the max.
+range still has a defined C<.min> and C<.max>, but one of the following is
+true:  1. The C<.min> is greater than the C<.max>.  2. The C<.min> is equal
+to the C<.max> I<and> at least one of C<.excl_min> or C<.excl_max> is true.
+3. Both C<.excl_min> and C<.excl_max> are true I<and> C<.min> and C<.max>
+are consecutive values.
 
 Ranges that are iterated transmute into the corresponding series operator,
 and hence use C<!after> semantics to determine an end to the sequence.
