@@ -15,7 +15,7 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 5 Sep 2009
+    Last Modified: 5 Oct 2009
     Version: 175
 
 =head1 Overview
@@ -1085,20 +1085,6 @@ Range object constructor
 
 Constructs C<Range> objects, optionally excluding one or both endpoints.
 See L</Range and RangeIterator semantics>.
-
-Ranges do no coercions, and are defined specifically for numeric
-or stringish arguments (including enumerated types); in particular,
-it is illegal to use a C<Range> or a C<List> as implicitly numeric:
-
-    0 ..^ 10  # 0 .. 9
-    0 .. ^10  # ERROR
-
-However, C<Array> types in the second argument are assumed to be intended as numeric:
-
-    0 ..^ @x    # okay
-    0 ..^ +@x   # same thing
-
-C<Whatever> types are also supported.  See L</Range and RangeIterator semantics>.
 
 =back
 
@@ -3069,10 +3055,6 @@ er, somehow.
 
 =head1 Range and RangeIterator semantics
 
-=over
-
-=item *
-
 The C<..> range operator has variants with C<^> on either end to
 indicate exclusion of that endpoint from the range.  It always
 produces a C<Range> object.  Range objects are immutable, and primarily
@@ -3080,10 +3062,49 @@ used for matching intervals.  C<1..2> is the interval from 1 to 2
 inclusive of the endpoints, whereas 1^..^2 excludes the endpoints
 but matches any real number in between.
 
+For numeric arguments of differing type, ranges coerce to the wider type, so:
+
+    1 .. 1.5
+
+is taken to mean:
+
+    1.0 .. 1.5
+
+These coercions are defined by multi signatures.  (Other types may
+have different coercion policies.)  It is specifically illegal to
+use a C<Range> or a C<List> as implicitly numeric:
+
+    0 ..^ 10  # 0 .. 9
+    0 .. ^10  # ERROR
+
+For ranges with other non-numeric types on the right, the right
+argument is coerced to the type of the left argument and treated as
+numeric.  Hence, C<Array> types in the second argument are assumed
+to be intended as numeric if the left argument is numeric:
+
+    0 ..^ @x    # okay
+    0 ..^ +@x   # same thing
+
+C<Whatever> types are also supported to represent -Inf/+Inf.  If
+either endpoint is a C<WhateverCode>, the range is curried into
+another C<WhateverCode>.
+
+For other types, ranges may be composed for any two arguments
+of the same type, if the type itself supports it.  That is,
+in general, C<< infix:<..>:(::T Any $x, T $y) >> is defined such that,
+if type C<T> defines generic comparison (that is, by defining
+C<< infix:<cmp> >> or equivalent), a range is constructed in that type.
+If C<T> also defines C<.succ>, then the range may be iterated.
+(Otherwise the range may only be used as an interval, and will return
+failure if asked for a C<RangeIterator>.)  Note that it is not necessary
+to define a range multimethod in type C<T>, since the generic
+routine can usually auto-generate the range for you.
+
 Range objects support C<.min> and C<.max> methods representing
 their left and right arguments.  The C<.minmax> method returns both
 values as a two-element list representing the interval.  Ranges are
-not autoreversing: C<2..1> is always a null range.
+not autoreversing: C<2..1> is always a null range.  (The series
+operator C<...> can autoreverse, however.  See below.)
 
 Range objects support C<.excludes_min> and C<.excludes_max> methods
 representing the exclusion (has C<^>) or inclusion (no C<^>) of each
@@ -3119,6 +3140,9 @@ is hereby deprecated.)
 
     0 ... *+0.1, 100    # 0, 0.1, 0.2, 0.3 ... 100
 
+A C<Range> may be iterated only if the type in question supports the C<.succ> method.
+If it does not, any attempt to iterate returns failure.
+
 Smart matching against a C<Range> object smartmatches the
 endpoints in the domain of the object being matched, so fractional
 numbers are I<not> truncated before comparison to integer ranges:
@@ -3150,7 +3174,7 @@ are consecutive values.
 Ranges that are iterated transmute into the corresponding series operator,
 and hence use C<!after> semantics to determine an end to the sequence.
 
-=item *
+=head2 Unary ranges
 
 The unary C<^> operator generates a range from C<0> up to
 (but not including) its argument.  So C<^4> is short for C<0..^4>.
@@ -3161,7 +3185,9 @@ If applied to a type name, it indicates the metaclass instance instead,
 so C<^Moose> is short for C<HOW(Moose)> or C<Moose.HOW>.  It still kinda
 means "what is this thing's domain" in an abstract sort of way.
 
-=item *
+=head2 Auto-currying of ranges
+
+[This section is conjectural, and may be ignored for 6.0.]
 
 Since use of C<Range> objects in item context is usually
 non-sensical, a C<Range> object used as an operand for scalar operators
@@ -3183,8 +3209,6 @@ which is equivalent to something like:
 
 In other words, operators of numeric and other ordered types are
 generally overloaded to do something sensible on C<Range> objects.
-
-=back
 
 =head1 Chained comparisons
 
