@@ -1924,6 +1924,54 @@ any portions of the dynamic scope outside the current lexical scope.
 
 =back
 
+=head2 Signature Introspection
+
+A C<Signature> object can be introspected to find out the details of
+the parameters it is defined as expected. The C<.params> method will
+return a C<List> of C<Parameter> objects, which have the following
+readonly properties:
+
+  name          The name of the lexical variable to bind to, if any
+  type          The main type (the one multi-dispatch sorts by)
+  constraints   Any further type constraints
+  readonly      True if parameter has C<is readonly> trait
+  rw            True if parameter has C<is rw> trait
+  copy          True if parameter has C<is copy> trait
+  ref           True if parameter has C<is ref> trait
+  named         True if the parameter is to be passed named
+  named_names   List of names a named parameter can be passed as
+  slurpy        True if the parameter is slurpy
+  optional      True if the parameter is optional
+  default       A closure returning the default value
+  signature     A nested signature to bind the argument against
+
+Note that C<constraints> will be something that can be smart-matched
+against if it is defined; if there are many constraints it may be a
+C<Junction> of some sort, but if there is just one it may be simply
+that one thing.
+
+Further, various things that appear in an original written signature
+will have been deconstructed a bit. For example, a signature like:
+
+  :(1)
+
+Will introspect the same was as:
+
+  :(Int $ where 1)
+
+And if we have:
+
+  subset Odd of Int where { $^n % 2 };
+  sub foo(Odd $x) { ... }
+
+Then the signature of foo will be equivalent to something like:
+
+  :(Int $x where { $^n % 2 })
+
+That is, the refinement type will have been deconstructed into the
+part that nominal type that multiple dispatch uses for sorting the
+candidates and an additional constraint.
+
 
 =head1 Advanced subroutine features
 
