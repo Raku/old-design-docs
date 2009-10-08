@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 27 Sep 2009
-    Version: 88
+    Last Modified: 8 Oct 2009
+    Version: 89
 
 =head1 Overview
 
@@ -1494,22 +1494,23 @@ To export a subset type, put the export trait just before the C<where>:
 
 =head2 Abstract vs Concrete types [Conjectural]
 
-For any named type, certain other types may automatically be derived
+For any named type, certain other subset types may automatically be derived
 from it by appending an appropriate adverbial to its name:
 
-    Int:A       Allow either defined or undefined Int values
+    Int:_       Allow either defined or undefined Int values
     Int:U       Allow only undefined (abstract) Int values
     Int:D       Allow only defined (concrete) Int values
 
 That is, these are equivalent:
 
-    Int:A       Any where Int
-    Int:U       Int where !*.defined
-    Int:D       Int where *.defined
+    Int:U       Int:_ where !*.defined
+    Int:D       Int:_ where *.defined
 
 A bare C<Int> may default differently in different circumstances.
-In a variable declaration, C<:A> is assumed, whereas in a formal
-parameter that is not an invocant, C<:D> is assumed.
+In variable declarations and in invocant declarations, C<:_> is
+assumed so that variables can convey undefinedness, whereas in a
+formal parameter that is not an invocant, C<:D> is assumed so that
+dispatch tends to fail to routines that are expecting defined values.
 
 =head2 Multiple constraints
 
