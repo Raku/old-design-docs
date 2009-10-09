@@ -1507,11 +1507,23 @@ That is, these are equivalent:
     Int:U       Int:_ where !*.defined
     Int:D       Int:_ where *.defined
 
-A bare C<Int> may default differently in different circumstances.
-In variable declarations and in invocant declarations, C<:_> is
-assumed so that variables can convey undefinedness, whereas in a
-formal parameter that is not an invocant, C<:D> is assumed so that
-dispatch tends to fail to routines that are expecting defined values.
+In standard Perl 6, C<Int> is always assumed to mean C<Int:_>, but
+this default may be changed within a lexical scope by various pragmas.
+In particular,
+
+    use parameters :D;
+
+will cause non-invocant parameters to default to C<:D>, while
+
+    use invocant :D;
+
+will do the same for the invocant parameter.  In such lexical
+scopes you may use the C<:_> form to get back to the standard behavior.
+Conjecturally,
+
+    use variables :D;
+
+would do the same for types used in variable declarations.
 
 =head2 Multiple constraints
 
