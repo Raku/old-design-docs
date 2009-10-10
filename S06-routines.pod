@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 8 Oct 2009
-    Version: 118
+    Last Modified: 9 Oct 2009
+    Version: 119
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -1338,26 +1338,35 @@ When an argument is passed to a closure parameter that has this kind of
 signature, the argument must be a C<Code> object with a compatible
 parameter list and return type.
 
-=head2 Type parameters
+=head2 En passant type capture
 
 Unlike normal parameters, type parameters often come in piggybacked
 on the actual value as "kind", and you'd like a way to capture both
-the value and its kind at once.  (A "kind" is a class or type that
+the value and its kind at once.  (A "kind" is a storage type, that is, a class or type that
 an object is allowed to be.  An object is not officially allowed
 to take on a constrained or contravariant type.)  A type variable
 can be used anywhere a type name can, but instead of asserting that
 the value must conform to a particular type, it captures the
 actual "kind" of the object and also declares a package/type name
 by which you can refer to that kind later in the signature or body.
+In addition, it captures the nominal typing of any associated nominal
+type.
 For instance, if you wanted to match any two Dogs as long as they
 were of the same kind, you can say:
 
     sub matchedset (Dog ::T $fido, T $spot) {...}
 
-(Note that C<::T> is not required to contain C<Dog>, only
-a type that is compatible with C<Dog>.)
+This actually turns into something more like
 
-The C<::> sigil is short for "subset" in much the same way that C<&> is
+    sub matchedset (Dog ::T $fido, Dog $spot where T) {...}
+
+Note that C<::T> is not required to contain C<Dog>, only
+a type that is compatible with C<Dog>.  Note also that the nominal
+type, C<Dog>, is also included in the meaning of C<T>, along
+with the notion that the actual type must match the storage
+type of C<$fido>.
+
+The C<::> quasi-sigil is short for "subset" in much the same way that C<&> is
 short for "sub".  Just as C<&> can be used to name any kind of code,
 so too C<::> can be used to name any kind of type.  Both of them insert
 a bare identifier into the symbol table, though they fill different syntactic
@@ -1372,7 +1381,11 @@ if we're not interested in C<$fido> or C<$spot>.  Or just
 
     sub matchedset (::T, T) {...}
 
-if we don't care about anything but the matching.
+if we don't care about anything but the matching.  Note here that
+the second parameter may be more derived than the first.  If you
+need them to be identical, you must say something like
+
+    sub matchedset (::T, $ where { $_.WHAT === T }
 
 =head2 Unpacking array parameters
 
