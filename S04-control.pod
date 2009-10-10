@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 1 Oct 2009
-    Version: 83
+    Last Modified: 10 Oct 2009
+    Version: 84
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1314,17 +1314,26 @@ it is illegal to use a bare closure where an operator is expected
 because it will be considered to be two terms in row.
 (Remove the whitespace if you wish it to be a postcircumfix.)
 
-Anywhere a term is expected, a block is taken to be a closure definition
-(an anonymous subroutine).  If the closure is empty, or appears to contain
+Anywhere a term is expected, a block is taken to be a closure
+definition (an anonymous subroutine).  If a closure has arguments,
+it is always taken as a normal closure.  (In addition to standard
+formal parameters, placeholder arguments also count, as do the
+underscore variables.  Implicit use of C<$_> with C<.method> also
+counts as an argument.)
+
+However, if an argumentless closure is empty, or appears to contain
 nothing but a comma-separated list starting with a pair or a hash (counting
 a single pair or hash as a list of one element), the closure will be
-immediately executed as a hash composer.
+immediately executed as a hash composer, as if called with C<.()>.
 
     $hash = { };
     $hash = { %stuff };
     $hash = { "a" => 1 };
     $hash = { "a" => 1, $b, $c, %stuff, @nonsense };
 
+    $code = { %_ };                            # use of %_
+    $code = { "a" => $_ };                     # use of $_
+    $code = { "a" => 1, $b, $c, %stuff, @_ };  # use of @_
     $code = { ; };
     $code = { @stuff };
     $code = { "a", 1 };
@@ -1332,11 +1341,16 @@ immediately executed as a hash composer.
 
 If you wish to be less ambiguous, the C<hash> list operator will
 explicitly evaluate a list and compose a hash of the returned value,
-while C<sub> introduces an anonymous subroutine:
+while C<sub> or C<< -> >> introduces an anonymous subroutine:
 
+    $code = -> { "a" => 1 };
     $code = sub { "a" => 1 };
     $hash = hash("a" => 1);
     $hash = hash("a", 1);
+
+Note that the closure in a C<map> will never be interpreted as a hash,
+since such a closure always takes arguments, and use of placeholders
+(including underscore variables) is taken as evidence of arguments.
 
 If a closure is the right argument of the dot operator, the closure
 is interpreted as a hash subscript.

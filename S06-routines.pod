@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 9 Oct 2009
-    Version: 119
+    Last Modified: 10 Oct 2009
+    Version: 120
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -1575,9 +1575,18 @@ Positional placeholder names consisting of a single uppercase letter are disallo
 not because we're mean, but because it helps us catch references to
 obsolete Perl 5 variables such as C<$^O>.
 
-A function containing placeholders may also refer to either C<@_>
-or C<%_> or both, each of which (if so used) will be added to the
-signature as a normal readonly slurpy pararmeter:
+The C<$_> variable functions as a placeholder in a block without any
+other placeholders or signature.  Any bare block without placeholders
+really has a parameter like this:
+
+    -> $_ is rw = OUTER::<$_> { .mumble }
+
+(However, statement control C<if> notices this and passes no argument,
+so C<$_> ends up being bound to the outer C<$_> anyway.)
+
+A block may also refer to either C<@_> or C<%_> or both, each of
+which will be added to generated signature as a normal readonly
+slurpy pararmeter:
 
     { say $:what; warn "bad option: $_\n" for keys %_; }
 
@@ -1587,13 +1596,51 @@ turns into
 
 If not used, they are not added, and a dispatch with mispatched parameters will fail.
 
-Placeholders may also be used in method bodies that have no formal signature.
+The use of a P5ish C<@_> in a signatureless sub falls naturally out of this:
+
+    sub sayall { .say for @_ }
+
+Note that in this case, C<$_> is not treated as a placeholder because
+there is already the C<@_> placeholder.  And C<@_> is a placeholder
+only because the sub has no official signature.  Otherwise it would
+be illegal (unless explicitly declared).
+
+Placeholders may also be used in method bodies that have no
+formal signature.  The invocant is always removed first, so the
+first placeholder argument always refers to the first non-invocant
+argument.  C<@_> will never contain the invocant.  The invocant is
+always available via C<self>, of course.
 
 Since the placeholder declares a parameter variable without the twigil,
 the twigil is needed only on the first occurrence of the variable within
 the block.  Subsequent mentions of that variable may omit the twigil.
 Within an internal nested block the twigil I<must> be omitted, since
 it would wrongly attach to the inner block.
+
+Note that, unlike in Perl 5, C<@_> may not be used within an inner block to
+refer to the outer block's arguments:
+
+    sub say-or-print {
+        if $SAYIT {
+            say @_;     # WRONG
+        }
+        else {
+            print @_;   # WRONG
+        }
+    }
+
+because this desugars to:
+
+    sub say-or-print {
+        if $SAYIT -> *@_ {
+            say @_;
+        }
+        else -> *@_ {
+            print @_;
+        }
+    }
+
+Translators of Perl 5 will need to bear this in mind.
 
 =head1 Properties and traits
 
