@@ -14,12 +14,13 @@ Synopsis 29: Builtin Functions
     Carl Mäsak <cmasak@gmail.com>
     Moritz Lenz <moritz@faui2k3.org>
     Tim Nelson <wayland@wayland.id.au>
+    Carlin Bingham <carlin@theintersect.org>
 
 =head1 Version
 
     Created: 12 Mar 2005
 
-    Last Modified: 30 May 2009
+    Last Modified: 13 October 2009
     Version: 43
 
 The document is a draft.
@@ -252,10 +253,18 @@ See C<Synopsis 17: Concurrency> for more details.
 
 =item die
 
+ multi die (@LIST)
+
+Prints each element to $*ERR (STDERR) and throws an exception.
+
 =item fail
 
-B<TODO>: Research the exception handling system.
+ multi fail (Str $message)
 
+Can only be called inside a routine and causes the routine to C<return> an
+unthrown exception; a C<Failure> object which stringifies to C<$message>.
+If C<use fatal> is in effect where the routine was called from, it throws
+the exception.
 
 =back
 
