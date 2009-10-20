@@ -503,9 +503,15 @@ this is not enforced, and custom arg list processors are certainly
 possible on those arguments that are bound to a final slurpy or
 arglist variable.)
 
-All positional parameters must either have a unique name (sigil included)
+All parameters must either have a unique name (sigil included)
 or be anonymous. Declaring a routine having two positionals with exactly
-the same name counts as a compile-time error.
+the same name counts as a compile-time error. Renaming a named parameter
+can also cause forbidden name collisions:
+
+    :($a, $a)       # wrong, two a
+    :($a, :a($b))   # wrong, one a, one a through renaming
+    :($a, :a(@b))   # wrong 
+    :(:$a, :@a)     # wrong
 
 =head2 Named arguments
 
