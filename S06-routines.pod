@@ -503,12 +503,16 @@ this is not enforced, and custom arg list processors are certainly
 possible on those arguments that are bound to a final slurpy or
 arglist variable.)
 
-All parameters must either have a unique name (sigil excluded)
-or be anonymous. Declaring a routine having two positionals with exactly
-the same name counts as a compile-time error. Renaming a named parameter
-can also cause forbidden name collisions:
+A signature containing a name collision is considered a compile time
+error. A name collision can occur between positional parameters, between
+named parameters, or between a positional parameter and a named one.
+The sigil is not considered in such a comparison, except in the case of
+two positional parameters -- in other words, a signature in which two
+or more parameters are identical except for the sigil is still OK (but
+you won't be able to pass values by that name).
 
-    :($a, $a)       # wrong, two a
+    :($a, $a)       # wrong, two $a
+    :($a, @a)       # OK (but don't do that)
     :($a, :a($b))   # wrong, one a, one a through renaming
     :($a, :a(@b))   # wrong 
     :(:$a, :@a)     # wrong
