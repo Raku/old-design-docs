@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 8 Oct 2009
-    Version: 183
+    Last Modified: 22 Oct 2009
+    Version: 184
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2067,15 +2067,42 @@ into) C<CORE> should only be declared or imported with "my" semantics.
 All Perl code can see C<CORE> anyway as the outermost lexical scope,
 so there's no need to also put such things into C<GLOBAL>.
 
-The C<GLOBAL> package itself is rooted at C<CORE::GLOBAL>.
-The C<PROCESS> package is rooted at C<CORE::PROCESS>.  You will note
-that C<PROCESS> is not the parent of C<GLOBAL>.  However, searching
+The C<GLOBAL> package itself is accessible via C<UNIT::GLOBAL>.
+The C<PROCESS> package is accessible via C<UNIT::PROCESS>.
+The C<PROCESS> package is not the parent of C<GLOBAL>.  However, searching
 up the dynamic stack for context variables will look in all nested
 dynamic scopes (mapped automatically to each call's lexical scope,
-not package scope) out to C<UNIT>; once all the dynamic scopes are
+not package scope) out to the main dynamic scope; once all the dynamic scopes are
 exhausted, it also looks in the C<GLOBAL> package and then in the
 C<PROCESS> package, so C<$*OUT> typically finds the process's standard
-output handle.
+output handle.  Hence, C<PROCESS> and C<GLOBAL> serve as extra outer
+dynamic scopes, much like C<CORE> and C<SETTING> function as extra outer
+lexical scopes.
+
+Extra C<SETTING> scopes keep their identity and their nesting within C<CORE>,
+so you may have to go to C<OUTER> several times from C<UNIT> before you get
+to C<CORE>.  Normally, however, there is only the core setting, in which
+case C<UNIT::OUTER> ends up meaning the same as C<SETTING> which is the same
+as C<CORE>.
+
+Extra C<GLOBAL> scopes are treated differently.  Every compilation unit has
+its own associated C<UNIT::GLOBAL> package.  As the currently compiling
+compilation unit expresses the need for various other compilation units,
+the global names known to those other units must be merged into the new
+unit's C<UNIT::GLOBAL>.  (This includes the names in all the packages
+within the global package.)  If two different units use the same global
+name, they must generally be taken to refer to the same item, but only if
+the type signatures can be meshed (and augmentation rules followed, in the
+case of package names).  If two units provide package names with
+incompatible type signatures, the compilation of the unit fails.  In other
+words, you may not use incompatible global types to provide a union type.
+However, if one or the other unit underspecifies the type in a compatible
+way, the underspecified type just takes on the extra type information as it
+learns it.  (Presumably some combination of Liskov substitution, duck-typing,
+and run-time checking will prevent tragedy in the unit that was compiled with
+the underspecified type.  Alternately, the compiler is allowed to recompile or
+re-examine the unit with the new type constraints to see if any issues are
+certain to arise at run time, in which case the compiler is free to complain.)
 
 Any context variable declared with C<our> in the user's main program
 (specifically, the part compiled with C<GLOBAL> as the current package)
@@ -2084,8 +2111,14 @@ even if not directly in the dynamic call chain.  Note that context
 vars do *not* look in C<CORE> for anything.  (They I<might> look in
 C<SETTING> if you're running under a setting distinct from C<CORE>,
 if that setting defines a dynamic scope outside your main program,
-such as for the C<-n> or C<-p> switch.)
+such as for the C<-n> or C<-p> switch.)  Context variables declared
+with C<our> in the C<GLOBAL> or C<PROCESS> packages do not need to
+use the C<*> twigil, since the twigil is stripped before searching
+those packages.  Hence, your environment variables are effectively
+declared without the sigil:
 
+    augment package GLOBAL { our %ENV; }
+    
 =item *
 
 You may interpolate a string into a package or variable name using
