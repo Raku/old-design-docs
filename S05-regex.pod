@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 13 Sep 2009
-    Version: 103
+    Last Modified: 26 Oct 2009
+    Version: 104
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -978,6 +978,14 @@ However, if C<$var> contains a C<Regex> object, instead of attempting to
 convert it to a string, it is called as a subrule, as if you said
 C<< <$var> >>.  (See assertions below.)  This form does not capture,
 and it fails if C<$var> is tainted.
+
+If C<$var> is undefined, a warning is issued and the match fails.
+
+[Conjecture: when we allow matching against non-string types, doing a
+type match on the current node will require the syntax of an embedded
+signature, not just a bare variable, so there is no need to account for
+a variable containing a type object, which is by definition undefined,
+and hence fails to match by the above rule.]
 
 However, a variable used as the left side of an alias or submatch
 operator is not used for matching.
