@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 22 Oct 2009
-    Version: 185
+    Last Modified: 27 Oct 2009
+    Version: 186
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2786,6 +2786,19 @@ still act like a scalar value.  These are all the same:
 And if bound to a scalar parameter, no list is constructed.
 To force a single value to become a list object in item context,
 you should use C<< ['a'] >> for clarity as well as correctness.
+
+For any item in the list that appears to be numeric, the literal is
+stored as an object with both a string and a numeric nature, where
+the string nature always returns the original string.  It is as if
+the item is converted to an appropriate numeric type, then a C<Str>
+conversion is mixed in that reproduces the original string (if normal
+stringification would produce something else).  Hence:
+
+    < 1 1/2 6.02e23 1+2i > # Int/Str Rat/Str Num/Str Complex/Str
+
+The purpose of this would be to facilitate compile-time analysis of
+multi-method dispatch, when the user prefers angle notation as the
+most readable way to represent a list of numbers, which it often is.
 
 The degenerate case C<< <> >> is disallowed as a probable attempt to
 do IO in the style of Perl 5; that is now written C<lines()>.  (C<<
