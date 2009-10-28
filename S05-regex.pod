@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 26 Oct 2009
-    Version: 104
+    Last Modified: 28 Oct 2009
+    Version: 105
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -2430,9 +2430,9 @@ When used as a scalar, a C<Match> object evaluates to itself.
 However, sometimes you would like an alternate scalar value to
 ride along with the match.  The C<Match> object itself describes
 a concrete parse tree, so this extra value is called an I<abstract>
-object; it rides along as an attribute of the C<Match> object.  C<$()>
-is a shorthand for C<$($/.ast)>.  The C<.ast> method by default just
-returns the string between the C<$/.from> and C<$/.to> positions.
+object; it rides along as an attribute of the C<Match> object.
+The C<.ast> method by default returns an undefined value.
+C<$()> is a shorthand for C<$($/.ast // ~$/)>.
 
 Therefore C<$()> is usually just the entire match string, but
 you can override that by calling C<make> inside a regex:
@@ -2443,19 +2443,21 @@ you can override that by calling C<make> inside a regex:
         # match succeeds -- ignore the rest of the regex
     });
 
-This puts the new abstract node into C<$/.ast>.  If the abstract object is
-returned that way, it may be of any type, not just a string.
+This puts the new abstract node into C<$/.ast>.  An AST node
+may be of any type.
 This makes it convenient to build up an abstract syntax tree of
 arbitrary node types.
 
-You may also capture a subset of the match as the abstract object using
-the C<< <(...)> >> construct:
+=item *
+
+You may also capture a subset of the match using the C<< <(...)> >> construct:
 
     "foo123bar" ~~ / foo <( \d+ )> bar /
     say $();    # says 123
 
-In this case the abstract object is always a string when doing string
+In this case C<$()> is always a string when doing string
 matching, and a list of one or more elements when doing list matching.
+This construct does not set the C<.ast> attribute.
 
 =item *
 
