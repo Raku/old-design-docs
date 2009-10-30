@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 28 Oct 2009
-    Version: 106
+    Last Modified: 30 Oct 2009
+    Version: 107
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1238,8 +1238,13 @@ A leading C<$> indicates an indirect subrule.  The variable must contain
 either a C<Regex> object, or a string to be compiled as the regex.  The
 string is never matched literally.
 
-Such an assertion is not captured.  (No assertion with leading punctuation
-is captured by default.)  You may always capture it explicitly, of course.
+If the compilation of the string form fails, the error message is converted
+to a warning and the assertion fails.
+
+The indirect subrule assertion is not captured.  (No assertion with leading punctuation
+is captured by default.)  You may always capture it explicitly, of course:
+
+    / <name=$rx> /
 
 A subrule is considered declarative to the extent that the front of it
 is declarative, and to the extent that the variable doesn't change.
@@ -1336,7 +1341,17 @@ in enumerated character classes are indicated with "C<..>" rather than "C<->".
 
 Whitespace is ignored within square brackets:
 
-     / <[ a..z _ ]>* /
+     / <[ a .. z _ ]>* /
+
+A reversed range is illegal.  In directly compiled code it's a compile-time
+error to say
+
+    / <[ z .. a ]> /  # Reversed range is not allowed
+
+In indirectly compiled code, a similar warning is issued and the assertion fails:
+
+    $rx = '<[ z .. a ]>';
+    / <$rx> /;  # warns and never matches
 
 =item *
 
