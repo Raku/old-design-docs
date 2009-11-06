@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 10 Oct 2009
-    Version: 84
+    Last Modified: 06 Nov 2009
+    Version: 85
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1117,12 +1117,16 @@ that never happens, the implicit outermost exception handler will
 eventually decide to abort and print all unhandled exceptions found
 in the C<$!> that it is responsible for.
 
-=head1 Closure traits
+=head1 Phasers
 
-A C<CATCH> block is just a trait of the closure containing it.  Other
-blocks can be installed as traits as well.  These other blocks are
-called at various times, and some of them respond to various control
-exceptions and exit values:
+A C<CATCH> block is just a trait of the closure containing it, and is
+automatically called at the appropriate moment.  These auto-called
+blocks are known as I<phasers>, since they generally mark the
+transition from one phase of computing to another.  For instance,
+a C<CHECK> block is called at the end of compiling a compilation
+unit.  Other kinds of phasers can be installed as well; these are
+automatically called at various times as appropriate, and some of
+them respond to various control exceptions and exit values:
 
       BEGIN {...}*      at compile time, ASAP, only ever runs once
       CHECK {...}*      at compile time, ALAP, only ever runs once
@@ -1169,10 +1173,10 @@ statements as a whole at the indicated time:
 time may not persist under run-time cloning of any surrounding closure.)
 
 Code that is generated at run time can still fire off C<CHECK>
-and C<INIT> blocks, though of course those blocks can't do things that
-would require travel back in time.
+and C<INIT> phasers, though of course those phasers can't do things that
+would require travel back in time.  You need a wormhole for that.
 
-Some of these also have corresponding traits that can be set on variables.
+Some of these phasers also have corresponding traits that can be set on variables.
 These have the advantage of passing the variable in question into
 the closure as its topic:
 
@@ -1184,7 +1188,7 @@ of these can occur multiple times within the block.  So they aren't
 really traits, exactly--they add themselves onto a list stored in the
 actual trait (except for C<START>, which executes inline).  So if you
 examine the C<ENTER> trait of a block, you'll find that it's really
-a list of closures rather than a single closure.
+a list of phasers rather than a single phaser.
 
 The semantics of C<INIT> and C<START> are not equivalent to each
 other in the case of cloned closures.  An C<INIT> only runs once for
@@ -1212,7 +1216,7 @@ in which case the C<START> is evaluated once only for its side effects).
 In particular, this means that C<START> can make use of any parameters
 passed in on the first call, whereas C<INIT> cannot.
 
-All of these trait blocks can see any previously declared lexical
+All of these phaser blocks can see any previously declared lexical
 variables, even if those variables have not been elaborated yet when
 the closure is invoked (in which case the variables evaluate to an
 undefined value.)
@@ -1225,50 +1229,50 @@ if you use C<ENTER>/C<LEAVE> in a class block, they only execute when the
 class block is executed, but C<PRE>/C<POST> in a class block are evaluated
 around every method in the class.)  C<KEEP> and C<UNDO> are just variants
 of C<LEAVE>, and for execution order are treated as part of the queue of
-C<LEAVE> blocks.
+C<LEAVE> phasers.
 
 C<FIRST>, C<NEXT>, and C<LAST> are meaningful only within the
 lexical scope of a loop, and may occur only at the top level of such
 a loop block.  A C<NEXT> executes only if the end of the loop block is
 reached normally, or an explicit C<next> is executed.  In distinction
-to C<LEAVE> blocks, a C<NEXT> block is not executed if the loop block
+to C<LEAVE> phasers, a C<NEXT> phaser is not executed if the loop block
 is exited via any exception other than the control exception thrown
 by C<next>.  In particular, a C<last> bypasses evaluation of C<NEXT>
-blocks.
+phasers.
 
 [Note: the name C<FIRST> used to be associated with C<state>
 declarations.  Now it is associated only with loops.  See the C<START>
 above for C<state> semantics.]
 
-C<LEAVE> blocks are evaluated after C<CATCH> and C<CONTROL> blocks, including
-the C<LEAVE> variants, C<KEEP> and C<UNDO>.  C<POST> blocks are evaluated after
-everything else, to guarantee that even C<LEAVE> blocks can't violate DBC.
-Likewise C<PRE> blocks fire off before any C<ENTER> or C<FIRST> (though not
+C<LEAVE> phasers are evaluated after C<CATCH> and C<CONTROL> phasers, including
+the C<LEAVE> variants, C<KEEP> and C<UNDO>.  C<POST> phasers are evaluated after
+everything else, to guarantee that even C<LEAVE> phasers can't violate DBC.
+Likewise C<PRE> phasers fire off before any C<ENTER> or C<FIRST> (though not
 before C<BEGIN>, C<CHECK>, or C<INIT>, since those are done at compile or
 process initialization time).
 
-If an exception is thrown through a block without a C<CATCH> block, the
-C<LEAVE>, C<UNDO> and C<POST> blocks will be run at that point, with
+If an exception is thrown through a block without a C<CATCH> phaser, the
+C<LEAVE>, C<UNDO> and C<POST> phasers will be run at that point, with
 C<$!> set to the in-flight exception.  If there is no in-flight
-exception when these blocks are run, C<$!> will be C<undef>.  The last
+exception when these phasers are run, C<$!> will be C<undef>.  The last
 exception caught in the outer block is available as C<< OUTER::<$!> >>,
 as usual. 
 
-An exception thrown from an C<ENTER> block will abort the C<ENTER>
-queue, but one thrown from a C<LEAVE> block will not.  The exceptions
-thrown by failing C<PRE> and C<POST> blocks cannot be caught by a
-C<CATCH> in the same block, which implies that C<POST> blocks are not
-run if a C<PRE> block fails.  If a C<POST> fails while an exception is in
+An exception thrown from an C<ENTER> phaser will abort the C<ENTER>
+queue, but one thrown from a C<LEAVE> phaser will not.  The exceptions
+thrown by failing C<PRE> and C<POST> phasers cannot be caught by a
+C<CATCH> in the same block, which implies that C<POST> phaser are not
+run if a C<PRE> phaser fails.  If a C<POST> fails while an exception is in
 flight the C<POST> failure doesn't replace C<$!> but goes straight into
 C<$!.pending>.
 
-For blocks such as C<KEEP> and C<POST> that are run when exiting a
+For phasers such as C<KEEP> and C<POST> that are run when exiting a
 scope normally, the return value (if any) from that scope is available
-as the current topic.  (It is presented as a C<Capture> object.)
+as the current topic within the phaser.  (It is presented as a C<Parcel> object.)
 The topic of the outer block is still available as C<< OUTER::<$_> >>.
-Whether the return value is modifiable may be a policy of the block
+Whether the return value is modifiable may be a policy of the phaser
 in question.  In particular, the return value should not be modified
-within a C<POST> block, but a C<LEAVE> block could be more liberal.
+within a C<POST> phaser, but a C<LEAVE> phaser could be more liberal.
 
 =head1 Statement parsing
 
