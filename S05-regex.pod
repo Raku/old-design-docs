@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 30 Oct 2009
-    Version: 107
+    Last Modified: 06 Nov 2009
+    Version: 108
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -508,15 +508,6 @@ to imply a C<:> after every construct that could backtrack, including
 bare C<*>, C<+>, and C<?> quantifiers, as well as alternations.
 (Note: for portions of patterns subject to longest-token analysis, a C<:>
 is ignored in any case, since there will be no backtracking necessary.)
-
-=item *
-
-The new C<:panic> modifier causes this regex and all invoked subrules
-to try to backtrack on any rules that would otherwise default to
-not backtracking because they have C<:ratchet> set.  Never panic
-unless you're desperate and want the pattern matcher to do a lot of
-unnecessary work.  If you have an error in your grammar, it's almost
-certainly a bad idea to fix it by backtracking.
 
 =item *
 
@@ -1937,8 +1928,8 @@ it has scanned so far.  The above is equivalent to
     regex ident { [ <alpha>: | _: ]: \w*: }
 
 but rather easier to read.  The bare C<*>, C<+>, and C<?> quantifiers
-never backtrack in a C<token> unless some outer regex has specified a
-C<:panic> option that applies.  If you want to prevent even that, use
+never backtrack in a C<token>.
+In normal regexes, use
 C<*:>, C<+:>, or C<?:> to prevent any backtracking into the quantifier.
 If you want to explicitly backtrack, append either a C<?> or a C<!>
 to the quantifier.   The C<?> forces minimal matching as usual,
