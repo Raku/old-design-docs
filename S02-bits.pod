@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 27 Oct 2009
-    Version: 186
+    Last Modified: 09 Nov 2009
+    Version: 187
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2140,19 +2140,24 @@ Most symbolic references are done with this notation:
 
     $foo = "Bar";
     $foobar = "Foo::Bar";
-    $::($foo)           # package-scoped $Bar
+    $::($foo)           # lexically-scoped $Bar
     $::("MY::$foo")     # lexically-scoped $Bar
-    $::("*::$foo")      # global $Bar
+    $::("OUR::$foo")    # package-scoped $Bar
+    $::("GLOBAL::$foo") # global $Bar
+    $::("PROCESS::$foo")# process $Bar
+    $::("PARENT::$foo") # current package's parent's $Bar
     $::($foobar)        # $Foo::Bar
     $::($foobar)::baz   # $Foo::Bar::baz
     $::($foo)::Bar::baz # $Bar::Bar::baz
     $::($foobar)baz     # ILLEGAL at compile time (no operator baz)
 
 Note that unlike in Perl 5, initial C<::> doesn't imply global.
-Package names are searched for from inner lexical scopes to outer,
-then from inner packages to outer.  Variable names are searched
-for from inner lexical scopes to outer, but unlike package names
-are looked for in only the current package.
+Here as part of the interpolation syntax it doesn't even imply package.
+After the interpolation of the C<::()> component, the indirect name
+is looked up exactly as if it had been there in the original source
+code, with priority given first to leading pseudo-package names,
+then to names in the lexical scope (searching scopes outwards, ending
+at C<CORE>). The current package is searched last.
 
 Use the C<MY> pseudopackage to limit the lookup to the current lexical
 scope, and C<OUR> to limit the scopes to the current package scope.
