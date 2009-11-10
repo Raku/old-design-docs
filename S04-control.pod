@@ -13,16 +13,78 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 06 Nov 2009
-    Version: 85
+    Last Modified: 10 Nov 2009
+    Version: 86
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
 
+=head1 The Relationship of Lexical and Dynamic Scopes
+
+Control flow is a dynamic feature of all computer programming
+languages, but languages differ in the extent to which control flow is
+attached to declarative features of the language, which are often known
+as "static" or "lexical".  We use the phrase "lexical scoping" in its
+industry-standard meaning to indicate those blocks that surround the
+current textual location.  More abstractly, any declarations associated
+with those textual blocks are also considered to be part of the lexical
+scope, and this is where the term earns the "lexical" part of its name,
+in the sense that lexical scoping actually does define the "lexicon"
+for the current chunk of code, insofar as the definitions of variables
+and routines create a local domain-specific language.
+
+We also use the term "dynamic scoping" in the standard fashion to
+indicate the nested call frames that are created and destroyed every
+time a function or method is called.  In most interesting programs the
+dynamic scopes are nested quite differently from the lexical scopes,
+so it's important to distinguish carefully which kind of scoping
+we're talking about.
+
+Further compounding the difficulty is that every dynamic scope is
+associated with a lexical scope somewhere, so you can't just consider
+one kind of scoping or the other in isolation.  Many constructs define
+a particular interplay of lexical and dynamic features.  For instance,
+unlike normal lexically scope variables, contextual variables search
+up the dynamic call stack for a variable of a particular name, but at
+each "stop" along the way, they are actually looking in the lexical
+"pad" associated with that particular dynamic scope.
+
+In Perl 6, control flow is designed to do what the user expects most of
+the time, but this implies that we must consider the declarative nature
+of labels and blocks and combine those with the dynamic nature of the
+call stack.  For instance, a C<return> statement always returns from
+the lexically scoped subroutine that surrounds it.  But to do that,
+it may eventually have to peel back any number of layers of dynamic
+scoping internal to the subroutine.  The lexical scope supplies the
+declared target for the dynamic operation.  There does not seem to
+be a prevailing term in the industry for this, so we've coined the
+term I<lexotic> to refer to these strange operations that perform a
+dynamic operation with a lexical target in mind.  Lexotic operators
+in Perl 6 include:
+
+    return
+    next
+    last
+    redo
+    goto
+
+Some of these operators also fall back to a purely dynamic interpretation
+if the lexotic interpretation doesn't work.  For instance, C<next>
+will prefer to exit a loop lexotically, but if there is no loop with
+an appropriate label in the lexical context, it will then scan upward
+dynamically for any loop with the appropriate label, even though that
+loop will not be lexically visible.  Lexotic and dynamic control flow
+is implemented by a system of control exceptions.  For the lexotic
+return of C<next>, the control exception will contain the identity of
+the loop scope to be exited (since the label was already "used up" to
+discover that identity), but for the dynamic fallback, the exception
+will contain only the loop label to be matched dynamically.  See
+L</Control Exceptions> below.
+
 =head1 The Relationship of Blocks and Declarations
 
 Every block is a closure.  (That is, in the abstract, they're all
-anonymous subroutines that take a snapshot of their lexical scope.)
+anonymous subroutines that take a snapshot of their lexical environment.)
 How a block is invoked and how its results are used are matters of
 context, but closures all work the same on the inside.
 
