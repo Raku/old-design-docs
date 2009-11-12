@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 2 Nov 2009
-    Version: 122
+    Last Modified: 12 Nov 2009
+    Version: 123
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -1910,24 +1910,24 @@ C<equiv> consistent with the associativity, as shown in the final column above.
 
 =item C<PRE>/C<POST>
 
-Mark blocks that are to be unconditionally executed before/after
-the subroutine's C<do> block. These blocks must return a true value,
-otherwise an exception is thrown.
+These phasers declare statements or blocks that are to be unconditionally
+executed before/after the subroutine's C<do> block. They must return
+a true value, otherwise an exception is thrown.
 
 When applied to a method, the semantics provide support for the
 "Design by Contract" style of OO programming: a precondition of
-a particular method is met if all the C<PRE> blocks associated
+a particular method is met if all the C<PRE> phasers associated
 with that method return true.  Otherwise, the precondition is met
 if C<all> of the parent classes' preconditions are met (which may
 include the preconditions of I<their> parent classes if they fail,
 and so on recursively.)
 
-In contrast, a method's postcondition is met if all the method's C<POST> blocks
+In contrast, a method's postcondition is met if all the method's C<POST> phasers
 return true I<and> all its parents' postconditions are also met recursively.
 
-C<POST> blocks (and "C<will post>" block traits) declared within a C<PRE>
+C<POST> phasers (and "C<will post>" phaser traits) declared within a C<PRE>
 or C<ENTER> block are automatically hoisted outward to be called at the
-same time as other C<POST> blocks.  This conveniently gives "circum"
+same time as other C<POST> phasers.  This conveniently gives "circum"
 semantics by virtue of wrapping the post lexical scope within the pre
 lexical scope.
 
@@ -1958,11 +1958,12 @@ an exception handler.]
 
 =item C<ENTER>/C<LEAVE>/C<KEEP>/C<UNDO>/etc.
 
-These supply closures that are to be conditionally executed before or
+These phasers supply code that is to be conditionally executed before or
 after the subroutine's C<do> block (only if used at the outermost level
-within the subroutine; technically, these are block traits on the C<do>
-block, not subroutine traits).  These blocks are generally used only
-for their side effects, since most return values will be ignored.
+within the subroutine; technically, these are added to the block traits on the C<do>
+block, not the subroutine object).  These phasers are generally used only
+for their side effects, since most return values will be ignored.  (Phasers
+that run before normal execution may be used for their values, however.)
 
 =back
 
