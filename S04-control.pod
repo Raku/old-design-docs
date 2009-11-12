@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 10 Nov 2009
-    Version: 86
+    Last Modified: 12 Nov 2009
+    Version: 87
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1225,6 +1225,8 @@ may be placed in front of either a block or a statement:
     my $compiletime = BEGIN localtime;
     our $temphandle = START maketemp();
 
+In fact, most of these phasers will take either a block or a statement
+(known as a I<blorst> in the vernacular).
 This can be particularly useful to expose a lexically scoped
 declaration to the surrounding context.  Hence these declare the same
 variables with the same scope as the preceding example, but run the
@@ -1235,6 +1237,20 @@ statements as a whole at the indicated time:
 
 (Note, however, that the value of a variable calculated at compile
 time may not persist under run-time cloning of any surrounding closure.)
+
+Most of the non-value-producing phasers may also be so used:
+
+    END say my $accumulator;
+
+Note, however, that
+
+    END say my $accumulator = 0;
+
+sets the variable to 0 at C<END> time, since that is when the "my"
+declaration is actually executed.  Only argumentless phasers may
+use the statement form.  This means that C<CHECK> and C<CONTROL>
+always require a block, since they take an argument that sets C<$_>
+to the current topic.
 
 Code that is generated at run time can still fire off C<CHECK>
 and C<INIT> phasers, though of course those phasers can't do things that
