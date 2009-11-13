@@ -975,22 +975,22 @@ and hence fails to match by the above rule.]
 However, a variable used as the left side of an alias or submatch
 operator is not used for matching.
 
-    $x = <ident>
-    $0 ~~ <ident>
+    $x = <.ident>
+    $0 ~~ <.ident>
 
 If you do want to match C<$0> again and then use that as the submatch,
 you can force the match using double quotes:
 
-    "$0" ~~ <ident>
+    "$0" ~~ <.ident>
 
 On the other hand, it is non-sensical to alias to something that is
 not a variable:
 
-    "$0" = <ident>     # ERROR
-    $0 = <ident>       # okay
-    $x = <ident>       # okay, temporary capture
-    $<x> = <ident>     # okay, persistent capture
-    <x=ident>          # same thing
+    "$0" = <.ident>     # ERROR
+    $0 = <.ident>       # okay
+    $x = <.ident>       # okay, temporary capture
+    $<x> = <.ident>     # okay, persistent capture
+    <x=.ident>          # same thing
 
 Variables declared in capture aliases are lexically scoped to the
 rest of the regex.  You should not confuse this use of C<=> with
@@ -2648,7 +2648,11 @@ successfully matched.
 
 =item *
 
-Each subpattern's C<Match> object is pushed onto the array inside
+Each subpattern is either explicitly assigned to a named destination or
+imlicitly added to an array of matches.
+
+For each subpattern that is not explicitly given a name,
+the subpattern's C<Match> object is pushed onto the array inside
 the outer C<Match> object belonging to the surrounding scope (known as
 its I<parent C<Match> object>). The surrounding scope may be either the
 innermost surrounding subpattern (if the subpattern is nested) or else
@@ -2979,8 +2983,8 @@ C<$«bar»>, C<< $<baz> >>, etc.)  So the previous example also implies:
 =item *
 
 Note that it makes no difference whether a subrule is angle-bracketed
-(C<< <ident> >>) or aliased internally (C<< <ident=name> >>) or aliased
-externally (C<< $<ident>=(<alpha>\w*) >>). The name's the thing.
+(C<< <ident> >>) or aliased internally (C<< <ident=.name> >>) or aliased
+externally (C<< $<ident>=(<.alpha>\w*) >>). The name's the thing.
 
 
 =back
@@ -3029,11 +3033,10 @@ And with a mixture of both:
 
 =item *
 
-However, if a subrule is explicitly renamed (or aliased -- see L</Aliasing>),
-then only the I<new> name counts when deciding whether it is or isn't
-repeated. For example:
+To avoid name collisions, you may suppress the original name by use
+of a leading dot, and then use an alias to give the capture a different name:
 
-     if mm/ mv <file> <dir=file> / {
+     if mm/ mv <file> <dir=.file> / {
          $from = $<file>;  # Only one subrule named <file>, so scalar
          $to   = $<dir>;   # The Capture Formerly Known As <file>
      }
@@ -3195,20 +3198,25 @@ C<< $2 >> will contain the optional X.
 =item *
 
 If a subrule is aliased, it assigns its C<Match> object to the hash
-entry whose key is the name of the alias. And it I<no longer> assigns
-anything to the hash entry whose key is the subrule name. That is:
+entry whose key is the name of the alias, as well as to the original name.
 
      if m/ ID\: <id=ident> / {
+         say "Identified as $/<id> and $/<ident>";    # both names defined
+     }
+
+To suppress the original name, use the dot form:
+
+     if m/ ID\: <id=.ident> / {
          say "Identified as $/<id>";    # $/<ident> is undefined
      }
 
 =item *
 
-Hence aliasing a subrule I<changes> the destination of the subrule's C<Match>
+Hence aliasing a dotted subrule I<changes> the destination of the subrule's C<Match>
 object. This is particularly useful for differentiating two or more calls to
 the same subrule in the same scope. For example:
 
-     if mm/ mv <file>+ <dir=file> / {
+     if mm/ mv <file>+ <dir=.file> / {
          @from = @($<file>);
          $to   = $<dir>;
      }
@@ -3223,7 +3231,8 @@ the same subrule in the same scope. For example:
 
 If a numbered alias is used instead of a named alias:
 
-     m/ $1=(<-[:]>*) \:  $0=<ident> /
+     m/ $1=(<-[:]>*) \:  $0=<ident> /   # captures $<ident> too
+     m/ $1=(<-[:]>*) \:  $0=<.ident> /  # doesn't capture $<ident>
 
 the behavior is exactly the same as for a named alias (i.e. the various
 cases described above), except that the resulting C<Match> object is
@@ -3313,12 +3322,12 @@ contain an array, instead of a single C<Match> object.
 In other words, aliasing and quantification are completely orthogonal.
 For example:
 
-     if mm/ mv $0=<file>+ / {
+     if mm/ mv $0=<.file>+ / {
          # <file>+ returns a list of Match objects,
          # so $0 contains an array of Match objects,
          # one for each successful call to <file>
 
-         # $/<file> does not exist (it's pre-empted by the alias)
+         # $/<file> does not exist (it's suppressed by the dot)
      }
 
 
