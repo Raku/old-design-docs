@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 06 Nov 2009
-    Version: 108
+    Last Modified: 13 Nov 2009
+    Version: 109
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -491,13 +491,6 @@ all pieces of C<$/> are considered copy-on-write, if not read-only.
 
 [Conjecture: this should really associate a pattern with a string variable,
 not a (presumably immutable) string value.]
-
-=item *
-
-The new C<:keepall> modifier causes this regex and all invoked subrules
-to remember everything, even if the rules themselves don't ask for
-their subrules to be remembered.  This is for forcing a grammar that
-throws away whitespace and comments to keep them instead.
 
 =item *
 
@@ -1163,6 +1156,13 @@ is just shorthand for
 
     $<foo> = <bar>
 
+Note that this aliasing does not modify the original C<< <bar> >> capture.
+To rename a capture entirely, use the dot form on the capture you wish
+to suppress:
+
+    <foo=.bar>
+    $<foo> = <.bar>
+
 Multiple aliases are allowed, so
 
     <foo=pub=bar>
@@ -1220,8 +1220,6 @@ In this case the object passed as the invocant is the current match
 state, and the method is expected to return a new match state object.
 The extra pattern matching arguments (C<$depth>, C<$binding>, and
 C<$fate>) must be supplied explicitly.
-
-The non-capturing behavior may be overridden with a C<:keepall>.
 
 =item *
 
@@ -3657,28 +3655,6 @@ match is also available:
 
 =back
 
-=head2 C<:keepall>
-
-=over
-
-=item *
-
-All regexes remember everything if C<:keepall> is in effect
-anywhere in the outer dynamic scope.  In this case everything inside
-the angles is used as part of the key.  Suppose the earlier example
-parsed whitespace:
-
-     / <key> <.ws> '=>' <.ws> <value> { %hash{$key} = $value } /
-
-The two instances of C<< <.ws> >> above would store an array of two
-values accessible as C<< @<.ws> >>.  It would also store the literal
-match into C<< $<'=\>'> >>.  Just to make sure nothing is forgotten,
-under C<:keepall> any text or whitespace not otherwise remembered is
-attached as an extra property on the subsequent node. (The name of
-that property is "C<pretext>".)
-
-=back
-
 =head1 Grammars
 
 =over
@@ -3781,7 +3757,7 @@ Perl 6 will come with at least one grammar predefined:
 Hence:
 
      given $source_code {
-         $parsetree = m:keepall/<Perl::prog>/;
+         $parsetree = STD.parse($source_code)
      }
 
 =item *
