@@ -13,8 +13,8 @@ Synopsis 11: Modules
 
     Created: 27 Oct 2004
 
-    Last Modified: 30 Jun 2009
-    Version: 30
+    Last Modified: 17 Nov 2009
+    Version: 31
 
 =head1 Overview
 
@@ -126,6 +126,8 @@ C<EXPORT> method with the class itself as the invocant.
 =head1 Compile-time Importation
 X<use>
 
+[Note: the :MY forms are being rethought currently.]
+
 Importing via C<use> binds into the current lexical scope by default
 (rather than the current package, as in Perl 5).
 
@@ -133,7 +135,7 @@ Importing via C<use> binds into the current lexical scope by default
 
 You can be explicit about the desired namespace:
 
-    use Sense :MY<common> :OUR<@horse> :CONTEXT<$sensitive>;
+    use Sense :MY<common> :OUR<@horse>;
 
 That's pretty much equivalent to:
 
@@ -312,12 +314,16 @@ to the package scope instead:
 You may also import symbols from the various pseudo-packages listed in S02.
 They behave as if all their symbols are in the C<:ALL> export list:
 
-    import CONTEXT <$IN $OUT $ERR>;
+    import PROCESS <$IN $OUT $ERR>;
     import CALLER <$x $y>;
 
     # Same as:
-    #     my ($IN, $OUT, $ERR) ::= ($*IN, $*OUT, $*ERR)
+    #     my ($IN, $OUT, $ERR) := PROCESS::<$IN $OUT $ERR>
     #     my ($x, $y) := ($CALLER::x, $CALLER::y)
+
+[Conjecture: this section may go away, since the aliasing forms
+are not all that terrible, and it's not clear that we want the
+overhead of emulating export lists.]
 
 =head1 Versioning
 

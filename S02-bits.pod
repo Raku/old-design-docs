@@ -14,7 +14,7 @@ Synopsis 2: Bits and Pieces
     Created: 10 Aug 2004
 
     Last Modified: 17 Nov 2009
-    Version: 188
+    Version: 189
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2030,7 +2030,7 @@ The following pseudo-package names are reserved at the front of a name:
     PROCESS     # Process-related globals (superglobals)
     COMPILING   # Lexical symbols in the scope being compiled
     CALLER      # Contextual symbols in the immediate caller's lexical scope
-    CONTEXT     # Contextual symbols in my or any caller's lexical scope
+    DYNAMIC     # Contextual symbols in my or any caller's lexical scope
 
 The following relative names are also reserved but may be used
 anywhere in a name:
@@ -2283,18 +2283,18 @@ need not be locked.)
 
 =item *
 
-The C<CONTEXT> pseudo-package is just like C<CALLER> except that
+The C<DYNAMIC> pseudo-package is just like C<CALLER> except that
 it starts in the current dynamic scope and from there scans outward
 through all dynamic scopes until it finds a contextual variable of that
 name in that dynamic context's associated lexical pad.  (This search
 is implied for variables with the C<*> twigil; hence C<$*FOO> is
-equivalent to C<< CONTEXT::<$*FOO> >>.)  If, after scanning outward
+equivalent to C<< DYNAMIC::<$*FOO> >>.)  If, after scanning outward
 through all those dynamic scopes, there is no variable of that name
 in any immediately associated lexical pad, it strips the C<*> twigil
 out of the name and looks in the C<GLOBAL> package followed by the
 C<PROCESS> package.  If the value is not found, it returns failure.
 
-Unlike C<CALLER>, C<CONTEXT> will see a contextual variable that is
+Unlike C<CALLER>, C<DYNAMIC> will see a contextual variable that is
 declared in the current scope, since it starts search 0 scopes up the
 stack rather than 1.  You may, however, use C<< CALLER::<$*foo> >>
 to bypass a contextual definition of C<$*foo> in your current context,
