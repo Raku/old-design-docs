@@ -2735,10 +2735,11 @@ Decimal fractions not using "e" notation are also stored as C<Rat> values:
 
 =item *
 
-Complex literals are similarly indicated by writing an addition of
+Complex literals are similarly indicated by writing an addition or subtraction of
 two real numbers without spaces:
 
     5.2+1e42i
+    3-1i
 
 As with rational literals, constant folding would produce the same
 complex number, but this form parses as a single term, ignoring
@@ -2870,6 +2871,7 @@ following table shows the correspondence to the "fatarrow" notation:
     a => $a             :$a
     a => @a             :@a
     a => %a             :%a
+    a => &a             :&a
     a => $$a            :$$a
     a => @$$a           :@$$a (etc.)
     a => %foo<a>        %foo<a>:p
@@ -3500,10 +3502,10 @@ statement is expected.) So for any undeclared identifier "C<foo>":
     foo:                #   label       -- must be label at statement boundary.
                                         -- ILLEGAL otherwise
     foo: bar:           #   two labels in a row, okay
-    .foo:               # $_.foo: 1     -- must be "dot" method with : args
+    .foo: 1             # $_.foo: 1     -- must be "dot" method with : args
     .foo(1)             # $_.foo(1)     -- must be "dot" method with () args
     .foo                # $_.foo()      -- must be "dot" method with no args
-    .$foo:              # $_.$foo: 1    -- indirect "dot" method with : args
+    .$foo: 1            # $_.$foo: 1    -- indirect "dot" method with : args
     foo bar: 1          # bar.foo(1)    -- bar must be predecl as class
                                         -- sub bar allowed here only if 0-ary
                                         -- otherwise you must say (bar):
@@ -3586,6 +3588,8 @@ The double-underscore forms are going away:
     __END__             =begin END
     __DATA__            =begin DATA
 
+[Note: this paragraph is speculative and subject to drastic change
+as S26 evolves.]
 The C<=begin END> Pod stream is special in that it assumes there's
 no corresponding C<=end END> before end of file.  The C<DATA>
 stream is no longer special--any Pod stream in the current file
