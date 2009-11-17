@@ -649,12 +649,11 @@ is guaranteed.  (Native C<int> operations need not support this on
 machines that are not natively 2's complement.  You must convert to
 and from C<Int> to do portable bitops on such ancient hardware.)
 
-(C<Num> may support arbitrary-precision floating-point arithmetic, but
-is not required to unless we can do so portably and efficiently.  C<Num>
-must support the largest native floating point format that runs at full
-speed.)
+C<Num> must support the largest native floating point format that
+runs at full speed.  It may be bound to an arbitrary precision type,
+but by default it is the same type as a native C<num>.  See below.
 
-C<Rat> supports arbitrary precision rational arithmetic.
+C<Rat> supports extended precision rational arithmetic.
 Dividing two C<Int> objects using C<< infix:</> >> produces a
 a C<Rat>, which is generally usable anywhere a C<Num> is usable, but
 may also be explicitly cast to C<Num>.  (Also, if either side is
@@ -688,8 +687,14 @@ defined as C<int128/int64>, can hold the number of seconds since
 the Big Bang with picosecond precision.  Though perhaps not with
 picosecond accuracy...)
 
-For applications that really need arbitrary precision denominators
-as well as numerators, C<Ratio> may be used, which is defined as C<Int/Int>.
+For applications that really need arbitrary precision denominators as
+well as numerators at the cost of performance, C<Ratio> may be used,
+which is stored as C<Int/Int>, that is, as arbitrary precision in
+both parts.  There is no literal form for a C<Ratio>, so it must
+be constructed using C<Ratio.new($nu,$de)>.  In general, only math
+operators with at least one C<Ratio> argument will return another
+C<Ratio>, to prevent accidental promotion of reasonably fast C<Rat>
+values into arbitrarily slow C<Ratio> values.
 
 =item *
 
