@@ -708,9 +708,10 @@ overhead otherwise.  Hence, if you are adding a bunch of C<Rat>s that
 represent, say, dollars and cents, the denominator may stay 100 the
 entire way through.  The C<.nu> and C<.de> methods will return these
 unreduced values.  You can use C<$rat.=norm> to normalize the fraction.
+(This also forces the sign on the denominator to be positive.)
 The C<.perl> method will produce a decimal number if the denominator is
 a power of 10, or normalizable to a power of 10 (that is, having factors
-of only 2 and 5).  Otherwise it will normalize and return a rational
+of only 2 and 5 (and -1)).  Otherwise it will normalize and return a rational
 literal of the form C<-47/3>.  Stringifying a rational does a similar
 calculation, with the same result on decimal-normalizable fractions,
 but where C<.perl> would produce the C<-47/3> form, stringification instead
@@ -2864,6 +2865,11 @@ stringification would produce something else).  Hence:
 The purpose of this would be to facilitate compile-time analysis of
 multi-method dispatch, when the user prefers angle notation as the
 most readable way to represent a list of numbers, which it often is.
+It also gives us a reasonable way of visually isolating any known
+literal format as a single syntactic unit:
+
+    <-1+2i>.polar
+    (-1+2i).polar       # same, but less clearly a literal
 
 The degenerate case C<< <> >> is disallowed as a probable attempt to
 do IO in the style of Perl 5; that is now written C<lines()>.  (C<<
