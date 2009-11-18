@@ -629,12 +629,15 @@ which represent capabilities or interfaces.  These roles
 are generally not used directly as object types.  For instance
 all the numeric types perform the C<Numeric> role, and all
 string types perform the C<Stringy> role, but there's no
-such thing as a "Numeric" object.  Common roles include:
+such thing as a "Numeric" object, since these are generic
+types that must be instantiated with extra arguments to produce
+normal object types.  Common roles include:
 
     Stringy
     Numeric
     Real
     Integral
+    Rational
     Callable
     Positional
     Associative
@@ -654,7 +657,7 @@ runs at full speed.  It may be bound to an arbitrary precision type,
 but by default it is the same type as a native C<num>.  See below.
 
 C<Rat> supports extended precision rational arithmetic.
-Dividing two C<Int> objects using C<< infix:</> >> produces a
+Dividing two C<Integral> objects using C<< infix:</> >> produces a
 a C<Rat>, which is generally usable anywhere a C<Num> is usable, but
 may also be explicitly cast to C<Num>.  (Also, if either side is
 C<Num> already, C<< infix:</> >> gives you a C<Num> instead of a C<Rat>.)
@@ -673,7 +676,8 @@ rather than C<int> and C<num>.
 
 However, for pragmatic reasons, C<Rat> values are guaranteed to be
 exact only up to a certain point.  By default, this is the precision
-that would be represented by the C<Rat64> type, which has a numerator
+that would be represented by the C<Rat64> type, which is an alias for
+C<Rational[Int,int64]>, which has a numerator
 of C<Int> but is limited to a denominator of C<int64>.  A C<Rat64> that
 would require more than 64 bits of storage in the denominator is
 automatically converted either to a C<Num> or to a lesser-precision
@@ -681,20 +685,35 @@ C<Rat>, at the discretion of the implementation.  (Native types such
 as C<rat64> limit the size of both numerator and denominator, though
 not to the same size.  The numerator should in general be twice the
 size of the denominator to support user expectations.  For instance,
-a C<rat8> should actually support C<int16/int8>, allowing
+a C<rat8> actually supports C<Rational[int16,int8], allowing
 numbers like C<100.01> to be represented, and a C<rat64>,
-defined as C<int128/int64>, can hold the number of seconds since
-the Big Bang with picosecond precision.  Though perhaps not with
-picosecond accuracy...)
+defined as C<Rational[int128,int64]>, can hold the number of seconds since
+the Big Bang with attosecond precision.  Though perhaps not with
+attosecond accuracy...)
 
 For applications that really need arbitrary precision denominators as
-well as numerators at the cost of performance, C<Ratio> may be used,
-which is stored as C<Int/Int>, that is, as arbitrary precision in
-both parts.  There is no literal form for a C<Ratio>, so it must
-be constructed using C<Ratio.new($nu,$de)>.  In general, only math
-operators with at least one C<Ratio> argument will return another
-C<Ratio>, to prevent accidental promotion of reasonably fast C<Rat>
-values into arbitrarily slow C<Ratio> values.
+well as numerators at the cost of performance, C<FatRat> may be used,
+which is defined as C<Rational[Int,Int], that is, as arbitrary precision in
+both parts.  There is no literal form for a C<FatRat>, so it must
+be constructed using C<FatRat.new($nu,$de)>.  In general, only math
+operators with at least one C<FatRat> argument will return another
+C<FatRat>, to prevent accidental promotion of reasonably fast C<Rat>
+values into arbitrarily slow C<FatRat> values.
+
+Although most rational implementations normalize or "reduce" fractions
+to their smallest representation immediately through a gcd algorithm,
+Perl allows a rational datatype to do so lazily at need, such as
+whenever the denominator would run out of precision, but avoid the
+overhead otherwise.  Hence, if you are adding a bunch of C<Rat>s that
+represent, say, dollars and cents, the denominator may stay 100 the
+entire way through.  The C<.nu> and C<.de> methods will return these
+unreduced values.  You can use C<$rat.=norm> to normalize the fraction.
+The C<.perl> method will produce a decimal number if the denominator is
+a multiple of 10.  Otherwise it will normalize and return a rational
+literal of the form -47/3.  Stringifying a rational always converts
+to C<Num> and stringifies that, so the rational internal form is
+somewhat hidden from the casual user, who would generally prefer
+to see decimal notation.
 
 =item *
 
@@ -1091,7 +1110,7 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Int         Perl integer (allows Inf/NaN, arbitrary precision, etc.)
     Num         Perl number (approximate Real, generally via floating point)
     Rat         Perl rational (exact Real, limited denominator)
-    Ratio       Perl rational (unlimited precision in both parts)
+    FatRat      Perl rational (unlimited precision in both parts)
     Complex     Perl complex number
     Bool        Perl boolean
     Exception   Perl exception
@@ -1142,11 +1161,11 @@ These types do (at least) the following roles:
     Class       Roles
     =====       =====
     Str         Stringy
-    Bit         Numeric Boolean
+    Bit         Numeric Boolean Integral
     Int         Numeric Integral
     Num         Numeric Real
-    Rat         Numeric Real
-    Ratio       Numeric Real
+    Rat         Numeric Real Rational
+    FatRat      Numeric Real Rational
     Complex     Numeric
     Bool        Boolean
     Exception   Failure
