@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 17 Nov 2009
-    Version: 189
+    Last Modified: 18 Nov 2009
+    Version: 190
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -709,11 +709,32 @@ represent, say, dollars and cents, the denominator may stay 100 the
 entire way through.  The C<.nu> and C<.de> methods will return these
 unreduced values.  You can use C<$rat.=norm> to normalize the fraction.
 The C<.perl> method will produce a decimal number if the denominator is
-a multiple of 10.  Otherwise it will normalize and return a rational
-literal of the form -47/3.  Stringifying a rational always converts
-to C<Num> and stringifies that, so the rational internal form is
+a power of 10, or normalizable to a power of 10 (that is, having factors
+of only 2 and 5).  Otherwise it will normalize and return a rational
+literal of the form C<-47/3>.  Stringifying a rational does a similar
+calculation, with the same result on decimal-normalizable fractions,
+but where C<.perl> would produce the C<-47/3> form, stringification instead
+converts to C<Num> and stringifies that, so the rational internal form is
 somewhat hidden from the casual user, who would generally prefer
-to see decimal notation.
+to see pure decimal notation.
+
+    say 1/5;    # 0.2 exactly (not via Num)
+    say 1/3;    # 0.333333333333333 via Num
+
+    say <2/6>.perl
+                # 1/3
+
+    say 3.14159_26535_89793
+                # 3.141592653589793 including last digit
+
+    say 111111111111111111111111111111111111111111111.123
+                # 111111111111111111111111111111111111111111111.123
+
+    say 555555555555555555555555555555555555555555555/5
+                # 111111111111111111111111111111111111111111111
+
+    say <555555555555555555555555555555555555555555555/5>.perl
+                # 111111111111111111111111111111111111111111111/1
 
 =item *
 
