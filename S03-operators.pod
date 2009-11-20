@@ -15,7 +15,7 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 19 Nov 2009
+    Last Modified: 20 Nov 2009
     Version: 178
 
 =head1 Overview
@@ -4330,7 +4330,7 @@ When parentheses are omitted, you may use any infix assignment operator
 instead of C<=> as the initializer.  In that case, the left hand side of
 the infix operator will be the variable's prototype object:
 
-    my Dog $fido .= new;      # okay: a constant Dog object
+    my Dog $fido .= new;      # okay: a Dog object
     my Dog $fido = Dog.new;   # same thing
     my Dog $fido = $fido.new; # wrong: invalid self-reference
     my (Dog $fido .= new);    # wrong: cannot use .= inside signature
@@ -4428,10 +4428,19 @@ declarator in front:
 
     my constant companion = 'Fido';
     has constant $.pi = 22/7;
-    state constant $latch = snapshot();
+    state constant $latch = snapshot(); # careful with this!
 
-In these cases the explicit scoping determines when the initializer is
-evaluated.
+However, the constant declarator is intended to create values the
+compiler can inline, so it always evaluates its value at BEGIN time.
+Thus, while the extra scope declarator may say where the value is
+stored and when that storage is initialized, it cannot change the value
+of that from instance to instance.  In general, if you want something
+that doesn't vary over the nomral lifetime of a scope declarator,
+initialize it to a readonly value using C<::=> rather than declaring
+it as a constant.  Then each time the scope declarator is used,
+it can initialize to a different readonly value:
+
+    state $latch ::= snapshot();  # each clone gets its own value of $latch
 
 =head1 Argument List Interpolating
 
