@@ -17,7 +17,7 @@ Synopsis 6: Subroutines
     Created: 21 Mar 2003
 
     Last Modified: 19 Nov 2009
-    Version: 124
+    Version: 125
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -285,7 +285,7 @@ but may not otherwise be called with a bare identifier, since subroutine
 dispatch only looks in lexical scopes.
 
 Global subroutines and variables are normally referred to by prefixing
-their identifiers with the C<*> twigil, to allow contextual overrides.
+their identifiers with the C<*> twigil, to allow dynamically scoped overrides.
 
     GLOBAL::<$next_id> = 0;
     sub GLOBAL::saith($text)  { say "Yea verily, $text" }
@@ -296,7 +296,7 @@ their identifiers with the C<*> twigil, to allow contextual overrides.
         &*saith($*next_id);  # print the dynamic $next_id;
     }
 
-To disallow contextual overrides, you must access the globals directly:
+To disallow dynamic overrides, you must access the globals directly:
 
     GLOBAL::saith($GLOBAL::next_id);
 
@@ -319,12 +319,12 @@ to it, as the C<our> declarator does:
 
 =head2 Dynamically scoped subroutines
 
-Similarly, you may define contextual subroutines:
+Similarly, you may define dynamically scoped subroutines:
 
     my sub myfunc ($x) is context { ... }
     my sub &*myfunc ($x) { ... }        # same thing
 
-This may then be invoked via the syntax for contextual variables:
+This may then be invoked via the syntax for dynamic variables:
 
     &*myfunc(42);
 
@@ -2030,12 +2030,11 @@ original argument. This is commonly known as "pass-by-value".
 
 Binding to a copy parameter never triggers autovivification.
 
-=item C<is context(I<ACCESS>)>
+=item C<is dynamic>
 
 Specifies that the parameter is to be treated as an "environmental"
 variable, that is, a lexical that is accessible from the dynamic
-scope (see S02).  If I<ACCESS> is omitted, defaults to readonly in
-any portions of the dynamic scope outside the current lexical scope.
+scope (see S02).
 
 =back
 
@@ -2143,42 +2142,35 @@ list in list context.  This is the default behavior, but the
 caller may use C<< prefix:<|> >> to inline the returned values as part of the
 new argument list.  The caller may also bind the returned C<Capture> directly.
 
-If any function called as part of a return list asks what its context
-is, it will be told it was called in list context regardless of the
-eventual binding of the returned C<Capture>.  (This is quite
-different from Perl 5, where a C<return> statement always propagates its
-caller's context to its own argument(s).)  If that is not the
-desired behavior you must coerce the call to an appropriate context,
-(or declare the return type of the function to perform such a coercion).
-In any event, such a function is called only once at the time the
+A function is called only once at the time the
 C<Capture> object is generated, not when it is later bound (which
 could happen more than once).
 
-=head2 The C<dynamic> and C<caller> functions
+=head2 The C<callfram> and C<caller> functions
 
-The C<dynamic> function takes a list of matchers and interprets them
-as a navigation path from the current context to a location in the
-dynamic scope, either the current context itself or some context
-from which the current context was called.  It returns an object
-that describes that particular dynamic scope, or a false value if
+The C<callframe> function takes a list of matchers and interprets them
+as a navigation path from the current call frame to a location in the
+call stack, either the current call frame itself or some frame
+from which the current frame was called.  It returns an object
+that describes that particular call frame, or a false value if
 there is no such scope.  Numeric arguments are interpreted as number
-of contexts to skip, while non-numeric arguments scan outward for a
-context matching the argument as a smartmatch.
+of frames to skip, while non-numeric arguments scan outward for a
+frame matching the argument as a smartmatch.
 
-The current context is accessed with a null argument list.
+The current frame is accessed with a null argument list.
 
-    say " file ", dynamic().file,
-        " line ", dynamic().line;
+    say " file ", callframe().file,
+        " line ", callframe().line;
 
 which is equivalent to:
 
     say " file ", DYNAMIC::<$?FILE>,
         " line ", DYNAMIC::<$?LINE>;
 
-The immediate caller of this context is accessed by skipping one level:
+The immediate caller of this frame is accessed by skipping one level:
 
-    say " file ", dynamic(1).file,
-        " line ", dynamic(1).line;
+    say " file ", callframe(1).file,
+        " line ", callframe(1).line;
 
 You might think that that must be the current function's caller,
 but that's not necessarily so.  This might return an outer block in
@@ -2186,60 +2178,60 @@ our own routine, or even some function elsewhere that implements a
 control operator on behalf of our block.  To get outside your current
 routine, see C<caller> below.
 
-The C<dynamic> function may be given arguments
+The C<callframe> function may be given arguments
 telling it which higher scope to look for.  Each argument is processed
 in order, left to right.  Note that C<Any> and C<0> are no-ops:
 
-    $ctx = dynamic();        # currently running context for &?BLOCK
-    $ctx = dynamic(Any);     # currently running context for &?BLOCK
-    $ctx = dynamic(Any,Any); # currently running context for &?BLOCK
-    $ctx = dynamic(1);       # my context's context
-    $ctx = dynamic(2);       # my context's context's context
-    $ctx = dynamic(3);       # my context's context's context's context
-    $ctx = dynamic(1,0,1,1); # my context's context's context's context
-    $ctx = dynamic($i);      # $i'th context
+    $ctx = callframe();        # currently running frame for &?BLOCK
+    $ctx = callframe(Any);     # currently running frame for &?BLOCK
+    $ctx = callframe(Any,Any); # currently running frame for &?BLOCK
+    $ctx = callframe(1);       # my frame's caller
+    $ctx = callframe(2);       # my frame's caller's caller
+    $ctx = callframe(3);       # my frame's caller's caller's caller
+    $ctx = callframe(1,0,1,1); # my frames's caller's caller's caller
+    $ctx = callframe($i);      # $i'th caller
 
 Note also that negative numbers are allowed as long as you stay within
-the existing context stack:
+the existing call stack:
 
-    $ctx = dynamic(4,-1);    # my context's context's context's context
+    $ctx = callframe(4,-1);    # my frames's caller's caller's caller
 
-Repeating any smartmatch just matches the same context again unless you
+Repeating any smartmatch just matches the same frame again unless you
 intersperse a 1 to skip the current level:
 
-    $ctx = dynamic(Method);              # nearest context that is method
-    $ctx = dynamic(Method,Method);       # nearest context that is method
-    $ctx = dynamic(Method,1,Method);     # 2nd nearest method context
-    $ctx = dynamic(Method,1,Method,1)    # caller of that 2nd nearest method
-    $ctx = dynamic(1,Block);             # nearest outer context that is block
-    $ctx = dynamic(Sub,1,Sub,1,Sub);     # 3rd nearest sub context
-    $ctx = dynamic({ .labels.any eq 'Foo' }); # nearest context labeled 'Foo'
+    $ctx = callframe(Method);              # nearest frame that is method
+    $ctx = callframe(Method,Method);       # nearest frame that is method
+    $ctx = callframe(Method,1,Method);     # 2nd nearest method frame
+    $ctx = callframe(Method,1,Method,1)    # caller of that 2nd nearest method
+    $ctx = callframe(1,Block);             # nearest outer frame that is block
+    $ctx = callframe(Sub,1,Sub,1,Sub);     # 3rd nearest sub frame
+    $ctx = callframe({ .labels.any eq 'Foo' }); # nearest frame labeled 'Foo'
 
 Note that this last potentially differs from the answer returned by
 
-    Foo.dynamic
+    Foo.callframe
 
-which returns the context of the innermost C<Foo> block in the lexical scope
-rather than the dynamic scope.  A context also responds to the C<.dynamic>
-method, so a given context may be used as the basis for further navigation:
+which returns the frame of the innermost C<Foo> block in the lexical scope
+rather than the dynamic scope.  A call frame also responds to the C<.callframe>
+method, so a given frame may be used as the basis for further navigation:
 
-    $ctx = dynamic(Method,1,Method);
-    $ctx = dynamic(Method).dynamic(1).dynamic(Method);     # same
+    $ctx = callframe(Method,1,Method);
+    $ctx = callframe(Method).callframe(1).callframe(Method);     # same
 
-You must supply args to get anywhere else, since C<.dynamic> is
+You must supply args to get anywhere else, since C<.callframe> is
 the identity operator when called on something that is already
 a C<Context>:
 
-    $ctx = dynamic;
-    $ctx = dynamic.dynamic.dynamic.dynamic;                # same
+    $ctx = callframe;
+    $ctx = callframe.callframe.callframe.callframe;                # same
 
 The C<caller> function is special-cased to go outward just far enough
 to escape from the current routine scope, after first ignoring any
 inner blocks that are embedded, or are otherwise pretending to be "inline":
 
-    &caller ::= &dynamic.assuming({ !.inline }, 1);
+    &caller ::= &callframe.assuming({ !.inline }, 1);
 
-Note that this is usually the same as C<dynamic(&?ROUTINE,1)>,
+Note that this is usually the same as C<callframe(&?ROUTINE,1)>,
 but not always.  A call to a returned closure might not even have
 C<&?ROUTINE> in its dynamic scope anymore, but it still has a caller.
 
@@ -2254,8 +2246,8 @@ which is equivalent to:
         " line ", CALLER::<$?LINE>;
 
 Additional arguments to C<caller> are treated as navigational from the
-calling context.  One context out from your current routine is I<not>
-guaranteed to be a C<Routine> context.  You must say C<caller(Routine)>
+calling frame.  One frame out from your current routine is I<not>
+guaranteed to be a C<Routine> frame.  You must say C<caller(Routine)>
 to get to the next-most-inner routine.
 
 Note that C<caller(Routine).line> is not necessarily going to give you the
@@ -2264,10 +2256,10 @@ likely to get the line number of the topmost block that is executing
 within that outer routine, where that block contains the call to
 your routine.
 
-For either C<dynamic> or C<caller>,
-the returned context object supports at least the following methods:
+For either C<callframe> or C<caller>,
+the returned CallFrame object supports at least the following methods:
 
-    .dynamic
+    .callframe
     .caller
     .leave
     .inline
@@ -2277,10 +2269,10 @@ the returned context object supports at least the following methods:
     .my
     .hints
 
-The C<.dynamic> and C<.caller> methods work the same as the functions
-except that they are relative to the context supplied as invocant.
+The C<.callframe> and C<.caller> methods work the same as the functions
+except that they are relative to the frame supplied as invocant.
 The C<.leave> method can force an immediate return from the
-specified context.
+specified call frame.
 
 The C<.inline> method says whether this block was entered implicitly
 by some surrounding control structure.  Any time you invoke a block or
@@ -2288,8 +2280,8 @@ routine explicitly with C<.()> this is false.  However, it is defined
 to be true for any block entered using dispatcher-level primitives
 such as C<.callwith>, C<.callsame>, C<.nextwith>, or C<.nextsame>.
 
-The C<.my> method provides access to the lexical namespace in effect at
-the given dynamic context's current position.  It may be used to look
+The C<.my> method provides access to the lexical namespace associated with
+the given call frame's current position.  It may be used to look
 up ordinary lexical variables in that lexical scope.  It must not be
 used to change any lexical variable that is marked as readonly.
 
@@ -2315,6 +2307,7 @@ or code references for the various contexts, so that you can write
         item  => { @.list.join(', ') },
         list  => { ...               },
         ;
+
 or something similar.)
 
 =head2 The C<leave> function
@@ -2340,18 +2333,18 @@ instead.  (It can be taken to mean either "go away from" or "bequeath
 to your successor" as appropriate.)  The object specifies the scope to exit,
 and the method's arguments specify the return value.  If the object
 is omitted (by use of the function or listop forms), the innermost
-block is exited.  Otherwise you must use something like C<context>
-or C<&?BLOCK> or a contextual variable to specify the scope you
+block is exited.  Otherwise you must use something like C<callframe>
+or C<&?BLOCK> or a dynamic variable to specify the scope you
 want to exit.  A label (such as a loop label) previously seen in
-the lexical scope also works as a kind of singleton context object:
+the lexical scope also works as a kind of singleton dynamic object:
 it names a statement that is serving both as an outer lexical scope
-and as a context in the current dynamic scope.
+and as a frame in the current dynamic scope.
 
 As with C<return>, the arguments are taken to be a C<Capture> holding the
 return values.
 
     leave;                      # return from innermost block of any kind
-    context(Method).leave;      # return from innermost calling method
+    callframe(Method).leave;    # return from innermost calling method
     &?ROUTINE.leave(1,2,3);     # Return from current sub. Same as: return 1,2,3
     &?ROUTINE.leave <== 1,2,3;  # same thing, force return as feed
     OUTER.leave;                # Return from OUTER label in lexical scope
@@ -2450,7 +2443,7 @@ change would be happen before C<temp> got control.
 Hypothetical variables use the same mechanism, except that the restoring
 closure is called only on failure.
 
-Note that contextual variables may be a better solution than temporized
+Note that dynamic variables may be a better solution than temporized
 globals in the face of multithreading.
 
 =head2 Wrapping
@@ -2911,12 +2904,12 @@ namespace.  Or maybe it's the other way around...
 
 C<< CALLER::<$varname> >> specifies the C<$varname> visible in
 the dynamic scope from which the current block/closure/subroutine
-was called, provided that variable carries the "C<context>"
+was called, provided that variable carries the "C<dynamic>"
 trait.  (All variables with a C<*> twigil are automatically marked with the trait.
 Likewise certain implicit lexicals (C<$_>, C<$/>, and C<$!>) are so marked.)
 
 C<< DYNAMIC::<$varname> >> specifies the C<$varname> visible in the
-innermost dynamic scope that declares the variable with the "C<is context>"
+innermost dynamic scope that declares the variable with the "C<is dynamic>"
 trait or with a name that has the C<*> twigil.
 
 C<< MY::<$varname> >> specifies the lexical C<$varname> declared in the current

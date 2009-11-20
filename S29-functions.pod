@@ -20,8 +20,8 @@ Synopsis 29: Builtin Functions
 
     Created: 12 Mar 2005
 
-    Last Modified: 13 October 2009
-    Version: 43
+    Last Modified: 19 Nov 2009
+    Version: 44
 
 The document is a draft.
 
@@ -208,11 +208,11 @@ An ordering of C<*> does the default comparison for the operator:
 
 =item caller
 
-See L<S06/"The C<context> and C<caller> functions">.
+See L<S06/"The C<callframe> and C<caller> functions">.
 
-=item context
+=item callframe
 
-See L<S06/"The C<context> and C<caller> functions">.
+See L<S06/"The C<callframe> and C<caller> functions">.
 
 =item eval
 
@@ -305,14 +305,14 @@ corresponding characters as a string.  If any grapheme id is used
 that represents a higher abstraction level than the current
 lexical scope supports, that grapheme is converted to the
 corresponding lower-level string of codepoints/bytes that would
-be appropriate to the current context, just as any other Str
+be appropriate to the current pragmatic context, just as any other Str
 would be downgraded in context.
 
 C<ord> goes the other direction; it takes a string value and returns
 character values as integers.  In a scalar context, the return value
 is the just the integer value of the first character in the string. In
 a list context, the return value is the list of integers representing
-the entire string.  The definition of character is context dependent.
+the entire string.  The definition of character is pragma dependent.
 Normally it's a grapheme id, but under codepoints or bytes scopes,
 the string is coerced to the appropriate low-level view and interpreted
 as codepoints or bytes.  Hence, under "use bytes" you will never see a
@@ -323,8 +323,8 @@ codepoint of the precomposed codepoint representing the grapheme, if
 there is such a codepoint.  Otherwise, the implementation is free to
 return any unique id that larger than 0x10ffff.  (The C<chr> function
 will know how to backtranslate such ids properly to codepoints or
-bytes in any context.  Note that we are assuming that every codepoints
-context knows its normalization preferences, and every bytes context
+bytes in any context.  Note that we are assuming that every codepoint's
+context knows its normalization preferences, and every byte's context
 also knows its encoding preferences. (These are knowable in the
 lexical scope via the $?NF and $?ENC compile-time constants).)
 
@@ -437,7 +437,7 @@ Examples:
 
  our Bool multi chroot ( Str $path = CALLER::<$_> )
 
-On POSIX systems, changes the context of the current process such
+On POSIX systems, changes the process context of the current process such
 that the "root" directory becomes C<$path> and all rooted paths
 (those that begin with a leading path separator) are relative to
 that path. For security reasons, many operating systems limit

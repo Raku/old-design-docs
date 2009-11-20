@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 5 Oct 2009
-    Version: 175
+    Last Modified: 19 Nov 2009
+    Version: 176
 
 =head1 Overview
 
@@ -1467,7 +1467,7 @@ C<< infix:<::=> >>, bind and make readonly
 This does the same as C<:=>, then marks any destination parameters as
 readonly (unless the individual parameter overrides this with either
 the C<rw> trait or the C<copy> trait).  It's particularly useful
-for establishing readonly context variables for a dynamic scope:
+for establishing readonly dynamic variables for a dynamic scope:
 
     {
         my $*OUT ::= open($file, :w) || die $!;
@@ -1476,7 +1476,7 @@ for establishing readonly context variables for a dynamic scope:
     doit();     # runs with original stdout
 
 If C<doit> wants to change C<$*OUT>, it must declare its own
-contextual variable.  It may not simply assign to C<$*OUT>.
+dynamic variable.  It may not simply assign to C<$*OUT>.
 
 Note that the semantics of C<::=> are virtually identical to
 the normal binding of arguments to formal subroutine parameters
@@ -1939,7 +1939,7 @@ uses the function:
 
 =back
 
-Many of these operators return a list of C<Capture>s, which depending on
+Many of these operators return a list of C<Parcel>s, which depending on
 context may or may not flatten them all out into one flat list.  The
 default is to flatten, but see the contextualizers below.
 
@@ -2222,7 +2222,7 @@ C<< infix:<or> >>, short-circuit inclusive or
 
 Returns the first argument that evaluates to true, otherwise returns
 the result of the last argument.  In list context forces a false return
-to mean C<()>.  See C<||> above for high-precedence version.
+to mean C<()>, or C<Nil>.  See C<||> above for high-precedence version.
 
 =item *
 
@@ -2232,7 +2232,7 @@ C<< infix:<xor> >>, exclusive or
 
 Returns the true argument if there is one (and only one).  Returns
 C<Bool::False> if all arguments are false or if more than one argument is true.
-In list context forces a false return to mean C<()>.
+In list context forces a false return to mean C<()>, or C<Nil>.
 See C<^^> above for high-precedence version.
 
 =item *
@@ -2283,7 +2283,7 @@ Semicolon: ;
 
 The context determines how the expressions terminated by semicolon
 are interpreted.  At statement level they are statements.  Within a
-bracketing construct they are interpreted as lists of C<Capture>s,
+bracketing construct they are interpreted as lists of C<Parcel>s,
 which in slice context will be treated as the multiple dimensions of a
 multidimensional slice.  (Other contexts may have other interpretations
 or disallow semicolons entirely.)
@@ -2471,11 +2471,11 @@ Writing C<$object.'='> will call your prefix operator.
 
 =item *
 
-Unary C<~> now imposes a string (C<Str>) context on its
-argument, and C<+> imposes a numeric (C<Num>) context (as opposed
+Unary C<~> now imposes a string (C<Stringy>) context on its
+argument, and C<+> imposes a numeric (C<Numeric>) context (as opposed
 to being a no-op in Perl 5).  Along the same lines, C<?> imposes
 a boolean (C<Bool>) context, and the C<|> unary operator imposes
-a function-arguments (C<Capture>) context on its argument.
+a function-arguments (C<Parcel> or C<Capture>) context on its argument.
 Unary sigils are allowed when followed by a C<$> sigil on a scalar variable;
 they impose the container context implied by their sigil.
 As with Perl 5, however, C<$$foo[bar]> parses as C<( $($foo) )[bar]>,
@@ -2538,8 +2538,8 @@ written: C<<< << ... >> >>>.
 
 =item *
 
-In item context comma C<,> now constructs a C<List> object from its
-operands.  You have to use a C<[*-1]> subscript to get the last one.
+Comma C<,> now constructs a C<Parcel> object from its
+operands.  In item context this turns into a C<List> object.  You have to use a C<[*-1]> subscript to get the last one.
 (Note the C<*>.  Negative subscripts no longer implicitly count from
 the end; in fact, the compiler may complain if you use C<[-1]> on an
 object known at compile time not to have negative subscripts.)
@@ -3192,7 +3192,7 @@ means "what is this thing's domain" in an abstract sort of way.
 Since use of C<Range> objects in item context is usually
 non-sensical, a C<Range> object used as an operand for scalar operators
 will generally attempt to distribute the operator to its endpoints and
-return another suitably modified C<Range> instead.  (Notable exceptions
+return another suitably modified C<Range> instead, much like a junction of two items.  (Notable exceptions
 include C<< infix:<~~> >>, which does smart matching, and C<< prefix:<+> >>
 which returns the length of the range.)  Therefore if you wish to
 write a slice using a length instead of an endpoint, you can say

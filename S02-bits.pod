@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 18 Nov 2009
-    Version: 190
+    Last Modified: 19 Nov 2009
+    Version: 191
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -996,7 +996,7 @@ that is to say, every element of the array, no matter how many dimensions.
 (However, C<@array[**]> means the same thing because (as with C<...>
 above), the subscript operator will interpret bare C<**> as meaning
 all the subscripts, not the list of dimension sizes.  The meaning of
-C<Whatever> is always controlled by its immediate context.)
+C<Whatever> is always controlled by the first context it is bound into.)
 
 Other uses for C<*> and C<**> will doubtless suggest themselves
 over time.  These can be given meaning via the MMD system, if not
@@ -1640,7 +1640,7 @@ is subject to:
     $.foo       object attribute public accessor
     $^foo       self-declared formal positional parameter
     $:foo       self-declared formal named parameter
-    $*foo       contextualizable global variable
+    $*foo       dynamically overridable global variable
     $?foo       compiler hint variable
     $=foo       Pod variable
     $<foo>      match variable, short for $/{'foo'}
@@ -1740,9 +1740,7 @@ Sigils used either as functions or as list prefix operators also
 force context, so these also work:
 
     @x[$(g())]         # item context for g()
-    @x[$ g()]          # item context for g()
     %x{$(g())}         # item context for g()
-    %x{$ g()}          # item context for g()
 
 But note that these don't do the same thing:
 
@@ -1779,16 +1777,25 @@ the C<Parcel> is translated (at compile time, in this case)
 into a C<Capture> with 3 positionals and one named argument
 in preparation for binding.
 
-=item *
-
-An argument list may be captured into an object with backslashed parens:
+A parcel may be captured into an object with backslashed parens:
 
     $args = \(1,2,3,:mice<blind>)
 
-Values in a C<Capture> object are parsed as ordinary expressions, then marked as
-positional or named.  If the first positional is followed by a colon instead of
-a comma, it is marked as the invocant in case it finds itself in a context
-that cares.
+Values in the C<Parcel> object are parsed as ordinary expressions,
+and any functions mentioned are called, with their results placed
+as a single subparcel within the outer parcel.  Whether they
+are subsequently flattened will depend on the eventual binding.
+
+=item *
+
+If a C<Parcel> is used as a list of arguments, it will be transformed
+into a C<Capture> objects, which is much like a C<Parcel> but has its
+arguments divvied up into positional and named subsets for faster
+binding.  (Usually this transformation happens at compile time.)
+If the first positional is followed by a colon instead of a comma,
+it is marked as the invocant in case it finds itself in a context
+that cares.  It's illegal to use the colon in place of the comma
+anywhere except after the first argument.
 
 Like C<List> objects, C<Capture> objects are immutable in the abstract, but
 evaluate their arguments lazily.  Before everything inside a C<Capture> is
@@ -1816,7 +1823,7 @@ parentheses.  The special syntax form C<$()> translates into C<$( $.ast // Str($
 to operate on the current match object; similarly C<@()> and C<%()> can
 extract positional and named submatches.
 
-C<Capture> objects fill the ecological niche of references in Perl 6.
+C<Parcel> and C<Capture> objects fill the ecological niche of references in Perl 6.
 You can think of them as "fat" references, that is, references that
 can capture not only the current identity of a single object, but
 also the relative identities of several related objects.  Conversely,
@@ -2030,13 +2037,13 @@ operators:
     print $( foo() )    # foo called in item context
     print @@( foo() )   # foo called in slice context
 
-In declarative contexts bare sigils may be used as placeholders for
+In declarative constructs bare sigils may be used as placeholders for
 anonymous variables:
 
     my ($a, $, $c) = 1..3;
     print unless (state $)++;
 
-Outside of declarative contexts you may use C<*> for a placeholder:
+Outside of declarative constructs you may use C<*> for a placeholder:
 
     ($a, *, $c) = 1..3;
 
@@ -2139,7 +2146,7 @@ so there's no need to also put such things into C<GLOBAL>.
 The C<GLOBAL> package itself is accessible via C<UNIT::GLOBAL>.
 The C<PROCESS> package is accessible via C<UNIT::PROCESS>.
 The C<PROCESS> package is not the parent of C<GLOBAL>.  However, searching
-up the dynamic stack for context variables will look in all nested
+up the dynamic stack for dynamic variables will look in all nested
 dynamic scopes (mapped automatically to each call's lexical scope,
 not package scope) out to the main dynamic scope; once all the dynamic scopes are
 exhausted, it also looks in the C<GLOBAL> package and then in the
@@ -2173,10 +2180,10 @@ the underspecified type.  Alternately, the compiler is allowed to recompile or
 re-examine the unit with the new type constraints to see if any issues are
 certain to arise at run time, in which case the compiler is free to complain.)
 
-Any context variable declared with C<our> in the user's main program
+Any dynamic variable declared with C<our> in the user's main program
 (specifically, the part compiled with C<GLOBAL> as the current package)
-is accessible (by virtue of being in C<GLOBAL>) as a context variable
-even if not directly in the dynamic call chain.  Note that context
+is accessible (by virtue of being in C<GLOBAL>) as a dynamic variable
+even if not directly in the dynamic call chain.  Note that dynamic
 vars do *not* look in C<CORE> for anything.  (They I<might> look in
 C<SETTING> if you're running under a setting distinct from C<CORE>,
 if that setting defines a dynamic scope outside your main program,
@@ -2304,19 +2311,19 @@ by reference, to add symbols to a lexical scope that is done compiling.
 The C<CALLER> package refers to the lexical scope of the (dynamically
 scoped) caller.  The caller's lexical scope is allowed to hide any
 user-defined variable from you.  In fact, that's the default, and a
-lexical variable must have the trait "C<is context>" to be
+lexical variable must have the trait "C<is dynamic>" to be
 visible via C<CALLER>.  (C<$_>, C<$!> and C<$/> are always
-contextual, as are any variables whose declared names contain a C<*> twigil.)
+dynamic, as are any variables whose declared names contain a C<*> twigil.)
 If the variable is not visible in the caller, it returns
 failure.  Variables whose names are visible at the point of the call but that
 come from outside that lexical scope are controlled by the scope
-in which they were originally declared as contextual.
+in which they were originally declared as dynamic.
 Hence the visibility of C<< CALLER::<$*foo> >> is determined where
 C<$*foo> is actually declared, not by the caller's scope (unless that's where
 it happens to be declared).  Likewise C<< CALLER::CALLER::<$x> >>
 depends only on the declaration of C<$x> visible in your caller's caller.
 
-User-defined contextual variables should generally be initialized with
+User-defined dynamic variables should generally be initialized with
 C<::=> unless it is necessary for variable to be modified.  (Marking
 dynamic variables as readonly is very helpful in terms of sharing
 the same value among competing threads, since a readonly variable
@@ -2326,8 +2333,8 @@ need not be locked.)
 
 The C<DYNAMIC> pseudo-package is just like C<CALLER> except that
 it starts in the current dynamic scope and from there scans outward
-through all dynamic scopes until it finds a contextual variable of that
-name in that dynamic context's associated lexical pad.  (This search
+through all dynamic scopes (frames) until it finds a dynamic variable of that
+name in that dynamic frame's associated lexical pad.  (This search
 is implied for variables with the C<*> twigil; hence C<$*FOO> is
 equivalent to C<< DYNAMIC::<$*FOO> >>.)  If, after scanning outward
 through all those dynamic scopes, there is no variable of that name
@@ -2335,22 +2342,22 @@ in any immediately associated lexical pad, it strips the C<*> twigil
 out of the name and looks in the C<GLOBAL> package followed by the
 C<PROCESS> package.  If the value is not found, it returns failure.
 
-Unlike C<CALLER>, C<DYNAMIC> will see a contextual variable that is
+Unlike C<CALLER>, C<DYNAMIC> will see a dynamic variable that is
 declared in the current scope, since it starts search 0 scopes up the
 stack rather than 1.  You may, however, use C<< CALLER::<$*foo> >>
-to bypass a contextual definition of C<$*foo> in your current context,
-such as to initialize it with the outer contextual value:
+to bypass a dynamic definition of C<$*foo> in your current scope,
+such as to initialize it with the outer dynamic value:
 
     my $*foo ::= CALLER::<$*foo>;
 
 The C<temp> declarator may be used (without an initializer) on a
-contextual variable to perform a similar operation:
+dynamic variable to perform a similar operation:
 
     temp $*foo;
 
 The main difference is that by default it initializes the new
 C<$*foo> with its current value, rather than the caller's value.
-Also, it is allowed only on read/write contextual variables, since
+Also, it is allowed only on read/write dynamic variables, since
 the only reason to make a copy of the outer value would be
 because you'd want to override it later and then forget the
 changes at the end of the current dynamic scope.
@@ -2401,12 +2408,12 @@ that properly belong to the individual virtual process, while the
 C<PROCESS> namespace holds variables that properly belong to the actual
 process as a whole.  From the viewpoint of the program
 there is little difference as long as all global variables are accessed
-as if they were context variables (by using the C<*> twigil).
+as if they were dynamic variables (by using the C<*> twigil).
 The process as a whole may place restrictions on the
 mutability of process variables as seen by the individual subprocesses.
 Also, individual subprocesses may not create new process variables.
 If the process wishes to grant subprocesses the ability to communicate
-via the C<PROCESS> namespace, it must supply a writeable context variable
+via the C<PROCESS> namespace, it must supply a writeable dynamic variable
 to all the subprocesses granted that privilege.
 
 =item *
@@ -2504,9 +2511,9 @@ when the compile-time code was itself compiled).  The compiler can
 talk about these compiler-dynamic values using the C<COMPILING> pseudopackage.
 
 References to C<COMPILING> variables are automatically hoisted into the
-context currently being compiled.  Setting or temporizing a C<COMPILING>
+lexical scope currently being compiled.  Setting or temporizing a C<COMPILING>
 variable sets or temporizes the incipient C<$?> variable in the
-surrounding lexical context that is being compiled.  If nothing in
+surrounding lexical scope that is being compiled.  If nothing in
 the context is being compiled, an exception is thrown.
 
     $?FOO // say "undefined";   # probably says undefined
@@ -2525,7 +2532,7 @@ the context is being compiled, an exception is thrown.
     COMPILING::<$?FOO> = 45;    # an error unless we are compiling something
 
 Note that C<< CALLER::<$?FOO> >> might discover the same variable
-as C<COMPILING::<$?FOO>>, but only if the compiling context is the
+as C<COMPILING::<$?FOO>>, but only if the compiling scope is the
 immediate caller.  Likewise C<< OUTER::<$?FOO> >> might or might not
 get you to the right place.  In the abstract, C<COMPILING::<$?FOO>>
 goes outwards dynamically until it finds a compiling scope, and so is
@@ -3651,8 +3658,10 @@ The lexical routine itself is C<&?ROUTINE>; you can get its name with
 C<&?ROUTINE.name>.  The current block is C<&?BLOCK>.  If the block has any
 labels, those shows up in C<&?BLOCK.labels>.  Within the lexical scope of
 a statement with a label, the label is a pseudo-object representing
-the dynamic context of that statement.  (If inside multiple dynamic
-instances of that statement, the label represents the innermost one.)
+the I<dynamically> visible instance of that statement.  (If inside multiple
+dynamic instances of that statement, the label represents the innermost one.)
+This is known as I<lexotic> semantics.
+
 When you say:
 
     next LINE;
@@ -3805,18 +3814,18 @@ such as a system that sorts "delta" after "gamma".
 
 =item *
 
-Perl still has the three main contexts: sink (void), item (scalar), and list.
+Perl still has the three main contexts: sink (aka void), item (aka scalar), and list.
 
 =item *
 
 In addition to undifferentiated items, we also have these item contexts:
 
-    Context     Type    OOtype  Operator
-    -------     ----    ------  --------
-    boolean     bit     Bit     ?
-    integer     int     Int     int
-    numeric     num     Num     +
-    string      buf     Str     ~
+    Context     Type    OOtype   Operator
+    -------     ----    ------   --------
+    boolean     bit     Bit      ?
+    integer     int     Integral int
+    numeric     num     Num      +
+    string      buf     Str      ~
 
 There are also various container contexts that require particular kinds of
 containers (such as slice and hash context; see S03 for details).
@@ -3930,9 +3939,9 @@ themselves in any event, which may or may not be lazily flattened.
 
 However, function calls in the argument list can't know their eventual
 context because the method hasn't been dispatched yet, so we don't
-know which signature to check against.  As in Perl 5, list context
-is assumed unless you explicitly qualify the argument with an item
-context operator.
+know which signature to check against.  Such return values are
+bundled up into a "parcel" for later delivery to a context that
+will determine its context lazily.
 
 =item *
 

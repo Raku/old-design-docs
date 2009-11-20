@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 13 Nov 2009
-    Version: 109
+    Last Modified: 19 Nov 2009
+    Version: 110
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -2114,7 +2114,7 @@ in other regexes as named assertions:
 These keyword-declared regexes are officially of type C<Method>,
 which is derived from C<Routine>.
 
-In general, the anchoring of any subrule call is controlled by context.
+In general, the anchoring of any subrule call is controlled by its calling context.
 When a regex, token, or rule method is called as a subrule, the
 front is anchored to the current position (as with C<:p>), while
 the end is not anchored, since the calling context will likely wish
@@ -2377,12 +2377,12 @@ the regex containing the C<||>.
 =item *
 
 A match always returns a C<Match> object, which is also available
-as C<$/>, which is a contextual lexical declared in the outer
-subroutine that is calling the regex.  (A regex declares its own
+as C<$/>, which is a dynamic lexical declared in the outer
+block that is calling the regex.  (A regex declares its own
 lexical C<$/> variable, which always refers to the most recent
 submatch within the rule, if any.)  The current match state is
 kept in the regex's C<$¢> variable which will eventually get
-processed into the user's C<$/> variable when the match completes.
+bound to the user's C<$/> variable when the match completes.
 
 =item *
 

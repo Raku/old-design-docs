@@ -13,8 +13,8 @@ Synopsis 10: Packages
 
     Created: 27 Oct 2004
 
-    Last Modified: 7 Sep 2009
-    Version: 10
+    Last Modified: 19 Nov 2009
+    Version: 11
 
 =head1 Overview
 
@@ -111,11 +111,11 @@ from compilation to compilation, but that's probably a bad idea.)
 
 In any case, it is erroneous for any external module to depend
 on any knowledge of its user with respect to compilation order or
-other contextual information, since other users may also depend on
+other dynamic information, since other users may also depend on
 this single "first-use" execution and expect consistent semantics.
-(Really, all such contextual dependencies should be passed in at run
+(Really, all such dynamic dependencies should be passed in at run
 time to the routines or methods of your module as normal parameters or
-contextual variables.  For instance, you cannot know at module compile
+as dynamic variables.  For instance, you cannot know at module compile
 time whether your caller is going to be using 'fatal' semantics or not.
 That is dynamically scoped info.)
 
@@ -147,7 +147,7 @@ in the C<GLOBAL::> namespace.
 The C<PROCESS::> namespace, shared by all interpreters within the process,
 is notionally outside of C<GLOBAL::>, but package searches do not look
 there for anything.  (Contextual variable searches do; C<$*PID> will eventually
-locate C<$PROCESS::PID> if not hidden by an inner context's C<$PID>.)
+locate C<$PROCESS::PID> if not hidden by an inner callframe's C<$*PID>.)
 
 =head1 Autoloading
 
