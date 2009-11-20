@@ -829,7 +829,7 @@ At the statement level, a semicolon terminates the current expression.
 Within any kind of bracketing construct, semicolon notionally separates
 the sublists of a multidimensional slice, the interpretation of
 which depends on the context.  Such a semicolon list puts each of its
-sublists into a C<Capture>, deferring the context of the sublist until
+sublists into a C<Parcel>, deferring the context of the sublist until
 it is bound somewhere.  The storage of these sublists is hidden in
 the inner workings of the list.  It does not produce a list of lists
 unless the list as a whole is bound into a slice context.
@@ -1245,8 +1245,8 @@ or copy container) does not autovivify.
 Note that assignment is treated the same way as binding to a copy container,
 so it does not autovivify its right side either.
 
-Any mention of an expression within a C<Capture> delays the autovivification
-decision to binding time.  (Binding to a "ref" parameter also defers the
+Any mention of an expression within a C<Parcel> delays the autovivification
+decision to binding time.  (Binding to a parcel parameter also defers the
 decision.)
 
 This is as opposed to Perl 5, where autovivification could happen
@@ -1267,8 +1267,8 @@ But these bindings I<do> autovivify:
     my $val := %hash<foo><bar>;
 
     my @array;
-    my $cap = \@array[0][0]; # $cap is a Capture object - see S02
-    my :($obj) := $cap;   # @array[0][0] created here
+    my $parcel = \@array[0][0]; # $parcel is a Parcel object - see S02
+    my :($obj) := $parcel;   # @array[0][0] created here
 
     my @array;
     foo(@array[0][0]);

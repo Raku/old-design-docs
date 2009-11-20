@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 12 Nov 2009
-    Version: 123
+    Last Modified: 19 Nov 2009
+    Version: 124
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -480,9 +480,9 @@ of the parameter.
 If you have a readonly parameter C<$ro>, it may never be passed on to
 a C<rw> parameter of a subcall, whether or not C<$ro> is currently
 bound to a mutable object.  It may only be rebound to readonly or
-copy parameters.  It may also be rebound to a C<ref> parameter (see
-"C<is ref>" below), but modification will fail as in the case where
-an immutable value is bound to a C<ref> parameter.
+copy parameters.  It may also be rebound to a parcel parameter (see
+"C<is parcel>" below), but modification will fail as in the case where
+an immutable value is bound to a C<parcel> parameter.
 
 Aliases of C<$ro> are also readonly, whether generated explicitly with C<:=>
 or implicitly within a C<Capture> object (which are themselves immutable).
@@ -1593,7 +1593,7 @@ The C<$_> variable functions as a placeholder in a block without any
 other placeholders or signature.  Any bare block without placeholders
 really has a parameter like this:
 
-    -> $_ is ref = OUTER::<$_> { .mumble }
+    -> \$_ = OUTER::<$_> { .mumble }
 
 (However, statement control C<if> notices this and passes no argument,
 so C<$_> ends up being bound to the outer C<$_> anyway.)
@@ -1997,13 +1997,27 @@ element of the list:
 (The variadic array as a whole is always modifiable, but such
 modifications have no effect on the original argument list.)
 
-=item C<is ref>
+=item C<is parcel>
 
-Specifies that the parameter is passed by reference (that is,
-as an C<Object>).  You may modify the argument, but only if
-argument is already a suitable lvalue.  Unlike C<rw>, no attempt
-at autovivification is made, so unsuitable lvalues will throw an
-exception if you try to modify them within the body of the routine.
+Specifies that the parameter is passed as a "parcel", that is, as a
+raw reference to a "parenthetical cell" or "parse list", an argument
+object that has not yet had a context imposed.  (It may or may not
+actually be of the C<Parcel> type, since a C<Parcel> containing only
+one object automatically unwraps itself to be that object directly.)
+In other words, this provides for lazy contextualization even through
+function calls.  This is important if you wish to pass the parameter
+onward to something else that will determine its context later.
+
+You may modify the argument, but only if argument is already a suitable
+lvalue since, unlike C<rw>, no attempt at autovivification is made,
+so unsuitable lvalues will throw an exception if you try to modify
+them within the body of the routine.  That is, if autovivification
+happens, it happens at the point of use, not at the point of binding.
+
+For better visual distinction, such a parameter is declared by
+prefixing with a backslash rather than by using C<is parcel> directly.
+The backslash is also more succint; the trait is there primarily
+for introspection.
 
 =item C<is copy>
 
@@ -2039,9 +2053,9 @@ readonly properties:
   readonly       True if the parameter has C<is readonly> trait
   rw             True if the parameter has C<is rw> trait
   copy           True if the parameter has C<is copy> trait
-  ref            True if the parameter has C<is ref> trait
   named          True if the parameter is to be passed named
   named_names    List of names a named parameter can be passed as
+  parcel         True if the parameter is too lazy to contextualize
   slurpy         True if the parameter is slurpy
   optional       True if the parameter is optional
   default        A closure returning the default value
