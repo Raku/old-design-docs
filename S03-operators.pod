@@ -16,7 +16,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 19 Nov 2009
-    Version: 176
+    Version: 177
 
 =head1 Overview
 
@@ -24,8 +24,8 @@ For a summary of the changes from Perl 5, see L</Changes to Perl 5 operators>.
 
 =head1 Operator precedence
 
-Not counting terms and terminators, Perl 6 has 23 operator precedence
-levels (same as Perl 5, but differently arranged).  Here we list the
+Perl 6 has about the same number of precedence levels as Perl 5,
+but they're differently arranged in spots.  Here we list the
 levels from "tightest" to "loosest", along with a few examples of
 each level:
 
@@ -613,9 +613,10 @@ C<< prefix:<+> >>, numeric context
 Unlike in Perl 5, where C<+> is a no-op, this operator coerces to
 numeric context in Perl 6.  (It coerces only the value, not the
 original variable.)  For values that do not already do the
-C<Numeric> role, the narrowest appropriate type of C<Int>, C<Num>, or
+C<Numeric> role, the narrowest appropriate type of C<Int>, C<Rat>, C<Num>, or
 C<Complex> will be returned; however, string containing two integers
-separated by a C</> will be returned as a C<Rat>.  Exponential notation
+separated by a C</> will be returned as a C<Rat> (or a C<FatRat> if the
+denominator overflows an C<int64>).  Exponential notation
 and radix notations are recognized.
 
 =item *
@@ -750,14 +751,10 @@ floor of a real division:
 
 C<< infix:<%> >>, modulus
 
-    $x % $mod
+    $x % $y
 
-Coerces to C<Num> (or C<Int> as an optimization) before performing C<mod>.
-That is, has results equivalent to:
-
-    floor( Num($x) / Num($y) )
-
-Also preserves the identity:
+If necessary, coerces non-numeric arguments to an appropriate C<Numeric> type,
+then calculates the modulus, which is defines as:
 
     $x % $y == $x - floor($x / $y) * $y
 
@@ -765,7 +762,7 @@ Also preserves the identity:
 
 C<< infix:<mod> >>, generic modulus
 
-    $x mod $mod
+    $x mod $y
 
 Dispatches to the C<< infix:<mod> >> multi most appropriate to
 the operand types, typically returning a value of the same type.
@@ -912,7 +909,8 @@ returns the result as a single concatenated string regardless of context.
 If the count is less than 1, returns the null string.
 The count may not be C<*> because Perl 6 does not support
 infinite strings.  (At least, not yet...)  Note, however, that an
-infinite string may be emulated with C<cat($string xx *)>.
+infinite string may someday be emulated with C<cat($string xx *)>,
+in which case C<$string x *> may be a shorthand for that.
 
 =item *
 
@@ -1020,22 +1018,17 @@ is a syntax error (two terms in a row), because C<int> is a type name now.
 
 C<< prefix:<int> >>
 
-Coerces to type C<Int>.  Floor semantics are used for fractional
-values, including strings that appear to express fractional values.
-That is, C<int($x)> must have the same result as C<int(+$x)> in all
-cases.  All implicit conversions to integer use the same semantics.
-
-(Note that, despite the fact that C<int> is a valid native type
-name, this function does not express conversion to that native type.
-Such subtype conversions are done automatically upon assignment to
-a subtyped container, and fail if the container cannot hold the value.)
+Deprecated, use the C<Int()> coercion or the C<floor> function.
 
 =item *
 
 C<< prefix:<sleep> >>
 
-Suspends the current thread of execution for the specified number of seconds,
-which may be fractional.
+Coerces to an appropriate C<Real> type, then suspends the current
+thread of execution for the specified number of seconds, which
+may be fractional.  Remember that although a C<Rat> is capable
+of attosecond precision, your computer is probably not capable of
+attosecond accuracy.
 
 =item *
 
@@ -1367,7 +1360,7 @@ Operator adverbs are special-cased in the grammar, but give
 the appearance of being parsed as trailing unary operators at a
 pseudo-precedence level slightly tighter than item assignment.
 (They're not officially "postfix" operators
-because those require the absense of whitespace, and these allow whitespace.
+because those require the absence of whitespace, and these allow whitespace.
 These adverbs insert themselves in the spot where the parser is
 expecting an infix operator, but the parser continues to look for
 an infix after parsing the adverb and applying it to the previous
@@ -1558,6 +1551,10 @@ the called sub to handle real named args, since the named pair will no
 longer come in via C<@_>.  You can either name your formal parameters
 explicitly if there is an explicit signature, or pull them out of C<%_>
 rather than C<@_> if there is no explicit signature.
+
+[It's likely this operator will be removed from the core Perl 6 language
+and only supplied by the translator as a macro, so don't write any new
+code with it.]
 
 =item *
 
@@ -3192,7 +3189,8 @@ means "what is this thing's domain" in an abstract sort of way.
 Since use of C<Range> objects in item context is usually
 non-sensical, a C<Range> object used as an operand for scalar operators
 will generally attempt to distribute the operator to its endpoints and
-return another suitably modified C<Range> instead, much like a junction of two items.  (Notable exceptions
+return another suitably modified C<Range> instead, much like a junction of two items,
+only with proper interval semantics.  (Notable exceptions to this autothreading
 include C<< infix:<~~> >>, which does smart matching, and C<< prefix:<+> >>
 which returns the length of the range.)  Therefore if you wish to
 write a slice using a length instead of an endpoint, you can say
@@ -3270,7 +3268,7 @@ as a default because the more specific types listed above it didn't match.
     Any       undef     undefined               not .defined
     Any       *         block signature match   block successfully binds to |$_
     Any       .foo      method truth            ?X       i.e. ?.foo
-    Any       .foo(...) method truth            ?X       i.e. ?.foo
+    Any       .foo(...) method truth            ?X       i.e. ?.foo(...)
     Any       .(...)    sub call truth          ?X       i.e. ?.(...)
     Any       .[...]    array value slice truth ?all(X)  i.e. ?all(.[...])
     Any       .{...}    hash value slice truth  ?all(X)  i.e. ?all(.{...})
@@ -4256,7 +4254,7 @@ form or a short form using square brackets directly after the C<&> sigil:
 This is convenient for function application:
 
     1,1 ... &[+]           # fibonacci series
-    sort &[R<=>], @list    # reversed, numerically
+    sort &[Rleg], @list      # reverse sort as strings
 
 The C<&[op]> form always refers to a binary function of the operator,
 even if it is underlyingly defined as a variadic list-associative operator.
@@ -4264,7 +4262,7 @@ even if it is underlyingly defined as a variadic list-associative operator.
 There is no corresponding form for unary operators, but those may
 usually be constructed by applying an operator to C<*>:
 
-    sort +*, @list        # sort numerically
+    sort -*, @list        # sort reversed numerically
 
 =head1 Declarators
 
@@ -4438,6 +4436,7 @@ is equivalent to:
 However,
 
     my $args = \(@foo: @bar);
+    push |$args;
 
 is instead equivalent to:
 
