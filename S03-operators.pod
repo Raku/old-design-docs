@@ -16,7 +16,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 19 Nov 2009
-    Version: 177
+    Version: 178
 
 =head1 Overview
 
@@ -4273,7 +4273,6 @@ to include:
     our $foo            # lexically scoped alias to package variable
     has $foo            # object attribute
     state $foo          # persistent lexical (cloned with closures)
-    constant $foo       # "our" scoped compile-time constant
 
 Variable declarators such as C<my> now take a I<signature> as their
 argument.  (The syntax of function signatures is described more fully in S06.)
@@ -4282,10 +4281,19 @@ The parentheses around the signature may be omitted for a
 simple declaration that declares a single variable, along with its
 associated type, traits and the initializer:
 
-    constant Dog $foo is woof = 123;    # okay: initializes $foo to 123
-    constant (Dog $foo is woof = 123);  # same thing (with explicit parens)
-    constant :(Dog $foo is woof = 123); # same thing (full Signature form)
-    constant (Dog $foo is woof) = 123;  # wrong: constants cannot be assigned to
+    my Dog $foo is woof = 123;    # okay: initializes $foo to 123
+    my (Dog $foo is woof = 123);  # same thing (with explicit parens)
+    my :(Dog $foo is woof = 123); # same thing (full Signature form)
+
+The C<constant> declarator can declare either variables or names
+as compile-time constants:
+
+    constant $foo = 1;      # compile-time constant variable
+    constant bar = 2;       # compile-time constant symbol
+
+Because it can declare names in "type" space, the C<constant>
+declarator may not declare using the signature, which would be
+ambiguous.
 
 Each declarator can take an initializer following an equals
 sign (which should not be confused with a normal assignment, because
@@ -4315,17 +4323,17 @@ out containing an undefined type object of the correct type.
 List-context pseudo-assignment is supported for simple declarations but
 not for signature defaults:
 
-    constant @foo = 1,2,3;      # okay: initializes @foo to (1,2,3)
-    constant (@foo = 1,2,3);    # wrong: 2 and 3 are not variable names
+    my @foo = 1,2,3;      # okay: initializes @foo to (1,2,3)
+    my (@foo = 1,2,3);    # wrong: 2 and 3 are not variable names
 
 When parentheses are omitted, you may use any infix assignment operator
 instead of C<=> as the initializer.  In that case, the left hand side of
 the infix operator will be the variable's prototype object:
 
-    constant Dog $fido .= new;      # okay: a constant Dog object
-    constant Dog $fido = Dog.new;   # same thing
-    constant Dog $fido = $fido.new; # wrong: invalid self-reference
-    constant (Dog $fido .= new);    # wrong: cannot use .= with parens
+    my Dog $fido .= new;      # okay: a constant Dog object
+    my Dog $fido = Dog.new;   # same thing
+    my Dog $fido = $fido.new; # wrong: invalid self-reference
+    my (Dog $fido .= new);    # wrong: cannot use .= inside signature
 
 Note that very few mutating operators make sense on a type object, however,
 since type objects are a kind of undefined object.  (Those operators with
@@ -4396,6 +4404,8 @@ declarators.  These include both type declarators:
     class Foo
     role Foo
     subset Foo
+    enum Foo
+    constant Foo
 
 and code declarators:
 
@@ -4411,6 +4421,17 @@ and code declarators:
     token foo
 
 These all have their uses and are explained in subsequent Synopses.
+
+Note that since C<constant> is parsed as a type declarator (essentially
+declaring a type with a single value), it can actually take a scope
+declarator in front:
+
+    my constant companion = 'Fido';
+    has constant $.pi = 22/7;
+    state constant $latch = snapshot();
+
+In these cases the explicit scoping determines when the initializer is
+evaluated.
 
 =head1 Argument List Interpolating
 
