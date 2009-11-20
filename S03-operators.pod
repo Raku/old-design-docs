@@ -4274,11 +4274,15 @@ such as the one in C<S||>.  The compiler is free to intuit an C<S> on any
 operator involving known volatile operands where that does not otherwise
 change the semantics of the operator.
 
-Conjectural: since metaoperators are notionally applied from inside to outside,
-serializing a reversed operator depends on the order of the metaoperators:
+[Conjectural: since metaoperators are notionally applied from inside
+to outside, the semantics of serializing and reversing depends on
+the order of the metaoperators:
 
     a SR/ b             evaluates b, then a, then does b/a
     a RS/ b             evaluates a, then b, then does b/a
+    a RSR/ b            evaluates b, then a, then does a/b
+
+...maybe. Can argue it all the other way too...]
 
 =head2 Nesting of metaoperators
 
@@ -4300,7 +4304,7 @@ form or a short form using square brackets directly after the C<&> sigil:
 This is convenient for function application:
 
     1,1 ... &[+]           # fibonacci series
-    sort &[Rleg], @list      # reverse sort as strings
+    sort &[Rleg], @list    # reverse sort as strings
 
 The C<&[op]> form always refers to a binary function of the operator,
 even if it is underlyingly defined as a variadic list-associative operator.
