@@ -694,11 +694,12 @@ into multiple pairs.  (The C<< X=> >> expands C<$v> if it is a list.)
 
 =item push
 
- our Int multi method push ( @hash: *@values ) is export
+ our Hash multi method push ( @hash: *@values ) is export
 
 Like hash assignment insofar as it accepts either C<Pair> objects or
-alternating keys and values; however, unlike assignment, when
-a duplicate key is detected, coerces the colliding entry's value to an
+alternating keys and values; also like in that it returns the new hash;
+However, unlike assignment, when a duplicate key is detected,
+C<push> coerces the colliding entry's value to an
 array and pushes the Pair's value onto that array.  Hence to invert
 a hash containing duplicate values without losing (associative) information,
 say:
@@ -841,7 +842,7 @@ if it were a C<Hash of True>.
  our multi method pick ( $set: Int $num = 1, Bool :$replace )
  our multi method pick ( $set: Whatever, Bool :$replace )
 
-Works like an ordinaty list C<pick>.
+Works like an ordinary list C<pick>.
 
 =back
 
@@ -860,7 +861,7 @@ A mutable Set container, represented as C<KeyHash of True>.
  our multi method pick ( $bag: Int $num = 1, Bool :$replace )
  our multi method pick ( $bag: Whatever, Bool :$replace )
 
-Like an ordinary list pick, but returns keys of the bag weighted by
+Like an ordinary list C<pick>, but returns keys of the bag weighted by
 values, as if the keys were replicated the number of times indicated
 by the corresponding value and then list pick used.  C<KeyBag> is the
 mutable form of C<Bag>.  A C<Bag> responds to hash operators as
