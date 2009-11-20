@@ -16,7 +16,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 20 Nov 2009
-    Version: 178
+    Version: 179
 
 =head1 Overview
 
@@ -963,12 +963,12 @@ Can be used to construct ANDed patterns with the same semantics as
 C<< infix:<&> >>, but with left-to-right evaluation guaranteed, for use
 in guarded patterns:
 
-    $target ~~ MyType also .mytest1 also .mytest2
+    $target ~~ MyType also *.mytest1 also *.mytest2
 
 This is useful when later tests might throw exceptions if earlier
 tests don't pass.  This cannot be guaranteed by:
 
-    $target ~~ MyType & .mytest1 & .mytest2
+    $target ~~ MyType & *.mytest1 & *.mytest2
 
 =back
 
@@ -981,6 +981,24 @@ tests don't pass.  This cannot be guaranteed by:
 C<< infix:<|> >>, any() operator
 
     $a | $b | $c ...
+
+=item *
+
+C<< infix:<else> >>, short-circuit junctional or operator
+
+    EXPR else EXPR else EXPR ...
+
+Can be used to construct ORed patterns with the same semantics as
+C<< infix:<|> >>, but with left-to-right evaluation guaranteed, for use
+in guarded patterns where the left argument is much more easily
+falsifiable than the right:
+
+    $target ~~ *.mycheaptest else *.myexpensivetest
+
+This is also useful when you want to perform tests in order
+of safety:
+
+    $target ~~ MyType else *.mysafetest else *.mydangeroustest
 
 =item *
 
