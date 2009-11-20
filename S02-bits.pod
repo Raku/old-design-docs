@@ -1105,21 +1105,21 @@ the C<map> or C<for>:
 
 Since the construct is in the form of a type cast, the parens are required.
 If that syntax is unappealing or you wish to run multiple statements
-in a block, it happens that the C<void> statement prefix also converts
+in a block, it happens that the C<sink> statement prefix also converts
 any value to C<Nil>, so the examples above can be expressed
 without parentheses:
 
-    @inclist = map { $_ + 1 }, @list || void warn 'Empty @list!';
+    @inclist = map { $_ + 1 }, @list || sink warn 'Empty @list!';
 
-    @inclist = do for @list || void { warn 'Empty @list!'; $warnings++; } {
+    @inclist = do for @list || sink { warn 'Empty @list!'; $warnings++; } {
         $_ + 1;
     }
 
-    @inclist = do map { $_ + 1 }, @list or void warn 'Empty @list!';
+    @inclist = do map { $_ + 1 }, @list or sink warn 'Empty @list!';
 
     @inclist = do for @list {
         $_ + 1;
-    } or void { warn 'Empty @list!'; $warnings++; }
+    } or sink { warn 'Empty @list!'; $warnings++; }
 
 =head2 Immutable types
 
@@ -3805,7 +3805,7 @@ such as a system that sorts "delta" after "gamma".
 
 =item *
 
-Perl still has the three main contexts: void, item (scalar), and list.
+Perl still has the three main contexts: sink (void), item (scalar), and list.
 
 =item *
 
