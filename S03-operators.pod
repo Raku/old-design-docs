@@ -16,7 +16,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 20 Nov 2009
-    Version: 179
+    Version: 180
 
 =head1 Overview
 
@@ -40,7 +40,7 @@ each level:
     L  Additive          + - +| +^ ~| ~^ ?| ?^
     L  Replication       x xx
     X  Concatenation     ~
-    X  Junctive and      & also
+    X  Junctive and      &
     X  Junctive or       | ^
     L  Named unary       sleep abs sin temp let
     N  Structural infix  but does <=> leg cmp .. ..^ ^.. ^..^
@@ -953,17 +953,14 @@ C<< infix:<&> >>, all() operator
 
     $a & $b & $c ...
 
-=item *
-
-C<< infix:<also> >>, short-circuit junctional and operator
-
-    EXPR also EXPR also EXPR ...
-
-Can be used to construct ANDed patterns with the same semantics as
-C<< infix:<&> >>, but with left-to-right evaluation guaranteed, for use
+By default junctions are allowed to reorder the comparisons in any
+order that makes sense to the optimizer.  To suppress this, use
+the C<S> metaoperator for force sequential evaluation, which will
+construct a list of ANDed patterns with the same semantics as C<<
+infix:<&> >>, but with left-to-right evaluation guaranteed, for use
 in guarded patterns:
 
-    $target ~~ MyType also *.mytest1 also *.mytest2
+    $target ~~ MyType S& *.mytest1 S& *.mytest2
 
 This is useful when later tests might throw exceptions if earlier
 tests don't pass.  This cannot be guaranteed by:
@@ -984,27 +981,29 @@ C<< infix:<|> >>, any() operator
 
 =item *
 
-C<< infix:<else> >>, short-circuit junctional or operator
-
-    EXPR else EXPR else EXPR ...
-
-Can be used to construct ORed patterns with the same semantics as
-C<< infix:<|> >>, but with left-to-right evaluation guaranteed, for use
-in guarded patterns where the left argument is much more easily
+By default junctions are allowed to reorder the comparisons in
+any order that makes sense to the optimizer.  To suppress this,
+use the C<S> metaoperator for force sequential evaluation, which
+will construct a list of ORed patterns with the same semantics as
+C<< infix:<|> >>, but with left-to-right evaluation guaranteed, for
+use in guarded patterns where the left argument is much more easily
 falsifiable than the right:
 
-    $target ~~ *.mycheaptest else *.myexpensivetest
+    $target ~~ *.mycheaptest S| *.myexpensivetest
 
 This is also useful when you want to perform tests in order
 of safety:
 
-    $target ~~ MyType else *.mysafetest else *.mydangeroustest
+    $target ~~ MyType S| *.mysafetest S| *.mydangeroustest
 
 =item *
 
 C<< infix:<^> >>, one() operator
 
     $a ^ $b ^ $c ...
+
+The C<S^> variant guarantees left-to-right evaluation, and in boolean
+context short-circuits to false if it sees a second match.
 
 =back
 
@@ -3640,7 +3639,7 @@ bitwise C<¬> operator, you'd have to add the C<+¬>, C<~¬>, and C<?¬>
 operators yourself.  Similarly, the carets that exclude the endpoints
 on ranges are there by convention only.
 
-In contrast to that, Perl 6 has six standard metaoperators for
+In contrast to that, Perl 6 has seven standard metaoperators for
 turning a given existing operator into a related operator that is
 more powerful (or at least differently powerful).  These differ from a
 mere naming convention in that Perl automatically generates these new
@@ -4251,6 +4250,35 @@ Note that only the first term of an C<X> operator may reasonably be
 an infinite list.
 
 Multidimensional lists should be handled properly.
+
+=head2 Sequential operators
+
+The sequence metaoperator, C<S>, may be followed by any non-fiddly infix operator.
+It suppresses any explicit or implicit parallelism, and prevents the optimizer
+from reordering the operand evaluations.  The 'S' can be thought of as standing
+for Sequential, Serial, Synchronous, Short-circuit, Single-thread, and Safe.
+Among other things.  In particular, we can have:
+
+    a S& b S& c         short-circuited AND junction
+    a S| b S| c         short-circuited OR junction
+    a S^ b S^ c         short-circuited XOR junction
+    a S»op« b           single-threaded hyperop
+    a SX* b             single-threaded X*
+    a SX[*] b           single-threaded X*
+    a S[X*] b           single-threaded X*
+    a S+ b              suppress arg reordering by ignorant optimizer 
+
+This metaoperator has the same precedence and associativity as its base operator.
+The compiler is free to discard any C<S> metaoperator that is provably redundant,
+such as the one in C<S||>.  The compiler is free to intuit an C<S> on any
+operator involving known volatile operands where that does not otherwise
+change the semantics of the operator.
+
+Conjectural: since metaoperators are notionally applied from inside to outside,
+serializing a reversed operator depends on the order of the metaoperators:
+
+    a SR/ b             evaluates b, then a, then does b/a
+    a RS/ b             evaluates a, then b, then does b/a
 
 =head2 Nesting of metaoperators
 
