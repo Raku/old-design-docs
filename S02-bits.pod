@@ -588,7 +588,7 @@ look like the same object if they happen to have the same contents.
 =item *
 
 Variables with non-native types can always contain I<undefined> values,
-such as C<Object>, C<Whatever> and C<Failure> objects.  See S04 for more
+such as C<U>, C<Whatever> and C<Failure> objects.  See S04 for more
 about failures (i.e. unthrown exceptions):
 
     my Int $x = Int;    # works
@@ -1057,16 +1057,16 @@ information; these may be created using the C<fail> function, or by
 direct construction of an exception object of some sort.  (See S04
 for how failures are handled.)
 
-    Object      Uninitialized (derivatives serve as type objects)
-    Whatever    Wildcard (like Object, but subject to do-what-I-mean via MMD)
+    U           Uninitialized (derivatives serve as type objects)
     Failure     Failure (lazy exceptions, thrown if not handled properly)
 
 Whenever you declare any kind of type, class, module, or package, you're
 automatically declaring a undefined prototype value with the same name, known
 as the I<type object>.  The name itself returns that type object:
 
-    Object      Perl 6 object (default block parameter type, either Any or junction)
+    U           Perl 6 object (default block parameter type, either Any or junction)
     Any         Perl 6 object (default routine parameter type, excludes junction)
+    Whatever    Wildcard (like Any, but subject to do-what-I-mean via MMD)
     Int         Any Int object
     Widget      Any Widget object
 
@@ -1080,7 +1080,7 @@ Whenever a C<Failure> value is put into a typed container, it takes
 on the type specified by the container but continues to carry the
 C<Failure> role.  
 Use C<fail> to return specific failures.  Use
-C<Object> for the most generic non-failure undefined value.  The C<Any>
+C<U> for the most generic non-failure undefined value.  The C<Any>
 type is also undefined, but excludes C<junctions> so that autothreading
 may be dispatched using normal multiple dispatch rules.
 
@@ -1200,7 +1200,7 @@ values.  If the value of a C<KeyHash> element is set to the default
 value for the C<KeyHash>, the element is deleted.  If undeclared,
 the default default for a C<KeyHash> is 0 for numeric types, C<False>
 for boolean types, and the null string for string and buffer types.
-A C<KeyHash> of a C<Object> type defaults to the undefined prototype
+A C<KeyHash> of an object type defaults to the undefined prototype
 for that type.  More generally, the default default is whatever defined
 value a C<Nil> would convert to for that value type.  A C<KeyHash>
 of C<Scalar> deletes elements that go to either 0 or the null string.
@@ -1798,7 +1798,7 @@ list context, and an empty parcel into slice context.
 Assigning or binding C<Nil> to any scalar container causes the
 container to throw out any contents and restore itself to an
 uninitialized state (after which it will contain a type object
-appropriate to the declared type of the container, or C<Object>
+appropriate to the declared type of the container, or C<U>
 for untyped containers).
 
 Assigning or binding C<Nil> to any composite container (such as an
@@ -3842,12 +3842,12 @@ official type (by mixing the method into an anonymous derived type).
 =item *
 
 The definition of C<.Bool> for the most ancestral type (that is, the
-C<Object> type) is equivalent to C<.defined>.  Since type objects are
-considered undefined, all type objects (including C<Object> itself)
+C<U> type) is equivalent to C<.defined>.  Since type objects are
+considered undefined, all type objects (including C<U> itself)
 are false unless the type overrides the definition of C<.Bool>
 to include undefined values.  Instantiated objects default to true
 unless the class overrides the definition.  Note that if you could
-instantiate an C<Object> it would be considered defined, and thus true.
+instantiate a C<U> it would be considered defined, and thus true.
 (It is not clear that this is allowed, however.)
 
 =item *
