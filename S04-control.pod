@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 19 Nov 2009
-    Version: 89
+    Last Modified: 24 Nov 2009
+    Version: 90
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -196,11 +196,21 @@ prepared to be redone if a continuation within that scope is taken.
 
 =head1 The Relationship of Blocks and Statements
 
-The return value of a block is the value of its final statement.
-(This is subtly different from Perl 5's behavior, which was to return
+In the absence of explicit control flow terminating the block early,
+the return value of a block is the value of its final statement.
+This is defined as the textually last statement of its top-level
+list of statements; any statements embedded within those top-level
+statements are in their own lower-level list of statements and,
+while they may be a final statement in their subscope, they're not
+considered the final statement of the outer block in question.
+
+This is subtly different from Perl 5's behavior, which was to return
 the value of the last expression evaluated, even if that expression
-was just a conditional.)  If there are no statements in the block,
-the result is C<Nil>.
+was just a conditional.  Unlike in Perl 5, if a final statement in
+Perl 6 is a conditional that does not execute any of its branches, it
+doesn't matter what the value of the condional is, the value of that
+conditional statement is always C<Nil>.  If there are no statements
+in the block at all, the result is also C<Nil>.
 
 =head1 Statement-ending blocks
 
@@ -919,6 +929,10 @@ is exactly equivalent to
 
     doit() if $_ ~~ 42;
 
+This is particularly useful for list comprehensions:
+
+    @lucky = ($_ when /7/ for 1..100);
+
 =head1 Exception handlers
 X<CATCH>
 
@@ -1243,9 +1257,13 @@ Note, however, that
 
 sets the variable to 0 at C<END> time, since that is when the "my"
 declaration is actually executed.  Only argumentless phasers may
-use the statement form.  This means that C<CHECK> and C<CONTROL>
+use the statement form.  This means that C<CATCH> and C<CONTROL>
 always require a block, since they take an argument that sets C<$_>
-to the current topic.
+to the current topic, so that the innards are able to behave
+as a switch statement.  (If bare statements were allowed, the
+temporary binding of C<$_> would leak out past the end of the C<CATCH>
+or C<CONTROL>, with unpredictable and quite possibly dire consequences.
+Exception handlers are supposed to reduce uncertainty, not increase it.)
 
 Code that is generated at run time can still fire off C<CHECK>
 and C<INIT> phasers, though of course those phasers can't do things that
