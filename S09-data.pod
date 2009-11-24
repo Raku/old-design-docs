@@ -257,7 +257,7 @@ then each element is written three times and the array ends up with C<['i','j','
 
 =head1 Typed arrays
 
-The type of value stored in each element of the array (normally C<U>)
+The type of value stored in each element of the array (normally C<Mu> for unspecified type)
 can be explicitly specified too, as an external C<of> type:
 
     my num @nums;                     # Each element stores a native number
@@ -1070,7 +1070,7 @@ may decide that boolean contexts always collapse the junction by
 default, and the exact value that allowed the collapse to "true"
 is not available.  A variant of that is to say that if you want
 autothreading of a control construct, you must assign or bind to
-a non-C<U> container before the control construct, and that
+a non-C<Mu> container before the control construct, and that
 assignment or binding to any such container results in autothreading
 the rest of the dynamic scope. (The performance ramifications of this
 are not clear without further experimentation, however.)  So for now,
@@ -1201,9 +1201,13 @@ You can limit the keys to objects of particular types:
 
     my Fight %hash{Dog; Squirrel where {!.scared}};
 
-The standard Hash is just
+The standard Hash:
 
-    my U %hash{Str};
+    my %hash;
+
+is really short for:
+
+    my Mu %hash{Str};
 
 Note that any type used as a key must be intrinsically immutable,
 or it has to be able to make a copy that functions as an immutable key,

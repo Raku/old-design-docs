@@ -588,7 +588,7 @@ look like the same object if they happen to have the same contents.
 =item *
 
 Variables with non-native types can always contain I<undefined> values,
-such as C<U>, C<Whatever> and C<Failure> objects.  See S04 for more
+such as C<Mu>, C<Whatever> and C<Failure> objects.  See S04 for more
 about failures (i.e. unthrown exceptions):
 
     my Int $x = Int;    # works
@@ -1045,26 +1045,49 @@ must be specified explicitly.  (As it happens, conversion to a buf
 type based on 32-bit integers produces valid UTF-32 in the native
 endianness.)
 
+=head2 The C<Mu> type
+
+Among other things, C<Mu> is named after the eastern concept of
+"Mu" or 無 (see L<http://en.wikipedia.org/wiki/MU>, especially the
+"Mu_(negative)" entry), so in Perl 6 it stands in for Perl 5's
+concept of "undef" when that is used as a noun.  However, C<Mu> is also
+the "nothing" from which everything else is derived via the undefined
+type objects, so it stands in for the concept of "Object" as used in
+languages like Java.  Or think of it as a "micro" or µ-object that
+is the the basis for all other objects, something atomic like a Muon.
+Or if acronyms make you happy, there are a variety to pick from:
+
+    Most Universal
+    More Undefined
+    Modern Undef
+    Master Union
+    Meta Ur
+    Mega Up
+    ...
+
+Or just think of it as a sound a cow makes, which simultaneously
+means everything and nothing.
+
 =head2 Undefined types
 
 Perl 6 does not have a single value representing undefinedness.
 Instead, objects of various types can carry type information while
 nevertheless remaining undefined themselves.  Whether an object is
 defined is determined by whether C<.defined> returns true or not.
-These typed objects typically represent unitialized values.  Failure
+These typed objects typically represent uninitialized values.  Failure
 objects are also officially undefined despite carrying exception
 information; these may be created using the C<fail> function, or by
 direct construction of an exception object of some sort.  (See S04
 for how failures are handled.)
 
-    U           Uninitialized (derivatives serve as type objects)
+    Mu          Most Undefined
     Failure     Failure (lazy exceptions, thrown if not handled properly)
 
 Whenever you declare any kind of type, class, module, or package, you're
 automatically declaring a undefined prototype value with the same name, known
 as the I<type object>.  The name itself returns that type object:
 
-    U           Perl 6 object (default block parameter type, either Any or junction)
+    Mu          Perl 6 object (default block parameter type, either Any or junction)
     Any         Perl 6 object (default routine parameter type, excludes junction)
     Whatever    Wildcard (like Any, but subject to do-what-I-mean via MMD)
     Int         Any Int object
@@ -1078,11 +1101,12 @@ classes:
 
 Whenever a C<Failure> value is put into a typed container, it takes
 on the type specified by the container but continues to carry the
-C<Failure> role.  
-Use C<fail> to return specific failures.  Use
-C<U> for the most generic non-failure undefined value.  The C<Any>
-type is also undefined, but excludes C<junctions> so that autothreading
-may be dispatched using normal multiple dispatch rules.
+C<Failure> role.  Use C<fail> to return specific failures.  Use C<Mu>
+for the most generic non-failure undefined value.  The C<Any> type,
+derived from C<Mu>, is also undefined, but excludes C<junctions> so
+that autothreading may be dispatched using normal multiple dispatch
+rules.  The C<Whatever> type is derived from C<Any> but nothing else
+is derived from it.
 
 =head2 Immutable types
 
@@ -1798,7 +1822,7 @@ list context, and an empty parcel into slice context.
 Assigning or binding C<Nil> to any scalar container causes the
 container to throw out any contents and restore itself to an
 uninitialized state (after which it will contain a type object
-appropriate to the declared type of the container, or C<U>
+appropriate to the declared type of the container, or C<Mu>
 for untyped containers).
 
 Assigning or binding C<Nil> to any composite container (such as an
@@ -3842,12 +3866,12 @@ official type (by mixing the method into an anonymous derived type).
 =item *
 
 The definition of C<.Bool> for the most ancestral type (that is, the
-C<U> type) is equivalent to C<.defined>.  Since type objects are
-considered undefined, all type objects (including C<U> itself)
+C<Mu> type) is equivalent to C<.defined>.  Since type objects are
+considered undefined, all type objects (including C<Mu> itself)
 are false unless the type overrides the definition of C<.Bool>
 to include undefined values.  Instantiated objects default to true
 unless the class overrides the definition.  Note that if you could
-instantiate a C<U> it would be considered defined, and thus true.
+instantiate a C<Mu> it would be considered defined, and thus true.
 (It is not clear that this is allowed, however.)
 
 =item *
