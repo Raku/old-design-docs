@@ -30,13 +30,16 @@ the SVN repository if you would like to make changes.
 
 =head1 Roles
 
-=head2 Object
+=head2 Mu
 
-The following are defined in the C<Object> role:
+The following are defined in the C<Mu> role:
 
- role Object {
+ role Mu {
      our Bool multi method defined ($self:) is export {...}
      our Bool multi method defined ($self: ::role ) is export {...}
+
+     our Bool multi method notdef ($self:) is export {...}
+     our Bool multi method notdef ($self: ::role ) is export {...}
 
      our multi method undefine( $self: ) is export {...}
 
@@ -104,7 +107,7 @@ instantiate a C<Mu> it would be considered defined, and thus true.
 
 The following are defined in the C<Any> role:
 
- role Any does Object does Pattern {
+ role Any does Mu does Pattern {
      our Bool multi sub eqv (Ordering @by, $a, $b) {...}
      our Bool multi sub eqv (Ordering $by = &infix:<eqv>, $a, $b) {...}
 
@@ -117,8 +120,8 @@ The following are defined in the C<Any> role:
      our Callable multi method can ($self:, Str $method) {...}
      our Bool     multi method does ($self:, $type) {...}
      our Bool     multi method isa  ($self:, $type) {...}
-     our Str      multi method perl ( Object $o: ) is export {...}
-     our          multi method warn ( Object $o: ) is export {...}
+     our Str      multi method perl ( Mu $o: ) is export {...}
+     our          multi method warn ( Mu $o: ) is export {...}
  }
 
 =over
@@ -182,14 +185,14 @@ of a subset type or a derived class (through inheritance) of C<$type>.
 
 =item perl
 
- our Str multi method perl ( Object $o: ) is export
+ our Str multi method perl ( Mu $o: ) is export
 
 Returns a perlish representation of the object, so that calling C<eval>
 on the returned string reproduces the object as accurately as possible.
 
 =item warn
 
- our multi method warn ( Object $o: ) is export
+ our multi method warn ( Mu $o: ) is export
 
 Throws a resumable warning exception, which is considered a control
 exception, and hence is invisible to most normal exception handlers.
