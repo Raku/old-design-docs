@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Numeric
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 1 Sep 2009
-    Version: 3
+    Last Modified: 27 Nov 2009
+    Version: 4
 
 The document is a draft.
 
@@ -182,10 +182,18 @@ Returns the lowest integer not less than C<$x>.
 
 =item round
 
- our Int multi method round ( Real $x: ) is export
+ our Int multi method round ( Real $x: $scale = 1) is export
 
-Returns the nearest integer to C<$x>.  The algorithm is C<floor($x + 0.5)>.
+Returns the nearest integer to C<$x>.  The algorithm is:
+
+    floor($x / $scale + 0.5) * $scale
+
 (Other rounding algorithms will be given extended names beginning with "round".)
+
+Functions that round to a particular precision may easily be created with
+currying:
+
+    constant &roundcents ::= &round.assuming(:scale(1/100));
 
 =item truncate
 

@@ -677,19 +677,40 @@ rather than C<int> and C<num>.
 However, for pragmatic reasons, C<Rat> values are guaranteed to be
 exact only up to a certain point.  By default, this is the precision
 that would be represented by the C<Rat64> type, which is an alias for
-C<Rational[Int,int64]>, which has a numerator
-of C<Int> but is limited to a denominator of C<int64>.  A C<Rat64> that
+C<Rational[Int,uint64]>, which has a numerator
+of C<Int> but is limited to a denominator of C<uint64>.  A C<Rat64> that
 would require more than 64 bits of storage in the denominator is
 automatically converted either to a C<Num> or to a lesser-precision
 C<Rat>, at the discretion of the implementation.  (Native types such
 as C<rat64> limit the size of both numerator and denominator, though
 not to the same size.  The numerator should in general be twice the
 size of the denominator to support user expectations.  For instance,
-a C<rat8> actually supports C<Rational[int16,int8], allowing
+a C<rat8> actually supports C<Rational[int16,uint8], allowing
 numbers like C<100.01> to be represented, and a C<rat64>,
 defined as C<Rational[int128,int64]>, can hold the number of seconds since
 the Big Bang with attosecond precision.  Though perhaps not with
 attosecond accuracy...)
+
+The limitation on C<Rat> values is intended to be enforced only on
+user-visible types.  Intermediate values used internally in calculation
+the values of C<Rat> operators may exceed this precision, or represent
+negative denominators.  That is, the temporaries used in calculating
+the new numerator and denominator are (at least in the abstract) of
+C<Int> type.  After a new numerator and denominator are determined,
+any sign is forced to be represented only by the numerator.  Then if
+the denominator exceeds the storage size of the unsigned integer used,
+the fraction is reduced via gcd.  If the resulting denominator is still
+larger than the storage size, then and I<only> then may the precision
+be reduced to fit into a C<Rat> or C<Num>.
+
+C<Rat> addition and subtraction should attempt to preserve the
+denominator of the more precise argument if that denominator is
+an integral multiple of the less precise denominator.  That is,
+in practical terms, adding a column of dollars and cents should
+generally end up with a result that has a denominator of 100, even
+if values like 42 and 3.5 were added in.  With other operators,
+this guarantee cannot be made; in such cases, the user should probably
+be explicitly rounding to a particular denominator anyway.
 
 For applications that really need arbitrary precision denominators as
 well as numerators at the cost of performance, C<FatRat> may be used,
