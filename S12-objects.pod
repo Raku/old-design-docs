@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 25 Nov 2009
-    Version: 92
+    Last Modified: 28 Nov 2009
+    Version: 93
 
 =head1 Overview
 
@@ -1624,43 +1624,116 @@ versions of Perl.
 
 =head1 Enums
 
-An enum is a low-level class that can function as a role or property.
-A given enum value can function as a subtype, a method, or as an ordinary
-value.  The names of the values are specified as a parenthesized list, or
-an equivalent angle bracket list:
+An enum is a type that facilitates the use of a set of symbols to
+represent a set of constant values.  Its most obvious use is the translation
+of those symbols to their corresponding values.  Each enum constant
+associates an I<enum key> with an I<enum value>.  Semantically therefore,
+an enum is operates like a constant hash, but since it uses a
+package C<Stash> to hold the entries, it presents itself to the
+user's namespace as a typename package containing a set of constant
+declarations.  That is,
+
+    enum E <a b c>;
+
+is largely syntactic sugar for:
+
+    package E {
+        constant a = 0;
+        constant b = 1;
+        constant c = 2;
+    }
+
+(However, the enum declaration supplies extra semantics.)
+
+Such constant declarations allow the use of the declared names to
+stand in for the values where a value is desired.  In addition, since
+a constant declaration introduces a name that behaves as a subtype
+matching a single value, the enum key can function as a typename in
+certain capacities where a typename is required.  The name of the
+enum package as a whole is also considered a typename, and may be
+used to represent the set of values.
+
+In the C<enum> declaration, the keys are specified as a parenthesized
+list, or an equivalent angle bracket list:
 
     my enum Day ('Sun','Mon','Tue','Wed','Thu','Fri','Sat');
     my enum Day <Sun Mon Tue Wed Thu Fri Sat>;
 
-If the first value is unspecified, it defaults to 0.  To specify the
-first value, use pair notation (see below).
+The values are generated implicitly by default, but may be also be
+specified explicitly.  If the first value is unspecified, it defaults
+to 0.  To specify the first value, use pair notation (see below).
 
-If the declared type name begins with an uppercase letter, the default
-type is C<Int> or C<Str>, depending on the type of the first value.
-If the declared type is lowercase, the default return type is C<int> or C<buf>.
+If the declared enum typename (the outer name) begins with an uppercase letter, the enum values
+will be derived from C<Int> or C<Str> as appropriate.
+If the enum typename is lowercase, the enum is assumed to be representing a
+set of native values, so the default value type is C<int> or C<buf>.
 
-The type can be specified:
+The base type can be specified if desired:
 
     my bit enum maybe <no yes>;
     my Int enum day ('Sun','Mon','Tue','Wed','Thu','Fri','Sat');
-    my enum day of uint4 <Sun Mon Tue Wed Thu Fri Sat>;
+    our enum day of uint4 <Sun Mon Tue Wed Thu Fri Sat>;
 
-For any enum value of an object type, the object itself knows its own
-type, so the C<.perl> method will return its long name, while C<.name>
-returns its short name.  Other than that, number valued enums act
-just like numbers, while string valued enums act just like strings.
+The declared base type automatically distributes itself to the individual
+constant values.  For non-native types, the enum objects are guaranteed
+only to be derived from and convertible to the specified type.  The
+actual type of the enum object returned by using the symbol is the enum type itself.
+
+    Fri.WHAT    # Day, not Int.
+    +Fri        # 5
+    Fri ~~ Int  # True, because derived from Int
+    Fri.perl    # 'Day::Fri'
+    Fri.name    # 'Fri'
+    Fri.defined # True
+
+Other than that, number valued enums act just like numbers, while
+string valued enums act just like strings.  C<Fri.true> is true
+because its value is 5 rather than 0.  C<Sun.true> is false.
 
 Enums based on native types may be used only for their value, since a
-native value doesn't know its own type.  To translate such a value back to its name
-requires a call to the name method, which must be qualified by the type:
+native value doesn't know its own type.
 
-    3.day::name   # returns "Wed"
-
-Alternatively, native types may be placed in a typed variable, which determines
-which method to call:
+Since methods on native types delegate to their container's type,
+a variable typed with a native type will know which method to call:
 
     my day $d = 3;
     $d.name     # returns "Wed"
+
+Such declarational forms are not always convenient; to translate
+native enum values back to their names operationally, you can pull
+out the enum type's mapping and invert it:
+
+    constant %dayname := Day.mapping.invert;
+    %dayname{3} # Wed
+
+The enum type itself is an undefined type object, but supplies convenient
+methods:
+
+    Day.defined # False
+    3 ~~ Day    # True, using Day as a subset of Int
+    Day.mapping # hash of key/value pairs
+
+The C<.mapping> method returns a C<PairValSet> that may be used like
+a constant hash value:
+
+    my enum CoinFace <Heads Tails>;
+    CoinFace.mapping.pairs      # (Heads => 0, Tails => 1)
+    CoinFace.mapping.keys       # ('Heads', 'Tails')
+    CoinFace.mapping.values     # (0, 1)
+    CoinFace.mapping.kv         # ('Heads', 0, 'Tails', 1)
+    CoinFace.mapping.invert     # (0 => 'Heads', 1 => 'Tails')
+
+The enum typename itself may be used as a coercion operator from either
+the key name or a value.   First the argument is looked up as a key;
+if that is found, the enum object is returned.  If the key name lookup
+fails, the value is looked up using an inverted mapping table (which
+might have dups if the mapping is not one-to-one):
+
+    Day('Tue')             # Tue constant, found as key
+    Day::('Tue')           # (same thing)
+
+    Day(3)                 # Wed constant, found as value
+    Day.mapping.invert{3}  # (same thing)
 
 An anonymous enum just makes sure each string turns into a pair with
 sequentially increasing values, so:
@@ -1696,88 +1769,132 @@ pair syntax along with interpolations, we can simply say:
     my Item enum hex «:zero(0) one two three four five six seven eight nine
                       :ten<a> eleven twelve thirteen fourteen fifteen»;
 
+Note that enum declaration evaluates its list at compile time, so
+any interpolation into such a list may not depend on run-time values.
+Otherwise enums wouldn't be constants.  (If this isn't what you want,
+try initializing an ordinary declaration using C<::=> to make a scoped
+readonly value.)
+
 You may import enum types; only non-colliding values are imported.
 Colliding enum values are hidden and must be disambiguated with the
 type name.  Any attempt to use the ambiguous name will result in a fatal
 compilation error.  (All colliding values are hidden, not just the new one,
 or the old one.)  Any explicit sub or type definition hides all imported
 enum values of the same name but will produce a warning unless
-C<is redefined> is included.  Note that true() is a built-in function,
-while True is short for C<Bool::True>.
+C<is redefined> is included.  Note that true() is a built-in function
+and requires an argument, while True is short for C<Bool::True> and
+does not take an argument.
 
-Enum values may be used as a property on the right side
-of a C<but>, and the enum type will be intuited from the value to make
-sure the object in question has the right semantics mixed in:
+Since non-native enum values know their enum type, they may be used to
+name a desired property on the right side of a C<but> or C<does>.
+So these:
+
+    $x = "Today" but Tue;
+    $y does True;
+
+expand to:
+
+    $x = "Today" but Day::Tue;
+    $y does Bool::True;
+
+The C<but> and C<does> operators expect a role on their right side.
+An enum type is not in itself a role type; however, the C<but>
+and C<does> operators know that when a user supplies an enum type,
+it implies the generation of an anonymous mixin role that creates an
+attribute of the enum type along with an accessor.  If we assume
+there is a C<Has> role that creates an attribute, then
 
     $x = "Today" but Tue;
 
-is the same as
-
-    $x = "Today" but day::Tue;
-
-or pseudo-hash form:
-
-    $x = "Today" but day<Tue>;
-
-which is short for something like:
+really means something more like:
 
     $x = "Today";
-    $x does day;
-    $x.day = &day::('Tue');
+    $x does Has[Day, '$.Day', (:rw), { Tue }];
 
-There's also a pseudo-functional form:
+Since enum supplies the type name as a coercion, you can
+also say:
 
-    $x = "Today" but day(Tue);
-
-which lets you cheat:
-
-    $x = "Today" but day(3);
+    $x = "Today" but Day(Tue);
+    $x = "Today" but Day(2);
 
 After any of those
 
-    $x.day
+    $x.Day
 
-returns C<day::Tue> (that is, 3), and
+returns C<Day::Tue> (that is, the constant object representing 2), and
+both the general and specific names function as typenames in normal
+constraint and coercion uses.  Hence,
 
-    $x ~~ day
+    $x ~~ Day
     $x ~~ Tue
-    $x.does(Tue)
-    $x.does(day)
-    $x.day == Tue
-    day($x) == Tue
+    $x.Day == Tue
+    Day($x) == Tue
     $x.Tue
 
 all return true, and
 
-    $x.does(Wed)
     $x.Wed
-    $x.day == Wed
-    8.does(day)
-    8 ~~ day
+    $x.Day == Wed
+    8 ~~ Day
 
 all return false.
 
+To add traits to an enum declaration, place them after the declared
+name but before the list:
+
+    enum Size is silly <regular large jumbo>;
+
+To export an enum, place the export trait just before the list:
+
+    enum Maybe is export <No Yes Dunno>;
+
+To declare that an enum value implies a particular role, 
+supply a C<does> in the same location
+
+    enum Maybe does TristateLogic <No Yes Dunno>;
+
 Two built-in enums are:
 
-    our Bit enum Bool <False True>;
-    our Bit enum Taint <Untainted Tainted>;
+    our enum Bool does Boolean <False True>;
+    our enum Taint does Tainting <Untainted Tainted>;
 
-Note that C<Bool> and C<Taint> are really role names, and the enum
-values are really subset types of the C<Bit> integer type.  You can
-call the C<.Bool> coercion or the C<true> function or the C<?>
-prefix operator on any built-in type, but the value returned is of
-type C<bit>.  Never compare a value to "C<true>", or even "C<True>".
-Just use it in a boolean context.
+Note that C<Bool> and C<Taint> are not role names themselves but imply roles, and the enum
+values are really subset types of C<Int>, though the constant
+objects themselves know that they are of type C<Bool> or C<Taint>, and can therefore
+be used correctly in multimethod dispatch.
 
-Like type names, enum names are parsed as standalone tokens
-representing scalar values, and don't look for any arguments.
-Unlike type names which are undefined type objects, enums are defined
-constant values.  Also unlike types, they do not respond to C<.()>
-unless you mix in C<Callable> somehow.
-They may not be post-declared.
+You can call the low-level C<.Bool> coercion on any built-in type, because
+all built-in types do the C<Boolean> role, which requires a C<.Bool> method.
+Hence, there is a great difference between saying
+
+        $x does Boolean;        # a no-op, since $x already does Boolean
+        $x does Bool;           # create a $.Bool attribute, also does Boolean
+
+Conditionals evaluate the truth of a boolean expression by testing
+the return value of C<.Bool> like this:
+
+    $obj.Bool.Int != 0
+
+Never compare a value to "C<true>", or even "C<True>".  Just use it
+in a boolean context.
+
+If you wish to be explicit about a boolean context, use the high-level
+C<true> function or C<?> prefix operator, which are underlying based
+on the C<.Bool> method.  Also, use these high level functions when you wish
+to autothread junctions, since C<.Bool> forces collapse of a junction's
+wavefunction.  (Similarly, C<.Str> forces stringification of the entire junction,
+while prefix:<~> does not.)
+
+Like other type names and constant names, enum keynames are parsed as
+standalone tokens representing scalar values, and don't look for any
+arguments.  Unlike type names but like constant names, enum keynames
+return defined values.  Also unlike types and unlike the enum type as a
+whole, individual keynames do not respond to C<.()> unless you mix in
+C<Callable> somehow.  (That is, it makes no sense to coerce Wednesday
+to Tuesday by saying C<Tue($wed)>.)  Enums may not be post-declared.
 
     our enum Maybe <OK FAIL>;
-    sub OK {...}
+    sub OK is redefined {...}
     $x = OK;   # certainly the enum value
     $x = OK()  # certainly the function
 
@@ -1807,9 +1924,8 @@ more likely.  It can never return Five Aces, since the pick
 is done without replacement.  (If it I<does> return Five Aces,
 it's time to walk away.  Or maybe run.)
 
-To export an enum, place the export trait just before the list:
-
-    enum Maybe is export <No Yes Dunno>;
+To pick from the list of keynames or values, derive them via the
+C<.mapping> method described above.
 
 =head1 Open vs Closed Classes
 
