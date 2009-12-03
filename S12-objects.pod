@@ -1701,9 +1701,9 @@ a variable typed with a native type will know which method to call:
 
 Such declarational forms are not always convenient; to translate
 native enum values back to their names operationally, you can pull
-out the enum type's mapping and invert it:
+out the enum type's C<EnumMap> and invert it:
 
-    constant %dayname := Day.mapping.invert;
+    constant %dayname := Day.enums.invert;
     %dayname{3} # Wed
 
 The enum type itself is an undefined type object, but supplies convenient
@@ -1711,17 +1711,17 @@ methods:
 
     Day.defined # False
     3 ~~ Day    # True, using Day as a subset of Int
-    Day.mapping # hash of key/value pairs
+    Day.enums   # map of key/value pairs
 
-The C<.mapping> method returns a C<PairValSeq> that may be used like
-a constant hash value:
+The C<.enums> method returns an C<EnumMap> that may be used either as
+a constant hash value or as a list of pairs:
 
     my enum CoinFace <Heads Tails>;
-    CoinFace.mapping.pairs      # (Heads => 0, Tails => 1)
-    CoinFace.mapping.keys       # ('Heads', 'Tails')
-    CoinFace.mapping.values     # (0, 1)
-    CoinFace.mapping.kv         # ('Heads', 0, 'Tails', 1)
-    CoinFace.mapping.invert     # (0 => 'Heads', 1 => 'Tails')
+    CoinFace.enums.keys       # ('Heads', 'Tails')
+    CoinFace.enums.values     # (0, 1)
+    CoinFace.enums.kv         # ('Heads', 0, 'Tails', 1)
+    CoinFace.enums.invert     # (0 => 'Heads', 1 => 'Tails')
+    CoinFace.enums.[1]        # Tails => 1
 
 The enum typename itself may be used as a coercion operator from either
 the key name or a value.   First the argument is looked up as a key;
@@ -1729,11 +1729,11 @@ if that is found, the enum object is returned.  If the key name lookup
 fails, the value is looked up using an inverted mapping table (which
 might have dups if the mapping is not one-to-one):
 
-    Day('Tue')             # Tue constant, found as key
-    Day::('Tue')           # (same thing)
+    Day('Tue')           # Tue constant, found as key
+    Day::('Tue')         # (same thing)
 
-    Day(3)                 # Wed constant, found as value
-    Day.mapping.invert{3}  # (same thing)
+    Day(3)               # Wed constant, found as value
+    Day.enums.invert{3}  # (same thing)
 
 An anonymous enum just makes sure each string turns into a pair with
 sequentially increasing values, so:
@@ -1747,7 +1747,7 @@ is equivalent to:
     %e<ook.> = 1;
     %e<ook?> = 2;
 
-The return value of an anonymous enum is a c<PairValSeq>.
+The return value of an anonymous enum is an c<EnumMap>.
 
 The enum composer inspects list values for pairs, where the value
 of the pair sets the next value explicitly.  Non-pairs C<++> the
@@ -1957,7 +1957,7 @@ is done without replacement.  (If it I<does> return Five Aces,
 it's time to walk away.  Or maybe run.)
 
 To pick from the list of keynames or values, derive them via the
-C<.mapping> method described above.
+C<.enums> method described above.
 
 =head1 Open vs Closed Classes
 

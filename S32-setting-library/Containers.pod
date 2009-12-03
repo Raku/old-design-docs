@@ -582,6 +582,7 @@ returns the modified array.
  multi method keys   ( @array: Matcher $indextest? ) is export
  multi method kv     ( @array: Matcher $indextest? ) is export
  multi method pairs  ( @array: Matcher $indextest? ) is export
+ multi method enums  ( @array: Matcher $indextest? ) is export
  multi method values ( @array: Matcher $indextest? ) is export
 
 Iterates the elements of C<@array>, in order.
@@ -592,6 +593,9 @@ C<$index ~~ $indextest> are iterated.  (To select on values use C<grep>.)
 What is returned at each element of the iteration varies with function.
 C<values> returns the value of the associated element; C<kv> returns
 a 2 element list in (index, value) order, C<pairs> a C<Pair(index, value)>.
+With C<pairs> the values are references back to the original containers,
+while with C<enums> a snapshot of those values is taken.  That is, C<.pairs>
+returns a C<PairMap> while C<enums> returns an C<EnumMap>.
 
 If C<@array> is declared to be multi-dimensional, the keys returned may
 in fact be slice lists.  (Arrays that are effectively multi-dimensional
@@ -633,6 +637,7 @@ which can be processed using junctions.
  multi method keys   ( %hash: Matcher $keytest? ) is export
  multi method kv     ( %hash: Matcher $keytest? ) is export
  multi method pairs  ( %hash: Matcher $keytest? ) is export
+ multi method enums  ( %hash: Matcher $keytest? ) is export
  multi method values ( %hash: Matcher $keytest? ) is export
 
 Iterates the elements of C<%hash>. The order is implementation dependent
@@ -645,6 +650,9 @@ C<$key ~~ $keytest> as true are iterated.
 What is returned at each element of the iteration varies with function.
 C<keys> only returns the key; C<values> the value; C<kv> returns both as
 a 2 element list in (key, value) order, C<pairs> a C<Pair(key, value)>.
+With C<pairs> the values are references back to the original containers,
+while with C<enums> a snapshot of those values is taken.  That is, C<.pairs>
+returns a C<PairMap> while C<enums> returns an C<EnumMap>.
 
 Note that C<kv %hash> returns the same as C<zip(keys %hash; values %hash)>
 
@@ -700,7 +708,7 @@ Like hash assignment insofar as it accepts either C<Pair> objects or
 alternating keys and values; also like in that it returns the new hash.
 However, unlike assignment, when a duplicate key is detected,
 C<push> coerces the colliding entry's value to an
-array and pushes the Pair's value onto that array.  Hence to invert
+array and pushes the C<Pair>'s value onto that array.  Hence to invert
 a hash containing duplicate values without losing (associative) information,
 say:
 
@@ -720,7 +728,7 @@ to the original hash.
 =head1 Classes
 
 This documents Buf, List, Seq, Range, Set, Bag, Junction, Array, Hash, KeyHash, KeySet,
-KeyBag, Pair, and PairSet.
+KeyBag, Pair, and PairMap.
 
 =head2 Seq
 
@@ -794,11 +802,16 @@ Likewise, coercing an encoding-unaware C<Buf> to C<Str> dies.
 operators is intentionally not defined yet, because I have no idea what
 implications on speed and usage they might have --moritz].
 
-=head2 Pair
+=head2 Enum and Pair
 
+    class Enum does Associative {...}
     class Pair does Associative {...}
 
-The value of a pair is mutable; the key is not.
+
+A value formed by associating a single key with a single value.
+In an C<Enum>, both key and value are immutable.  In a C<Pair>, the
+key is immutable but the value mutable.  C<Enum> works identically
+to C<Pair> unless you try to modify it.)
 
 =over
 
@@ -810,22 +823,28 @@ The value of a pair is mutable; the key is not.
 
 =back
 
-=head2 PairValSeq
+=head2 EnumMap
 
-    class PairValSeq does Associative does Positional {...}
+    class EnumMap does Associative does Positional {...}
 
-An immutable hash value, viewable either as a (readonly) hash or
-as a sequence of C<PairVal>s.  The keys may not contain duplicates,
-while the values may.
+An immutable hash value, viewable either as a (constant) hash or as
+a sequence of C<Enum>s.  The keys may not contain duplicates, while
+the values may.  The implemention of C<EnumMap> associativity is not
+guaranteed to be as efficient as a C<Hash> lookup.  (A brute force
+linear scan for the matching key is allowed.  Optimization
+is also allowed.)
 
-=head2 PairSeq
+=head2 PairMap
 
-    class PairSeq does Associative does Positional {...}
+    class PairMap does Associative does Positional {...}
 
 A hash value that is mutable only in values, differing from a normal
 hash insofar as the key set is frozen.  It may be accessed either as
 a frozen hash or as a sequence of C<Pair>s. The keys may not contain
-duplicates, while the values may.
+duplicates, while the values may.  The implemention of C<PairMap>
+associativity is not guaranteed to be as efficient as a C<Hash> lookup.
+(A brute force linear scan for the matching key is allowed.  Optimization
+to something like an ordered hash is also allowed.)
 
 =head2 Set
 
