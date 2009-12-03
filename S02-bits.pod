@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 23 Nov 2009
-    Version: 192
+    Last Modified: 3 Dec 2009
+    Version: 193
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1151,7 +1151,7 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Set         Unordered collection of values that allows no duplicates
     Bag         Unordered collection of values that allows duplicates
     PairVal     An immutable Pair
-    PairValSet  Set of PairVals with no duplicate keys
+    PairValSeq  Seq of PairVals with no duplicate keys
     Signature   Function parameters (left-hand side of a binding)
     Parcel      List of syntactic objects
     Capture     Function call arguments (right-hand side of a binding)
@@ -1206,7 +1206,7 @@ These types do (at least) the following roles:
     Set         Associative[Bool]
     Bag         Associative[UInt]
     PairVal     Associative
-    PairValSet  Associative
+    PairValSeq  Associative Postional Iterable
     Signature   
     Parcel      Positional
     Capture     Positional Associative
@@ -1227,7 +1227,7 @@ because they can be wrapped in place.)
     KeySet      KeyHash of Bool (does Set in list/array context)
     KeyBag      KeyHash of UInt (does Bag in list/array context)
     Pair        A single key-to-value association
-    PairSet     A Set of Pairs
+    PairSeq     A Seq of Pairs
     Buf         Perl buffer (a stringish array of memory locations)
     IO          Perl filehandle
     Routine     Base class for all wrappable executable objects
@@ -1275,7 +1275,7 @@ object) a C<KeyBag> behaves as a C<Bag> of its keys, with each key
 replicated the number of times specified by its corresponding value.
 (Use C<.kv> or C<.pairs> to suppress this behavior in list context.)
 
-As with C<Hash> types, C<Pair> and C<PairSet> are mutable in their
+As with C<Hash> types, C<Pair> and C<PairSeq> are mutable in their
 values but not in their keys.  (A key can be a reference to a mutable
 object, but cannot change its C<.WHICH> identity.  In contrast,
 the value may be rebound to a different object, just as a hash
@@ -1288,8 +1288,9 @@ The following roles are supported:
     Hash        Associative
     KeySet      KeyHash[Bool]
     KeyBag      KeyHash[UInt]
+    KeyHash     Associative
     Pair        Associative
-    PairSet     Associative
+    PairSeq     Associative Postional Iterable
     Buf         Stringy
     IO          
     Routine     Callable

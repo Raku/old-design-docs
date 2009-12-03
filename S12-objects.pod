@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 28 Nov 2009
-    Version: 93
+    Last Modified: 3 Dec 2009
+    Version: 94
 
 =head1 Overview
 
@@ -1713,7 +1713,7 @@ methods:
     3 ~~ Day    # True, using Day as a subset of Int
     Day.mapping # hash of key/value pairs
 
-The C<.mapping> method returns a C<PairValSet> that may be used like
+The C<.mapping> method returns a C<PairValSeq> that may be used like
 a constant hash value:
 
     my enum CoinFace <Heads Tails>;
@@ -1747,7 +1747,9 @@ is equivalent to:
     %e<ook.> = 1;
     %e<ook?> = 2;
 
-The enum installer inspects list values for pairs, where the value
+The return value of an anonymous enum is a c<PairValSeq>.
+
+The enum composer inspects list values for pairs, where the value
 of the pair sets the next value explicitly.  Non-pairs C<++> the
 previous value.  (Str and buf types increment like Perl 5 strings.)
 Since the C<«...»> quoter automatically recognizes
@@ -1782,7 +1784,7 @@ compilation error.  (All colliding values are hidden, not just the new one,
 or the old one.)  Any explicit sub or type definition hides all imported
 enum values of the same name but will produce a warning unless
 C<is redefined> is included.  Note that true() is a built-in function
-and requires an argument, while True is short for C<Bool::True> and
+and requires an argument, while C<True> is short for C<Bool::True> and
 does not take an argument.
 
 Since non-native enum values know their enum type, they may be used to
@@ -1801,15 +1803,30 @@ The C<but> and C<does> operators expect a role on their right side.
 An enum type is not in itself a role type; however, the C<but>
 and C<does> operators know that when a user supplies an enum type,
 it implies the generation of an anonymous mixin role that creates an
-attribute of the enum type along with an accessor.  If we assume
-there is a C<Has> role that creates an attribute, then
+an appropriate accessor, read-write if an attribute is being created, and
+read-only otherwise.  It depends on whether you mix in the whole
+or a specific enum value or the whole enum type:
+
+    $x = "Today" but Tue;       # $x.Day is read-only
+    $x = "Today" but Day;       # $x.Day is read-write
+
+Mixing in a specific enum object implies only the readonly accessor.
 
     $x = "Today" but Tue;
 
-really means something more like:
+really means something like:
 
-    $x = "Today";
-    $x does Has[Day, '$.Day', (:rw), { Tue }];
+    $x = "Today".clone;
+    $x does anon role { method Day { Day::Tue } };
+
+The fully qualified form does the same thing, and is useful
+in case of enum collision:
+
+    $x = "Today" but Day::Tue;
+
+Note that the method name is still C<.Day>, however.  If
+you wish to mix in colliding method names, you'll have to
+mixin your own anonymous role with different method names.
 
 Since enum supplies the type name as a coercion, you can
 also say:
@@ -1838,6 +1855,21 @@ all return true, and
     8 ~~ Day
 
 all return false.
+
+Mixing in the whole enum type produces a read-write attribute:
+
+    $x = "Today" but Day;       # read-write .Day
+
+really means something like:
+
+    $x = "Today".clone;
+    $x does anon role { has Day $.Day is rw }
+
+Note that the attribute is not initialized.  If that is desired
+you can supply a C<WHENCE> closure:
+
+    $x = "Today" but Day{ :Day(Tue) }
+    $x = "Today" but Day{ Tue }  # conjecturally, for "simple" roles
 
 To add traits to an enum declaration, place them after the declared
 name but before the list:
@@ -1876,7 +1908,7 @@ the return value of C<.Bool> like this:
     $obj.Bool.Int != 0
 
 Never compare a value to "C<true>", or even "C<True>".  Just use it
-in a boolean context.
+in a boolean context.  Well, almost never...
 
 If you wish to be explicit about a boolean context, use the high-level
 C<true> function or C<?> prefix operator, which are underlying based
