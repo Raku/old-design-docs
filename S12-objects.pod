@@ -14,7 +14,7 @@ Synopsis 12: Objects
     Created: 27 Oct 2004
 
     Last Modified: 3 Dec 2009
-    Version: 94
+    Version: 95
 
 =head1 Overview
 
@@ -1622,13 +1622,14 @@ As a first approximation for 6.0.0, subsets of enums are static,
 and other subsets are dynamic.  We may refine this in subsequent
 versions of Perl.
 
-=head1 Enums
+=head1 Enumerations
 
-An enum is a type that facilitates the use of a set of symbols to
+An enumeration is a type that facilitates the use of a set of symbols to
 represent a set of constant values.  Its most obvious use is the translation
-of those symbols to their corresponding values.  Each enum constant
-associates an I<enum key> with an I<enum value>.  Semantically therefore,
-an enum is operates like a constant hash, but since it uses a
+of those symbols to their corresponding values.  Each enumeration association
+is a constant pair known as an I<enum>, which is of type C<Enum>.
+Each enum associates an I<enum key> with an I<enum value>.  Semantically therefore,
+an enumeration operates like a constant hash, but since it uses a
 package C<Stash> to hold the entries, it presents itself to the
 user's namespace as a typename package containing a set of constant
 declarations.  That is,
@@ -1643,15 +1644,18 @@ is largely syntactic sugar for:
         constant c = 2;
     }
 
-(However, the enum declaration supplies extra semantics.)
+(However, the C<enum> declaration supplies extra semantics.)
 
 Such constant declarations allow the use of the declared names to
 stand in for the values where a value is desired.  In addition, since
 a constant declaration introduces a name that behaves as a subtype
 matching a single value, the enum key can function as a typename in
 certain capacities where a typename is required.  The name of the
-enum package as a whole is also considered a typename, and may be
-used to represent the set of values.
+enumeration as a whole is also considered a typename, and may be
+used to represent the set of values.  (Note that when we wish to
+verbally distinguish the enumeration as a whole from each individual
+enum pair, we use the long term "enumeration" for the former, despite
+the fact that it is declared using the C<enum> keyword.)
 
 In the C<enum> declaration, the keys are specified as a parenthesized
 list, or an equivalent angle bracket list:
@@ -1663,9 +1667,9 @@ The values are generated implicitly by default, but may be also be
 specified explicitly.  If the first value is unspecified, it defaults
 to 0.  To specify the first value, use pair notation (see below).
 
-If the declared enum typename (the outer name) begins with an uppercase letter, the enum values
+If the declared enumeration typename begins with an uppercase letter, the enum values
 will be derived from C<Int> or C<Str> as appropriate.
-If the enum typename is lowercase, the enum is assumed to be representing a
+If the enumeration typename is lowercase, the enumeration is assumed to be representing a
 set of native values, so the default value type is C<int> or C<buf>.
 
 The base type can be specified if desired:
@@ -1683,7 +1687,7 @@ actual type of the enum object returned by using the symbol is the enum type its
     +Fri        # 5
     Fri ~~ Int  # True, because derived from Int
     Fri.perl    # 'Day::Fri'
-    Fri.name    # 'Fri'
+    Fri.key     # 'Fri'
     Fri.defined # True
 
 Other than that, number valued enums act just like numbers, while
@@ -1697,7 +1701,7 @@ Since methods on native types delegate to their container's type,
 a variable typed with a native type will know which method to call:
 
     my day $d = 3;
-    $d.name     # returns "Wed"
+    $d.key     # returns "Wed"
 
 Such declarational forms are not always convenient; to translate
 native enum values back to their names operationally, you can pull
@@ -1706,7 +1710,7 @@ out the enum type's C<EnumMap> and invert it:
     constant %dayname := Day.enums.invert;
     %dayname{3} # Wed
 
-The enum type itself is an undefined type object, but supplies convenient
+The enumeration type itself is an undefined type object, but supplies convenient
 methods:
 
     Day.defined # False
@@ -1723,7 +1727,7 @@ a constant hash value or as a list of pairs:
     CoinFace.enums.invert     # (0 => 'Heads', 1 => 'Tails')
     CoinFace.enums.[1]        # Tails => 1
 
-The enum typename itself may be used as a coercion operator from either
+The enumeration typename itself may be used as a coercion operator from either
 the key name or a value.   First the argument is looked up as a key;
 if that is found, the enum object is returned.  If the key name lookup
 fails, the value is looked up using an inverted mapping table (which
@@ -1735,7 +1739,7 @@ might have dups if the mapping is not one-to-one):
     Day(3)               # Wed constant, found as value
     Day.enums.invert{3}  # (same thing)
 
-An anonymous enum just makes sure each string turns into a pair with
+An anonymous C<enum> just makes sure each string turns into a pair with
 sequentially increasing values, so:
 
     %e = enum < ook! ook. ook? >;
@@ -1747,9 +1751,11 @@ is equivalent to:
     %e<ook.> = 1;
     %e<ook?> = 2;
 
-The return value of an anonymous enum is an c<EnumMap>.
+The return value of an anonymous enumeration is an C<EnumMap>.  The
+C<enum> keyword is still a declarator here, so the list is evaluated at compile time.
+Use a coercion to C<EnumMap> to get a run-time map.
 
-The enum composer inspects list values for pairs, where the value
+The enumeration composer inspects list values for pairs, where the value
 of the pair sets the next value explicitly.  Non-pairs C<++> the
 previous value.  (Str and buf types increment like Perl 5 strings.)
 Since the C<«...»> quoter automatically recognizes
@@ -1771,23 +1777,23 @@ pair syntax along with interpolations, we can simply say:
     my Item enum hex «:zero(0) one two three four five six seven eight nine
                       :ten<a> eleven twelve thirteen fourteen fifteen»;
 
-Note that enum declaration evaluates its list at compile time, so
+Note that enumeration declaration evaluates its list at compile time, so
 any interpolation into such a list may not depend on run-time values.
 Otherwise enums wouldn't be constants.  (If this isn't what you want,
 try initializing an ordinary declaration using C<::=> to make a scoped
 readonly value.)
 
 You may import enum types; only non-colliding values are imported.
-Colliding enum values are hidden and must be disambiguated with the
+Colliding enum keys are hidden and must be disambiguated with the
 type name.  Any attempt to use the ambiguous name will result in a fatal
 compilation error.  (All colliding values are hidden, not just the new one,
 or the old one.)  Any explicit sub or type definition hides all imported
-enum values of the same name but will produce a warning unless
+enum keys of the same name but will produce a warning unless
 C<is redefined> is included.  Note that true() is a built-in function
 and requires an argument, while C<True> is short for C<Bool::True> and
 does not take an argument.
 
-Since non-native enum values know their enum type, they may be used to
+Since non-native C<Enum> values know their enumeration type, they may be used to
 name a desired property on the right side of a C<but> or C<does>.
 So these:
 
@@ -1805,7 +1811,7 @@ and C<does> operators know that when a user supplies an enum type,
 it implies the generation of an anonymous mixin role that creates an
 an appropriate accessor, read-write if an attribute is being created, and
 read-only otherwise.  It depends on whether you mix in the whole
-or a specific enum value or the whole enum type:
+or a specific enum or the whole enumeration:
 
     $x = "Today" but Tue;       # $x.Day is read-only
     $x = "Today" but Day;       # $x.Day is read-write
@@ -1828,7 +1834,7 @@ Note that the method name is still C<.Day>, however.  If
 you wish to mix in colliding method names, you'll have to
 mixin your own anonymous role with different method names.
 
-Since enum supplies the type name as a coercion, you can
+Since an enumeration supplies the type name as a coercion, you can
 also say:
 
     $x = "Today" but Day(Tue);
@@ -1856,7 +1862,7 @@ all return true, and
 
 all return false.
 
-Mixing in the whole enum type produces a read-write attribute:
+Mixing in the full enumeration type produces a read-write attribute:
 
     $x = "Today" but Day;       # read-write .Day
 
@@ -1865,27 +1871,29 @@ really means something like:
     $x = "Today".clone;
     $x does anon role { has Day $.Day is rw }
 
+except that nothing happens if there is already a C<rw> attribute of that name.
+
 Note that the attribute is not initialized.  If that is desired
 you can supply a C<WHENCE> closure:
 
     $x = "Today" but Day{ :Day(Tue) }
     $x = "Today" but Day{ Tue }  # conjecturally, for "simple" roles
 
-To add traits to an enum declaration, place them after the declared
+To add traits to an enumeration declaration, place them after the declared
 name but before the list:
 
     enum Size is silly <regular large jumbo>;
 
-To export an enum, place the export trait just before the list:
+To export an enumeration, place the export trait just before the list:
 
     enum Maybe is export <No Yes Dunno>;
 
-To declare that an enum value implies a particular role, 
+To declare that an enumeration implies a particular role, 
 supply a C<does> in the same location
 
     enum Maybe does TristateLogic <No Yes Dunno>;
 
-Two built-in enums are:
+Two built-in enumerations are:
 
     our enum Bool does Boolean <False True>;
     our enum Taint does Tainting <Untainted Tainted>;
@@ -1923,7 +1931,7 @@ arguments.  Unlike type names but like constant names, enum keynames
 return defined values.  Also unlike types and unlike the enum type as a
 whole, individual keynames do not respond to C<.()> unless you mix in
 C<Callable> somehow.  (That is, it makes no sense to coerce Wednesday
-to Tuesday by saying C<Tue($wed)>.)  Enums may not be post-declared.
+to Tuesday by saying C<Tue($wed)>.)  Enumerations may not be post-declared.
 
     our enum Maybe <OK FAIL>;
     sub OK is redefined {...}
@@ -1933,10 +1941,10 @@ to Tuesday by saying C<Tue($wed)>.)  Enums may not be post-declared.
 Since there is an enum C<OK>, the function C<OK> may only be
 called using parentheses, never in list operator form.  (If there is
 a collision on two enum values that cancels them both, the function
-still may only be called with parentheses, since the enum symbol
+still may only be called with parentheses, since the enum key
 is "poisoned".)
 
-Enum types (and perhaps certain other finite, enumerable types such
+Enumeration types (and perhaps certain other finite, enumerable types such
 as finite ranges) define a C<.pick> method on the type object of
 that type.  Hence:
 
