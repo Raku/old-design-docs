@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 19 Nov 2009
-    Version: 110
+    Last Modified: 5 Dec 2009
+    Version: 111
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -3779,9 +3779,9 @@ For example, to match an expression <expr> from $funnylang that is embedded in c
 =item *
 
 A string can be matched against a grammar by calling C<.parse> on the grammar,
-and optionally pass an I<actions> object to that grammar:
+and optionally pass an I<action> object to that grammar:
 
-    MyGrammar.parse($str, :actions($actions-object))
+    MyGrammar.parse($str, :action($action-object))
 
 Whenever a closure within the grammar returns a C<Whatever> object, the
 grammar engine tries to call a method of the same name as the name of the
@@ -3798,16 +3798,16 @@ and the tag, but the tag itself may contain spaces.
        }
    }
    class Twice {
-       multi method TOP($match, $tag) {
-           my $text = ~$match;
-           $text = :2($text) if $tag eq 'binary'
+       multi method TOP($/, $tag) {
+           my $text = ~$/;
+           $text = :2($text) if $tag eq 'binary';
            make $text;
        }
-       multi method TOP($match) {
-           make 2 * $match.ast;
+       multi method TOP($/) {
+           make 2 * $/.ast;
        }
    }
-   Integer.parse('21', :actions(Twice.new)).ast      # 42
+   Integer.parse('21', :action(Twice.new)).ast      # 42
 
 A C<{*}> is assumed at the end of every rule, and the method is
 called with no tag argument.  Note that the implicit C<{*}> is
