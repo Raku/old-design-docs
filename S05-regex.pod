@@ -17,7 +17,7 @@ Synopsis 5: Regexes and Rules
     Created: 24 Jun 2002
 
     Last Modified: 6 Dec 2009
-    Version: 113
+    Version: 114
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -3793,14 +3793,14 @@ and the tag, but the tag itself may contain spaces.
 
    grammar Integer {
        token TOP {
-           | 0b<[01]>+ {*}  #= binary
-           | \d+       {*}  #= decimal
+           | 0b(<[01]>+) {*}  #= binary
+           | \d+         {*}  #= decimal
        }
    }
    class Twice {
        multi method TOP($/, $tag) {
-           my $text = $tag eq 'binary' ?? :2($0) !! ~$/;
-           make $text;
+           my $value = $tag eq 'binary' ?? :2($0) !! +$/;
+           make 2 * $value;
        }
    }
    say Integer.parse('21',      :actions(Twice.new)).ast;  # 42
