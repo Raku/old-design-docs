@@ -17,7 +17,7 @@ Synopsis 5: Regexes and Rules
     Created: 24 Jun 2002
 
     Last Modified: 6 Dec 2009
-    Version: 112
+    Version: 113
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -3799,15 +3799,12 @@ and the tag, but the tag itself may contain spaces.
    }
    class Twice {
        multi method TOP($/, $tag) {
-           my $text = ~$/;
-           $text = :2($text) if $tag eq 'binary';
+           my $text = $tag eq 'binary' ?? :2($0) !! ~$/;
            make $text;
        }
-       multi method TOP($/) {
-           make 2 * $/.ast;
-       }
    }
-   Integer.parse('21', :actions(Twice.new)).ast      # 42
+   say Integer.parse('21',      :actions(Twice.new)).ast;  # 42
+   say Integer.parse('0b10101', :actions(Twice.new)).ast;  # 42
 
 A C<{*}> is assumed at the end of every rule, and the method is
 called with no tag argument.  Note that the implicit C<{*}> is
