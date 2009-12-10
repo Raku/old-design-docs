@@ -610,7 +610,7 @@ C<NoOpen> is passed to C<IO::Streamable.new()>
 Examples:
 
     # Read, no interpolation
-    $fobj = new IO::File(Path => p{/path/to/file});
+    $fobj = new IO::File(Path => qp{/path/to/file});
 
     # Write, interpolation
     $fobj = new IO::File(
@@ -701,7 +701,7 @@ encoding).
 =head2 Path
 
 The "Path" role covers both the path to the file, and the file metadata.  They
-are usually created with the p{/path/to/file} syntax.  It could be a directory,
+are usually created with the qp{/path/to/file} syntax.  It could be a directory,
 file, link, or something else OS-specific.  
 
     role Path does Str does Array {
@@ -735,7 +735,7 @@ acts as an array of path elements.
 
 =item new
 
-While new Path objects will normally be created with the p{/path/to/file} 
+While new Path objects will normally be created with the qp{/path/to/file} 
 syntax, there are also OO-related alternatives.  
 
 This is called automatically on object creation.
@@ -788,15 +788,15 @@ then the default is used (symbolic, on a Unix system).
 Examples:
 
     # These three do the same thing (on a Unix machine)
-    $path = p{/home/wayland};
+    $path = qp{/home/wayland};
     $path = new Path(PathElements => ['home', 'wayland']);
-    $path = new Path(Constraints => ['Unix'], Path => p{/home/wayland});
-    $path = new Path(Path => p{/home/wayland});
+    $path = new Path(Constraints => ['Unix'], Path => qp{/home/wayland});
+    $path = new Path(Path => qp{/home/wayland});
 
     # This creates a symlink from /home/wayland/m to /home/wayland/Music
     $path = new Path(
-        Path => p{/home/wayland/m},
-        Target => p{/home/wayland/Music},
+        Path => qp{/home/wayland/m},
+        Target => qp{/home/wayland/Music},
     );
 
 =item path
@@ -863,6 +863,13 @@ This deletes the C<Path> from the filesystem.  If the node has children, it
 throws an error unless the C<Recursive> option is specified.  It returns the 
 number of nodes deleted, and may throw an exception.  
 
+=item get
+
+    multi get () 
+
+Returns the next line from $*ARGFILES.  (Note that other C<get> functions
+and methods are operations on any iterator, not just an IO handle.)
+
 =item lines
 
     method lines ($handle:
@@ -872,7 +879,16 @@ number of nodes deleted, and may throw an exception.
         Any  :$nl = "\n",
         Bool :$chomp = True,
         --> List
-    ) is export
+    )
+
+    multi lines (IO $fh = $*ARGFILES,
+        Any  $limit = *,
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+        Any  :$nl = "\n",
+        Bool :$chomp = True,
+        --> List
+    )
 
     multi lines (Str $filename,
         Any  $limit = *,
@@ -913,7 +929,12 @@ you just get the number of lines available.
         Bool :$bin = False,
         Str  :$enc = "Unicode",
         --> Str|Buf
-    ) is export
+    )
+    multi slurp (IO $fh = $*ARGFILES,
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+        --> Str|Buf
+    )
     multi slurp (Str $filename,
         Bool :$bin = False,
         Str  :$enc = "Unicode",
