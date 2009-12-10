@@ -224,7 +224,7 @@ is equivalent to:
     }
 
 =head2 Importing without loading
-X<defines>
+X<import>
 
 The importation into your lexical scope may also be a separate declaration
 from loading.  This is primarily useful for modules declared inline, which
@@ -238,7 +238,7 @@ do not automatically get imported into their surrounding scope:
 
 The last declaration is syntactic sugar for:
 
-    BEGIN MY.import_alias(Factorial, <fact>);
+    BEGIN Factorial.WHO.EXPORTALL(MY, 'fact');
 
 This form functions as a compile-time declarator, so that these
 notations can be combined by putting a declarator in parentheses:
@@ -249,12 +249,10 @@ notations can be combined by putting a declarator in parentheses:
 
 This really means:
 
-    BEGIN MY.import_alias(
-        role Silly {
-            enum Ness is export <Dilly String Putty>;
-        },
-        <Ness>
-    );
+    BEGIN (role Silly {
+        enum Ness is export <Dilly String Putty>;
+    }).WHO.EXPORTALL(MY, <Ness>)
+
 
 Without an import list, C<import> imports the C<:DEFAULT> imports.
 
