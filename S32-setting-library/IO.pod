@@ -22,8 +22,8 @@ DRAFT: Synopsis 32: Setting Library - IO
 
     Created: 19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
 
-    Last Modified: 19 Nov 2009
-    Version: 9
+    Last Modified: 11 Dec 2009
+    Version: 10
 
 The document is a draft.
 
@@ -429,9 +429,14 @@ Stringifies each element, concatenates those strings, and sends the
 result to the output.
 Returns C<Bool::True> if successful, C<Failure> otherwise.
 
-It is a compiler error to use a bare C<print> without arguments.
+The compiler will warn you if use a bare C<print> without arguments.
 (However, it's fine if you have an explicit argument list that evaluates to
 the empty list at runtime.)
+
+    print;             # warns
+    if $_ { print }    # warns
+    if $_ { print() }  # ok, but does nothing
+    if $_ { print () } # ok, but does nothing
 
 =item method say (*@LIST --> Bool)
 
@@ -443,7 +448,7 @@ the final argument.
     Was:    print "Hello, world!\n";
     Now:    say   "Hello, world!";
 
-As with C<print>, it is a compiler error to use a bare C<say> without
+As with C<print>, the compiler will warn you if you use a bare C<say> without
 arguments.
 
 =item multi note (*@LIST --> Bool)
