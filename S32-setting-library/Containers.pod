@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 3 Dec 2009
-    Version: 10
+    Last Modified: 15 Dec 2009
+    Version: 11
 
 The document is a draft.
 
@@ -856,7 +856,6 @@ See C<KeySet> for a container that can represent different sets
 as keys are added or deleted.  A C<Set> responds to hash operators as
 if it were a C<Hash of True>.
 
-
 =over
 
 =item pick
@@ -876,18 +875,43 @@ A mutable Set container, represented as C<KeyHash of True>.
 
     class Bag does Associative {...}
 
+A collection of values that need not be unique, represented by an
+associative mapping from each key value to its replication number.
+The C<.elems> method returns the sum of all replication values.
+
 =over
 
 =item pick
 
- our multi method pick ( $bag: Int $num = 1, Bool :$replace )
- our multi method pick ( $bag: Whatever, Bool :$replace )
+ our multi method pick ( $bag: Int $num = 1, Bool :$replace, Bool :$enums )
+ our multi method pick ( $bag: Whatever, Bool :$replace, Bool :$enums )
 
 Like an ordinary list C<pick>, but returns keys of the bag weighted by
 values, as if the keys were replicated the number of times indicated
 by the corresponding value and then list pick used.  C<KeyBag> is the
 mutable form of C<Bag>.  A C<Bag> responds to hash operators as
 if it were a C<Hash of UInt>.
+
+The default metaphor for picking is that you're pulling colored
+marbles out a bag.  Picking with replacement is easy to implement,
+since the weights never change, and the chance of getting any key is
+simply its replication value over C<.elems>.  Other forms of picking
+require tracking the temporary state, so the C<Bag> is copied to
+a temporary private C<KeyBag>, and the picks are made from that.
+Picking without replacement (the default), decrements the picked
+key's replication value by one (deleting the key when it goes to 0).
+By definition, C<.elems> of the private C<KeyBag> also decreases
+by one, so the probabilities stay consistent as the pick operation
+proceeds.
+
+With the C<:enums> option, the replication value of the picked key
+is forced immediately to 0, removing all marbles of that color from
+the bag, as it were.  Instead of returning keys, the C<:enums> option
+returns the picked values as a list of C<Enum> objects, whose keys are
+the deleted keys and whose values are the deleted replication values.
+
+Each C<.pick> invocation maintains its own private state and has no
+effect on subsequent C<.pick> invocations.
 
 =back
 
@@ -904,12 +928,21 @@ of a C<Hash>.  When asked to behave as a list it ignores its values
 and returns only C<.keys>.  C<KeySet> and C<KeyBag> are derived from
 this type, but constrain their values to be C<Bool> and C<UInt>,
 respectively.  A C<KeyHash> automatically deletes any key whose
-value goes false.
+value goes false.  For any C<KeyHash>, the C<.elems> methods returns
+the current sum of the values, which the C<KeyHash> must either track
+or compute on demand.  Tracking is preferable for efficient implementation
+of C<.pick>.
+
+Since a C<KeyHash>, unlike a C<Bag>, is mutable, C<.pick> works
+directly on the C<KeyHash>, modifying it in place.  You must copy
+the C<KeyHash> first if you don't want it modified in place.
 
 =head2 KeyWeight
 
-A C<KeyHash of Num>; like a C<KeyBag> but may have non-integral
-weights for use in weighted picking.
+A C<KeyHash of FatRat>; like a C<KeyBag> but may have non-integral
+weights for use in weighted picking.  Keys with fractional weights
+are deleted if they go non-positive, but a warning is issued
+for deletion of any element that didn't go exactly to 0.
 
 =head2 junction
 
