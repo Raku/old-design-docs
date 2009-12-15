@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 24 Nov 2009
-    Version: 90
+    Last Modified: 15 Dec 2009
+    Version: 91
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -221,22 +221,17 @@ can occur there.  That is, these two statements are equivalent:
     my $x = sub { 3 }
     my $x = sub { 3 };
 
-End-of-statement cannot occur within a bracketed expression, so
-this still works:
+Since bracketed expressions consider their insides to be statements,
+this works out consistently even where you might expect problems:
 
     my $x = [
         sub { 3 },  # this comma is not optional
-        sub { 3 }   # the statement won't terminate here
+        sub { 3 }   # the statement inside [] terminates here
     ];
-
-However, a hash composer may never occur at the end of a line.  If the
-parser sees anything that looks like a hash composer at the end of
-the line, it fails with "closing hash curly may not terminate line"
-or some such.
 
     my $hash = {
         1 => { 2 => 3, 4 => 5 },  # OK
-        2 => { 6 => 7, 8 => 9 }   # ERROR
+        2 => { 6 => 7, 8 => 9 }   # OK, terminates inner statement
     };
 
 Because subroutine declarations are expressions, not statements,
