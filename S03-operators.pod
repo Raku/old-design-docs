@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 28 Nov 2009
-    Version: 181
+    Last Modified: 17 Dec 2009
+    Version: 182
 
 =head1 Overview
 
@@ -3346,8 +3346,7 @@ dispatch at the front of the table.)
 
 The exact form of the underlying type-based method dispatch is:
 
-    X.ACCEPTS($_)      # for ~~
-    X.REJECTS($_)      # for !~~
+    X.ACCEPTS($_)
 
 As a single dispatch call this pays attention only to the type of
 C<X> initially.  The C<ACCEPTS> method interface is defined by the
@@ -3357,10 +3356,6 @@ corresponds to those pattern types that have only one entry with
 an C<Any> on the left above.  Or the class may choose to provide
 multiple C<ACCEPTS> multi-methods within the class, and these
 will then redispatch within the class based on the type of C<$_>.
-The class may also define one or more C<REJECTS> methods; if it does
-not, the default C<REJECTS> method from the C<Pattern> role defines
-it in terms of a negated C<ACCEPTS> method call.  This generic method
-may be less efficient than a custom C<REJECTS> method would be, however.
 
 The smartmatch table is primarily intended to reflect forms and types that
 are recognized at compile time.  To avoid an explosion of entries,
@@ -3381,7 +3376,7 @@ the table assumes the following types will behave similarly:
     Buf                         Str or Array of Int
 
 (Note, however, that these mappings can be overridden by explicit
-definition of the appropriate C<ACCEPTS> and C<REJECTS> methods.
+definition of the appropriate C<ACCEPTS> methods.
 If the redefinition occurs at compile time prior to analysis of the
 smart match then the information is also available to the optimizer.)
 
