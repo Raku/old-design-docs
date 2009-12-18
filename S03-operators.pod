@@ -16,7 +16,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 17 Dec 2009
-    Version: 182
+    Version: 183
 
 =head1 Overview
 
@@ -49,7 +49,7 @@ each level:
     X  Tight or          || ^^ // min max
     R  Conditional       ?? !! ff fff
     R  Item assignment   = := ::= => += -= **= xx= .=
-    L  Loose unary       true not
+    L  Loose unary       so not
     X  Comma operator    , p5=> :
     X  List infix        Z minmax X X~ X* Xeqv ...
     R  List prefix       print push say die map substr ... [+] [*] any $ @
@@ -593,7 +593,7 @@ C<< prefix:<?> >>, boolean context
 
 Evaluates the expression as a boolean and returns C<True> if expression
 is true or C<False> otherwise.
-See "true" below for a low-precedence alternative.
+See "so" below for a low-precedence alternative.
 
 =item *
 
@@ -1522,15 +1522,25 @@ See L</Assignment operators>.
 
 =item *
 
-C<< prefix:<true> >>
-
-    true any(@args) eq '-v' | '-V'
-
-=item *
-
 C<< prefix:<not> >>
 
     not any(@args) eq '-v' | '-V'
+
+Returns a C<Bool> value representing the logical negation of an expression.
+
+=item *
+
+C<< prefix:<so> >>
+
+    so any(@args) eq '-v' | '-V'
+
+Returns a C<Bool> value representing the logical non-negation of an expression.
+Mostly useful as documentation in parallel to a C<not> when C<else> isn't
+appropriate:
+
+    if not $x { print "LOL"; }
+    mumble();
+    if so $x { print "SRSLY!" }
 
 =back
 
@@ -2895,8 +2905,10 @@ that the false results are self-deleting.  (If this self-deleting
 behavior is not desired, put the expression into item context rather
 than list context.)  This self-deletion is a behavior of the operators
 themselves, not a general property of boolean values in list context, so
+either of:
 
-    @foo = true($a||$b);
+    @foo = so($a||$b);
+    @foo = not($a||$b);
 
 is guaranteed to insert exactly one boolean value into C<@foo>.
 
