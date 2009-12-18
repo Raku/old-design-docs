@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 15 Dec 2009
-    Version: 11
+    Last Modified: 17 Dec 2009
+    Version: 12
 
 The document is a draft.
 
@@ -883,8 +883,10 @@ The C<.elems> method returns the sum of all replication values.
 
 =item pick
 
- our multi method pick ( $bag: Int $num = 1, Bool :$replace, Bool :$enums )
- our multi method pick ( $bag: Whatever, Bool :$replace, Bool :$enums )
+ our multi method pick ( $bag: Int $num = 1, Bool :$replace )
+ our multi method pick ( $bag: Whatever, Bool :$replace )
+ our multi method pickpairs ( $bag: Int $num = 1, Bool :$replace )
+ our multi method pickpairs ( $bag: Whatever, Bool :$replace )
 
 Like an ordinary list C<pick>, but returns keys of the bag weighted by
 values, as if the keys were replicated the number of times indicated
@@ -896,19 +898,9 @@ The default metaphor for picking is that you're pulling colored
 marbles out a bag.  Picking with replacement is easy to implement,
 since the weights never change, and the chance of getting any key is
 simply its replication value over C<.elems>.  Other forms of picking
-require tracking the temporary state, so the C<Bag> is copied to
-a temporary private C<KeyBag>, and the picks are made from that.
-Picking without replacement (the default), decrements the picked
-key's replication value by one (deleting the key when it goes to 0).
-By definition, C<.elems> of the private C<KeyBag> also decreases
-by one, so the probabilities stay consistent as the pick operation
-proceeds.
-
-With the C<:enums> option, the replication value of the picked key
-is forced immediately to 0, removing all marbles of that color from
-the bag, as it were.  Instead of returning keys, the C<:enums> option
-returns the picked values as a list of C<Enum> objects, whose keys are
-the deleted keys and whose values are the deleted replication values.
+require tracking the temporary state, so the immutable C<Bag> is copied to
+a temporary private C<KeyBag>, and the picks are made from that
+using the corresponding C<.grab> or C<.grabpairs> method (see below).
 
 Each C<.pick> invocation maintains its own private state and has no
 effect on subsequent C<.pick> invocations.
@@ -931,11 +923,36 @@ respectively.  A C<KeyHash> automatically deletes any key whose
 value goes false.  For any C<KeyHash>, the C<.elems> methods returns
 the current sum of the values, which the C<KeyHash> must either track
 or compute on demand.  Tracking is preferable for efficient implementation
-of C<.pick>.
+of C<.pick> and C<.grab>.
 
-Since a C<KeyHash>, unlike a C<Bag>, is mutable, C<.pick> works
-directly on the C<KeyHash>, modifying it in place.  You must copy
-the C<KeyHash> first if you don't want it modified in place.
+=over
+
+=item grab
+
+ our multi method grab ( $bag: Int $num = 1, Bool :$replace )
+ our multi method grab ( $bag: Whatever, Bool :$replace )
+ our multi method grabpairs ( $bag: Int $num = 1, Bool :$replace )
+ our multi method grabpairs ( $bag: Whatever, Bool :$replace )
+
+Like C<pick>, a C<grab> returns a random selection of elements, weighted
+by the values corresponding to each key.
+Since a C<KeyHash>, unlike a C<Set> or C<Bag>, is mutable, C<.grab>
+works directly on the C<KeyHash>, modifying it in place.  (You may use
+C<.pick> to treat the C<KeyHash> as immutable; this will copy it and grab
+only from the temporary copy.)
+
+Swiping without replacement (the default) decrements the grabbed
+key's replication value by one (deleting the key when it goes to 0).
+By definition, C<.elems> of the bag also decreases by one, so the
+probabilities stay consistent through subsequent grab operations.
+
+With the C<.grabpairs> version, the replication value of the picked
+key is forced immediately to 0, removing all marbles of that color from
+the bag, as it were.  Instead of returning keys, returns the grabbed
+values as a list of C<Pair> objects, whose keys are the deleted keys
+and whose values are the deleted replication values.
+
+=back
 
 =head2 KeyWeight
 
