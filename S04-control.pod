@@ -14,7 +14,7 @@ Synopsis 4: Blocks and Statements
     Created: 19 Aug 2004
 
     Last Modified: 17 Dec 2009
-    Version: 92
+    Version: 93
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -849,7 +849,7 @@ which surrounding construct was intended as the actual topicalizer.)
 The value of the inner block is returned as the value of the outer
 block.
 
-If the smart match fails, control passes to the next statement
+If the smart match fails, control proceeds the next statement
 normally, which may or may not be a C<when> statement.  Since C<when>
 statements are presumed to be executed in order like normal statements,
 it's not required that all the statements in a switch block be C<when>
@@ -875,27 +875,29 @@ explicitly or implicitly), that parameter can function as the topic
 of any C<when> statements within the loop.
 
 You can explicitly break out of a C<when> block (and its surrounding
-topicalizer block) early using the C<break> verb.  More precisely,
+topicalizer block) early using the C<succeed> verb.  More precisely,
 it first scans outward (lexically) for the innermost containing
 C<when> block.  From there it continues to scan outward to find the
 innermost block outside the C<when> that uses C<$_> as one of its
 formal parameters, either explicitly or implicitly.  (Note that
 both of these scans are done at compile time; if the scans fail,
 it's a compile-time semantic error.)  Typically, such an outer
-block will be a C<given> or a C<for> statement, but any block that
+block will be the block of a C<given> or a C<for> statement, but any block that
 sets the topic in its signature can be broken out of.  At run time,
-C<break> uses a control exception to scan up the dynamic chain to
+C<succeed> uses a control exception to scan up the dynamic chain to
 find the call frame belonging to that same outer block, and
 when it has found that frame, it does a C<.leave> on it to unwind
-the call frames.  If any arguments are supplied to the C<break> function,
+the call frames.  If any arguments are supplied to the C<succeed> function,
 they are passed out via the C<leave> method.  Since leaving a block is
-considered a successful return, breaking out of one is also considered
-a successful return.  (And in fact, the implicit break of a normal
+considered a successful return, breaking out of one with C<succeed> is also considered
+a successful return for the purposes of C<KEEP> and C<UNDO>.
+
+The implicit break of a normal
 C<when> block works the same way, returning the value of the entire
-block (normally from its last statement) via an implicit C<.leave>.)
+block (normally from its last statement) via an implicit C<succeed>.
 
 You can explicitly leave a C<when> block and go to the next statement
-following the C<when> by using C<nobreak>.  (Note that, unlike C's
+following the C<when> by using C<proceed>.  (Note that, unlike C's
 idea of "falling through", subsequent C<when> conditions are evaluated.
 To jump into the next C<when> block without testing its condition,
 you must use a C<goto>.  But generally that means you should refactor
@@ -908,15 +910,16 @@ and thence on to the next iteration of the loop.  You must use C<last>
 (or some more violent control exception such as C<return>) to break
 out of the entire loop early.  Of course, an explicit C<next> might
 be clearer than a C<break> if you really want to go directly to the
-next iteration.  On the other hand, C<break> can take an optional
+next iteration.  On the other hand, C<succeed> can take an optional
 argument giving the value for that iteration of the loop.  As with
-the C<.leave> method, there is also a C<.break> method to break from a
+the C<.leave> method, there is also a C<.succeed> method to break from a
 labelled block functioning as a switch:
 
-    OUTER.break($retval)
+    OUTER.succeed($retval)
 
 There is a C<when> statement modifier, but it does not have any
-break semantics.  That is,
+breakout semantics; it is merely a smartmatch against
+the current topic.  That is,
 
     doit() when 42;
 
