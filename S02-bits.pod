@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 3 Dec 2009
-    Version: 193
+    Last Modified: 19 Dec 2009
+    Version: 194
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1110,6 +1110,7 @@ as the I<type object>.  The name itself returns that type object:
 
     Mu          Perl 6 object (default block parameter type, either Any or junction)
     Any         Perl 6 object (default routine parameter type, excludes junction)
+    Cool        Perl 6 Convenient OO Loopbacks
     Whatever    Wildcard (like Any, but subject to do-what-I-mean via MMD)
     Int         Any Int object
     Widget      Any Widget object
@@ -1126,7 +1127,8 @@ C<Failure> role.  Use C<fail> to return specific failures.  Use C<Mu>
 for the most generic non-failure undefined value.  The C<Any> type,
 derived from C<Mu>, is also undefined, but excludes C<junctions> so
 that autothreading may be dispatched using normal multiple dispatch
-rules.  The C<Whatever> type is derived from C<Any> but nothing else
+rules.  All user-defined classes derive from the C<Any> class by default.
+The C<Whatever> type is derived from C<Any> but nothing else
 is derived from it.
 
 =head2 Immutable types
@@ -1537,6 +1539,32 @@ or equivalently,
 This is not lying to yourself--it's lying to the world.  Having a
 different inner type is useful if you wish to hold your routine to
 a stricter standard than you let on to the outside world, for instance.
+
+=head1 The Cool class (and package)
+
+The C<Cool> type is derived from C<Any>, and contains all the methods
+that are "cool" (as in, "I'm cool with an argument of that type.").
+
+More specifically, these are the methods that are culturally universal,
+insofar as the typical user will expect the name of the method to imply
+conversion to a particular built-in type that understands the method in
+question.  For instance, C<$x.abs> implies conversion to an appropriate
+numeric type if C<$x> is "cool" but doesn't already support a method
+of that name.  Conversely, C<$x.substr> implies conversion to a string
+or buffer type.
+
+The C<Cool> namespace also contains all multimethods of last resort;
+these are automatically searched if normal multiple dispatch does not
+find a viable candidate.  Note that the C<Cool> namespace is mutable,
+and both single and multiple dispatch must take into account changes
+there for the purposes of run-time monkey patching.  However, since
+the multiple dispatcher uses the C<Cool> package only as a failover,
+compile-time analysis of such dispatches is largely unaffected for any
+arguments with an exact or close match.  Likewise any single dispatch
+a method that is more specific than the C<Cool> class is not affected
+by the mutability of C<Cool>.  User-defined classes don't derive from
+C<Cool> by default, so such classes are also unaffected by changes
+to C<Cool>.
 
 =head1 Names and Variables
 
