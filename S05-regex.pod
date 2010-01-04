@@ -3948,6 +3948,15 @@ There are also method forms of C<m//> and C<s///>:
      $str.=subst(/pat/, "replacement");
      $str.=subst(/pat/, {"replacement"});
 
+The C<.match> and C<.subst> methods support the adverbs of C<m//> and
+C<s///> as named arguments, so you can write
+
+    $str.match(/pat/, :g)
+
+as an equivalent to
+
+    $str.comb(/pat/, :match)
+
 There is no syntactic sugar here, so in order to get deferred
 evaluation of the replacement you must put it into a closure.  The
 syntactic sugar is provided only by the quotelike forms.  First there
@@ -3988,7 +3997,7 @@ knows how to turn
 
 into something like:
 
-    $target.subst(rx:g[pattern], { $() op expr })
+    $target.subst(rx[pattern], { $() op expr }, :g)
 
 So, for example, you can multiply every dollar amount by 2 with:
 
