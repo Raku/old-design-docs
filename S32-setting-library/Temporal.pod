@@ -21,8 +21,8 @@ DRAFT: Synopsis 32: Setting Library - Temporal
 =head1 VERSION
 
     Created: 19 Mar 2009 extracted from S29-functions.pod and S16-IO.pod
-    Last Modified: 9 Sep 2009
-    Version: 4
+    Last Modified: 8 Jan 2010
+    Version: 5
 
 The document is a draft.
 
@@ -173,29 +173,18 @@ This should be a straight port from perl 5 DateTime::TimeZone module.
 
 =head2 TimeRange
 
-This object represents a given period of time, it might be composed
-by:
+This object represents a given period of time, and may exclude either endpoint.
+It might be composed by:
 
-=over
+  $datetime1 .. $datetime2
+  $datetime1 ^.. $datetime2
+  $datetime1 ..^ $datetime2
 
-=item Start and end DateTime
+These may be iterated, but only on seconds.  To iterate with some
+other duration, you may use the series operator to produce a series
+of datetimes:
 
-=item Start DateTime and Duration
-
-=item Duration and end DateTime
-
-=back
-
-It might also contain a "step" Duration, which should allow iterating
-a set of values within the range. A TimeRange might be obtained with
-the infix:<..> operator and optionally using a :by adverb to indicate
-the step.
-
-For instance
-
-  $datetime .. $duration :by($step_duration)
-  $datetime ^.. $datetime :by($step_duration)
-  $duration ..^ $datetime :by($step_duration)
+  $datetime1 ... *+$duration, $datetime2
 
 =head2 Gregorian::Calendar
 
