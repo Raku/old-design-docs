@@ -14,8 +14,8 @@ Synopsis 7: Iterators and Laziness
 
     Created: 27 Nov 2008
 
-    Last Modified: 20 Apr 2009
-    Version: 5
+    Last Modified: 21 Jan 2010
+    Version: 6
 
 =head1 Laziness and Eagerness
 
@@ -86,6 +86,16 @@ known), therefore it will also be lazy. On the other hand
   my @a = grep { ... }, 1, 2, 3, 4;
 
 will be eagerly evaluated.
+
+Despite the fact that "mostly eager" treats some iterators as potentially
+infinite, a list assignment to multiple targets forces evaluation (by demand)
+of enough of the list to fill any scalar destinations before a final "slurpy"
+destination.  Hence:
+
+    ($a, $b, @c) = 1..*;
+
+takes the lazy iterator returned by the right side and forces it to divulge
+a C<1> and a C<2> before setting up C<@c> to mean C<3..*> lazily.
 
 =item Feed operators: my @a <== @something;
 

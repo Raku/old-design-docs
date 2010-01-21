@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 20 Jan 2010
-    Version: 184
+    Last Modified: 21 Jan 2010
+    Version: 185
 
 =head1 Overview
 
@@ -2004,13 +2004,15 @@ insofar as it basically does the obvious copying as long as there
 are scalar destinations on the left or already-computed values on
 the right.  However, many list lvalues end with an array destination
 (where assignment directly to an array can be considered a degenerate
-case).  When copying into an array destination, the list assignment
-continues to copy in known values immediately, but suspends when it
-hits an actively iterating iterator (but not one merely passed as an
-object within the list).  The array location on the left is then set
-up as a self-extending array, with the remainder of the list on the
-right as the "specs" for its remaining values, to be reified on
-demand.  Hence it is legal to say:
+case).  When copying into an array destination, the list assignment is
+"mostly eager"; it requests the list to evaluate its leading iterators
+(and values) to the extent that they are known to be finite, and
+then suspend, returning the known values.  The assignment then copies
+the known values into the array.  (These two steps might actually be
+interleaved depending on how the iterator API ends up being defined.)
+It then sets up the array to be self-extending by using the remainder
+of the list as the "specs" for the array's remaining values, to be
+reified on demand.  Hence it is legal to say:
 
     @natural = 0..*;
 
