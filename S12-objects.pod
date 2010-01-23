@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 8 Jan 2010
-    Version: 96
+    Last Modified: 23 Jan 2010
+    Version: 97
 
 =head1 Overview
 
@@ -388,9 +388,9 @@ Note also that the
 form may dispatch to a list of candidates if C<$candidates> is either
 a list or a special C<Code> object representing a partial dispatch to a
 list of candidates.  If C<$candidates> (or any element of C<@candidates>)
-is a List or Array object it is expanded out recursively until C<Callable>
+is an iterable object it is expanded out recursively until C<Callable>
 candidates are found.  The call fails if it hits a candidate that is
-neither C<Callable> nor expandable.
+not C<Callable>, C<Iterable>, or C<List>.
 
 Another form of indirection relies on the fact that operators are named
 using a variant on hash subscript notation, which gives you these forms:
@@ -906,7 +906,7 @@ treating the method call as a postfix:
     @object»!meth(@args)   # calls private method on each
 
 The return value is a list with exactly the same number of elements
-as C<@object>.  Each such return value is a C<Capture> or C<List> of C<Captures>
+as C<@object>.  Each such return value is a C<Parcel> or C<List> of C<Parcel>
 as specified above for the non-hyper "dot" variants.
 
 Hyperoperators treat a junction as a scalar value, so saying:

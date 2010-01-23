@@ -14,8 +14,8 @@ Synopsis 7: Iterators and Laziness
 
     Created: 27 Nov 2008
 
-    Last Modified: 22 Jan 2010
-    Version: 7
+    Last Modified: 23 Jan 2010
+    Version: 8
 
 =head1 Laziness and Eagerness
 
@@ -160,9 +160,9 @@ creates. On the other hand
 
 provides the same laziness level of the first example.
 
-=head1 The Iterator Role
+=head1 The List Role
 
-The iterator role represents the lazy access to a list, walking through:
+The C<List> role represents the lazy access to a list, walking through:
 
 =over
 
@@ -176,10 +176,9 @@ The iterator role represents the lazy access to a list, walking through:
 
 =back
 
-It's important to realize that the iterator of a list can be accessed
-by the .Iterator() method (but only the runtime will be calling that
-most of the time), and the implementation of each iterator is private
-to the list and implementation specific.
+It's important to realize that the iterator of a list is the list
+itself; Perl does not distinguish the two concepts.  Any type
+that supports the C<List> role is an iterator.
 
 This is a minimal API that should allow custom iterator
 implementations, but this spec should be expanded in the future to
@@ -191,11 +190,16 @@ The methods in this role are:
 
 Returns the next item for that iteration. The grouping of elements
 returned in each iteration is visible if this iterator is being used
-to build a slice. While building a List, the items will be flattened.
+to build a slice. While building a list, the items will be flattened.
 
-When it runs out of items, it will return C<Nil>.
+When it runs out of items, it will return C<Nil>.  List context
+always removes C<Nil> values as part of flattening, while slice
+context always promotes parcels to C<Seq>, so it is never possible
+for this method to return C<Nil> as a value.  We can use C<Nil> as
+the sentinel because iterators never return C<Parcel>s. and C<Nil>
+is defined as the empty C<Parcel>.
 
-=head1 The Iterator::PushBack Role
+=head1 The List::PushBack Role
 
 This role defines an iterator that knows how to receive values back to
 be consumed again as if they were never consumed. The iterator is free
@@ -210,13 +214,13 @@ immutable data, it is free to refuse a value that is either out of the
 original order or if it wasn't consumed. In that case, it should fail
 with UnorderedPushBackException or BadPushBackException.
 
-=head1 The Iterator::Unshift Role
+=head1 The List::Unshift Role
 
 This role defines an iterator that can receive new elements in the top
 of the stack, it works like pushback, but it should be able to store
 objects that are completely new to this stream. Either by being backed
 by a mutable list or by providing a local stack. This role implies
-Iterator::PushBack, where pushback will be handled by unshift.
+List::PushBack, where pushback will be handled by unshift.
 
 The purpose of defining two different Roles is to give the user the
 "expect to fail" or "expect to succeed" semantics.
@@ -229,7 +233,7 @@ the iterator.
 =head1 Auxiliary Implementations
 
 Perl's built-ins require that a number of auxiliary types implement
-Iterators.  These are available for general use, and are instantiated
+Lists.  These are available for general use, and are instantiated
 by ending a feed at a scalar, array, or sliced array.
 
 =head2 Generic Item Iterator
@@ -331,8 +335,8 @@ to:
 The generic lazy slice consumes the C<Capture>s from an iterator but
 stores the results as a bi-dimensional list, where the first dimension
 corresponds to an iteration, and the second contains the values in
-the C<Capture> returned for that iteration.  Empty C<Capture>s are
-stored just like the rest of the iterations.
+the C<Parcel> returned for that iteration, but turned into a C<Seq> object.
+Empty C<Parcel> objects are turned into empty C<Seq> objects.
 
 To obtain a generic lazy slice, end a feed in a sliced C<Positional>.
 

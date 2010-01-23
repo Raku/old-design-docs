@@ -67,7 +67,7 @@ In addition, a C<Cat> in item context emulates the C<Str> interface lazily.
 
 =item roundrobin
 
- our List multi roundrobin( *@@list )
+ our Parcel multi roundrobin( *@@list )
 
 C<roundrobin> is very similar to C<zip>.  The difference is that
 C<roundrobin> will not stop on lists that run out of elements but
@@ -82,8 +82,8 @@ will get the following values for C<$x>: C<1, 1, 1, 2, 2, 3>
 
 =item zip
 
- our List of Parcel multi zip ( *@@list )
- our List of Parcel multi infix:<Z> ( *@@list )
+ our Parcel of Parcel multi zip ( *@@list )
+ our Parcel of Parcel multi infix:<Z> ( *@@list )
 
 zip takes any number of arrays and returns one tuple for every index.
 This is easier to read in an example:
@@ -108,7 +108,7 @@ C<Z> is an infix equivalent for zip:
 
  for @a Z @b Z @c -> $a, $b, $c {...}
 
-In C<@@> context a List of Array is returned instead of flat list.
+In C<@@> context an Array of Array is returned instead of flat list.
 
 =back
 
@@ -116,7 +116,7 @@ In C<@@> context a List of Array is returned instead of flat list.
 
 The following are defined in the C<List> role/class:
 
-    role List does Container does Positional {...}
+    role List does Container {...}
 
 =over
 
@@ -124,13 +124,13 @@ The following are defined in the C<List> role/class:
 
  our List multi method new(*@args)
 
-Constructs a C<List> containing the arguments passed to the C<new> method.
+Constructs an C<List> that can visit all iterable elements of the all the arguments.
 
 =item list
 
  our List sub list(*@args)
 
-Constructs a C<List> containing the arguments passed to the C<list> subroutine.
+Constructs an C<List> that can visit all iterable elements of the all the arguments.
 
 =item cat
 
@@ -750,11 +750,11 @@ KeyBag, Pair, and PairMap.
 
 =head2 Seq
 
-    class Seq does Positional {...}
+    class Seq does Positional does Iterable {...}
 
 =head2 Range
 
-    class Range does Positional {
+    class Range does Positional does Iterable {
         method from() {...}
         method to() {...}
         method min() {...}
@@ -993,7 +993,7 @@ All method calls on junctions autothread because the type provides no public met
 
 =item !eigenstates
 
-    method !eigenstates (Junction $j: --> List)
+    method !eigenstates (Junction $j: --> Parcel)
 
 Returns an unordered list of the values that constitute the junction (formerly
 called C<.values>). It flattens nested junctions of the same type, so

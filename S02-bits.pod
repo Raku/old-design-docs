@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 8 Jan 2009
-    Version: 195
+    Last Modified: 23 Jan 2009
+    Version: 196
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -560,7 +560,7 @@ does not specify a unit.
 
 Built-in object types start with an uppercase letter. This includes
 immutable types (e.g. C<Int>, C<Num>, C<Complex>, C<Rat>, C<Str>,
-C<Bit>, C<Regex>, C<Set>, C<Block>, C<List>,
+C<Bit>, C<Regex>, C<Set>, C<Block>, C<Iterator>,
 C<Seq>), as well as mutable (container) types, such as C<Scalar>,
 C<Array>, C<Hash>, C<Buf>, C<Routine>, C<Module>, and non-instantiable Roles
 such as C<Callable>, C<Failure>, and C<Integral>.
@@ -1147,8 +1147,7 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Bool        Perl boolean
     Exception   Perl exception
     Block       Executable objects that have lexical scopes
-    List        Lazy Perl list (composed of immutables and iterators)
-    Seq         Completely evaluated (hence immutable) sequence
+    Seq         A list of values (can be generated lazily)
     Range       A pair of Ordered endpoints
     Set         Unordered collection of values that allows no duplicates
     Bag         Unordered collection of values that allows duplicates
@@ -1161,16 +1160,6 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Instant     A point on the continuous atomic timeline (TAI)
     Duration    The difference between two Instants
     HardRoutine A routine that is committed to not changing
-
-Insofar as Lists are lazy, they're really only partially immutable, in
-the sense that the past is fixed but the future is not.  The portion of
-a List yet to be determined by iterators may depend on mutable values.
-When an iterator is called upon to iterate and extend the known part
-of the list, some number of immutable values (which includes immutable
-references to mutable objects) are decided and locked in at that point.
-Iterators may have several different ways of iterating depending on
-the degree of laziness/eagerness desired in context.  The iterator
-API is described in S07.
 
 C<Instant>s and C<Duration>s are measured in atomic seconds with
 fractions.  Notionally they are real numbers which may be implemented
@@ -1202,7 +1191,7 @@ These types do (at least) the following roles:
     Bool        Boolean
     Exception   Failure
     Block       Callable
-    List        Iterable
+    Iterator    List
     Seq         Iterable
     Range       Iterable
     Set         Associative[Bool]
@@ -1228,6 +1217,18 @@ and includes any specific operators that are specific to I<characters> and
 don't apply to bits or integers etc.  The other alternative is to more
 clearly distance character strings from bit strings, keeping C<~>/etc for
 character strings only and adding an analogy for bit strings.]
+
+The C<Iterable> role indicates not that you can iterate the type
+directly, but that you can request the type to return an iterator.
+Iterable types may have multiple iterators (lists) running across them
+simultaneously, but an iterator/list itself has only one thread of
+consumption.  Every time you do C<get> on an iterator, a value
+disappears from its list.
+
+Types that do the C<List> role are generally hidden from casual view,
+since iteration is typically triggered by context rather than by
+explicit call to the iterator's C<.get> method.  Filehandles are a
+notable exception.
 
 =head2 Mutable types
 
@@ -1634,7 +1635,7 @@ object containing multiple items.
 
 C<@x> may be bound to an object of the C<Array> class, but it may also
 be bound to any object that does the C<Positional> role, such as a
-C<List>, C<Seq>, C<Range>, C<Buf>, C<Parcel>, or C<Capture>.  The C<Positional>
+C<Seq>, C<Range>, C<Buf>, C<Parcel>, or C<Capture>.  The C<Positional>
 role implies the ability to support C<< postcircumfix:<[ ]> >>.
 
 Likewise, C<%x> may be bound to any object that does the C<Associative>
@@ -1843,7 +1844,7 @@ it is marked as the invocant in case it finds itself in a context
 that cares.  It's illegal to use the colon in place of the comma
 anywhere except after the first argument.
 
-Like C<List> objects, C<Capture> objects are immutable in the abstract, but
+C<Capture> objects are immutable in the abstract, but
 evaluate their arguments lazily.  Before everything inside a C<Capture> is
 fully evaluated (which happens at compile time when all the arguments are
 constants), the eventual value may well be unknown.  All we know is
@@ -1879,7 +1880,9 @@ when you want to refer only to a single item.
 The empty C<Parcel> is a value with a special name: C<Nil>.  It is
 the named equivalent of the empty C<()> list.  The C<Nil> value is
 officially undefined as an item but interpolates as a null list into
-list context, and an empty parcel into slice context.
+list context, and an empty C<Seq> into slice context.  An iterator
+can never return C<Nil> as an ordinary value, so it is the sentinel
+value that marks the end of iteration.
 
 Assigning or binding C<Nil> to any scalar container causes the
 container to throw out any contents and restore itself to an
@@ -3967,10 +3970,11 @@ flatten the list on demand, but not before.
 
 There is a "C<list>" operator which imposes a list context on
 its arguments even if C<list> itself occurs in a item context.
-In list context, it flattens lazily.  In an item context, it returns
-the resulting list as a single C<List> object.  (So the C<list> operator
-really does exactly the same thing as putting a list in parentheses with
-at least one comma.  But it's more readable in some situations.)
+In list context, it flattens lazily.  In an item context, a list is
+turned into a lazy C<Seq> object, that is, an array that can
+extend itself on demand, use the iterators of the list as its new values.
+(Once determined, the values are readonly, however.  To create an anonymous
+mutable array, use explicit square brackets around the list.)
 
 To force a non-flattening item context, use the "C<item>" operator.
 

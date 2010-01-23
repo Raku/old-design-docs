@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 21 Jan 2010
-    Version: 185
+    Last Modified: 23 Jan 2010
+    Version: 186
 
 =head1 Overview
 
@@ -250,7 +250,7 @@ Subexpressions circumfixed by parentheses
 
 Parentheses are parsed on the inside as a semicolon-separated list
 of statements, which (unlike the statements in a block) returns the results
-of all the statements concatenated together as a C<List> of C<Capture>.
+of all the statements concatenated together as a C<List> of C<Parcel>.
 How that is subsequently treated depends on its eventual binding.
 
 =item *
@@ -2583,7 +2583,7 @@ written: C<<< << ... >> >>>.
 =item *
 
 Comma C<,> now constructs a C<Parcel> object from its
-operands.  In item context this turns into a C<List> object.  You have to use a C<[*-1]> subscript to get the last one.
+operands.  In item context this turns into a C<Seq> object.  You have to use a C<[*-1]> subscript to get the last one.
 (Note the C<*>.  Negative subscripts no longer implicitly count from
 the end; in fact, the compiler may complain if you use C<[-1]> on an
 object known at compile time not to have negative subscripts.)
@@ -3118,7 +3118,7 @@ is taken to mean:
 
 These coercions are defined by multi signatures.  (Other types may
 have different coercion policies.)  It is specifically illegal to
-use a C<Range> or a C<List> as implicitly numeric:
+use anything that does C<Iterable> as implicitly numeric:
 
     0 ..^ 10  # 0 .. 9
     0 .. ^10  # ERROR
@@ -3395,7 +3395,7 @@ the table assumes the following types will behave similarly:
 
     Actual type                 Use entries for
     ===========                 ===============
-    List Seq                    Array
+    Iterator Seq                Array
     KeySet KeyBag KeyHash       Hash
     named values created with
       Class, Enum, or Role,
@@ -3867,7 +3867,7 @@ the last element of the list were arbitrarily replicated C<*> times.  But
 this happens only on the "dwimmy" side.
 
 On the non-dwimmy side, any scalar value that does not know how to
-do C<List> will be treated as a list of one element, and for infix
+do C<Iterable> will be treated as a list of one element, and for infix
 operators must be matched by an equivalent one-element list on the
 other side.  That is, a hyper operator is guaranteed to degenerate
 to the corresponding scalar operation when all its arguments are
@@ -3902,21 +3902,21 @@ Likewise the dwimminess of dwimmy infixes propagates:
                                  # == [[5, 6], [8, 9]]
 
 More generally, a dwimmy hyper operator works recursively for any object
-matching the C<Each> role even if the object itself doesn't support
+matching the C<Iterable> role even if the object itself doesn't support
 the operator in question:
 
     Bag(3,8,[2,Seq(9,3)],8) >>->> 1;         # Bag(2,7,[1,Seq(8,2)],7)
     Seq(3,8,[2,Seq(9,3)],8) >>->> (1,1,2,1); # Seq(2,7,[0,Seq(7,1)],7)
 
-In particular, tree node types with C<Each> semantics enable visitation:
+In particular, tree node types with C<Iterable> semantics enable visitation:
 
-    $tree.».foo;        # short for $tree.foo, $tree.each: { .».foo }
+    $tree.».foo;        # short for $tree.foo, $tree.list: { .».foo }
 
 If not all nodes support the operation, you need a form of it that
 specifies the call is optional:
 
-    $tree.».?foo;       # short for $tree.?foo, $tree.each: { .».?foo }
-    $tree.».*foo;       # short for $tree.*foo, $tree.each: { .».*foo }
+    $tree.».?foo;       # short for $tree.?foo, $tree.list: { .».?foo }
+    $tree.».*foo;       # short for $tree.*foo, $tree.list: { .».*foo }
 
 You are not allowed to define your own hyper operators, because they
 are supposed to have consistent semantics derivable entirely from
