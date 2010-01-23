@@ -1191,8 +1191,6 @@ These types do (at least) the following roles:
     Bool        Boolean
     Exception   Failure
     Block       Callable
-    Iterator    List
-    Seq         Iterable
     Range       Iterable
     Set         Associative[Bool]
     Bag         Associative[UInt]
@@ -1225,17 +1223,14 @@ simultaneously, but an iterator/list itself has only one thread of
 consumption.  Every time you do C<get> on an iterator, a value
 disappears from its list.
 
-Types that do the C<List> role are generally hidden from casual view,
-since iteration is typically triggered by context rather than by
-explicit call to the iterator's C<.get> method.  Filehandles are a
-notable exception.
-
 =head2 Mutable types
 
 Objects with these types have distinct C<.WHICH> values that do not change
 even if the object's contents change.  (Routines are considered mutable
 because they can be wrapped in place.)
 
+    Iterator    Perl list
+    Seq         Partially or completely reified list
     Scalar      Perl scalar
     Array       Perl array
     Hash        Perl hash
@@ -1298,6 +1293,8 @@ element may.)
 
 The following roles are supported:
 
+    Iterator    List
+    Seq         Iterable
     Scalar      
     Array       Positional
     Hash        Associative
@@ -1317,6 +1314,13 @@ The following roles are supported:
     Match       Positional Associative
     Stash       Associative
     SoftRoutine Routine
+
+Types that do the C<List> role are generally hidden from casual view,
+since iteration is typically triggered by context rather than by
+explicit call to the iterator's C<.get> method.  Filehandles are a
+notable exception.  C<Seq> is mutable insofar as it it generated
+lazily, but the portion of the list that is already reified is
+considered immutable.
 
 See L<S06/"Wrapping"> for a discussion of soft vs. hard routines.
 
