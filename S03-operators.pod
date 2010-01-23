@@ -1962,10 +1962,22 @@ uses the function:
     'Z' ... -> $old { my $new = $old.pred; $old ne 'A' and $new !before 'A' ?? $new !! () }
 
 For purposes of deciding when to terminate the eager part of a 'mostly
-eager' list, any series that terminates with an exact value (or that
-starts another series with exact values) is considered finite, but any
-other series that ends with a closure or C<*> is considered infinite
-(even if extended with a closure that has internal logic to terminate).
+eager' list, any series that terminates with an exact value (or
+that starts another series with exact values) is considered finite,
+but any other series that ends with a closure or C<*> (that is,
+without a following final value) is considered to be of unknowable
+length (even if extended with a closure that has internal logic to
+terminate).  However, by the definition of "mostly eager" in L<S07>,
+the implementation may be able to determine that such a sequence is
+finite by conjectural evaluation; such workahead cannot, of course,
+prove that a sequence is infinite without running a Very Long Time.
+Note also that, by using the form that specifies both a closure and
+a final value, it is possible to write series that appears to be
+finite but that never actually reaches its final value before resources
+are exhausted; such a series will be treated as finite, but eventually
+come to grief:
+
+    @a = 1 ... *+0.00000000000000000000000000000000000001, 2;  # crunch
 
 =back
 

@@ -14,8 +14,8 @@ Synopsis 7: Iterators and Laziness
 
     Created: 27 Nov 2008
 
-    Last Modified: 21 Jan 2010
-    Version: 6
+    Last Modified: 22 Jan 2010
+    Version: 7
 
 =head1 Laziness and Eagerness
 
@@ -42,18 +42,46 @@ primitives.
 
 =item Mostly Lazy
 
-Try to obtain available items without causing eager evaluation of
-other lazy objects.  However, the implementation is allowed to do batching
-for efficiency.
+Try to obtain available items without causing eager evaluation of other
+lazy objects.  However, the implementation is allowed to do batching
+for efficiency.  The programmer must not rely on circular side effects when
+the implementation is working ahead like this, or the results will
+be indeterminate.  (However, this does not rule out pure I<definitional>
+circularity: if a list is bound to the name of an array, earlier
+array values may be used in the definition of subsequent values.)
 
 =item Mostly Eager
 
-Obtain all items, but does not try to eagerly evaluate when known to
-be infinite.
+Obtain all "easy" items, defined as all leading items that are (easily)
+provable to represent a finite number of values (even if the exact
+number is not known in advance).  The remainder of the items are
+left for lazy evaluation.  For constructs that are not known either
+to be finite or infinite, the implementation is allowed, but not
+required, to work ahead some number of elements in a batching mode.
+If such a batch proves to terminate, the list may continue to with
+eager evaluation of subsequent elements.  As with the "mostly lazy"
+case, the programmer must not depend on circular side effects in
+any situation where the implementation is allowed to work ahead.
+Note that there are no language-defined limits on the amount of
+conjectural evaluation allowed, up to the size of available memory;
+however, an implementation may allow the arbitrary limitation of
+workahead by use of pragams.
+
+I/O from a file may generally be assumed to be finite, but I/O
+from a socket may not.  However, since the definition of "finite"
+is somewhat dependent on available memory, a file that is too big
+may be reasonably be treated lazily.  In any case, there should be no
+profound semantic differences between "mostly lazy" and "mostly eager".
+They are primarily just hints to the implementation as to whether
+you are likely to want to use all the values in the list.  Nothing
+transactional should be allowed to depend on the difference.
 
 =item Strictly Eager
 
-Obtain all items, fail in data structures known to be infinite.
+Obtain all items, failing immediately with an appropriate message
+if asked to evaluate any data structures known to be infinite.
+(Data structures that are effectively infinite but not provably
+so will likely exhaust memory instead.)
 This behavior is generally available only by pragma or by explicit
 programming primitives.
 
@@ -61,8 +89,8 @@ programming primitives.
 
 It's important to realize that the responsibility of determining the
 level of laziness/eagerness in each operation is external to each lazy
-object, the runtime, depending on which operation is being performed,
-is going to assume the level of laziness and perform the needed
+object; the runtime, depending on which operation is being performed,
+is going to assume an appropriate level of laziness and perform the needed
 operations to apply that level.
 
 =head2 The laziness level of some common operations
