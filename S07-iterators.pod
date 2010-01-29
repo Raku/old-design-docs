@@ -14,8 +14,8 @@ Synopsis 7: Iterators and Laziness
 
     Created: 27 Nov 2008
 
-    Last Modified: 23 Jan 2010
-    Version: 8
+    Last Modified: 29 Jan 2010
+    Version: 9
 
 =head1 Laziness and Eagerness
 
@@ -192,12 +192,49 @@ Returns the next item for that iteration. The grouping of elements
 returned in each iteration is visible if this iterator is being used
 to build a slice. While building a list, the items will be flattened.
 
-When it runs out of items, it will return C<Nil>.  List context
-always removes C<Nil> values as part of flattening, while slice
-context always promotes parcels to C<Seq>, so it is never possible
-for this method to return C<Nil> as a value.  We can use C<Nil> as
-the sentinel because iterators never return C<Parcel>s. and C<Nil>
-is defined as the empty C<Parcel>.
+When it runs out of items, it will fail with the C<EMPTY> exception.
+As with most failures, it is generally returned without throwing it,
+unless the calling lexical scope requests it to be thrown via "use fatal".
+No list should ever contain the C<EMPTY> exception, since iterational
+control flow should always terminate when that value is returned.
+
+This method provides list context to the iterator.
+
+=head2 method getsome ($max?) {...}
+
+Returns a batch of items in some appropriate C<Positional> type that
+numerifies to the exact number of items returned. (The type may also
+be C<Iterable> in its turn.)  Also returns C<EMPTY> if no arguments
+are available; the C<EMPTY> exception should return 0 when numerified
+to facilitate numeric end testing if that is desired.
+
+This method provides list context to the iterator.
+
+=head2 method getitem {...}
+
+Returns the next item for that iteration. The grouping of elements
+returned in each iteration is visible if this iterator is being used
+to build a slice. While building a list, the items will be flattened.
+
+When it runs out of items, it will fail with the C<EMPTY> exception.
+As with most failures, it is generally returned without throwing it,
+unless the calling lexical scope requests it to be thrown via "use fatal".
+No list should ever contain the C<EMPTY> exception, since iterational
+control flow should always terminate when that value is returned.
+
+This method provides item context to the iterator, which is also
+used as slice context in the variadic region.
+
+=head2 method getsomeitems ($max?) {...}
+
+Returns a batch of items in some appropriate C<Positional> type that
+numerifies to the exact number of items returned. (The type may also
+be C<Iterable> in its turn.)  Also returns C<EMPTY> if no arguments
+are available; the C<EMPTY> exception should return 0 when numerified
+to facilitate numeric end testing if that is desired.
+
+This method provides item context to the iterator, which is also
+used as slice context in the variadic region.
 
 =head1 The List::PushBack Role
 
