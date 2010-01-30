@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 29 Jan 2010
-    Version: 187
+    Last Modified: 30 Jan 2010
+    Version: 188
 
 =head1 Overview
 
@@ -681,7 +681,7 @@ C<< prefix:<^> >>, upto operator
     ^$limit
 
 Constructs a range of C<0 ..^ +$limit> or locates a metaclass as a shortcut
-for C<$limit.HOW>.  See L</Range and RangeIterator semantics>.
+for C<$limit.HOW>.  See L</Range and RangeIter semantics>.
 
 =back
 
@@ -1094,7 +1094,7 @@ Range object constructor
     $min ^..^ $max
 
 Constructs C<Range> objects, optionally excluding one or both endpoints.
-See L</Range and RangeIterator semantics>.
+See L</Range and RangeIter semantics>.
 
 =back
 
@@ -2132,40 +2132,34 @@ See L<Reduction operators> below.
 
 =item *
 
-Sigils as contextualizer listops
+Sigils as coercions to roles
 
     Sigil       Alpha variant
     -----       -------------
-    $           item
-    @           list
-    @@          slice
-    %           hash
+    $           Scalar
+    @           Positional (or Iterable?)
+    %           Associative
+    &           Callable
 
-These may only be used as functions with explicit parens:
+Note that, since these are coercions to roles, they are allowed
+to return any actual type that does the role in question.
 
-     $(1,2 Z 3,4)       # [\(1,3),\(2,4)]
-     @(1,2 Z 3,4)       # 1,3,2,4
-    @@(1,2 Z 3,4)       # [1,3],[2,4]
-     %(1,2 Z 3,4)       # { 1 => 3, 2 => 4 }
+Unless applied directly to a scalar variable, as in C<@$a>, these
+may only be applied with explicit parens around an argument that
+is processed as a bare C<Parcel> object, not a flattening list:
 
-     $(1,2 X 3,4)      # [\(1,3),\(1,4),\(2,3),\(2,4)]
-     @(1,2 X 3,4)      # 1,3,1,4,2,3,2,4
-    @@(1,2 X 3,4)      # [1,3],[1,4],[2,3],[2,4]
+     $(1,2 Z 3,4)      # Scalar((1,3),(2,4))
+     @(1,2 Z 3,4)      # ((1,3),(2,4))
+     %(1,2 Z 3,4)      # PairSeq(1 => 3, 2 => 4)
 
-These can also influence the result of functions that returns lists of captures:
+     $(1,2 X 3,4)      # Scalar((1,3),(1,4),(2,3),(2,4))
+     @(1,2 X 3,4)      # ((1,3),(1,4),(2,3),(2,4))
 
-     $(map { $_, $_*2 }, ^4)   # [\(0,0),\(1,2),\(2,4),\(3,6)]
-     @(map { $_, $_*2 }, ^4)   # 0,0,1,2,2,4,3,6
-    @@(map { $_, $_*2 }, ^4)   # [0,0],[1,2],[2,4],[3,6]
-     %(map { $_, $_*2 }, ^4)   # { 0 => 0, 1 => 2, 2 => 4, 3 => 6 }
+(Note, internal parens indicate nested C<Parcel> structure here,
+since there is no flattening.)
 
-The parens may not be omitted on the sigiled forms, but the alpha variants may
-be used as normal listops:
-
-     item map { $_, $_*2 }, ^4   # [\(0,0),\(1,2),\(2,4),\(3,6)]
-     list map { $_, $_*2 }, ^4   # 0,0,1,2,2,4,3,6
-    slice map { $_, $_*2 }, ^4   # [0,0],[1,2],[2,4],[3,6]
-     hash map { $_, $_*2 }, ^4   # { 0 => 0, 1 => 2, 2 => 4, 3 => 6 }
+Since a C<Parcel> with one argument is transparent, there can be no
+difference between the meaning of C<@($a)> and C<@$a>.
 
 =item *
 
@@ -2178,13 +2172,16 @@ The new name for Perl 5's C<scalar> contextualizer.  Equivalent to C<$(...)>
 We still call the values scalars, and talk about "scalar operators", but
 scalar operators are those that put their arguments into item context.
 
-If given a list, this function makes a C<Capture> object from it.  The function
-is agnostic about any C<Captures> embedded in such a capture.  (Use C<@> or C<@@>
-below to force that one way or the other).
+If given a list, this function makes a C<Seq> object from it.  The function
+is agnostic about any C<Parcel> embedded in such a sequence, and any contextual
+decisions will be deferred until subsequent use of the contents.
 
-Note that this is a list operator, not a unary prefix operator,
-since you'd generally want it for converting a list to an item.
-Single items don't need to be converted to items.
+Note that this parses as a list operator, not a unary prefix operator,
+since you'd generally want it for converting a list to a sequence object.
+(Single items don't need to be converted to items.)  Note, however, that
+it does no flattening of its list items:
+
+    @x = slice(item (1,2),(3,4))  # @x eqv [[1,2],[3,4]]
 
 =item *
 
@@ -2193,9 +2190,17 @@ The C<list> contextualizer
     list foo()
 
 Forces the subsequent expression to be evaluated in list context.
-A list of C<Capture>s will be transformed into a flat list.
-Equivalent to C<@(...)> (except that empty C<@()> means C<@($/)>, while
-empty C<list()> means an empty list).
+Any flattening happens lazily.
+
+=item *
+
+The C<flat> contextualizer
+
+    flat foo()
+
+Forces the subsequent expression to be evaluated in a flattening
+list context.  The result will be recursively flattened, i.e.,
+contain no embedded C<Parcel> objects.
 
 =item *
 
@@ -2205,9 +2210,9 @@ The C<slice> contextualizer
 
 Forces the subsequent expression to be evaluated in slice context.
 (Slices are considered to be potentially multidimensional in Perl 6.)
-A list of C<Capture>s will be transformed into a list of lists.
-Equivalent to C<@@(...)> (except that empty C<@@()> means C<@@($/)>, while
-empty C<slice()> means a null slice).
+A list of C<Parcel>s will be transformed into a list of C<Seq>s.
+(C<Seq> objects do not autoflatten themselves in a list unless
+explicitly dereferenced.)
 
 =item *
 
@@ -2216,7 +2221,7 @@ The C<hash> contextualizer
     hash foo()
 
 Forces the subsequent expression to be evaluated in hash context.
-The expression is evaluated in list context (flattening any C<Capture>s),
+The expression is evaluated in list context (flattening any C<Parcel>s),
 then a hash will be created from the list, taken as a list of C<Pair>s.
 (Any element in the list that is not a C<Pair> will pretend to be a key
 and grab the next value in the list as its value.)  Equivalent to
@@ -3111,7 +3116,7 @@ er, somehow.
 
 =back
 
-=head1 Range and RangeIterator semantics
+=head1 Range and RangeIter semantics
 
 The C<..> range operator has variants with C<^> on either end to
 indicate exclusion of that endpoint from the range.  It always
@@ -3154,7 +3159,7 @@ if type C<T> defines generic comparison (that is, by defining
 C<< infix:<cmp> >> or equivalent), a range is constructed in that type.
 If C<T> also defines C<.succ>, then the range may be iterated.
 (Otherwise the range may only be used as an interval, and will return
-failure if asked for a C<RangeIterator>.)  Note that it is not necessary
+failure if asked for a C<RangeIter>.)  Note that it is not necessary
 to define a range multimethod in type C<T>, since the generic
 routine can usually auto-generate the range for you.
 

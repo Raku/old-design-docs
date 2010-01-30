@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 23 Jan 2009
-    Version: 196
+    Last Modified: 30 Jan 2009
+    Version: 197
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1191,6 +1191,7 @@ These types do (at least) the following roles:
     Bool        Boolean
     Exception   Failure
     Block       Callable
+    Seq         Iterable
     Range       Iterable
     Set         Associative[Bool]
     Bag         Associative[UInt]
@@ -1230,7 +1231,8 @@ even if the object's contents change.  (Routines are considered mutable
 because they can be wrapped in place.)
 
     Iterator    Perl list
-    Seq         Partially or completely reified list
+    SeqIter     Iterator over a Seq
+    RangeIter   Iterator over a Range
     Scalar      Perl scalar
     Array       Perl array
     Hash        Perl hash
@@ -1294,9 +1296,8 @@ element may.)
 The following roles are supported:
 
     Iterator    List
-    Seq         Iterable
     Scalar      
-    Array       Positional
+    Array       Positional Iterable
     Hash        Associative
     KeySet      KeyHash[Bool]
     KeyBag      KeyHash[UInt]
@@ -1315,12 +1316,10 @@ The following roles are supported:
     Stash       Associative
     SoftRoutine Routine
 
-Types that do the C<List> role are generally hidden from casual view,
-since iteration is typically triggered by context rather than by
-explicit call to the iterator's C<.get> method.  Filehandles are a
-notable exception.  C<Seq> is mutable insofar as it it generated
-lazily, but the portion of the list that is already reified is
-considered immutable.
+Types that do the C<List> role are generally hidden from casual
+view, since iteration is typically triggered by context rather than
+by explicit call to the iterator's C<.get> method.  Filehandles are
+a notable exception.
 
 See L<S06/"Wrapping"> for a discussion of soft vs. hard routines.
 
@@ -3979,6 +3978,9 @@ turned into a lazy C<Seq> object, that is, an array that can
 extend itself on demand, use the iterators of the list as its new values.
 (Once determined, the values are readonly, however.  To create an anonymous
 mutable array, use explicit square brackets around the list.)
+
+To force explicit flattening or slicing (anti-flattening), use either the C<flat>
+or C<slice> contextualizers.
 
 To force a non-flattening item context, use the "C<item>" operator.
 
