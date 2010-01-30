@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 23 Jan 2010
-    Version: 186
+    Last Modified: 29 Jan 2010
+    Version: 187
 
 =head1 Overview
 
@@ -51,7 +51,7 @@ each level:
     R  Item assignment   = := ::= => += -= **= xx= .=
     L  Loose unary       so not
     X  Comma operator    , p5=> :
-    X  List infix        Z minmax X X~ X* Xeqv ...
+    X  List infix        Z minmax X X~ X* Xeqv ... E
     R  List prefix       print push say die map substr ... [+] [*] any $ @
     X  Loose and         and andthen
     X  Loose or          or xor orelse
@@ -1978,6 +1978,18 @@ are exhausted; such a series will be treated as finite, but eventually
 come to grief:
 
     @a = 1 ... *+0.00000000000000000000000000000000000001, 2;  # crunch
+
+=item *
+
+C<< infix:<E> >>, test for EMPTY iterator
+
+Returns the list on the left unless any of them are EMPTY, in which
+case it executes the thunk on the right.  Typically used in a loop
+with C<take>:
+
+    loop {
+        take @iterators>>.get E last;
+    }
 
 =back
 
