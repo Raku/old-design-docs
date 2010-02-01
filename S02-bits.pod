@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 30 Jan 2009
-    Version: 197
+    Last Modified: 1 Feb 2009
+    Version: 198
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -3993,8 +3993,9 @@ then evaluated lazily.
 
 =item *
 
-To force non-lazy list flattening, use the C<eager> list operator.
-List assignment is also implicitly eager.
+To force non-lazy list processing, use the C<eager> list operator.
+List assignment is also implicitly eager. (Actually, when we say
+"eager" we usually mean "mostly eager" as defined in L<S07>).
 
     eager $filehandle.lines;    # read all remaining lines
 
@@ -4008,6 +4009,9 @@ when stored within an array.  The array knows that it is extensible,
 and calls the iterator as it needs more elements.  (Counting the elements
 in the array will also force eager completion.)
 
+This operator is agnostic towards flattening or slicing.  In merely changes
+the work-ahead policy for the value generator.
+
 =item *
 
 A variant of C<eager> is the C<hyper> list operator, which declares
@@ -4019,6 +4023,9 @@ case, it declares that you don't care about the evaluation order.
 (Conjecture: populating a hash from a hyper list of pairs could be done
 as the results come in, such that some keys can be seen even before
 the hyper is done.  Thinking about Map-Reduce algorithms here...)
+
+This operator is agnostic towards flattening or slicing.  It merely changes
+the work-ahead policy for the value generator.
 
 =item *
 
