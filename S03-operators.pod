@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 30 Jan 2010
-    Version: 188
+    Last Modified: 1 Feb 2010
+    Version: 189
 
 =head1 Overview
 
@@ -205,7 +205,6 @@ Sigiled variables
     %z
     $^a
     $?FILE
-    @@slice
     &func
     &div:(Int, Int --> Int)
 
@@ -217,7 +216,6 @@ Sigils as contextualizer functions
     @()
     %()
     &()
-    @@()
 
 =item *
 
@@ -919,11 +917,10 @@ C<< infix:<xx> >>, list replication
     @list xx $count
 
 Evaluates the left argument in list context, replicates the resulting
-C<Capture> value the number of times specified by the right argument and
-returns the result in a context dependent fashion.  If the operator
-is being evaluated in ordinary list context, the operator returns a
-flattened list.  In slice (C<@@>) context, the operator converts each C<Capture>
-to a separate sublist and returns the list of those sublists.
+C<Parcel> value the number of times specified by the right argument
+and returns the result as a list of C<Parcels> (which will behave
+differently depending on whether it's bound into a flat context or
+a slice context).
 
 If the count is less than 1, returns the empty list, C<()>.
 If the count is C<*>, returns an infinite list (lazily, since lists
@@ -1703,11 +1700,11 @@ and you end up with
 
     ('a', '1'), ('a', '2'), ('b', '1'), ('b', '2')
 
-This becomes a flat list in C<@> context and a list of arrays in C<@@> context:
+This becomes a flat list in flat context and a list of arrays in slice context:
 
-    say @(<a b> X <1 2>)
+    say flat(<a b> X <1 2>)
     'a', '1', 'a', '2', 'b', '1', 'b', '2'
-    say @@(<a b> X <1 2>)
+    say slice(<a b> X <1 2>)
     ['a', '1'], ['a', '2'], ['b', '1'], ['b', '2']
 
 The operator is list associative, so
@@ -2358,7 +2355,7 @@ Feed operators: <==, ==>, <<==, ==>>
 The forms with the double angle append rather than clobber the sink's
 todo list.  The C<<< ==>> >>> form always looks ahead for an appropriate
 target to append to, either the final sink in the chain, or the next
-filter stage with an explicit C<@(*)> or C<@@(*)> target.  This means
+filter stage with an explicit C<@(*)> or C<@(**)> target.  This means
 you can stack multiple feeds onto one filter command:
 
     source1() ==>>
@@ -4655,7 +4652,7 @@ In an explicitly multidimensional list context, however, the sequences
 turn into subarrays, and each element would then have to be unpacked
 by the signature:
 
-    for @@(zip(@names; @codes)) -> [$name, $zip] {
+    for slice(zip(@names; @codes)) -> [$name, $zip] {
         print "Name: $name;   Zip code: $zip\n";
     }
 

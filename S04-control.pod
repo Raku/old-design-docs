@@ -352,9 +352,9 @@ The value of a loop statement is the list of values from each
 iteration.  Iterations that return a null list (such as by calling
 C<next> with no extra return arguments) interpolate no values in the
 resulting list.  (This list is actually a two-dimensional list of
-C<Capture>s (a "slice") with dimensional boundaries at each iteration.
+C<Parcel>s (a "slice") with dimensional boundaries at each iteration.
 Normal list context ignores these boundaries and flattens the list.
-Slice context turns the captures into subarrays, so an iteration
+Slice context turns the parcels into sublists, so an iteration
 returning a null list does show up as a null subarray when viewed as
 a slice.)
 
@@ -688,16 +688,18 @@ statement or block, and executes it once.  Unlike C<do>, it evaluates
 the statement or block in sink (void) context; its return value is instead
 specified by calling the C<take> list prefix operator one or more times
 within the dynamic scope of the C<gather>.  The C<take> function's
-signature is like that of C<return>; it merely captures the C<Capture>
+signature is like that of C<return>; it merely wraps up a C<Parcel>
 of its arguments without imposing any additional constraints (in the
 absence of context propagation by the optimizer).  The value returned
-by the C<take> to its own context is that same C<Capture> object (which
+by the C<take> to its own context is that same C<Parcel> object (which
 is ignored when the C<take> is in sink context).  Regardless of the
-C<take>'s context, the C<Capture> object is also added to the list of
+C<take>'s context, the C<Parcel> object is also added to the list of
 values being gathered, which is returned by the C<gather> in the form
-of a lazy slice, with each slice element corresponding to one C<take>
-capture.  (A list of C<Capture>s is lazily flattened in normal list context,
-but you may "unflatten" it again with a C<@@()> contextualizer.)
+of a lazy list of C<Parcel>s, with each element corresponding to one C<take>
+parcel.  (A C<Parcel>s is normally flattened when bound into slurpy context,
+but when bound into a slice context, the C<Parcel> objects become real
+sublists.  The eventual binding context thus determines whether to
+throw away or keep the groupings resulting from each individual C<take> call.)
 
 Because C<gather> evaluates its block or statement in sink context,
 this typically causes the C<take> function to be evaluated in sink
@@ -714,15 +716,15 @@ This makes it easy to keep track of what you last "took":
 The C<take> function essentially has two contexts simultaneously, the
 context in which the C<gather> is operating, and the context in which the
 C<take> is operating.  These need not be identical contexts, since they
-may bind or coerce the resulting captures differently:
+may bind or coerce the resulting parcels differently:
 
     my @y;
-    @x = gather for 1..2 {          # @() context for list of captures
-        my $x = take $_, $_ * 10;   # $() context for individual capture
+    @x = gather for 1..2 {          # flat context for list of parcels
+        my $x = take $_, $_ * 10;   # item context for individual parcel
         push @y, $x;
     }
     # @x contains 4 Ints:  1,10,2,20
-    # @y contains 2 Captures: (1,10),(2,20)
+    # @y contains 2 Parcels: (1,10),(2,20)
 
 Likewise, we can just remember the gather's result by binding and
 later coerce it:
@@ -730,9 +732,9 @@ later coerce it:
     $c := gather for 1..2 {
         take $_, $_ * 10;
     }
-    # @$c produces 1,10,2,20 -- flatten fully into a list of Ints.
-    # @@$c produces (1,10),(2,20) -- list of Captures, a 2-D list.
-    # $$c produces ((1,10),(2,20)) -- the saved Capture itself as one item in item context.
+    # $c.flat produces 1,10,2,20 -- flatten fully into a list of Ints.
+    # $c.slice produces (1,10),(2,20) -- list of Parcels, a 2-D list.
+    # $c.item produces ((1,10),(2,20)) -- the saved Parcel itself as one item in item context.
 
 Note that the C<take> itself is in sink context in this example because
 the C<for> loop is in sink context.
