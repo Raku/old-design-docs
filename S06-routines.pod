@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 1 Feb 2010
-    Version: 126
+    Last Modified: 2 Feb 2010
+    Version: 127
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -983,9 +983,9 @@ Some functions take more than one list of positional and/or named arguments,
 that they wish not to be flattened into one list.  For instance, C<zip()> wants
 to iterate several lists in parallel, while array and hash subscripts want to
 process a multidimensional slice.  The set of underlying argument lists may be
-bound to a single array parameter declared with a double C<@@> sigil:
+bound to a single array parameter declared with a double C<**> marker:
 
-    sub foo (*@@slice) { ... }
+    sub foo (**@slice) { ... }
 
 Note that this is different from
 
@@ -993,7 +993,7 @@ Note that this is different from
 
 insofar as C<|$slice> is bound to a single argument-list object that
 makes no commitment to processing its structure (and maybe doesn't
-even know its own structure yet), while C<*@@slice> has to create
+even know its own structure yet), while C<**@slice> has to create
 an array that binds the incoming dimensional lists to the array's
 dimensions, and make that commitment visible to the rest of the scope
 via the sigil so that constructs expecting multidimensional lists
@@ -1001,16 +1001,16 @@ know that multidimensionality is the intention.
 
 It is allowed to specify a return type:
 
-    sub foo (*@@slice --> Num) { ... }
+    sub foo (**@slice --> Num) { ... }
 
 The invocant does not participate in multi-dimensional argument lists,
-so C<self> is not present in the C<@@slice> below:
+so C<self> is not present in the C<**@slice> below:
 
-    method foo (*@@slice) { ... }
+    method foo (**@slice) { ... }
 
-The C<@@> sigil is just a variant of the C<@> sigil, so C<@@slice>
-and C<@slice> are really the same array.  In particular, C<@@_> is
-really the good old C<@_> array viewed as multidimensional.
+The C<**> marker is just a variant of the C<*> marker that ends up
+requesting parcels when binding (underlyingly calling .getobj) rather
+than requesting individual elements as the flatening C<*> does.
 
 =head2 Zero-dimensional argument list
 
@@ -1018,9 +1018,9 @@ If you call a function without parens and supply no arguments, the
 argument list becomes a zero-dimensional slice.  It differs from
 C<\()> in several ways:
 
-    sub foo (*@@slice) {...}
-    foo;        # +@@slice == 0
-    foo();      # +@@slice == 1
+    sub foo (**@slice) {...}
+    foo;        # +@slice == 0
+    foo();      # +@slice == 1
 
     sub bar (|$args = \(1,2,3)) {...}
     bar;        # $args === \(1,2,3)
@@ -1137,7 +1137,7 @@ with C<*> as an argument may be used to indicate the target of a
 feed without the use of a temporary array:
 
     foo() ==> say @(*), " is what I meant";
-    bar() ==> @@(*).baz();
+    bar() ==> @(*).baz();
 
 Likewise, an C<Array> used as a tap may be distinguished from an C<Array> used
 as a translation function:
@@ -1145,15 +1145,18 @@ as a translation function:
     numbers() ==> @array ==> bar()          # tap
     numbers() ==> @array[@(*)] ==> bar()    # translation
 
-Feeding into the C<*> "whatever" term sets the source for the next sink.
 To append multiple sources to the next sink, double the angle:
 
-    0..*       ==>  *;
-    'a'..*     ==>> *;
-    pidigits() ==>> *;
+    my $sink;
+    0..*       ==>  $sink;
+    'a'..*     ==>> $sink;
+    pidigits() ==>> $sink;
 
     # outputs "(0, 'a', 3)\n"...
-    for zip(@@(*)) { .perl.say }
+    for $sink.zip { .perl.say }
+
+Each such append adds another slice element (that is, a parcel), to
+the sink.  (The original feed also created a parcel.)
 
 You may use a variable (or variable declaration) as a receiver, in
 which case the list value is bound as the "todo" of the variable.
@@ -1163,7 +1166,9 @@ Think of it as iterator creation.  In the case of a scalar variable,
 that variable contains the newly created iterator itself.  In the case
 of an array, the new iterator is installed as the method for extending
 the array.  As with assignment, the old todo list is clobbered; use the
-append form to avoid that and get push semantics.
+append form to avoid that and get push semantics.  In any case, feeding
+an array always flattens.  You must use the scalar form to preserve
+slice information.
 
 In general you can simply think of a receiver array as representing
 the results of the chain, so you can equivalently write any of:
@@ -1199,15 +1204,15 @@ Note how the feeds are concatenated in C<@foo> so that C<@foo>
 is a list of 6 elements.  This is the default behavior.  However,
 sometimes you want to capture the outputs as a list of two iterators,
 namely the two iterators that represent the two input feeds.  You can
-get at those two iterators by using the name C<@@foo> instead, where
-the "slice" sigil marks a multidimensional array, that is, an
-array of lists, each of which may be treated independently.
+get at those two iterators by using a scalar instead, which
+will preserve the slice structure, which can be fed to any operation
+that knows how to deal with a list of parcels as a slice, such as C<zip>:
 
-    0..*       ==>  @@foo;
-    'a'..*     ==>> @@foo;
-    pidigits() ==>> @@foo;
+    0..*       ==>  $foo;
+    'a'..*     ==>> $foo;
+    pidigits() ==>> $foo;
 
-    for zip(@@foo) { .say }
+    for $foo.zip { .say }
 
         [0,'a',3]
         [1,'b',1]
@@ -1217,19 +1222,20 @@ array of lists, each of which may be treated independently.
         [5,'f',9]
         ...
 
-Here C<@@foo> is an array of three iterators, so
+Here C<$foo> is a list of three parcels, so
 
-    zip(@@foo)
+    $foo.zip
 
 is equivalent to
 
-    zip(@@foo[0]; @@foo[1]; @@foo[2])
+    my (@a,@b,@c) := |$foo;
+    zip(@a; @b; @c)
 
 A semicolon inside brackets is equivalent to stacked feeds.  The code above
 could be rewritten as:
 
-    (0..*; 'a'..*; pidigits()) ==> my @@foo;
-    for @@foo.zip { .say }
+    (0..*; 'a'..*; pidigits()) ==> my $foo;
+    for $foo.zip { .say }
 
 which is in turn equivalent to
 
@@ -1243,62 +1249,69 @@ clear where the feed's destination is supposed to be:
     my @foo = @bar[@baz];
 
 Various contexts may or may not be expecting multi-dimensional slices
-or feeds.  By default, ordinary arrays are flattened, that is, they
+or feeds.  By default, ordinary arrays are flattened in slurpy context, that is, they
 have "list" semantics.  If you say
 
     (0..2; 'a'..'c') ==> my @tmp;
     for @tmp { .say }
 
 then you get 0,1,2,'a','b','c'.  If you have a multidim array, you
-can ask for list semantics explicitly with list():
+can ask for flattening semantics explicitly with C<flat>:
 
-    (0..2; 'a'..'c') ==> my @@tmp;
-    for @@tmp.list { .say }
+    (0..2; 'a'..'c') ==> my $tmp;
+    for $tmp.flat { .say }
 
 As we saw earlier, "zip" produces an interleaved result by taking one element
 from each list in turn, so
 
-    (0..2; 'a'..'c') ==> my @@tmp;
-    for @@tmp.zip { .say }
+    (0..2; 'a'..'c') ==> my $tmp;
+    for $tmp.zip { .say }
 
 produces 0,'a',1,'b',2,'c'.
 
-If you want the result as a list of subarrays, then you need to put
-the zip into a "chunky" context instead:
+If you want the zip's result as a list of subarrays, then you need to put
+the zip itself into a "chunky" slice context instead:
 
-    (0..2; 'a'..'c') ==> my @@tmp;
-    for @@tmp.zip.@@() { .say }
+    (0..2; 'a'..'c') ==> my $tmp;
+    for $tmp.zip.slice { .say }
 
 This produces [0,'a'],[1,'b'],[2,'c'].  But usually you want the flat
 form so you can just bind it directly to a signature:
 
-    for @@tmp.zip -> $i, $a { say "$i: $a" }
+    for $tmp.zip -> $i, $a { say "$i: $a" }
 
 Otherwise you'd have to say this:
 
-    for @@tmp.zip.slice -> [$i, $a] { say "$i: $a" }
+    for $tmp.zip.slice -> [$i, $a] { say "$i: $a" }
 
-In list context the C<@@foo> notation is really a shorthand for C<[;](@@foo)>.
-In particular, you can use C<@@foo> to interpolate a multidimensional slice
-in an array or hash subscript.
+Conjectural: To interpolate a feed into a subscript such that the
+slice turns into multiple subscripts, you need target the special form
+C<**()>, since targeting a bare C<@(*)> would merely interpolate into
+the current slice element's list.  The C<**()> form may be used only
+where a semicolon would be appropriate.  If no expression is supplied
+in the parentheses, $(*) is assumed as the current incoming feed.
+These are equivalent:
 
-If C<@@foo> is currently empty, then C<for zip(@@foo) {...}> acts on a
-zero-dimensional slice (i.e. C<for (zip) {...}>), and outputs nothing
-at all.
+    (0..10; 0..10).zip
+    zip(0..10; 0..10)
+    (0..10; 0..10) ==> zip( **() )
+    (0..10; 0..10) ==> $feed; zip( **($feed) )
+
+Usually it's better to just use the method form.
 
 Note that with the current definition, the order of feeds is preserved
 left to right in general regardless of the position of the receiver.
 
 So
 
-    ('a'..*; 0..*) ==> *;
-     for zip(@@(*) <== @foo) -> $a, $i, $x { ... }
+    ('a'..*; 0..*) ==> $feed;
+     for $feed.zip <== @foo) -> $a, $i, $x { ... }
 
 is the same as
 
-    'a'..* ==> *;
-     0..*  ==> *;
-     for zip(@@(*) <== @foo) -> $a, $i, $x { ... }
+    'a'..* ==> $feed;
+     0..*  ==>> $feed;
+     for $feed.zip <== @foo) -> $a, $i, $x { ... }
 
 which is the same as
 
@@ -1308,14 +1321,6 @@ Also note that these come out to be identical for ordinary arrays:
 
     @foo.zip
     @foo.cat
-
-The C<@@($foo)> coercer can be used to pull a multidim out of some
-object that contains one, such as a C<Capture> or C<Match> object.  Like
-C<@()>, C<@@()> defaults to C<@@($/)>, and returns a multidimensional
-view of any match that repeatedly applies itself with C<:g> and
-the like.  In contrast, C<@()> would flatten those into one list.
-It is an error to use C<@(*)> or C<@@(*)> in a context that doesn't
-supply a feed somehow.
 
 =head2 Closure parameters
 
