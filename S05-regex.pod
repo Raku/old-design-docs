@@ -453,7 +453,7 @@ respect to the starting positions.
      $str = "abracadabra";
 
      if $str ~~ m:overlap/ a (.*) a / {
-         @substrings = @@();    # bracadabr cadabr dabr br
+         @substrings = slice @();    # bracadabr cadabr dabr br
      }
 
 =item *
@@ -1056,11 +1056,11 @@ C<:ignorecase> and C<:ignoreaccent> settings.
 
 When you get tired of writing:
 
-    token sigil { '$' | '@' | '@@' | '%' | '&' | '::' }
+    token sigil { '$' | '@' | '%' | '&' | '::' }
 
 you can write:
 
-    token sigil { < $ @ @@ % & :: > }
+    token sigil { < $ @ % & :: > }
 
 as long as you're careful to put a space after the initial angle so that
 it won't be interpreted as a subrule.  With the space it is parsed
@@ -1076,7 +1076,6 @@ be matched within the rule using C<< <sym> >>, like this:
     proto token sigil { }
     multi token sigil:sym<$>  { <sym> }
     multi token sigil:sym<@>  { <sym> }
-    multi token sigil:sym<@@> { <sym> }
     multi token sigil:sym<%>  { <sym> }
     multi token sigil:sym<&>  { <sym> }
     multi token sigil:sym<::> { <sym> }
@@ -3633,10 +3632,9 @@ string that the regex skipped over in order to find later matches).
 
 Subcaptures are returned as a multidimensional list, which the user can
 choose to process in either of two ways.  If you refer to
-C<@()>, the multidimensionality is ignored and all the matches are returned
-flattened (but still lazily).  If you refer to C<@@()>, you can
-get each individual sublist as a C<Capture> object. (That is, there is a C<@@()>
-coercion operator that happens, like C<@()>, to default to C<$/>.)
+C<@().flat> (or just use C<@()> in a flat list context), the multidimensionality is ignored and all the matches are returned
+flattened (but still lazily).  If you refer to C<@().slice>, you can
+get each individual sublist as a C<Parcel> object.
 As with any multidimensional list, each sublist can be lazy separately.
 
 =back
@@ -3651,9 +3649,9 @@ But the list of individual match objects corresponding to each separate
 match is also available:
 
      if $text ~~ mm:g/ (\S+:) <rocks> / {
-         say "Matched { +@@() } times";    # Note: forced eager here
+         say "Matched { +@().slice } times";    # Note: forced eager here by +
 
-         for @@() -> $m {
+         for @().slice -> $m {
              say "Match between $m.from() and $m.to()";
              say 'Right on, dude!' if $m[0] eq 'Perl';
              say "Rocks like $m<rocks>";

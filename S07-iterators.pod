@@ -231,6 +231,21 @@ are available; the C<EMPTY> exception should return 0 when numerified
 to facilitate numeric end testing if that is desired.  If C<$max> is
 not supplied, the iterator may choose a suitable batch size.
 
+=head2 method flat {...}
+
+This returns an iterator that always flattens by calling C<.get> internally
+(which discards any parcel structure, returning only the parcel's elements).
+The returned iterator will always return the same value regardless of
+whether you call C<.get> or C<.getobj>.
+
+=head2 method slice {...}
+
+This returns an iterator that always anti-flattens by calling C<.getobj> internally,
+then hiding any resulting parcel by turning it into a C<Seq> before returning it externally.
+A list of C<Parcel> is thereby transformed into a list of C<Seq>.
+The returned iterator will always return the same value regardless of
+whether you call C<.get> or C<.getobj>.
+
 =head1 The List::PushBack Role
 
 This role defines an iterator that knows how to receive values back to
