@@ -14,8 +14,8 @@ Synopsis 7: Iterators and Laziness
 
     Created: 27 Nov 2008
 
-    Last Modified: 29 Jan 2010
-    Version: 9
+    Last Modified: 2 Feb 2010
+    Version: 10
 
 =head1 Laziness and Eagerness
 
@@ -180,61 +180,56 @@ It's important to realize that the iterator of a list is the list
 itself; Perl does not distinguish the two concepts.  Any type
 that supports the C<List> role is an iterator.
 
-This is a minimal API that should allow custom iterator
-implementations, but this spec should be expanded in the future to
-provide additional API for batch-aware iterators.
-
 The methods in this role are:
 
 =head2 method get {...}
 
-Returns the next item for that iteration. The grouping of elements
-returned in each iteration is visible if this iterator is being used
-to build a slice. While building a list, the items will be flattened.
+Used to iterator over a flat list (the context supplied by a slurpy binding).
+Returns the next element from the iterator after flattening any leading parcel.
 
-When it runs out of items, it will fail with the C<EMPTY> exception.
+When it runs out of elements, it will fail with the C<EMPTY> exception.
 As with most failures, it is generally returned without throwing it,
 unless the calling lexical scope requests it to be thrown via "use fatal".
 No list should ever contain the C<EMPTY> exception, since iterational
 control flow should always terminate when that value is returned.
 
-This method provides list context to the iterator.
+=head2 method batch ($max?) {...}
 
-=head2 method getsome ($max?) {...}
+Used to iterate over a flat list when you wish to return an arbitrary
+number of elements at a time.  The returned set of elements is guaranteed
+not to contain any C<Parcel> objects, since any such C<Parcel> will
+be flattened before returning its elements.
 
-Returns a batch of items in some appropriate C<Positional> type that
+Returns the batch of elements in some appropriate C<Positional> type that
 numerifies to the exact number of items returned. (The type may also
 be C<Iterable> in its turn.)  Also returns C<EMPTY> if no arguments
 are available; the C<EMPTY> exception should return 0 when numerified
-to facilitate numeric end testing if that is desired.
+to facilitate numeric end testing if that is desired.  If C<$max> is
+not supplied, the iterator may choose a suitable batch size.
 
 This method provides list context to the iterator.
 
-=head2 method getitem {...}
+=head2 method getobj {...}
 
-Returns the next item for that iteration. The grouping of elements
-returned in each iteration is visible if this iterator is being used
-to build a slice. While building a list, the items will be flattened.
+Returns the next parcel or other object from the iterator without
+any flattening.  It is used both for binding to positional parameters
+in item context as well as variadically retrieving slice elements in
+slice context.
 
-When it runs out of items, it will fail with the C<EMPTY> exception.
+When it runs out of objects, it will fail with the C<EMPTY> exception.
 As with most failures, it is generally returned without throwing it,
 unless the calling lexical scope requests it to be thrown via "use fatal".
 No list should ever contain the C<EMPTY> exception, since iterational
 control flow should always terminate when that value is returned.
 
-This method provides item context to the iterator, which is also
-used as slice context in the variadic region.
+=head2 method batchobj ($max?) {...}
 
-=head2 method getsomeitems ($max?) {...}
-
-Returns a batch of items in some appropriate C<Positional> type that
+Returns a batch of parcels/objects in some appropriate C<Positional> type that
 numerifies to the exact number of items returned. (The type may also
 be C<Iterable> in its turn.)  Also returns C<EMPTY> if no arguments
 are available; the C<EMPTY> exception should return 0 when numerified
-to facilitate numeric end testing if that is desired.
-
-This method provides item context to the iterator, which is also
-used as slice context in the variadic region.
+to facilitate numeric end testing if that is desired.  If C<$max> is
+not supplied, the iterator may choose a suitable batch size.
 
 =head1 The List::PushBack Role
 
