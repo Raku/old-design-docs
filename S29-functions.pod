@@ -20,8 +20,8 @@ Synopsis 29: Builtin Functions
 
     Created: 12 Mar 2005
 
-    Last Modified: 19 Nov 2009
-    Version: 44
+    Last Modified: 2 Feb 2010
+    Version: 45
 
 The document is a draft.
 
@@ -334,21 +334,35 @@ lexical scope via the $?NF and $?ENC compile-time constants).)
 
 Forces generic Item context on its argument, and returns it.
 
+=item flat
+
+ our List multi flat ( *@list )
+
+Forces flat context on it's arguments, and returns them.
+The heavy work is done by the C<*@> binding.
+
 =item list
 
- our List multi list ( *@list )
+ our List multi list ( Iterable $item ) { $item.iterator.list }
+ our List multi list ( List \$iter ) { $iter }
 
-Forces List Context on it's arguments, and returns them.
+Almost a no-op; just makes sure that $item can be iterated.
+
+=item flat
+
+ our List multi flat ( *@list )
+
+Forces flat context on it's arguments, and returns them.
+The heavy work is done by the C<*@> binding.
 
 =item slice
 
- our List multi slice ( *@list )
+ our List multi slice ( **@list )
 
 Forces the argument list to be evaluated in slice context.
 (Slices are considered to be potentially multidimensional in Perl 6.)
-A list of C<Capture>s will be transformed into a list of lists.
-Equivalent to C<@@()> (except that empty C<@@()> means C<@@($/)>, while
-empty C<slice()> means a null slice).
+Any C<Parcel> within the list will be transformed into a C<Seq>.
+The work is actually done by the binding to the C<**@> parameter.
 
 =item hash
 
