@@ -13,8 +13,8 @@ Synopsis 9: Data Structures
 
     Created: 13 Sep 2004
 
-    Last Modified: 8 Jan 2010
-    Version: 37
+    Last Modified: 2 Feb 2010
+    Version: 38
 
 =head1 Overview
 
@@ -25,9 +25,12 @@ to make it easier for the PDL folks to write numeric Perl.
 
 =head1 Lazy lists
 
-All list contexts are lazy by default.  They still flatten eventually,
-but only when forced to.  You have to use the C<eager> list operator to get a
-non-lazy flattening list context (that is, to flatten immediately like Perl 5).
+All list contexts are lazy by default.  They might still flatten
+eventually, but only when forced to.  You have to use the C<eager>
+list operator to get a non-lazy list context, and you have to use the
+C<flat> operator to guarantee flattening.  However, such context is
+generally provided by the eventual destination anyway, so you don't
+usually need to be explicit.
 
 =head1 Sized types
 
@@ -208,7 +211,7 @@ Attempting to access an index outside an array's defined range will fail:
 
     @dwarves[7] = 'Sneaky';   # Fails with "invalid index" exception
 
-However, it is legal for a C<Range> object to extend beyond the end
+However, it is legal for a range or series iterator to extend beyond the end
 of an array as long as its min value is a valid subscript; the range
 is truncated as necessary to map only valid locations.
 
@@ -217,7 +220,7 @@ It's also possible to explicitly specify a normal autoextending array:
     my @vices[*];             # Length is: "whatever"
                               # Valid indices are 0..*
 
-For subscripts containing ranges extending beyond the end of
+For subscripts containing range or series iterators extending beyond the end of
 autoextending arrays, the range is truncated to the actual current
 size of the array rather than the declared size of that dimension.
 It is allowed for such a range to start one after the end, so that
@@ -230,18 +233,16 @@ merely returns Nil if C<@array> happens to be empty.  However,
 
 would fail because the range's min is too big.
 
-Going the other way, it is allowed for a range to start with a negative
-number as long as the endpoint is at least -1; in this case the
-front of the range is truncated.
-
 Note that these rules mean it doesn't matter whether you say
 
     @array[*]
     @array[0 .. *]
     @array[0 .. *-1]
-    @array[-Inf .. *-1]
 
 because they all end up meaning the same thing.
+
+There is no autotruncation on the left end.  It's not that
+hard to write C<0>, and standard indexes always start there.
 
 As a special form, numeric subscripts may be declared as cyclical
 using an initial C<%>:
@@ -294,7 +295,8 @@ typically applies to undifferentiated scalars.  (Perl tries really
 hard to make these elements look like objects when you treat them
 like objects--this is called autoboxing.)
 
-Such arrays are autoextending just like ordinary Perl arrays
+Unless explicitly declared to be of fixed size, such
+arrays are autoextending just like ordinary Perl arrays
 (at the price of occasionally copying the block of data to another
 memory location, or using a tree structure).
 
@@ -314,7 +316,7 @@ So given C<@buffer> you can say
 
 and given C<$buffer> you can also say
 
-    @pieces = $buffer[$n..^$end];
+    @pieces = $buffer[$n ..^ $end];
 
 Note that subscripting still pulls the elements out as numbers,
 but C<substr()> returns a buffer of the same type.
@@ -355,30 +357,33 @@ dimensions.  For example, there are always 12 months in a year and
 
 You can pass a slice (of any dimensionality) for the shape as well:
 
-    @@shape = (4;2);
-    my int @ints[ [;]@shape ];
-    my int @ints[@@shape];      # Same thing
+    @shape = 4, 2;
+    my int @ints[ **(@shape) ];
 
-Again, the C<[;]> list operator interpolates a list into a semicolon
-list.
+The **() form interpolates a list into a semicolon list.
 
-The shape may be supplied entirely by the object at run-time:
+The shape in the declaration merely specifies how the array will
+autovivify on first use, but ends up as an attribute of the actual
+container object thereby.  On the other hand, the shape may be also
+supplied entirely by an explicit constructor at run-time:
 
     my num @nums = Array of num.new(:shape(3;3;3));
     my num @nums .=new():shape(3;3;3); # same thing
 
 A multidimensional array is indexed by a semicolon list, which is really
-a list of feeds in disguise. Each sublist is a slice/feed of one
+a list of lists in disguise. Each sublist is a slice of one
 particular dimension. So:
 
     @array[0..10; 42; @x]
 
-is really short for:
+is really short for something like:
 
-    @array.postcircumfix:<[ ]>( <== 0..10 <== 42 <== @x );
+    @array.postcircumfix:<[ ]>( (0..10), (42), (@x) );
 
-The compiler is free to optimize to something faster when it is known
-that lazy multidimensional subscripts are not necessary.
+The method's internal C<**@slices> parameter turns the subscripts into three independent
+C<Seq> lists, which can be read lazily independently of one other.  (Though
+a subscripter will typically use them left-to-right as it slices each dimension
+in turn.)
 
 Note that:
 
@@ -391,49 +396,20 @@ dimension, which is the same as:
 
 or more verbosely:
 
-    @array.postcircumfix:<[ ]>( <== @x,@y );
+    @array.postcircumfix:<[ ]>( ((@x,@y)) );
 
 To interpolate an array at the semicolon level rather than the comma level,
-use the C<[;]> reduce operator:
+use the special C<**()> form:
 
-    @array[[;] @x]
+    @array[**(@x)]
 
 which is equivalent to
 
-    @array.postcircumfix:<[ ]>( <== @x[0] <== @x[1] <== @x[2]..*);
-
-Alternately, use a slice array, indicated by a double C<@@> sigil:
-
-    @array[@@x]
-
-Multislice arrays can keep track of their dimensionality as they
-are being defined.  Use of slice array syntax can then pull out those
-distinct dimensions:
-
-    my @@x;
-    @@x <==  %hash.keys.grep: {/^\d+$/};
-    @@x <== lines;
-    @@x <== 1..*;
-    @@x <== gather { loop { take 100.rand } };
-
-    @array{@@x}
-
-Conjecture: since @@x and @x are really the same object, any array can
-keep track of its dimensionality, and it only matters how you use it
-in contexts that care about the dimensionality:
-
-    my @x;
-    @x <==  %hash.keys.grep: {/^\d+$/};
-    @x <== lines;
-    @x <== 1..*;
-    @x <== gather { loop { take 100.rand } };
-
-    @array{@@x}  # multidimensional
-    @array{@x}   # flattened
+    @array.postcircumfix:<[ ]>( ((@x[0]), (@x[1]), (@x[2]), etc.) );
 
 =head2 Autoextending multidimensional arrays
 
-Any dimension of the array may be specified as "C<*>", in which case
+Any dimension of the array may be declared as "C<*>", in which case
 that dimension will autoextend.  Typically this would be used in the
 final dimension to make a ragged array functionally equivalent to an
 array of arrays:
@@ -454,16 +430,16 @@ dimensional specification:
     my @spacetime[*;*;*;**];           # Three or more dimensions
     my @coordinates[100;100;100;**];   # Three or more dimensions
 
-Note that C<**> is a shorthand for C<[;] * xx *>, so the extra
+Note that C<**> is a shorthand for something that means C<**(* xx *)>, so the extra
 dimensions are all of arbitrary size. To specify an arbitrary number
 of fixed-size dimensions, write:
 
-    my @coordinates[ [;] 100 xx * ];
+    my @coordinates[ **(100 xx *) ];
 
 This syntax is also convenient if you need to define a large number of
 consistently sized dimensions:
 
-    my @string_theory[ [;] 100 xx 11 ];    # 11-dimensional
+    my @string_theory[ **(100 xx 11) ];    # 11-dimensional
 
 =head1 User-defined array indexing
 
@@ -742,7 +718,7 @@ and return type:
 
 An array C<@array> can be tied to a PDL at declaration time:
 
-    my num @array[@@mytensorshape] is PDL;
+    my num @array[**(@mytensorshape)] is PDL;
     my @array is PDL(:shape(2;2;2;2)) of int8;
 
 PDLs are allowed to assume a type of C<num> by default rather than
@@ -1125,17 +1101,14 @@ them with a C<.assuming> method, in which only the unbound parameters
 autothread.
 
 If you use an unbound array parameter as a semicolon-list interpolator
-(via the C<[;]> reduction operator), it functions as a wildcard list of
+(via the C<**()> operator), it functions as a wildcard list of
 subscripts that must match the same everywhere that parameter is used.
 For example,
 
-    do -> @wild { @b[[;] reverse @wild] = @a[[;] @wild] };
+    do -> @wild { @b[**(reverse @wild)] = @a[**(@wild)] };
 
 produces an array with the dimensions reversed regardless of the
-dimensionality of C<@a>.  Since the multidimensional C<@@wild> notation
-is more or less equivalent to C<[;]@wild>, you can also write that as:
-
-    do -> @@wild { @b[reverse @@wild] = @a[@@wild] };
+dimensionality of C<@a>.
 
 The optimizer is, of course, free to optimize away any implicit loops
 that it can figure out how to do more efficiently without changing
