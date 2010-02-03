@@ -222,6 +222,10 @@ unless the calling lexical scope requests it to be thrown via "use fatal".
 No list should ever contain the C<EMPTY> exception, since iterational
 control flow should always terminate when that value is returned.
 
+Note: C<get> and C<getobj> must be atomic for any iterator shared
+by more than one thread, since it is likely that message passing is
+implemented in terms of them.
+
 =head2 method batchobj ($max?) {...}
 
 Returns a batch of parcels/objects in some appropriate C<Positional> type that
@@ -379,24 +383,33 @@ to:
 
 =head2 Generic Lazy Slice
 
-The generic lazy slice consumes the C<Capture>s from an iterator but
+The generic lazy slice consumes the C<Parcel>s from an iterator but
 stores the results as a bi-dimensional list, where the first dimension
 corresponds to an iteration, and the second contains the values in
 the C<Parcel> returned for that iteration, but turned into a C<Seq> object.
 Empty C<Parcel> objects are turned into empty C<Seq> objects.
+Any other object is returned as itself.
 
-To obtain a generic lazy slice, end a feed in a sliced C<Positional>.
+To obtain a generic lazy slice, end a feed in a sliced binding.
 
-    my @@it <== map { ... }, 1,2,3;
+    my **@it <== map { ... }, 1,2,3;
 
-(XXX TODO:
+Note that in:
 
-    @@it <== (1,mysub(),2;1,2,3);
-    @@it[0];
-    @@it[0;1];
+    my **@it <== (1,mysub(),2; 1..*);
 
- exactly when does mysub() get called?)
+the slice lists are independently lazy.  However, the call to
+C<mysub()> is not particularly lazy; it occurs when the parcel is
+constructed.  Any laziness is in the function's return value, not in
+the call.  A call in the top level of any parcel is called eagerly.
+To call a function lazily it is necessary to embed the call in some
+other explicitly lazy operator:
 
+    1, (() ... { START mysub() }), 2  # harder way
+    1, lazy { mysub() }, 2            # easier way
+
+[Note: the above text really belongs somewhere else, but I'm too lazy to
+figure out where.]
 
 =head1 Coroutines
 
