@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 1 Feb 2010
-    Version: 189
+    Last Modified: 5 Feb 2010
+    Version: 190
 
 =head1 Overview
 
@@ -654,19 +654,27 @@ C<< prefix:<+^> >>, numeric bitwise negation
 
     +^$x
 
-Coerces to integer and then does bitwise negation (complement) on the number.
+Coerces to C<Int> and then does bitwise negation on the number, returning an C<Int>.
+(In order not to have to represent an infinitude of 1's, represents
+that value as some negative in 2's complement form.)
 
 =item *
 
 C<< prefix:<~^> >>, string bitwise negation
 
     ~^$x
-Coerces to string buffer and then does bitwise negation (complement)
-on each element.
+
+Coerces NFG strings to non-variable-encoding string buffer type (such as Buf8,
+Buf16, or Buf32) and then does negation (complement) on each
+bit of each integer element, returning a buffer of the same size as the input.
+
+The use of coercion probably indicates a design error, however.  This operator
+is distinguished from numeric bitwise negation in order to provide bit vectors
+that extend on the right rather than the left (and always do unsigned extension).
 
 =item *
 
-C<< prefix:<?^> >>, boolean bitwise negation
+C<< prefix:<?^> >>, boolean negation
 
     ?^$x
 
@@ -776,7 +784,8 @@ C<< infix:{'+&'} >>, numeric bitwise and
 
     $x +& $y
 
-Converts both arguments to integer and does a bitwise numeric AND.
+Converts both arguments to C<Int> and does a boolean AND between
+corresponding bits of each integer, returning an C<Int> result.
 
 =item *
 
@@ -799,6 +808,16 @@ C<< infix:<~&> >>, buffer bitwise and
 
     $x ~& $y
 
+Coerces NFG strings to non-variable-encoding string buffer type (such as Buf8,
+Buf16, or Buf32) and then does numeric bitwise AND on corresponding integers
+of the two buffers, logically padding the shorter buffer with 0 values.
+returning a buffer sufficiently large to contain all non-zero integer results
+(which for AND is at most the size of the shorter of the two buffers).
+
+The use of coercion probably indicates a design error, however.  This operator
+is distinguished from numeric bitwise AND in order to provide bit vectors
+that extend on the right rather than the left (and always do unsigned extension).
+
 =item *
 
 C<< infix:{'~<'} >>, buffer bitwise shift left
@@ -816,9 +835,12 @@ adverb.
 
 =item *
 
-C<< infix:<?&> >>, boolean bitwise and
+C<< infix:<?&> >>, boolean and
 
     $x ?& $y
+
+Converts both arguments to type C<Bool> and then ANDs those, returning the
+resulting C<Bool>.
 
 =back
 
@@ -858,11 +880,17 @@ C<< infix:<+|> >>, numeric bitwise inclusive or
 
     $x +| $y
 
+Converts both arguments to C<Int> and does a boolean OR between
+corresponding bits of each integer, returning an C<Int> result.
+
 =item *
 
 C<< infix:<+^> >> numeric bitwise exclusive or
 
     $x +^ $y
+
+Converts both arguments to C<Int> and does a boolean XOR between
+corresponding bits of each integer, returning an C<Int> result.
 
 =item *
 
@@ -870,23 +898,49 @@ C<< infix:<~|> >>, buffer bitwise inclusive or
 
     $x ~| $y
 
+Coerces NFG strings to non-variable-encoding string buffer type (such as Buf8,
+Buf16, or Buf32) and then does numeric bitwise OR on corresponding integers
+of the two buffers, logically padding the shorter buffer with 0 values.
+returning a buffer sufficiently large to contain all non-zero integer results
+(which for OR is at most the size of the longer of the two buffers).
+
+The use of coercion probably indicates a design error, however.  This operator
+is distinguished from numeric bitwise OR in order to provide bit vectors
+that extend on the right rather than the left (and always do unsigned extension).
+
 =item *
 
 C<< infix:<~^> >> buffer bitwise exclusive or
 
     $x ~^ $y
 
+Coerces NFG strings to non-variable-encoding string buffer type (such as Buf8,
+Buf16, or Buf32) and then does numeric bitwise XOR on corresponding integers
+of the two buffers, logically padding the shorter buffer with 0 values.
+returning a buffer sufficiently large to contain all non-zero integer results
+(which for XOR is at most the size of the longer of the two buffers).
+
+The use of coercion probably indicates a design error, however.  This operator
+is distinguished from numeric bitwise XOR in order to provide bit vectors
+that extend on the right rather than the left (and always do unsigned extension).
+
 =item *
 
-C<< infix:<?|> >>, boolean bitwise inclusive or
+C<< infix:<?|> >>, boolean inclusive or
 
     $x ?| $y
 
+Converts both arguments to type C<Bool> and then ORs those, returning the
+resulting C<Bool>.
+
 =item *
 
-C<< infix:<?^> >> boolean bitwise exclusive or
+C<< infix:<?^> >> boolean exclusive or
 
     $x ?^ $y
+
+Converts both arguments to type C<Bool> and then XORs those, returning the
+resulting C<Bool>.
 
 =back
 
