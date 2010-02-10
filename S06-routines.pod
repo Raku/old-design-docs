@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 2 Feb 2010
-    Version: 127
+    Last Modified: 9 Feb 2010
+    Version: 128
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -1285,17 +1285,14 @@ Otherwise you'd have to say this:
     for $tmp.zip.slice -> [$i, $a] { say "$i: $a" }
 
 Conjectural: To interpolate a feed into a subscript such that the
-slice turns into multiple subscripts, you need target the special form
-C<**()>, since targeting a bare C<@(*)> would merely interpolate into
-the current slice element's list.  The C<**()> form may be used only
-where a semicolon would be appropriate.  If no expression is supplied
-in the parentheses, $(*) is assumed as the current incoming feed.
-These are equivalent:
+slice turns into multiple subscripts, you need to use C<< prefix:<||> >>,
+which works just like prefix:<|> except that it interpolates at the slice
+level rather than the flat list level:
 
     (0..10; 0..10).zip
     zip(0..10; 0..10)
-    (0..10; 0..10) ==> zip( **() )
-    (0..10; 0..10) ==> $feed; zip( **($feed) )
+    (0..10; 0..10) ==> zip( ||@(*) )
+    (0..10; 0..10) ==> $feed; zip( ||$feed )
 
 Usually it's better to just use the method form.
 

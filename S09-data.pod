@@ -13,8 +13,8 @@ Synopsis 9: Data Structures
 
     Created: 13 Sep 2004
 
-    Last Modified: 2 Feb 2010
-    Version: 38
+    Last Modified: 9 Feb 2010
+    Version: 39
 
 =head1 Overview
 
@@ -358,9 +358,10 @@ dimensions.  For example, there are always 12 months in a year and
 You can pass a slice (of any dimensionality) for the shape as well:
 
     @shape = 4, 2;
-    my int @ints[ **(@shape) ];
+    my int @ints[ ||@shape ];
 
-The **() form interpolates a list into a semicolon list.
+The C<< prefix:<||> >> operator interpolates a list into a semicolon list at
+the semicolon level.
 
 The shape in the declaration merely specifies how the array will
 autovivify on first use, but ends up as an attribute of the actual
@@ -399,9 +400,9 @@ or more verbosely:
     @array.postcircumfix:<[ ]>( ((@x,@y)) );
 
 To interpolate an array at the semicolon level rather than the comma level,
-use the special C<**()> form:
+use the C<< prefix:<||> >> operator:
 
-    @array[**(@x)]
+    @array[||@x]
 
 which is equivalent to
 
@@ -430,16 +431,16 @@ dimensional specification:
     my @spacetime[*;*;*;**];           # Three or more dimensions
     my @coordinates[100;100;100;**];   # Three or more dimensions
 
-Note that C<**> is a shorthand for something that means C<**(* xx *)>, so the extra
+Note that C<**> is a shorthand for something that means C<||(* xx *)>, so the extra
 dimensions are all of arbitrary size. To specify an arbitrary number
 of fixed-size dimensions, write:
 
-    my @coordinates[ **(100 xx *) ];
+    my @coordinates[ ||(100 xx *) ];
 
 This syntax is also convenient if you need to define a large number of
 consistently sized dimensions:
 
-    my @string_theory[ **(100 xx 11) ];    # 11-dimensional
+    my @string_theory[ ||(100 xx 11) ];    # 11-dimensional
 
 =head1 User-defined array indexing
 
@@ -718,7 +719,7 @@ and return type:
 
 An array C<@array> can be tied to a PDL at declaration time:
 
-    my num @array[**(@mytensorshape)] is PDL;
+    my num @array[||@mytensorshape] is PDL;
     my @array is PDL(:shape(2;2;2;2)) of int8;
 
 PDLs are allowed to assume a type of C<num> by default rather than
@@ -1101,11 +1102,11 @@ them with a C<.assuming> method, in which only the unbound parameters
 autothread.
 
 If you use an unbound array parameter as a semicolon-list interpolator
-(via the C<**()> operator), it functions as a wildcard list of
+(via the C<< prefix:<||> >> operator), it functions as a wildcard list of
 subscripts that must match the same everywhere that parameter is used.
 For example,
 
-    do -> @wild { @b[**(reverse @wild)] = @a[**(@wild)] };
+    do -> @wild { @b[ ||@wild.reverse ] = @a[ ||@wild ] };
 
 produces an array with the dimensions reversed regardless of the
 dimensionality of C<@a>.
