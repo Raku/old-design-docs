@@ -13,8 +13,8 @@ Synopsis 9: Data Structures
 
     Created: 13 Sep 2004
 
-    Last Modified: 9 Feb 2010
-    Version: 39
+    Last Modified: 10 Feb 2010
+    Version: 40
 
 =head1 Overview
 
@@ -842,9 +842,18 @@ If you wanted that C<0..2> range to mean
 
     @nums[0;1;2]
 
-instead, then you need to use the C<[;]> reduction operator:
+it is not good enough to use the C<|> prefix operator, because
+that interpolates at the comma level, so:
 
-    @nums[[;] 0..2]
+    @nums[ |(0,1,2) ] 
+
+just means
+
+    @nums[ 0,1,2 ];
+
+Instead, to interpolate at the semicolon level, you need to use the C<||> prefix operator:
+
+    @nums[ ||(0..2) ]
 
 The zero-dimensional slice:
 
