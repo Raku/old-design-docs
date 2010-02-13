@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 1 Feb 2009
-    Version: 198
+    Last Modified: 13 Feb 2009
+    Version: 199
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2908,7 +2908,7 @@ The C<qw/foo bar/> quote operator now has a bracketed form: C<< <foo bar> >>.
 When used as a subscript it performs a slice equivalent to C<{'foo','bar'}>.
 Elsewhere it is equivalent to a parenthesized list of strings:
 C<< ('foo','bar') >>.  Since parentheses are generally reserved just for
-precedence grouping, they merely autointerpolate in list context.  Therefore
+precedence grouping, they merely autointerpolate in flat list context.  Therefore
 
     @a = 1, < x y >, 2;
 
@@ -2920,7 +2920,7 @@ which is the same as:
 
     @a = 1, 'x', 'y', 2;
 
-In item context, though, the implied parentheses are not removed, so
+In item context, the implied grouping parentheses are still there, so
 
     $a = < a b >;
 
@@ -2928,25 +2928,40 @@ is equivalent to:
 
     $a = ('a', 'b');
 
-which, because the list is assigned to a scalar, is autopromoted into
-a C<Capture> object:
+which, because the parcel is assigned to a scalar, is mostly-eagerly evaluated as a flat list and
+turned into a C<Seq> object.  On the other hand, if you backslash the parcel:
+
+    $a = \<a b>;
+
+it is like:
 
     $a = \('a', 'b');
 
-Likewise, if bound to a scalar parameter, C<< <a b> >> will be
-treated as a single C<Capture> object, but if bound to a slurpy parameter,
-it will auto-flatten.
+and ends up as a non-flattening object (C<Scalar[Parcel]> or some such).
+
+Binding is different from assignment.  If bound to a signature, the
+C<< <a b> >> parcel will be promoted to a C<Capture> object, but if
+bound to a parameter, it will make the flattening/slicing decision
+based on the nature of the individual parameter.  That is, if you
+pass C<< <a b> >> as an argument, it will bind as a single positional
+or slice item, but two slurpy items.
 
 But note that under the parenthesis-rewrite rule, a single value will
-still act like a scalar value.  These are all the same:
+still act like a single value.  These are all the same:
 
     $a = < a >;
     $a = ('a');
     $a = 'a';
 
-And if bound to a scalar parameter, no list is constructed.
-To force a single value to become a list object in item context,
-you should use C<< ['a'] >> for clarity as well as correctness.
+That is, a C<Parcel> is actually constructed by the comma, not by
+the parens.  To force a single value to become a composite object in
+item context, either add a comma inside parens, or use an appropriate
+constructor or composer for clarity as well as correctness:
+
+    $a = (< a >,);
+    $a = ('a',);
+    $a = Parcel.new('a');
+    $a = ['a'];
 
 For any item in the list that appears to be numeric, the literal is
 stored as an object with both a string and a numeric nature, where
