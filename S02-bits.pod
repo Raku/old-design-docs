@@ -1589,6 +1589,8 @@ to C<Cool>.
 =item *
 
 The C<$Package'var> syntax is gone.  Use C<$Package::var> instead.
+(Note, however, that identifiers may now contain an apostrophe or
+hyphen if followed by an "idfirst" letter.)
 
 =item *
 
@@ -1607,13 +1609,13 @@ subroutine name without the sigil within the scope of the declaration:
     my &func := sub { say "Hi" };
     func;   # calls &func
 
-Within a signature or other declaration, the C<::> sigil followed by an
+Within a signature or other declaration, the C<::> pseudo-sigil followed by an
 identifier marks a type variable that also declares the visibility
 of a package/type name without the sigil within the scope of the
 declaration.  The first such declaration within a scope is assumed
 to be an unbound type, and takes the actual type of its associated
 argument.  With subsequent declarations in the same scope the use of
-the sigil is optional, since the bare type name is also declared.
+the pseudo-sigil is optional, since the bare type name is also declared.
 
 A declaration nested within must not use the sigil if it wishes to
 refer to the same type, since the inner declaration would rebind
@@ -1699,6 +1701,22 @@ is subject to:
 Most variables with twigils are implicitly declared or assumed to
 be declared in some other scope, and don't need a "my" or "our".
 Attribute variables are declared with C<has>, though.
+
+=item *
+
+Normal names and variables are declared using a I<scope declarator>:
+
+    my          # introduces lexically scoped names
+    our         # introduces package-scoped names
+    has         # introduces attribute names
+    anon        # introduces names that aren't to be stored anywhere
+    state       # introduces lexically scoped but persistent names
+    augment     # adds definitions to an existing name
+    supersede   # replaces definitions of an existing name
+
+Names may also be declared in the signature of a function.  These are
+equivalent to a C<my> declaration inside the block of the function,
+except that such parameters default to readonly.
 
 =item *
 
@@ -1826,18 +1844,29 @@ the C<Parcel> is translated (at compile time, in this case)
 into a C<Capture> with 3 positionals and one named argument
 in preparation for binding.
 
-A parcel may be captured into an object with backslashed parens:
+A parcel may be wrapped into an object with backslashed parens:
 
     $args = \(1,2,3,:mice<blind>)
 
 Values in the C<Parcel> object are parsed as ordinary expressions,
 and any functions mentioned are called, with their results placed
-as a single subparcel within the outer parcel.  Whether they
+as either a single item or subparcel within the outer parcel.  Whether a subparcel
 are subsequently flattened will depend on the eventual binding.
 
 =item *
 
-If a C<Parcel> is used as a list of arguments, it will be transformed
+If a C<Parcel> is bound to an individual parameter, the behavior
+depends on whether the parameter is "slicey" or "slurpy".  Positional
+parameters and slice parameters call C<.getobj> on the internal
+iterator and just return the next item or parcel without flattening.
+(Such a parcel transmutes to a C<Seq> object.)  Slurpy parameters
+call C<.get> on the internal iterator, which flattens any subparcels
+before pulling out the next item.  In either case, no bare parcel
+object is seen as a normal parameter.  (There is a way to bind the
+underlying parcel using backslash.)
+
+In contrast to parameter binding,
+if a C<Parcel> is bound to an entire signature, it will be transformed
 into a C<Capture> objects, which is much like a C<Parcel> but has its
 arguments divvied up into positional and named subsets for faster
 binding.  (Usually this transformation happens at compile time.)
@@ -3007,6 +3036,28 @@ Unlike in the shells, any literal C<#> must be quoted, even
 ones without whitespace in front of them, but note that this comes
 more or less for free with a colon pair like C<< :char<#x263a> >>, since
 comments only work in double angles, not single.
+
+=item *
+
+Generalizing the policy on literal numbers above, any literal number
+that would overflow a C<Rat64> in the numerator is also stored as
+a string.  If a coercion to a wider type, such as C<FatRat>, is
+requested, the literal reconverts from the entire original
+string, rather than just the value that would fit into a C<Rat64>.
+(It may then cache that converted value for next time, of course.)
+So if you declare a constant with excess precision, it does not
+automatically become a C<FatRat>, which would force all calculations
+into the pessimal C<FatRat> type.
+
+    constant pi is export = 3.14159_26535_89793_23846_26433_83279_50288;
+    say pi.perl;   # 3.141592653589793238, limited by Rat64 denom of 1 quadrillion
+    say pi.Num     # 3.14159265358979
+    say pi.Str;    # 3.14159_26535_89793_23846_26433_83279_50288
+    say pi.FatRat; # 3.14159265358979323846264338327950288
+
+In this case it is not necessary to put angles around to get the allomorphism.
+Merely exceeding the precision of C<Rat64> is sufficient to trigger the
+behavior (but only for literals).
 
 =item *
 
