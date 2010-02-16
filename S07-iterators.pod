@@ -209,7 +209,7 @@ not supplied, the iterator may choose a suitable batch size.
 
 This method provides list context to the iterator.
 
-=head2 method getobj {...}
+=head2 method getarg {...}
 
 Returns the next parcel or other object from the iterator without
 any flattening.  It is used both for binding to positional parameters
@@ -222,11 +222,11 @@ unless the calling lexical scope requests it to be thrown via "use fatal".
 No list should ever contain the C<EMPTY> exception, since iterational
 control flow should always terminate when that value is returned.
 
-Note: C<get> and C<getobj> must be atomic for any iterator shared
+Note: C<get> and C<getarg> must be atomic for any iterator shared
 by more than one thread, since it is likely that message passing is
 implemented in terms of them.
 
-=head2 method batchobj ($max?) {...}
+=head2 method batcharg ($max?) {...}
 
 Returns a batch of parcels/objects in some appropriate C<Positional> type that
 numerifies to the exact number of items returned. (The type may also
@@ -240,15 +240,15 @@ not supplied, the iterator may choose a suitable batch size.
 This returns an iterator that always flattens by calling C<.get> internally
 (which discards any parcel structure, returning only the parcel's elements).
 The returned iterator will always return the same value regardless of
-whether you call C<.get> or C<.getobj>.
+whether you call C<.get> or C<.getarg>.
 
 =head2 method slice {...}
 
-This returns an iterator that always anti-flattens by calling C<.getobj> internally,
+This returns an iterator that always anti-flattens by calling C<.getarg> internally,
 then hiding any resulting parcel by turning it into a C<Seq> before returning it externally.
 A list of C<Parcel> is thereby transformed into a list of C<Seq>.
 The returned iterator will always return the same value regardless of
-whether you call C<.get> or C<.getobj>.
+whether you call C<.get> or C<.getarg>.
 
 =head1 The List::PushBack Role
 
