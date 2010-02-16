@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Numeric
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 27 Nov 2009
-    Version: 4
+    Last Modified: 15 Feb 2010
+    Version: 5
 
 The document is a draft.
 
@@ -294,7 +294,7 @@ depend on the current (lexically scoped) trig base:
 
 =item I<Standard Trig Functions>
 
- Numeric multi method func ( Numeric  $x: TrigBase $base = $?TRIGBASE ) is export
+ Numeric multi method func ( Numeric  $x: TrigBase $base = CALLER::($?TRIGBASE) ) is export
 
 where I<func> is one of:
 sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
@@ -314,9 +314,15 @@ Given the value of an arc representing a single full revolution.
  Circles     1
 
 To change the base within your own lexical scope, it suffices to redefine the
-compiler constant:
+compiler constant with the C<trigbase> pragma:
 
- constant $?TRIGBASE = Degrees;
+ use trigbase Degrees;
+
+In addition to setting the new lexical C<$?TRIGBASE>, this also
+curries a new set of functions into the current lexical scope that
+assume the new base.  (Note that methods calls cannot be curried, so
+methods must still look up the caller's trigbase.  The optimizer may,
+of course, optimize these into fast function calls.)
 
 =item atan2
 
