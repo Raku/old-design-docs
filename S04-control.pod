@@ -14,7 +14,7 @@ Synopsis 4: Blocks and Statements
     Created: 19 Aug 2004
 
     Last Modified: 17 Feb 2010
-    Version: 95
+    Version: 96
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1353,16 +1353,27 @@ phasers.
 declarations.  Now it is associated only with loops.  See the C<START>
 above for C<state> semantics.]
 
-C<LEAVE> phasers are evaluated after C<CATCH> and C<CONTROL> phasers, including
+Except for C<CATCH> and C<CONTROL> phasers, which run while an exception
+is looking for a place to handle it, all block-leaving phasers wait until
+the calls stack is actually unwound to run.  That is, just because an
+exception is thrown past a stack frame does not leave the block, since
+the exception might be resumable.  It is only if an exception is not
+resumed that the stack is unwound the the phasers called.
+
+So C<LEAVE> phasers for a given block are necessarily evaluated after
+any C<CATCH> and C<CONTROL> phasers.  This includes
 the C<LEAVE> variants, C<KEEP> and C<UNDO>.  C<POST> phasers are evaluated after
 everything else, to guarantee that even C<LEAVE> phasers can't violate DBC.
 Likewise C<PRE> phasers fire off before any C<ENTER> or C<FIRST> (though not
 before C<BEGIN>, C<CHECK>, or C<INIT>, since those are done at compile or
 process initialization time).
 
-If an exception is thrown through a block without a C<CATCH> phaser, the
-C<LEAVE>, C<UNDO> and C<POST> phasers will be run at that point, with
-C<$!> set to the in-flight exception.  If there is no in-flight
+If exit phasers are running as a result of a stack unwind initiated
+by an exception, C<$!> contains the exception that caused it, though
+it will be marked as handled by then.  In any case, the information
+as to whether the block is being exited successfully or unsuccessfully
+needs to be available to decide whether to run C<KEEP> or C<UNDO> blocks.
+If there is no stack-unwinding
 exception when these phasers are run, C<$!> will be C<Nil>.  The last
 exception caught in the outer block is available as C<< OUTER::<$!> >>,
 as usual. 
