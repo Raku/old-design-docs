@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 13 Feb 2009
-    Version: 199
+    Last Modified: 17 Feb 2009
+    Version: 200
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1831,12 +1831,12 @@ for more about binding.
 
 =item *
 
-A list of one or more objects may be grouped together by parentheses
-into a "parenthesis cell", or C<Parcel>.  This kind of list should
-not be confused with the flattening list context.  Instead, this is
-a raw syntactic list; no interpretation is made of the list without
-knowing what context it will be evaluated in.  For example, when
-you say:
+A list of one or more comma-separated objects may be grouped together
+by parentheses into a "parenthesis cell", or C<Parcel>.  This kind of
+list should not be confused with the flattening list context.  Instead,
+this is a raw syntactic list that has not yet committed to flattening;
+no interpretation is made of the list inside without knowing what
+context it will be evaluated in.  For example, when you say:
 
     (1,2,3,:mice<blind>)
 
@@ -1846,34 +1846,84 @@ you say something like:
 
     rhyme(1,2,3,:mice<blind>)
 
-the C<Parcel> is translated (at compile time, in this case)
-into a C<Capture> with 3 positionals and one named argument
-in preparation for binding.
+the syntactic C<Parcel> is translated (at compile time, in this case)
+into a C<Capture> object with three positionals and one named argument
+in preparation for binding.  More generally, a parcel is transmuted
+to a capture any time it is bound to a complete signature.
 
-A parcel may be wrapped into an object with backslashed parens:
+You may force immediate conversion to a C<Capture> object by prefixing
+the parcel composer with a backslash:
 
     $args = \(1,2,3,:mice<blind>)
 
-Values in the C<Parcel> object are parsed as ordinary expressions,
-and any functions mentioned are called, with their results placed
-as either a single item or subparcel within the outer parcel.  Whether a subparcel
-are subsequently flattened will depend on the eventual binding.
+Unlike C<Capture> objects, C<Parcel> objects are ephemeral, insofar as the
+user almost never sees one as a real standalone object, since binding or
+assignment always turns a parcel into something else.  A parcel may generally
+only be preserved as a part of an outer parcel or capture object.
+
+Individual arguments in a parcel or capture composer are parsed as ordinary
+expressions, and any functions mentioned are called immediately, with
+each function's results placed as an argument (often a subparcel, if the
+function returns multiple values) within the outer parcel (or capture).
+Whether any given argument is flattened will depend on its eventual binding,
+and in general cannot be known at parcel/capture composition time.
+
+We use "argument" here to mean anything that would be taken as a single
+argument if bound to a positional or named parameter:
+
+    rhyme(1,2,3,:mice<blind>)     # rhyme has 4 arguments
+    rhyme((1,2),3,:mice<blind>)   # rhyme has 2 arguments
+    rhyme((1,2,3),:mice<blind>)   # rhyme has 2 arguments
+    rhyme((1,2),(3,:mice<blind>)) # rhyme has 2 arguments
+    rhyme((1,2,3,:mice<blind>))   # rhyme has 1 argument
+
+In these examples, the first argument to the function is
+a parcel in all but the first case, where it is simply the
+literal integer 1.  An argument is either of:
+
+=over
 
 =item *
 
-If a C<Parcel> is bound to an individual parameter, the behavior
-depends on whether the parameter is "slicey" or "slurpy".  Positional
-parameters and slice parameters call C<.getarg> on the internal
-iterator and just return the next syntactic argument (parcel or other object) without flattening.
-(Such a parcel transmutes to a C<Seq> object.)  Slurpy parameters
-call C<.get> on the internal iterator, which flattens any subparcels
-before pulling out the next item.  In either case, no bare parcel
-object is seen as a normal parameter.  (There is a way to bind the
-underlying parcel using backslash.)
+A parcel that groups together a sublist, or
 
-In contrast to parameter binding,
-if a C<Parcel> is bound to an entire signature, it will be transformed
-into a C<Capture> objects, which is much like a C<Parcel> but has its
+=item *
+
+Any other object that can function as a single argument.
+
+=back
+
+Looking at it the other way, all arguments that don't actually need to be
+wrapped up in a parcel are considered degenerate parcels in their
+own right when it comes to binding.  Note that a capture is not
+considered a kind of parcel, so does not flatten in flat context.
+
+=item *
+
+When a C<Parcel> is bound to a parameter, the behavior depends on whether
+the parameter is "flattening" or "argumentative".  Positional parameters
+and slice parameters are argumentative and call C<.getarg> on the internal
+iterator and just return the next syntactic argument (parcel or other object)
+without flattening.  (A slice differs from an ordinary positional parameter
+in being "slurpy", that is, it is intended to fetch multiple values from
+the variadic region of the surrounding capture.  Slurpy contexts come in
+both flattening (C<*> parameters) and slicing (C<**> parameters) forms.)
+
+The fact that a parameter is being bound implies that there is an outer
+capture being bound to a signature.  The capture's iterator provides
+a C<.get> and a C<.getarg> method to tell the iterator what context to
+bind in.  For positional/slice parameters, the C<.getarg> method returns
+the entire next argument from the iterator, but transmutes
+any outer C<Parcel> to a C<Seq> object; it returns other objects unchanged.
+In contrast, flat parameters call C<.get> on the capture's iterator, which
+flattens any subparcels before pulling out the next item.  In either case,
+no bare parcel object is seen as a normal bound argument.  (There is a way to
+bind the underlying parcel using backslash, however.  This is how internal
+routines can deal with parcels as real objects.)
+
+In contrast to parameter binding, if a C<Parcel> is bound to an entire
+signature (typically as part of a function or method call), it will be transformed
+first into a capture object, which is much like a parcel but has its
 arguments divvied up into positional and named subsets for faster
 binding.  (Usually this transformation happens at compile time.)
 If the first positional is followed by a colon instead of a comma,
@@ -1881,11 +1931,20 @@ it is marked as the invocant in case it finds itself in a context
 that cares.  It's illegal to use the colon in place of the comma
 anywhere except after the first argument.
 
-C<Capture> objects are immutable in the abstract, but
-evaluate their arguments lazily.  Before everything inside a C<Capture> is
-fully evaluated (which happens at compile time when all the arguments are
-constants), the eventual value may well be unknown.  All we know is
-that we have the promise to make the bits of it immutable as they become known.
+Explicit binding to an individual variable is considered a form of signature
+binding, which is to say a declarator puts implicit signature parens
+around the unparenthesized form:
+
+    my (*@x) := foo(); # signature binding
+    my *@x := foo();   # same thing
+
+The parens are, of course, required if there is more than one parameter.
+
+C<Capture> objects are immutable in the abstract, but evaluate their
+arguments lazily.  Before everything inside a C<Capture> is fully evaluated
+(which happens at compile time when all the arguments are constants), the
+eventual value may well be unknown.  All we know is that we have the promise
+to make the bits of it immutable as they become known.
 
 C<Capture> objects may contain multiple unresolved iterators such as feeds
 or slices.  How these are resolved depends on what they are eventually
@@ -1955,6 +2014,17 @@ and the C<sink> construct works in any list, not just C<for> loops.
 
 =item *
 
+A C<CaptureCursor> object is a view into another capture with an associated
+start position.  Such a cursor is essentially a pattern-matching state.
+Capture cursors are used for operations like C<grep> and C<map> and C<for>
+loops that need to apply a short signature multiple times to a longer list
+of values supplied by the base capture.  When we say "capture" we sometimes
+mean either C<Capture> or C<CaptureCursor>.  C<CaptureCursors> are also
+immutable.  When pattern matching a signature against a cursor, you
+get a new cursor back which tells you the new position in the base capture.
+
+=item *
+
 A signature object (C<Signature>) may be created with colon-prefixed parens:
 
     my ::MySig ::= :(Int, Num, Complex, Status)
@@ -1963,9 +2033,13 @@ Expressions inside the signature are parsed as parameter declarations
 rather than ordinary expressions.  See S06 for more details on the syntax
 for parameters.
 
+Declarators generally make the colon optional:
+
+    my ($a,$b,$c);      # parsed as signature
+
 Signature objects bound to type variables (as in the example above) may
 be used within other signatures to apply additional type constraints.
-When applied to a C<Capture> argument, the signature allows you to
+When applied to a capture argument, the signature allows you to
 take the types of the capture's arguments from C<MySig>, but declare
 the (untyped) variable names yourself via an additional signature
 in parentheses:
@@ -2972,7 +3046,7 @@ it is like:
 
     $a = \('a', 'b');
 
-and ends up as a non-flattening object (C<Scalar[Parcel]> or some such).
+and ends up as a non-flattening capture object).
 
 Binding is different from assignment.  If bound to a signature, the
 C<< <a b> >> parcel will be promoted to a C<Capture> object, but if
@@ -2988,14 +3062,14 @@ still act like a single value.  These are all the same:
     $a = ('a');
     $a = 'a';
 
-That is, a C<Parcel> is actually constructed by the comma, not by
+That is, a parcel is actually constructed by the comma, not by
 the parens.  To force a single value to become a composite object in
 item context, either add a comma inside parens, or use an appropriate
 constructor or composer for clarity as well as correctness:
 
     $a = (< a >,);
     $a = ('a',);
-    $a = Parcel.new('a');
+    $a = Seq.new('a');
     $a = ['a'];
 
 For any item in the list that appears to be numeric, the literal is
