@@ -13,8 +13,8 @@ Synopsis 9: Data Structures
 
     Created: 13 Sep 2004
 
-    Last Modified: 10 Feb 2010
-    Version: 40
+    Last Modified: 18 Feb 2010
+    Version: 41
 
 =head1 Overview
 
@@ -765,7 +765,7 @@ array is sliced separately, so a multidimensional slice subscript
 may be supplied as a semicolon-separated list of slice sublists.
 A three-dimensional slice might look like this:
 
-    @x[0..10; 1,0; 1...*+2]
+    @x[0..10; 1,0; 1,*+2...*]
 
 It is up to the implementation of C<@x> to decide how aggressively
 or lazily this subscript is evaluated, and whether the slice entails
@@ -783,13 +783,13 @@ index value to each slice list:
 For all multidimensional array types, it is expected that cascaded subscripts:
 
     @x[0][1][42]
-    @x[0..10][1,0][1...*+2]
+    @x[0..10][1,0][1,*+2...*]
 
 will either fail or produce the same results as the equivalent
 semicolon subscripts:
 
     @x[0;1;42]
-    @x[0..10; 1,0; 1...*+2]
+    @x[0..10; 1,0; 1,*+2...*]
 
 Built-in array types are expected to succeed either way, even if
 the cascaded subscript form must be implemented inefficiently by
@@ -871,10 +871,10 @@ need to be, if ever.  So a PDL implementation is free to steal the
 values from these generators and "piddle" around with them:
 
     @nums[$min ..^ $max]
-    @nums[$min ... *+3, $max]
-    @nums[$min ... *+3]
-    @nums[1...*+2]           # the odds
-    @nums[0...*+2]           # the evens
+    @nums[$min, *+3 ... $max]
+    @nums[$min, *+3 ... *]
+    @nums[1,*+2...*]         # the odds
+    @nums[0,*+2...*]         # the evens
     @nums[1,3...*]           # the odds
     @nums[0,2...*]           # the evens
 

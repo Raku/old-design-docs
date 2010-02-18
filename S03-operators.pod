@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 10 Feb 2010
-    Version: 191
+    Last Modified: 18 Feb 2010
+    Version: 192
 
 =head1 Overview
 
@@ -1810,51 +1810,87 @@ See L</Cross operators>.
 
 C<< infix:<...> >>, the series operator.
 
-This operator takes a concrete list on its left and a function to be
-iterated on its right when the list must be extended.  Each time the
-function must be called, it extends the list with the values
-returned by the function (if any).
+As a list infix operator, C<...> takes a left on both its left and
+right and evaluates them as lazily as possible to produce the desired
+series of values.  The lists are evaluated as flat lists.
 
-The value of the operator is the lazy list formed of the
-concrete list followed by the result of applying the function to the
-tail of the list as needed.  The function indicates by its signature
-how many of the preceding values to pay attention to (and which the
-operator must track internally).  Demonstration of this falls to the
-lot of the venerable Fibonacci sequence:
+The operator starts by getting the first value of righthand list.
+This is the only value of the right list that the C<...> operator is
+actually interested in; any additional list elements are treasured
+up lazily to be returned after the C<...> is done.
 
-    1, 1 ... { $^y + $^z }   # 1,1,2,3,5,8...
-    1, 1 ... &infix:<+>      # 1,1,2,3,5,8...
+The righthand first value is considered to the endpoint or limit of the
+series that is to be generated from the lefthand side by the C<...>
+operator itself.
+
+Once we know the limit of the series, the left list is evaluated item
+by item, and ordinary numeric or string values are passed through
+unchanged.  If any value in the series is C<eqv> to the limit value,
+the series terminates, including that final limit value.  For any value
+after the first lefthand value, if that value and the previous value
+fall on opposite sides of the limit, the series terminates without
+including either the limit value or the value that exceeded the limit.
+
+If the limit is C<*>, the series has no limit.  If the limit is
+a closure, it will be evaluated for boolean truth on the tail of
+the current list, and the series will continue as long as the closure
+returns true.  (We can't implement this till we fix all the old
+usages of right-hand generators, however.)
+
+This operator would be fairly useless if it could only return the
+literal values on the left.  The power comes from generating 
+new values from the old ones.  If a closure is found in the
+left-hand list, it is not returned, but rather it is called
+on the tail of the existing list to produce a new value.  The
+arity of the closure determines how many preceding values to
+use as input in generating the next value in the series.  For
+instance, counting by twos only requires a single argument:
+
+    2, { $^a + 2 } ... *      # 2,4,6,8,10,12,14,16...
+
+Generating the fibonacci sequence takes two arguments at a time:
+
+    1, 1, { $^a + $^b } ... * # 1,1,2,3,5,8,13,21...
+
+Any means of specifying a function will do, as long as you arrange
+return it as a list value rather than calling it:
+
+    1, 1, &infix:<+> ... *    # 1,1,2,3,5,8...
+    1, 1, &[+] ... *          # same thing
+    1, 1, *+* ... *           # same thing
 
 More typically the function is unary, in which case any extra values
-in the list may be construed as human-readable documentation:
+in the lefthand list may be construed as human-readable documentation:
 
-    0,2,4 ... { $_ + 2 }    # all the evens
-    0,2,4 ... *+2           # same thing
-    <a b c> ... { .succ }   # same as 'a'..*
+    0,2,4, { $_ + 2 } ... 42   # all the evens up to 42
+    0,2,4, *+2 ... 42          # same thing
+    <a b c>, {.succ } ... *    # same as 'a'..*
 
-The function need not be monotonically increasing, of course:
+When no limit is given, the function need not be monotonic:
 
-    1 ... { -$_ }          # 1, -1, 1, -1, 1, -1...
-    False ... &prefix:<!>  # False, True, False...
+    1, -* ... *                # 1, -1, 1, -1, 1, -1...
+    False, &prefix:<!> ... *   # False, True, False...
 
-The function can be 0-ary as well:
+The function can be 0-ary as well, in which case it's okay for the
+closre to be the first thing:
 
-    () ... { rand }   # list of random numbers
+    { rand }...*   # list of random numbers
 
-The function may also be slurpy (n-ary), in which case all the
+The function may also be slurpy (n-ary), in which case C<all> the
 preceding values are passed in (which means they must all be cached
 by the operator, so performance may suffer).
 
 The arity of the function need not match the number of return values, but
 if they do match you may interleave unrelated sequences:
 
-    1,1 ... { $^a + 1, $^b * 2 }   # 1,1,2,2,3,4,4,8,5,16,6,32...
+    1,1,{ $^a + 1, $^b * 2 }...*   # 1,1,2,2,3,4,4,8,5,16,6,32...
 
-If the right operand is C<*> (Whatever) and the sequence is obviously
+If no closure is provided, and the sequence is obviously
 arithmetic or geometric (from examining its I<last> 3 values), the appropriate function is deduced:
 
     1, 3, 5 ... *   # odd numbers
     1, 2, 4 ... *   # powers of 2
+    10,9,8 ... 0    # countdown
 
 That is, supposing we call the last three numbers C<$a>, C<$b>, and
 C<$c>, and then define:
@@ -1885,7 +1921,7 @@ is non-zero, we assume an arithmetic progression of C<*+$ab>.  If C<$ab>
 is zero, then again it depends on whether the two values look like
 numbers whether we use C<*+0> or C<*.succ>/C<*.pred>.
 
-If there is only one value, C<*> always assumes incrementation via
+If there is only one value, we always assumes incrementation via
 C<.succ>.  (This may be forced to C<.pred> by examination of a limit,
 as specified below.)  Hence these come out the same:
 
@@ -1893,7 +1929,7 @@ as specified below.)  Hence these come out the same:
     1 ... *
     1,2 ... *
     1,2,3 ... *
-    <1 2 3> ... *   # (but note: first 3 elements are of Str type!)
+    <1 2 3> ... *
 
 Likewise these come out the same:
 
@@ -1903,17 +1939,17 @@ Likewise these come out the same:
     'a','b','c' ... *
     <a b c> ... *
 
-If the list on the left is C<Nil>, C<*> uses the function {Nil}
+If the list on the left is C<Nil>, we use the function C<{Nil}>.
 
-When an explicit function is used, it
-may choose to terminate its list by returning ().
+When an explicit limit function is used, it
+may choose to terminate its list by returning any false value.
 Since this operator is list associative, an inner function may be
 followed by a C<...> and another function to continue the list,
 and so on.  Hence,
 
-    1 ... { $_ + 1   if $_ < 10 }
-      ... { $_ + 10  if $_ < 100 }
-      ... { $_ + 100 if $_ < 1000 }
+    1,   *+1   ... { $_ <   10 },
+    10,  *+10  ... { $_ <  100 },
+    100, *+100 ... { $_ < 1000 }
 
 produces
 
@@ -1921,36 +1957,26 @@ produces
     10,20,30,40,50,60,70,80,90,
     100,200,300,400,500,600,700,800,900
 
-If the right operand is a list and the first element of the list is
-a function or C<*>, the second element of the list imposes a limit
-on the prior sequence.  (The limit is inclusive on an exact match,
-and in general is compared using C<!after> or C<!before> semantics, so an inexact
-match is *not* included.)  Hence the preceding example may be rewritten
+Given the heuristic when there's no closure,
+we can write that more simply as:
 
-    1   ... * + 1, 9,
-    10  ... * + 10, 90,
-    100 ... * + 100, 1000
+    1, 2, 3 ... 9,
+    10, 20, 30 ... 90,
+    100, 200, 300 ... 900
 
-or as
-
-    1, 2, 3 ... *,
-    10, 20, 30 ... *,
-    100, 200, 300 ... *, 1000
-
-In the latter case the preceding 3 elements are used to deduce
-the correct arithmetic progression, so the 30 and 300
-terms are necessary to prevent interpretation as geometric.
-
-If the first element of the right-hand list is numeric, a C<*> is assumed
-before it, and the first element is again taken as the limit.
-So the preceding example reduces to:
+or even just:
 
     1, 2, 3 ...
     10, 20, 30 ...
-    100, 200, 300 ... 1000
+    100, 200, 300 ... 900
 
-These rules may seem complicated, but they're essentially just replicating
-what a human does naturally when you say "and so on".
+since an exactly matching limit is returned as part of the
+sequence.  In fact, since the progressions are arithmetic,
+you can just say
+
+    1, 2, 3 ...
+    10, 20, 30 ...
+    100, 200, 300 ... 900
 
 The exact function deduced depends on the direction from the final
 value on the left to the limit value on the right.  If the limit is
@@ -1964,7 +1990,7 @@ is switched to C<.pred>.  Hence we have this difference:
 
 Note that the sequence
 
-    1.0 ... *+0.2, 2.0
+    1.0, *+0.2 ... 2.0
 
 is calculated in C<Rat> arithmetic, not C<Num>, so the C<2.0> matches
 exactly and terminates the sequence.
@@ -1975,16 +2001,6 @@ put a comma before the C<...> it will be taken as a yada list operator
 expressing the desire to fail when the list reaches that point:
 
     1..20, ... "I only know up to 20 so far mister"
-
-If the yada operator finds a closure for its argument at compile time,
-it should probably whine about the fact that it's difficult to turn
-a closure into an error message.  Alternately, we could treat
-an ellipsis as special when it follows a comma to better support
-traditional math notation.
-
-In slice context the function's return value is appended as a capture
-rather than as a flattened list of values, and the argument to each
-function call is the previous capture in the list.
 
 If a series is generated using a non-monotonic C<.succ> function, it is
 possible for it never to reach the endpoint.  The following matches:
@@ -2004,7 +2020,7 @@ really want the infinite list you can always write:
 
 To preserve Perl 5 semantics, you'd need something like:
 
-    'A' ... -> $old { my $new = $old.succ; $old ne $endpoint and $new.chars <= 1 ?? $new !! () }
+    'A' ... -> $old,$new { $old ne $endpoint and $new.chars <= 1; }
 
 But since lists are lazy in Perl 6, we don't try to protect the user this way.
 
@@ -2015,7 +2031,7 @@ The astute reader will note that
 doesn't terminate with a simple C<!after> test either.  The actual function used
 is something like:
 
-    'A' ... -> $old { my $new = $old.succ; $old ne 'Z' and $new !after 'Z' ?? $new !! () }
+    'A', *.succ ... -> $old,$new { $old ne 'Z' and $new !after 'Z'; }
 
 Likewise, since Z comes after A:
 
@@ -2023,13 +2039,13 @@ Likewise, since Z comes after A:
 
 uses the function:
 
-    'Z' ... -> $old { my $new = $old.pred; $old ne 'A' and $new !before 'A' ?? $new !! () }
+    'Z', *.pred ... -> $old,$new { $old ne 'A' and $new !before 'A'; }
 
 For purposes of deciding when to terminate the eager part of a 'mostly
 eager' list, any series that terminates with an exact value (or
 that starts another series with exact values) is considered finite,
-but any other series that ends with a closure or C<*> (that is,
-without a following final value) is considered to be of unknowable
+as is any series that has an explicit ending closure.
+However, any series that ends C<*> is considered to be of unknowable
 length (even if extended with a closure that has internal logic to
 terminate).  However, by the definition of "mostly eager" in L<S07>,
 the implementation may be able to determine that such a sequence is
@@ -2041,7 +2057,18 @@ finite but that never actually reaches its final value before resources
 are exhausted; such a series will be treated as finite, but eventually
 come to grief:
 
-    @a = 1 ... *+0.00000000000000000000000000000000000001, 2;  # crunch
+    @a = 1, *+0.00000000000000000000000000000000000001 ... 2;  # heat death
+
+Much like the C<..^> range operator, there is an alternate form of
+the operator that excludes the limit if it happens to match exactly:
+
+    0,1,2 ...^ 100,42    # same as ^100,42
+
+There is no corresponding exclusion on the left side.  The compile
+may complain if it sees anything on the right that is not a literal:
+
+    0,1,2 ...^ *
+    0,1,2 ...^ {$_ < 100}
 
 =item *
 
@@ -4408,7 +4435,7 @@ form or a short form using square brackets directly after the C<&> sigil:
 
 This is convenient for function application:
 
-    1,1 ... &[+]           # fibonacci series
+    1, 1, &[+] ... *       # fibonacci series
     sort &[Rleg], @list    # reverse sort as strings
 
 The C<&[op]> form always refers to a binary function of the operator,
