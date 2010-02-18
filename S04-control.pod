@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 17 Feb 2010
-    Version: 96
+    Last Modified: 18 Feb 2010
+    Version: 97
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -758,6 +758,11 @@ the C<for> loop is in the sink context provided inside the gather.
 A C<gather> is not considered a loop, but it is easy to combine with a loop
 statement as in the examples above.
 
+The C<take> operation may be defined internally using resumable control
+exceptions, or dynamic variables, or pigeons carrying clay tablets.
+The choice any particular implementation makes is specifically I<not> part
+of the definition of Perl 6, and you should not rely on it in portable code.
+
 =head2 The C<lift> statement prefix
 X<lift>
 
@@ -1355,10 +1360,13 @@ above for C<state> semantics.]
 
 Except for C<CATCH> and C<CONTROL> phasers, which run while an exception
 is looking for a place to handle it, all block-leaving phasers wait until
-the calls stack is actually unwound to run.  That is, just because an
-exception is thrown past a stack frame does not leave the block, since
-the exception might be resumable.  It is only if an exception is not
-resumed that the stack is unwound the the phasers called.
+the call stack is actually unwound to run.  Unwinding happens only after
+some exception handler decides to handle the exception that way.  That is,
+just because an exception is thrown past a stack frame does not mean we have
+officially left the block yet, since the exception might be resumable. In
+any case, exception handlers are specified to run within the dynamic scope
+of the failing code, whether or not the exception is resumable.  The stack
+is unwound and the phasers are called only if an exception is not resumed.
 
 So C<LEAVE> phasers for a given block are necessarily evaluated after
 any C<CATCH> and C<CONTROL> phasers.  This includes
