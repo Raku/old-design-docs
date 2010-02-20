@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 17 Feb 2009
-    Version: 200
+    Last Modified: 20 Feb 2009
+    Version: 201
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1163,19 +1163,31 @@ C<$x.WHICH> eqv C<$y.WHICH>).
 
 C<Instant>s and C<Duration>s are measured in atomic seconds with
 fractions.  Notionally they are real numbers which may be implemented
-in either C<Num> or C<Rat> types.  (Fixed-point implementations are
-strongly discouraged.)  Interfaces that take C<Duration> arguments,
-such as sleep(), may also take C<Num> arguments, but C<Instant>
+in any C<Real> type of sufficient precision, preferably a C<Rat> or C<FatRat>.
+(Implementations that make fixed-point assumptions about the available
+precision subsecond precision are discouraged; the user interface must act
+like real numbers in any case.)  Interfaces that take C<Duration> arguments,
+such as sleep(), may also take C<Real> arguments, but C<Instant>
 arguments must be explicitly created via any of various culturally
 aware time specification APIs that, by and large, are outside the
 C<CORE> of Perl 6, with the possible exception of a constructor taking a
 native TAI value.  In numeric context a C<Duration> happily returns a
-C<Num> representing seconds.  If pressed for a number, an C<Instant>
+C<Rat> representing seconds.  If pressed for a number, an C<Instant>
 will return the length of time in atomic seconds from the TAI epoch,
-but it will be unhappy about it.  (The time will be returned as a C<Rat>
+but it will be unhappy about it.  (The time will be returned as a C<FatRat>
 to preserve maximal precision and accuracy.)  Systems which cannot provide
 a steady time base, such as POSIX systems, will simply have to make
 their best guess as to the correct atomic time.
+
+Although C<Instant> presents a C<FatRat> interface to the user
+when converted to C<Numeric>, the internal form may of course be
+optimized internally for "nearby" times, so that, if we know the
+year as an integer, the instant within the year can just be a C<Rat>
+representing the offset from the beginning of the year.  Calculations
+that fall within the same year can then be done in C<Rat> rather than
+C<FatRat>, or a table of yearly offsets can find the difference in
+integer seconds between two years, since (so far) nobody has had the
+nerve to propose fractional leap seconds.
 
 These types do (at least) the following roles:
 
