@@ -1995,7 +1995,18 @@ or even just:
     100, 200, 300 ... 900
 
 since an exactly matching limit is returned as part of the
-sequence.
+sequence.  And, in fact, since C<...> is list associative,
+and the heuristic depends only on the list to the immediate
+left, we can even say:
+
+    1, 2 ...
+    10, 20 ...
+    100, 200 ... 900
+
+This works because the second C<...> sees only the 10,20, not
+the 9 before that, and likewise the third C<...> is blind to
+the 90 value.  You can use parens to force one C<...> to be
+part of the list of another C<...> operator.
 
 The exact function deduced depends on the direction from the final
 value on the left to the limit value on the right.  If the limit is
