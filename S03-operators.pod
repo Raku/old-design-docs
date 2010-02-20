@@ -1943,27 +1943,29 @@ If the list on the left is C<Nil>, we use the function C<{Nil}>.
 
 For intuited numeric generators that don't involve geometric sign changes, all
 values are assumed to be monotonically increasing or decreasing, as determined
-by the (up to) three values used above; if a supplied limt value is on the
+by the (up to) three values used above; if a supplied limit value is on the
 "wrong" side of the first of those values, Nil is returned, even though the
 limit value never matches, and never falls between two generated values.
 Examples:
 
     my $n = 0;
-    1,2,4 ... $n;    # (), geometric increasing
-    -1,-2 ... $n;    # (), arithmetic decreasing
-    1 ... $n;        # (), .succ increasing
+    1,2,4 ... $n;      # (), geometric increasing
+    -1,-2 ... $n;      # (), arithmetic decreasing
+    1 ... $n;          # (), .succ increasing
 
 For a geometric series with sign changes, the same criterion is used, but
 applied only to the absolute value, and the impossibility of a limit is
 evaluated by whether it's inside or outside the possible range:
 
-    1,-2,4 ... 0     # (), geometric alternating increasing abs
-    1,-1/2,1/4 ... 2 # (), geometric alternating decreasing abs
+    1,-2,4 ... 0       # (), geometric alternating increasing abs
+    1,-1/2,1/4 ... 2   # (), geometric alternating decreasing abs
 
-But note that both of these are infinite lists:
+But since "asymptotically approaching" is not the same as "equals", both of
+the following are infinite lists, as if you'd specified C<*> for the limit
+rather tha 0:
 
-    1,1/2,1/4 ... 0  # 1,1/2,1/4 ... *
-    1,-1/2,1/4 ... 0 # same as 1,-1/2,1/4 ... *
+    1,1/2,1/4 ... 0    # like 1,1/2,1/4 ... *
+    1,-1/2,1/4 ... 0   # like 1,-1/2,1/4 ... *
 
 When an explicit limit function is used, it
 may choose to terminate its list by returning any false value.
