@@ -14,7 +14,7 @@ Synopsis 2: Bits and Pieces
     Created: 10 Aug 2004
 
     Last Modified: 20 Feb 2009
-    Version: 201
+    Version: 202
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -905,109 +905,118 @@ and never as
 
 =item *
 
-The C<*> character as a standalone term captures the notion of
-"Whatever", which is applied lazily by whatever operator it is an
-argument to.  Generally it can just be thought of as a "glob" that
-gives you everything it can in that argument position.  For instance:
+The C<*> character as a standalone term captures the notion of "Whatever",
+the meaning of which can be decided lazily by whatever it is an argument to.
+Alternately, for those unary and binary operators that don't care to handle
+C<*> themselves, it is automatically curried at compile time into a closure
+that takes one or two arguments.  (See below.)
+
+Generally, when an operator handles C<*> itself, it can often
+be thought of as a "glob" that gives you everything it can in that
+argument position.  For instance, here are some operators that
+choose to handle C<*> and give it special meaning:
 
     if $x ~~ 1..* {...}                 # if 1 <= $x <= +Inf
     my ($a,$b,$c) = "foo" xx *;         # an arbitrary long list of "foo"
     if /foo/ ff * {...}                 # a latching flipflop
-    @slice = @x[*;0;*];                 # any Int
-    @slice = %x{*;'foo'};               # any keys in domain of 1st dimension
-    @array[*]                           # flattens, unlike @array[]
+    @slice = @x[*;0;*];                 # all indexes for 1st and 3rd dimensions
+    @slice = %x{*;'foo'};               # all keys in domain of 1st dimension
+    @array[*]                           # list of all values, unlike @array[]
     (*, *, $x) = (1, 2, 3);             # skip first two elements
                                         # (same as lvalue "undef" in Perl 5)
 
 C<Whatever> is an undefined prototype object derived from C<Any>.  As a
 type it is abstract, and may not be instantiated as a defined object.
-If for a particular MMD dispatch, nothing in the MMD system claims it,
-it dispatches to as an C<Any> with an undefined value, and usually
-blows up constructively.  If you say
+When used for a particular MMD dispatch, and nothing in the MMD system claims it,
+it dispatches to as an C<Any> with an undefined value, and (we hope)
+blows up constructively.
 
-    say 1 + *;
+Since the C<Whatever> object is effectively immutable, the optimizer is
+free to recognize C<*> and optimize in the context of what operator
+it is being passed to.  An operator can declare that it wants to
+handle C<*> either by declaring one or more of its arguments for at
+least one of its candidates with an argument of type C<Whatever>, or
+by marking the proto sub with the trait, C<is like-Whatever-and-stuff>.
+[Conjecture: actually, this is negotiable--we might shorten it
+to C<is like(Whatever)> or some such.  C<:-)>]
 
-you should probably not expect it to yield a reasonable answer, unless
-you think an exception is reasonable.  Since the C<Whatever> object
-is effectively immutable, the optimizer is free to recognize C<*>
-and optimize in the context of what operator it is being passed to.
-
-Most of the built-in numeric operators treat an argument of C<*> as
-indicating the desire to create a function of a single unknown, so:
+For any unary or binary operator (specifically, any prefix, postfix,
+and infix operator), if the operator has not specifically requested
+to handle C<*> itself, the compiler is required to translate directly
+to an appropriately curried closure at compile time.  Most of the
+built-in numeric operators fall into this category, so:
 
     * - 1
+    '.' x *
+    * + *
 
-produces a closure of a single argument:
+are internally curried into closures of one or two arguments:
 
-    { $_ - 1 }
+    { $^x - 1 }
+    { '.' x $^y }
+    { $^x + $^y }
 
-This closure is officially returned at run time, so it is I<not>
-subject to the rule that bare closures execute immediately when used as
-a statement.  However, in most cases the result of a multiple dispatch
-can be determined at compile time, so the compiler is expected to
-optimize away the run-time call.  Hence, despite the fact that the
-inside of parentheses is considered a statement, if you say
+This rewrite happens after variables are looked up in their lexical scope,
+and after declarator install any variables into the lexical scope,
+with the result that
 
-    (* + 7)(3)  # 10
+    * + (state $s = 0)
 
-the generated C< { $_ + 7 } > closure is returned uncalled
-by those parentheses and then invoked by the C<.(3)> postfix.  In
-contrast,
+is effectively curried into:
 
-    ( { $_ + 7 } )(3)
+    -> $x { $x + (state $OUTER::s = 0) }
 
-evaluates the bare block immediately with whatever C<$_> is already in
-scope, and then fails because a number doesn't know how to respond
-to the C<.(3)> invocation.
+rather than:
 
-Likewise, the single dispatcher officially recognizes C<*.meth> at run time
-and returns C<{ $_.meth }>, so it can be used where patterns are expected:
+    -> $x { $x + (state $s = 0) }
+
+In other words, C<*> currying does not create a useful lexical scope.
+(Though it does have a dynamic scope when it runs.)
+
+As a postfix operator, a method call is one of those operators that is
+automatically curried.  Something like:
+
+    *.meth(1,2,3)
+
+is rewritten as:
+
+    { $^x.meth(1,2,3) }
+
+In addition to currying a method call without an invocant, such
+curried methods are handy anywhere a smartmatcher is expected:
 
     @primes = grep *.prime, 2..*;
+    subset Duck where *.^can('quack');
+    when *.notdef {...}
 
-This also should be optimized to a closure by the compiler.  Basically,
-dispatches to C<Whatever> are assumed to be subject to constant folding.
+These returned closures are of type C<Code:($)> or C<Code:($,$)>
+rather than type C<Whatever>, so constructs that do want to handle C<*>
+or its derivative closures can distinguish them by type:
 
-If multiple C<*> appear as terms within a single expression, the resulting
-closure binds them all to the same argument, so C<* * *> returns the closure
-C<{ $_ * $_ }>.
+    @array[*]    # subscript is type Whatever, returns all elements
+    @array[*-1]  # subscript is type Code:($), returns last element
 
-These returned closures are of type C<WhateverCode>, not C<Whatever>,
-so that constructs can distinguish via multiple dispatch:
+    0, 1, *+1 ... *  # counting
+    0, 1, *+* ... *  # fibonacci
 
-    1,2,3 ... *
-    1,2,3 ... *+1
-
-A bare C<*> which is immediately followed by a C<(...)> or C<.(...)> is parsed
-as the unary identity closure:
-
-    *(42) == 42
-    (* + 1)(42) == 43
-
-But note that this is I<not> what is happening above, or
-
-    1,2,3 ... *
-
-would end up meaning:
-
-    1,2,3,3,3,3,3,3...
-
-The C<...> operator is instead dispatching bare C<*> to a routine that
-does dwimmery, and in this case decides to supply a function { * + 1 }.
 There is no requirement that an operator return a closure when C<Whatever>
 is used as an argument; that's just the I<typical> behavior for functions
-that have no intrinsic "globbish" meaning for C<*>.
+that have no intrinsic "globbish" meaning for C<*>.  If you want to curry
+one of these operators, you'll need to write an explicit closure or do
+an explicit curry on the operator with C<.assuming()>.
 
 The final element of an array is subscripted as C<@a[*-1]>,
-which means that when the subscripting operation discovers a C<WhateverCode>
+which means that when the subscripting operation discovers a C<Code:($)>
 object for a subscript, it calls it and supplies an argument indicating
 the number of elements in (that dimension of) the array.  See S09.
 
 A variant of C<*> is the C<**> term, which is of type C<HyperWhatever>.
 It is generally understood to be a multidimension form of C<*> when
 that makes sense.  When modified by an operator that would turn C<*>
-into a function of one argument, C<**> instead turns into a function
-with a slurpy argument, of type C<HyperWhateverCode>.  That is:
+into a function of one argument, C<Code:($)>, C<**> instead turns into
+a function with one slurpy argument, C<Code(*@)>, such that multiple
+arguments are distributed to some number of internal whatevers.
+That is:
 
     * - 1    means                -> $x { $x - 1 }
     ** - 1   means   -> *@x { map -> $x { $x - 1 }, @x }
@@ -2403,7 +2412,7 @@ those packages.  Hence, your environment variables are effectively
 declared without the sigil:
 
     augment package GLOBAL { our %ENV; }
-    
+
 =item *
 
 You may interpolate a string into a package or variable name using
