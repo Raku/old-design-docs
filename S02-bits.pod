@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 20 Feb 2009
-    Version: 202
+    Last Modified: 23 Feb 2010
+    Version: 203
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1168,37 +1168,60 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Parcel      List of syntactic objects
     Capture     Function call arguments (right-hand side of a binding)
     Blob        An undifferentiated mass of bits
-    Instant     A point on the continuous atomic timeline (TAI)
+    Instant     A point on the continuous atomic timeline
     Duration    The difference between two Instants
     HardRoutine A routine that is committed to not changing
 
 C<Instant>s and C<Duration>s are measured in atomic seconds with
 fractions.  Notionally they are real numbers which may be implemented
-in any C<Real> type of sufficient precision, preferably a C<Rat> or C<FatRat>.
-(Implementations that make fixed-point assumptions about the available
-precision subsecond precision are discouraged; the user interface must act
-like real numbers in any case.)  Interfaces that take C<Duration> arguments,
-such as sleep(), may also take C<Real> arguments, but C<Instant>
-arguments must be explicitly created via any of various culturally
-aware time specification APIs that, by and large, are outside the
-C<CORE> of Perl 6, with the possible exception of a constructor taking a
-native TAI value.  In numeric context a C<Duration> happily returns a
-C<Rat> representing seconds.  If pressed for a number, an C<Instant>
-will return the length of time in atomic seconds from the TAI epoch,
-but it will be unhappy about it.  (The time will be returned as a C<FatRat>
-to preserve maximal precision and accuracy.)  Systems which cannot provide
-a steady time base, such as POSIX systems, will simply have to make
-their best guess as to the correct atomic time.
+in any C<Real> type of sufficient precision, preferably a C<Rat> or
+C<FatRat>.  (Implementations that make fixed-point assumptions about
+the available precision subsecond precision are discouraged; the user
+interface must act like real numbers in any case.)  Interfaces that
+take C<Duration> arguments, such as sleep(), may also take C<Real>
+arguments, but C<Instant> arguments must be explicitly created either
+via any of various culturally aware time specification APIs.  A small
+number of C<Instant> values that represent common epoch instant values
+are also available.
 
-Although C<Instant> presents a C<FatRat> interface to the user
-when converted to C<Numeric>, the internal form may of course be
-optimized internally for "nearby" times, so that, if we know the
-year as an integer, the instant within the year can just be a C<Rat>
-representing the offset from the beginning of the year.  Calculations
-that fall within the same year can then be done in C<Rat> rather than
-C<FatRat>, or a table of yearly offsets can find the difference in
-integer seconds between two years, since (so far) nobody has had the
-nerve to propose fractional leap seconds.
+In numeric context a C<Duration> happily returns a C<Rat> or C<FatRat>
+representing the number of seconds.  C<Instant> values, on the other
+hand, are largely opaque, numerically speaking, and in particular
+are epoch agnostic.  (Any epoch is just a particular C<Instant>, and
+all times related to that epoch are really C<Instant> ± C<Duration>,
+which returns a new C<Instant>.)  In order to facilitate the writing of
+culturally aware time modules, the C<Instant> type provides C<Instant>
+values corresponding to various commonly used epochs, such as the
+1958 TAI epoch, the POSIX epoch, the Mac epoch, and perhaps the year
+year 2000 epoch as UTC thinks of it.   There's no reason to exclude
+any useful epoch that is well characterized in atomic seconds.
+All normal times can be calculated from those epoch instants using
+addition and subtraction of C<Duration> values.  Note that the
+C<Duration> values are still just atomic time without any cultural
+deformations; in particular, the C<Duration> formed of by subtracting
+C<Instant::Epoch::POSIX> from the current instant will contain more
+seconds than the current POSIX time due to POSIX's abysmal ignorance
+of leap seconds.  This is not the fault of the universe, which is
+not fooled (neglecting relativistic considerations).  C<Instant>s and
+C<Duration>s are always linear atomic seconds.  Systems which cannot
+officially provide a steady time base, such as POSIX systems, will
+simply have to make their best guess as to the correct atomic time
+when asked to interconvert between cultural time and atomic time.
+Alternately, they may use some other less-official time mechanism
+to achieve steady clock behavior.  Most Unix systems can count clock
+ticks, even if POSIX time types get confused.
+
+Although the conceptual type of an C<Instant> resembles C<FatRat>,
+with arbitrarily large size in either numerator or denominator, the
+internal form may of course be optimized internally for "nearby" times,
+so that, if we know the year as an integer, the instant within the
+year can just be a C<Rat> representing the offset from the beginning
+of the year.  Calculations that fall within the same year can then be
+done in C<Rat> rather than C<FatRat>, or a table of yearly offsets
+can find the difference in integer seconds between two years, since
+(so far) nobody has had the nerve to propose fractional leap seconds.
+Or whatever.  C<Instant> is opaque, so we can swap implementations
+in and out without user-visible consequences.
 
 These types do (at least) the following roles:
 
