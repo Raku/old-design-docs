@@ -84,17 +84,20 @@ are either consistently prefix or postfix.)
 
 Note that list associativity (X) only works between identical operators.
 If two different list-associative operators have the same precedence,
-they are assumed to be right-associative with respect to each other.
+they are assumed to be non-associative with respect to each other,
+and parentheses must be used to disambiguate.
+
 For example, the C<X> cross operator and the C<Z> zip operator both
 have a precedence of "list infix", but:
 
     @a X @b Z @c
 
-is parsed as:
+is illegal and must be written as either of:
 
+    (@a X @b) Z @c
     @a X (@b Z @c)
 
-Similarly, if the only implementation of a list-associative operator
+If the only implementation of a list-associative operator
 is binary, it will be treated as right associative.
 
 The standard precedence levels attempt to be consistent in their
