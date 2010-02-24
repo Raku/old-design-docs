@@ -16,7 +16,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 19 Feb 2010
-    Version: 193
+    Version: 194
 
 =head1 Overview
 
@@ -3464,6 +3464,8 @@ as a default because the more specific types listed above it didn't match.
     Any       .[...]    array value slice truth ?all(X)  i.e. ?all(.[...])
     Any       .{...}    hash value slice truth  ?all(X)  i.e. ?all(.{...})
     Any       .<...>    hash value slice truth  ?all(X)  i.e. ?all(.<...>)
+    Any       True      ~~ True                 (parsewarn)
+    Any       False     ~~ False match          (parsewarn)
 
     Any       Bool      simple truth            X
     Any       Numeric   numeric equality        +$_ == X
@@ -3680,7 +3682,17 @@ a conditional context uses internally:
         when .Bool == 0 {...}
     }
 
-Better, just use an C<if> statement.
+Better, just use an C<if> statement.  In any case, if you try to smartmatch
+with C<~~> or C<when>, it will recognize C<True> or C<False> syntactically
+and warn you that it won't do what you expect.  The compiler is also allowed
+to warn about any other boolean construct that does not test C<$_>, to the
+extent it can detect that.
+
+In a similar vein, any function (such as C<grep>) that takes a
+C<Matcher> will not accept an argument of type C<Bool>, since that
+almost always indicates a programming error.  (One may always use
+C<*> to match anything, if that's what you really want.  Or use a closure
+that returns a constant boolean value.)
 
 Note also that regex matching does I<not> return a C<Bool>, but merely
 a C<Match> object that can be used as a boolean value.  Use an explicit
