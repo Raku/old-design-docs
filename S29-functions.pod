@@ -20,8 +20,8 @@ Synopsis 29: Builtin Functions
 
     Created: 12 Mar 2005
 
-    Last Modified: 2 Feb 2010
-    Version: 45
+    Last Modified: 24 Feb 2010
+    Version: 46
 
 The document is a draft.
 
@@ -117,9 +117,17 @@ C<CharTurkish>, etc. for instantiated C<CharLingua> types.
 
 =item Matcher
 
- subset Matcher of Object where { $_.can('ACCEPTS') };
+ subset Matcher of Mu where none(Bool)
 
 Used to supply a test to match against. Assume C<~~> will be used against it.
+Booleans are forbidden because they almost always indicate a programming
+error where the argument has been evaluated too soon against the wrong C<$_>.
+For instance:
+
+    grep $_ == 1, 1,2,3;        # evaluating wrong $_, so forbidden
+    grep { $_ == 1 }, 1,2,3;    # okay
+    grep * == 1, 1,2,3;         # okay
+
 
 =item Ordering
 
@@ -1006,4 +1014,4 @@ wantarray
 Please post errors and feedback to perl6-language.  If you are making
 a general laundry list, please separate messages by topic.
 
-
+=for vim:set expandtab sw=4:
