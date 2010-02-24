@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 23 Feb 2010
-    Version: 203
+    Last Modified: 24 Feb 2010
+    Version: 204
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -991,17 +991,29 @@ curried methods are handy anywhere a smartmatcher is expected:
     subset Duck where *.^can('quack');
     when *.notdef {...}
 
-These returned closures are of type C<Code:($)> or C<Code:($,$)>
+These returned closures are of type C<WhateverCode:($)> or C<WhateverCode:($,$)>
 rather than type C<Whatever>, so constructs that do want to handle C<*>
 or its derivative closures can distinguish them by type:
 
     @array[*]    # subscript is type Whatever, returns all elements
-    @array[*-1]  # subscript is type Code:($), returns last element
+    @array[*-1]  # subscript is type WhateverCode:($), returns last element
 
     0, 1, *+1 ... *  # counting
     0, 1, *+* ... *  # fibonacci
 
-There is no requirement that an operator return a closure when C<Whatever>
+For any prefix, postfix, or infix operator that would be curried by a
+C<Whatever>, a C<WhateverCode> also autocurries it, such that any noun
+phrase based on C<*> as a head noun autocurries transitively outward as
+far as it makes sense, including outward through metaoperators.  Hence:
+
+    * + 2 + 3   # { $^x + 2 + 3 }
+    * + 2 + *   # { $^x + 2 + $^y }
+    * + * + *   # { $^x + $^y + $^z }
+    (-*.abs)i   # { (-$^x.abs)i }
+    @a «+» *    # { @a «+» $^x }
+
+This is only for operators that are not C<Whatever>-aware.  There is no requirement
+that a C<Whatever>-aware operator return a C<WhateverCode> when C<Whatever>
 is used as an argument; that's just the I<typical> behavior for functions
 that have no intrinsic "globbish" meaning for C<*>.  If you want to curry
 one of these operators, you'll need to write an explicit closure or do
@@ -1015,7 +1027,7 @@ the number of elements in (that dimension of) the array.  See S09.
 A variant of C<*> is the C<**> term, which is of type C<HyperWhatever>.
 It is generally understood to be a multidimension form of C<*> when
 that makes sense.  When modified by an operator that would turn C<*>
-into a function of one argument, C<Code:($)>, C<**> instead turns into
+into a function of one argument, C<WhateverCode:($)>, C<**> instead turns into
 a function with one slurpy argument, C<Code(*@)>, such that multiple
 arguments are distributed to some number of internal whatevers.
 That is:
