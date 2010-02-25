@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 23 Jan 2010
-    Version: 97
+    Last Modified: 24 Jan 2010
+    Version: 98
 
 =head1 Overview
 
@@ -891,7 +891,29 @@ already for the dispatch variants that want a single successful call.)
 For the multiple call variants, C<lastcall> will cause the dispatcher
 to throw away the rest of the candidate list, and the subsequent
 return from the current method will produce the final C<Capture>
-in the returned list.
+in the returned list.  (If you were already on the last call of the
+candidate list, it is a no-op, it does not proceed on towards any
+outer dispatcher's candidate list until you have returned from the
+last call to the current list.)
+
+Since it's possible to be dispatching within more than one candidate
+list at a time, these control flow calls are defined to apply only to
+the dynamically innermost dispatcher.  If, for instance, you have a
+single dispatch that then calls into a multiple dispatch on the multi
+methods within a class, C<nextsame> would go to the next best multi
+method within the class, not the next method candidate in the original
+single dispatch.  This is not a bad limitation, since dispatch loops
+are dynamically scoped; to get to the outermost lists you can "pop"
+unwanted candidate lists using C<lastcall>:
+
+    lastcall; nextsame;  # call next in grandparent dispatcher loop
+
+[Conjecture: if necessary, C<lastcall> could have an argument
+or invocant to specify which kind of a dispatch loop we think
+we're throwing away, in case we're not sure about our context.
+This confusion could arise since we use C<nextsame> semantics at
+least three different ways: single dispatch, multiple dispatch,
+and routine wrapper dispatch.]
 
 =head1 Parallel dispatch
 
