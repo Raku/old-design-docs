@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 27 Feb 2010
-    Version: 206
+    Last Modified: 3 Mar 2010
+    Version: 207
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -133,7 +133,7 @@ embedded documentation.
 
 =item *
 
-Except within a string literal, a C<#> character always introduces a comment in
+Except within a quote literal, a C<#> character always introduces a comment in
 Perl 6.  There are two forms of comment based on C<#>.  Embedded
 comments require the C<#> to be followed by a backtick (C<`>) plus one
 or more opening bracketing characters.
@@ -3013,25 +3013,27 @@ or C<0d> as hex digits, not radix switchers.
 =item *
 
 Rational literals are indicated by separating two integer literals
-(in any radix) with a slash.  Whitespace is not allowed on either
-side of the slash:
+(in any radix) with a slash, and enclosing the whole in angles:
 
-    1/2         # one half literal Rat
-    1 / 2       # 1 divided by 2  (also produces a Rat by constant folding)
+    <1/2>       # one half literal Rat
 
-Note that this essentially overrides precedence to produce a term, so:
+Whitespace is not allowed on either side of the slash or it will
+be split under normal quote-words semantics:
 
-    1/2 * 3/4
+    < 1 / 2 >   # ('1', '/', '2')
+    < 1/2 >     # okay, same as <1/2>
 
-means
+Because of constant folding, you may often get away with leaving
+out the angles:
 
-    (1 / 2) * (3 / 4)
+    1/2         # 1 divided by 2
 
-rather than
+However, in that case you have to pay attention to precedence and associativity.
+The following does I<not> cube C<2/3>:
 
-    ((1 / 2) * 3) / 4
+    2/3**3      # 2/(3**3), not (2/3)**3
 
-Decimal fractions not using "e" notation are also stored as C<Rat> values:
+Decimal fractions not using "e" notation are also treated as literal C<Rat> values:
 
     6.02e23.WHAT     # Num
     1.23456.WHAT     # Rat
@@ -3040,14 +3042,18 @@ Decimal fractions not using "e" notation are also stored as C<Rat> values:
 =item *
 
 Complex literals are similarly indicated by writing an addition or subtraction of
-two real numbers without spaces:
+two real numbers (again, without spaces around the operators) inside angles:
 
-    5.2+1e42i
-    3-1i
+    <5.2+1e42i>
+    < -3-1i >
 
 As with rational literals, constant folding would produce the same
 complex number, but this form parses as a single term, ignoring
 surrounding precedence.
+
+(Note that these are not actually special syntactic forms: both
+rational and complex literal forms fall out naturally from the semantic
+rules of qw quotes described below.)
 
 =item *
 
@@ -3143,11 +3149,13 @@ stringification would produce something else).  Hence:
 The purpose of this would be to facilitate compile-time analysis of
 multi-method dispatch, when the user prefers angle notation as the
 most readable way to represent a list of numbers, which it often is.
+The form with a single value serves as the literal form of numbers
+such as C<Rat> and C<Complex> that would otherwise have to be constructed.
 It also gives us a reasonable way of visually isolating any known
 literal format as a single syntactic unit:
 
     <-1+2i>.polar
-    (-1+2i).polar       # same, but less clearly a literal
+    (-1+2i).polar       # same, but only by constant folding
 
 The degenerate case C<< <> >> is disallowed as a probable attempt to
 do IO in the style of Perl 5; that is now written C<lines()>.  (C<<
