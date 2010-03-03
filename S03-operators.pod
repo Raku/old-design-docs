@@ -16,7 +16,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 2 Mar 2010
-    Version: 195
+    Version: 196
 
 =head1 Overview
 
@@ -2579,12 +2579,24 @@ pattern that calls an object's method:
 
 is the same as
 
-    if $filename.IO.e { say "exists" }
+    if so $filename.IO.e { say "exists" }
+
+Likewise
+
+    if $filename.IO ~~ :!e { say "exists" }
+
+is the same as
+
+    if not $filename.IO.e { say "exists" }
 
 The 1st form actually translates to the latter form, so the object's
 class decides how to dispatch methods.  It just happens that the
 C<IO> role defaults to the expected filetest semantics, but C<$regex.i> might
-tell you whether the regex is case insensitive, for instance.
+tell you whether the regex is case insensitive, for instance.  Likewise,
+you can test anything for definedness or undefinedness:
+
+    $obj ~~ :defined
+    $obj ~~ :!defined
 
 Using the pattern form, multiple tests may be combined via junctions:
 
@@ -2604,7 +2616,8 @@ is equivalent to either of:
     when :r & :w & :x
     when all(:r,:w,:x)
 
-The pair forms are useful only for boolean tests, so the
+The pair forms are useful only for boolean tests because the method's
+value is evaluated as a boolen, so the
 method form must be used for any numeric-based tests:
 
     if stat($filename).s > 1024 {...}
