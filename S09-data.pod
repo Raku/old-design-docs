@@ -13,8 +13,8 @@ Synopsis 9: Data Structures
 
     Created: 13 Sep 2004
 
-    Last Modified: 26 Feb 2010
-    Version: 43
+    Last Modified: 4 Mar 2010
+    Version: 44
 
 =head1 Overview
 
@@ -244,17 +244,28 @@ because they all end up meaning the same thing.
 There is no autotruncation on the left end.  It's not that
 hard to write C<0>, and standard indexes always start there.
 
-As a special form, numeric subscripts may be declared as cyclical
-using an initial C<%>:
+As a special form, subscript declarations may add a C<:map> modifier
+supplying a closure, indicating that all index values are to be mapped
+through that closure.  For example, a subscript may be declared as cyclical:
 
-    my @seasons[%4];
+    my @seasons[4:map(*%4)];
 
 In this case, all numeric values are taken modulo 4, and no range truncation can
 ever happen.  If you say
 
     @seasons[-4..7] = 'a' .. 'l';
 
-then each element is written three times and the array ends up with C<['i','j','k','l']>.
+then each element is written three times and the array ends up with
+C<['i','j','k','l']>.  The mapping function is allowed to return
+fractional values; the index will be the C<floor> of that value.
+(It is still illegal to use a numeric index less that 0.)  One could
+map indexes logarithmically, for instance, as long as the numbers
+aren't so small they produce negative indices.
+
+Another use might be to map positive numbers to even slots and negative
+numbers to odd slots, so you get indices that are symmetric around 0
+(though Perl is not going to track the max-used even and odd slots
+for you when the data isn't symmetric).
 
 =head1 Typed arrays
 
