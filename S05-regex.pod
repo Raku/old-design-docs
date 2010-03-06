@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 2 Feb 2010
-    Version: 115
+    Last Modified: 6 Mar 2010
+    Version: 116
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -3778,34 +3778,6 @@ A string can be matched against a grammar by calling C<.parse> on the grammar,
 and optionally pass an I<actions> object to that grammar:
 
     MyGrammar.parse($str, :actions($action-object))
-
-Whenever a closure within the grammar returns a C<Whatever> object, the
-grammar engine tries to call a method of the same name as the name of the
-current regex on the actions object, passing along the current C<Match>
-object as the first positional argument, and the tag of the reduction (if
-any) as the second argument.  The tag is supplied via a C<#=> comment later
-on the same line as the C<{*}>.  There must be whitespace between the C<#=>
-and the tag, but the tag itself may contain spaces.
-
-   grammar Integer {
-       token TOP {
-           | 0b(<[01]>+) {*}  #= binary
-           | \d+         {*}  #= decimal
-       }
-   }
-   class Twice {
-       multi method TOP($/, $tag) {
-           my $value = $tag eq 'binary' ?? :2($0) !! +$/;
-           make 2 * $value;
-       }
-   }
-   say Integer.parse('21',      :actions(Twice.new)).ast;  # 42
-   say Integer.parse('0b10101', :actions(Twice.new)).ast;  # 42
-
-A C<{*}> is assumed at the end of every rule, and the method is
-called with no tag argument.  Note that the implicit C<{*}> is
-I<outside> the alternation in the C<TOP> rule above, despite
-the fact that no explicit square brackets were used.
 
 =back
 
