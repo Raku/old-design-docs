@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 9 Feb 2010
-    Version: 128
+    Last Modified: 7 Mar 2010
+    Version: 129
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -1543,13 +1543,29 @@ sigil (like an attribute):
 
     submethod initialize($.name, $!age) {}
 
-then the argument is assigned directly to the object's attribute of the
+then the argument is bound directly to the object's attribute of the
 same name. This avoids the frequent need to write code like:
 
     submethod initialize($name, $age) {
         $.name = $name;
         $!age  = $age;
     }
+
+The initialization of attributes requires special care to preserve
+encapsulation; therefore the default for attributive parameters is
+value semantics, that is, as if specified with C<is copy>.  Hence,
+the submethod above is really more like:
+
+    submethod initialize($name is copy, $age is copy) {
+        $.name := $name;      # or maybe = here, since it's a parent's attr
+        $!age  := $age;       # or maybe only $! parameters work really
+    }
+
+If you wish to allow the user to initialize an attribute by reference,
+you may either write your own initializer submethod explicitly, or
+simply mark the attributes you want to work that way with C<is ref>:
+
+    has $!age is ref;   # BUILD will automatically use ref binding, not copy
 
 To rename an attribute parameter you can use the explicit pair form:
 
