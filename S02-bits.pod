@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 3 Mar 2010
-    Version: 207
+    Last Modified: 12 Mar 2010
+    Version: 208
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1019,6 +1019,31 @@ that have no intrinsic "globbish" meaning for C<*>.  If you want to curry
 one of these operators, you'll need to write an explicit closure or do
 an explicit curry on the operator with C<.assuming()>.
 
+Operators that are known to return non-closure values with C<*> include:
+
+    $a = *      # just assigns Whatever
+    0 .. *      # means 0 .. Inf
+    0 ... *     # means 0 ... Inf
+    'a' xx *    # means 'a' xx Inf
+    1,*         # means 1,*  :)
+
+[Conjecture: it is possible that, for most of the above operators that
+take C<*> to mean C<Inf>, we could still actually return a closure
+that defaults that particular argument to C<Inf>.  However, this would
+work only if we provide a "value list context" that forbids closures,
+in the sense that it always calls any closure it finds it its list
+and replaces the closure in the list with its return value or values,
+and then rescans from that point (kinda like a text macro does), in case
+the closure returned a list containing a closure.  So for example,
+the closure returned by C<0..*> would interpolate a Range object into
+the list when called.  Alternately, it could return the C<0>, followed
+by another closure that does C<1..*>.  Even the C<...> operator could
+likely be redefined in terms of a closure that regenerates itself,
+as long as we figure out some way of remembering the last N values
+each time.]
+
+In any case, array indexes must behave as such a 'value list context',
+since you can't directly index an array with anything other than a number.
 The final element of an array is subscripted as C<@a[*-1]>,
 which means that when the subscripting operation discovers a C<Code:($)>
 object for a subscript, it calls it and supplies an argument indicating
