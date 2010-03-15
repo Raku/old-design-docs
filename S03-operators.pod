@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 2 Mar 2010
-    Version: 196
+    Last Modified: 15 Mar 2010
+    Version: 197
 
 =head1 Overview
 
@@ -1731,6 +1731,9 @@ and must be parenthesized for clarity.
 C<< infix:<Z> >>, the zip operator
 
     1,2 Z 3,4   # (1,3),(2,4)
+
+The C<Z> operator is actually a degenerate case of the C<Z> zipwith
+metaoperator (see L<Zip operators> below).
 
 =item *
 
@@ -3841,14 +3844,16 @@ bitwise C<¬> operator, you'd have to add the C<+¬>, C<~¬>, and C<?¬>
 operators yourself.  Similarly, the carets that exclude the endpoints
 on ranges are there by convention only.
 
-In contrast to that, Perl 6 has seven standard metaoperators for
+In contrast to that, Perl 6 has eight standard metaoperators for
 turning a given existing operator into a related operator that is
 more powerful (or at least differently powerful).  These differ from a
 mere naming convention in that Perl automatically generates these new
 operators from user-defined operators as well as from builtins.
 In fact, you're not generally supposed to define the individual
 metaoperations--their semantics are supposed to be self-evident by
-the transformation of the base operator.
+the transformation of the base operator.  In other words, these
+metaoperators are really just shorthand for higher-order functions
+(functions that take other functions as arguments).
 
 Constructs containing metaoperators are considered "metatokens",
 by which we mean that they are not subject to ordinary longest-token
@@ -4396,18 +4401,32 @@ more C<True> values followed by 0 or more C<False> values.
 =head2 Cross operators
 
 The cross metaoperator, C<X>, may be followed by any infix operator.
-It applies the
-modified operator across all groupings of its list arguments as returned
-by the ordinary C<< infix:<X> >> operator.  All
-generated cross operators are of list infix precedence, and are list associative.
+It applies the modified operator across all groupings of its list
+arguments as returned by the ordinary C<< infix:<X> >> operator.
+All generated cross operators are of list infix precedence, and are
+list associative.
 
 The string concatenating form is:
 
-    <a b> X~ <1 2>           #  'a1', 'a2', 'b1', 'b2'
+    <a b> X~ 1,2           #  'a1', 'a2', 'b1', 'b2'
 
-The C<X~> operator desugars to something like:
+The C<X~> operator desugars to:
 
-    [~]«( <a b> X, <1 2> )  #  'a1', 'a2', 'b1', 'b2'
+    (<a b>; 1,2).crosswith(&[~])
+
+which in turn means
+
+    (<a b>; 1,2).cross.slice.map { .reduce(&[~]) }
+
+And
+
+    <a b> X~ 1,2 X+ 3,4
+
+might mean
+
+    (<a b>; 1,2; 3,4).cross.slice.map { .reduce(&[~],&[+]) }
+
+(But see below.)
 
 The list concatenating form, C<X,>, when used like this:
 
@@ -4424,7 +4443,8 @@ produces
     ('b', 2, 'x'),
     ('b', 2, 'y')
 
-The list form is common enough to have a shortcut, the ordinary infix
+The C<X,> operator is perhaps more clearly written as C<X[,]>.  However,
+this list form is common enough to have a shortcut, the ordinary infix
 C<X> operator described earlier.
 
 For the general form, any existing, non-mutating infix operator
@@ -4447,7 +4467,84 @@ own associativity, just as the corresponding reduce operator would do.
 Note that only the first term of an C<X> operator may reasonably be
 an infinite list.
 
-Multidimensional lists should be handled properly.
+All lists are assumed to be flat; multidimensional lists are
+handled by treating the first dimension as the only dimension.
+
+=head2 Zip operators
+
+The zip metaoperator, C<Z>, may be followed by any infix operator.
+It applies the modified operator across all groupings of its list
+arguments as returned by the ordinary C<< infix:<Z> >> operator.
+All generated zip operators are of list infix precedence, and are
+list associative.
+
+The string concatenating form is:
+
+    <a b> Z~ 1,2           #  'a1', 'b2'
+
+The C<Z~> operator desugars to:
+
+    (<a b>; 1,2).zipwith(&[~])
+
+which in turn means
+
+    (<a b>; 1,2).zip.slice.map { .reduce(&[~]) }
+
+And
+
+    <a b> Z~ 1,2 Z+ 3,4           #  'a4', 'b6'
+
+would mean
+
+    (<a b>; 1,2; 3,4).zip.slice.map { .reduce(&[~],&[+]) }
+
+implying that multi-function reduce knows how to compare the precedence
+of its operator arguments somehow.  That seems unreasonable.  The clean
+way to solve this might involve giving C<X> and C<Z> metaoperators a
+subprecedence within listop precedence corresponding to the original
+operator's precedence, so that C<Z~> and C<Z+> actually have different
+precedences within listop precedence.  Then the above would parse as if
+you'd said C<< <a b> Z~ ( 1,2 Z+ 3,4> ) >>, but the lists would still
+parse at list infix precedence, with comma tighter than the zips.
+(This would actually be fairly trivial to implement, given how we
+represent our precedence as strings.)  Also, though it's complicated to
+explain, subprecedence within C<Z> might be exactly what the naive user expects.
+
+The list concatenating form, C<Z,>, when used like this:
+
+    <a b> Z, 1,2 Z, <x y>
+
+produces
+
+    ('a', 1, 'x'),
+    ('b', 2, 'y')
+
+The C<Z,> operator is perhaps more clearly written as C<Z[,]>.  However,
+this list form is common enough to have a shortcut, the ordinary infix
+C<Z> operator described earlier.
+
+For the general form, any existing, non-mutating infix operator
+may be used.
+
+    1,2 Z* 3,4               # 3,8
+
+(Note that C<< <== >> and C<< ==> >> are considered mutating, as well as
+all assignment operators.)
+
+If the underlying operator is non-associating, so is the cross operator:
+
+    @a Zcmp @b Zcmp @c       # ILLEGAL
+    @a Zeq @b Zeq @c         # ok
+
+In fact, though the C<Z> operators are all list associative
+syntactically, the underlying operator is always applied with its
+own associativity, just as the corresponding reduce operator would do.
+
+Note that, unlike the C<X> operator, all the terms of a C<Z> operator
+may reasonable be infinite lists, since zipping is lazy.
+
+All lists are assumed to be flat; multidimensional lists are
+handled by treating the first dimension as the only dimension.
 
 =head2 Sequential operators
 
