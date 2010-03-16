@@ -16,7 +16,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 15 Mar 2010
-    Version: 197
+    Version: 198
 
 =head1 Overview
 
@@ -4418,15 +4418,19 @@ which in turn means
 
     (<a b>; 1,2).cross.slice.map { .reduce(&[~]) }
 
-And
+Note that
 
     <a b> X~ 1,2 X+ 3,4
 
-might mean
+could mean something like
 
-    (<a b>; 1,2; 3,4).cross.slice.map { .reduce(&[~],&[+]) }
+    (<a b>; 1,2; 3,4).cross.slice.map { .reduce({$^a ~ $^b + $^c}) }
 
-(But see below.)
+but it is currently illegal as a non-identical list associative
+operator, which is considered non-associative.  You can, however,
+always use parens to be explicit:
+
+    <a b> X~ (1,2 X+ 3,4)
 
 The list concatenating form, C<X,>, when used like this:
 
@@ -4490,17 +4494,21 @@ which in turn means
 
     (<a b>; 1,2).zip.slice.map { .reduce(&[~]) }
 
-And
+Note that
 
-    <a b> Z~ 1,2 Z+ 3,4           #  'a4', 'b6'
+    <a b> Z~ 1,2 Z+ 3,4
 
-would mean
+could mean something like
 
-    (<a b>; 1,2; 3,4).zip.slice.map { .reduce(&[~],&[+]) }
+    (<a b>; 1,2; 3,4).zip.slice.map { .reduce({$^a ~ $^b + $^c}) }
 
-implying that multi-function reduce knows how to compare the precedence
-of its operator arguments somehow.  That seems unreasonable.  The clean
-way to solve this might involve giving C<X> and C<Z> metaoperators a
+but it is currently illegal as a non-identical list associative
+operator, which is considered non-associative.  You can, however,
+always use parens to be explicit:
+
+    <a b> Z~ (1,2 Z+ 3,4)
+
+[Conjecture: another approach would involve giving C<X> and C<Z> metaoperators a
 subprecedence within listop precedence corresponding to the original
 operator's precedence, so that C<Z~> and C<Z+> actually have different
 precedences within listop precedence.  Then the above would parse as if
@@ -4508,7 +4516,7 @@ you'd said C<< <a b> Z~ ( 1,2 Z+ 3,4> ) >>, but the lists would still
 parse at list infix precedence, with comma tighter than the zips.
 (This would actually be fairly trivial to implement, given how we
 represent our precedence as strings.)  Also, though it's complicated to
-explain, subprecedence within C<Z> might be exactly what the naive user expects.
+explain, subprecedence within C<Z> might be exactly what the naive user expects.]
 
 The list concatenating form, C<Z,>, when used like this:
 
