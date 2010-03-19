@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 15 Mar 2010
-    Version: 198
+    Last Modified: 19 Mar 2010
+    Version: 199
 
 =head1 Overview
 
@@ -1168,7 +1168,7 @@ See L</Range and RangeIter semantics>.
 =head2 Chaining binary precedence
 
 All operators on this precedence level may be I<chained>; see
-L</Chained comparisons>.
+L</Chained comparisons>.  They all return a boolean value.
 
 =over
 
@@ -1231,6 +1231,14 @@ For objects that are not value types, their identities are their values.
 the objects are ignored.  These semantics are those used by hashes that
 allow objects for keys.  See also L</Comparison semantics>.
 
+Note that C<===> is defined with an C<(Any,Any)> signature, and therefore
+autothreads over junctions; hence it I<cannot> be used to determine if two
+objects are the same, if either or both of them are junctions.  However,
+since C<.WHICH> is a macro that always returns a value and never autothreads,
+you can easily work around this limitation by saying:
+
+    $junk1.WHICH eqv $junk2.WHICH
+
 =item *
 
 Canonical equivalence
@@ -1242,6 +1250,10 @@ the values.  For object types, compares current contents according to some
 scheme of canonicalization.  These semantics are those used by hashes
 that allow only values for keys (such as Perl 5 string-key hashes).
 See also L</Comparison semantics>.
+
+Note that C<eqv> autothreads over junctions, as do all other comparison
+operators.  (Do not be confused by the fact that these return boolean values;
+in general, only boolean I<context> forces junction collapse.)
 
 =item *
 
