@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 7 Mar 2010
-    Version: 129
+    Last Modified: 19 Mar 2010
+    Version: 130
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -661,7 +661,7 @@ parameter is declared with the name C<$_>.  A method's invocant
 always has the alias C<self>.  Other styles of self can be declared
 with the C<self> pragma.
 
-If you have call of the form:
+If you have a call of the form:
 
     foo(|$capture)
 
@@ -938,6 +938,20 @@ what signature to match against.
 
     multi foo (|$args (Int, Bool?, *@, *%)) { reallyintfoo($args) }
     multi foo (|$args (Str, Bool?, *@, *%)) { reallystrfoo($args) }
+
+=head2 Parcel binding
+
+It is possible to bind the argument list in an even more raw form
+as a C<Parcel> object.  A signature to capture the parcel must be
+declared as:
+
+    sub foo (\|$parcel) { ... }
+
+This single parcel parameter is the only thing allowed in such a signature
+(apart from a return type).  An implementation must either be able to
+reconstruct the original parcel object from a capture, or the compiler
+must be smart enough to know when to save the original parcel object
+based on proto declarations and/or call indirection.
 
 =head2 Flattening argument lists
 
