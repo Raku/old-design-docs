@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 19 Mar 2010
-    Version: 199
+    Last Modified: 26 Mar 2010
+    Version: 200
 
 =head1 Overview
 
@@ -796,7 +796,7 @@ For built-in types, preserves the identity
 
 =item *
 
-C<< infix:{'+&'} >>, numeric bitwise and
+C<< infix:('+&') >>, numeric bitwise and
 
     $x +& $y
 
@@ -805,13 +805,13 @@ corresponding bits of each integer, returning an C<Int> result.
 
 =item *
 
-C<< infix:{'+<'} >>, numeric shift left
+C<< infix:('+<') >>, numeric shift left
 
     $integer +< $bits
 
 =item *
 
-C<< infix:{'+>'} >>, numeric shift right
+C<< infix:('+>') >>, numeric shift right
 
     $integer +> $bits
 
@@ -836,13 +836,13 @@ that extend on the right rather than the left (and always do unsigned extension)
 
 =item *
 
-C<< infix:{'~<'} >>, buffer bitwise shift left
+C<< infix:('~<') >>, buffer bitwise shift left
 
     $buf ~< $bits
 
 =item *
 
-C<< infix:{'~>'} >>, buffer bitwise shift right
+C<< infix:('~>') >>, buffer bitwise shift right
 
     $buf ~> $bits
 
@@ -1573,7 +1573,7 @@ the normal binding of arguments to formal subroutine parameters
 
 =item *
 
-C<< infix:{'=>'} >>, Pair constructor
+C<< infix:('=>') >>, Pair constructor
 
     foo => 1, bar => "baz"
 
@@ -2573,7 +2573,7 @@ a scalar variable.
 =item *
 
 C<< -> >> becomes C<.>, like the rest of the world uses.  There is
-a pseudo C<< postfix:{'->'} >> operator that produces a compile-time
+a pseudo C<< postfix:('->') >> operator that produces a compile-time
 error reminding Perl 5 users to use dot instead.  (The "pointy block"
 use of C<< -> >> in Perl 5 requires preceding whitespace when the arrow
 could be confused with a postfix, that is when an infix is expected.
@@ -4219,7 +4219,7 @@ you can write an explicit list operator:
 or you can let the system autogenerate one for you based on the
 corresponding infix operator, probably by currying:
 
-    # (examples, actual system may define prefix:[**] instead)
+    # (examples, actual system may define prefix:(**) instead)
     &prefix:<[*]> ::= &reduce.assuming(&infix:<*>, 1);
     &prefix:<[**]> ::= &reducerev.assuming(&infix:<**>);
 
@@ -4325,7 +4325,7 @@ Builtin reduce operators return the following identity values:
 User-defined operators may define their own identity values, but
 there is no explicit identity property.  The value is implicit in the
 behavior of the 0-arg reduce, so mathematical code wishing to find
-the identity value for an operation can call C<prefix:{"[$opname]"}()>
+the identity value for an operation can call C<prefix:("[$opname]")()>
 to discover it.
 
 To call some other non-infix function as a reduce operator, you may

@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 12 Mar 2010
-    Version: 208
+    Last Modified: 26 Mar 2010
+    Version: 209
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2919,14 +2919,14 @@ the quoted data matters.  These are all the same name:
     infix:<+>
     infix:<<+>>
     infix:«+»
-    infix:['+']
+    infix:('+')
 
 Despite the appearance as a subscripting form, these names are resolved
 not at run time but at compile time.  The pseudo-subscripts need not
 be simple scalars.  These are extended with the same two-element list:
 
     infix:<?? !!>
-    infix:['??','!!']
+    infix:('??','!!')
 
 An identifier may be extended with multiple named identifier
 extensions, in which case the names matter but their order does not.
@@ -3280,10 +3280,10 @@ the same thing:
     16 => $somevalue    :16($somevalue) radix conversion function
     '' => $x            :($x)           arglist or signature literal
     '' => ($x,$y)       :($x,$y)        arglist or signature literal
-    '' => <x>           :<x>            identifier extension
-    '' => «x»           :«x»            identifier extension
-    '' => [$x,$y]       :[$x,$y]        identifier extension
-    '' => { .say }      :{ .say }       adverbial block
+    '' => <x>           :<x>            name extension
+    '' => «x»           :«x»            name extension
+    '' => ($x,$y)       :($x,$y)        name extension
+    '' => { .say }      :{ .say }       adverbial block (not allowed on names)
 
 All of the adverbial forms (including the normal ones with
 identifier keys) are considered special tokens and are recognized
@@ -3314,6 +3314,22 @@ distinct identifiers into easily accessible sets; this is how the
 standard Perl 6 grammar knows the current set of infix operators,
 for instance.)
 
+Only identifiers that produce a list of one or more values (preferably
+strings) are allowed as name extensions; in particular, closures
+do not qualify as values, so the C<:{...}> form is not allowed as a
+name extender.  In particular, this frees up the block form after a method
+name, so it allows us to parse a block as a method argument:
+
+    @stuff.sort:{ +$_ }.map:{ $_ * 2 }
+
+These might look like it is using pairs, but it is really equivalent to
+
+    @stuff.sort: { +$_ }.map: { $_ * 2 }
+
+and the colons are not introducing pairs, but rather introducing
+the argument list of the method.  (In any other location, C<:{...}>
+would be taken as a pair mapping the null key to a closure.)
+
 Either fatarrow or adverbial pair notation may be used to pass
 named arguments as terms to a function or method.  After a call with
 parenthesized arguments, only the adverbial syntax may be used to pass
@@ -3327,8 +3343,9 @@ operator".  (Parens aren't considered an operator.)
 
 Note that (as usual) the C<{...}> form (either identifier-based
 or special) can indicate either a closure or a hash depending on
-the contents.  It does I<not> always indicate a subscript despite
-being parsed as one.  (The function to which it is passed can I<use>
+the contents.  It does I<not> indicate a subscript, since C<:key{}> is
+really equivalent to C<key => {}>, and the braces are not behaving
+as a postfix at all.  (The function to which it is passed can I<use>
 the value as a subscript if it chooses, however.)
 
 Note also that the C<< <a b> >> form is not a subscript and is
@@ -4414,16 +4431,16 @@ Here are the current grammatical categories:
     category:<prefix>                           prefix:<+>
     circumfix:<[ ]>                             [ @x ]
     dotty:<.=>                                  $obj.=method
-    infix_circumfix_meta_operator:{'»','«'}     @a »+« @b
+    infix_circumfix_meta_operator:('»','«')     @a »+« @b
     infix_postfix_meta_operator:<=>             $x += 2;
     infix_prefix_meta_operator:<!>              $x !~~ 2;
     infix:<+>                                   $x + $y
     package_declarator:<role>                   role Foo;
     postcircumfix:<[ ]>                         $x[$y] or $x.[$y]
-    postfix_prefix_meta_operator:{'»'}          @array »++
+    postfix_prefix_meta_operator:('»')          @array »++
     postfix:<++>                                $x++
-    prefix_circumfix_meta_operator:{'[',']'}    [*]
-    prefix_postfix_meta_operator:{'«'}          -« @magnitudes
+    prefix_circumfix_meta_operator:('[',']')    [*]
+    prefix_postfix_meta_operator:('«')          -« @magnitudes
     prefix:<!>                                  !$x (and $x.'!')
     q_backslash:<\\>                            '\\'
     qq_backslash:<n>                            "\n"
