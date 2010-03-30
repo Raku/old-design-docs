@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 26 Mar 2010
-    Version: 209
+    Last Modified: 30 Mar 2010
+    Version: 210
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -572,11 +572,6 @@ look like their corresponding uppercase types if you treat them that way.
 (In other words, it does autoboxing.  Note, however, that sometimes
 repeated autoboxing can slow your program more than the native type
 can speed it up.)
-
-The C<junction> type is considered a native type because its internal
-representation is fixed, and you may not usefully derive from it
-because the intent of junctions is to autothread any method calls
-on them.
 
 Some object types can behave as value types.  Every object can produce
 a "WHICH" value that uniquely identifies the
@@ -1156,7 +1151,7 @@ Whenever you declare any kind of type, class, module, or package, you're
 automatically declaring a undefined prototype value with the same name, known
 as the I<type object>.  The name itself returns that type object:
 
-    Mu          Perl 6 object (default block parameter type, either Any or junction)
+    Mu          Perl 6 object (default block parameter type, Any, Junction, or Each)
     Any         Perl 6 object (default routine parameter type, excludes junction)
     Cool        Perl 6 Convenient OO Loopbacks
     Whatever    Wildcard (like Any, but subject to do-what-I-mean via MMD)
@@ -1173,7 +1168,7 @@ Whenever a C<Failure> value is put into a typed container, it takes
 on the type specified by the container but continues to carry the
 C<Failure> role.  Use C<fail> to return specific failures.  Use C<Mu>
 for the most generic non-failure undefined value.  The C<Any> type,
-derived from C<Mu>, is also undefined, but excludes C<junctions> so
+derived from C<Mu>, is also undefined, but excludes C<Junction> and C<Each> types so
 that autothreading may be dispatched using normal multiple dispatch
 rules.  All user-defined classes derive from the C<Any> class by default.
 The C<Whatever> type is derived from C<Any> but nothing else

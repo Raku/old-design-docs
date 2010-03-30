@@ -13,8 +13,8 @@ Synopsis 9: Data Structures
 
     Created: 13 Sep 2004
 
-    Last Modified: 4 Mar 2010
-    Version: 44
+    Last Modified: 30 Mar 2010
+    Version: 45
 
 =head1 Overview
 
@@ -944,7 +944,9 @@ typed arrays with differing constraints.
 Perl 6's GC approach, as long as PDL's objects are registered with Parrot
 correctly.)
 
-=head1 Junctions
+=head1 Autothreading types
+
+=head2 Junctions
 
 A junction is a superposition of data values pretending to be a single
 data value.  Junctions come in four varieties:
@@ -980,9 +982,10 @@ values, a junction produces automatic parallelization of the algorithm.
 In particular, if a junction is used as an argument to any routine
 (operator, closure, method, etc.), and the scalar parameter you
 are attempting to bind the argument to is inconsistent with the
-C<junction> type, that routine is "autothreaded", meaning the routine
+C<Junction> type, that routine is "autothreaded", meaning the routine
 will be called automatically as many times as necessary to process
 the individual scalar elements of the junction in parallel.
+(C<Each> types are also autothreaded, but are serial and lazy in nature.)
 
 The results of these separate calls are then recombined into a
 single junction of the same species as the junctive argument.
@@ -1054,17 +1057,16 @@ are not clear without further experimentation, however.)  So for now,
 please limit use of junctions to situations where the eventual binding
 to a scalar formal parameter is clear.
 
-(Conjucture: in post-Perl 6.0.0 we might introduce an C<each()>
-junction which keeps track of its initial values, returning on collapse
-those initial values which transformed into a true value, for example
+=head2 Each
 
-    each(2, 3, 4) - 3
+[This section is considered conjectural.]
 
-would return an unordered collection consisting of 2 and 4, because
-C<2-3> and C<4-3> are True in boolean context, while C<3-3> is False.
-However it is not yet clear if we really want that, and if yes, in which
-context the collapse will occur).
+An C<Each> type autothreads like a junction, but does so serially and lazily,
+and is used only for its mapping capabilities.  The prototypical use
+case is where a hyperoperator would parallelize in an unfortunate way:
 
+    @array».say          # order not guaranteed
+    @array.each.say      # order guaranteed
 
 =head1 Parallelized parameters and autothreading
 
