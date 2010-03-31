@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 6 Mar 2010
-    Version: 116
+    Last Modified: 30 Mar 2010
+    Version: 117
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -803,10 +803,9 @@ may be extracted from the C<Match> object by use of the C<.ast> method.
 
 A second call to C<make> overrides any previous call to C<make>.
 
-These closures are invoked with a topic (C<$_>) of the current match
-state (a C<Cursor> object).  Within a closure, the instantaneous
-position within the search is denoted by the C<.pos> method on
-that object.  As with all string positions, you must not treat it
+Within a closure, the instantaneous
+position within the search is denoted by the C<$¢.pos> method.
+As with all string positions, you must not treat it
 as a number unless you are very careful about which units you are
 dealing with.
 
@@ -1142,7 +1141,7 @@ assertion (i.e. a subrule or a named character class - see below):
 The first character after the identifier determines the treatment of
 the rest of the text before the closing angle.  The underlying semantics
 is that of a function or method call, so if the first character is
-a left parenthesis, it really is a call:
+a left parenthesis, it really is a call to either a method or function:
 
     <foo('bar')>
 
@@ -1155,12 +1154,25 @@ is just shorthand for
 
     $<foo> = <bar>
 
-Note that this aliasing does not modify the original C<< <bar> >> capture.
-To rename a capture entirely, use the dot form on the capture you wish
-to suppress:
+Note that this aliasing does not modify the original C<< <bar> >>
+capture.  To rename an inherited method capture without using the
+original name, use the dot form described below on the capture you
+wish to suppress.  That is,
 
     <foo=.bar>
+
+desugars to:
+
     $<foo> = <.bar>
+
+Likewise, to rename a lexically scoped regex explicitly, use the C<&>
+form described below.  That is,
+
+    <foo=&bar>
+
+desugars to:
+
+    $<foo> = <&bar>
 
 Multiple aliases are allowed, so
 
@@ -1196,10 +1208,42 @@ subrule contains a sequence point, then so does the subrule match.
 Longest-token matching does not proceed past such a subrule, for
 instance.
 
+This form always gives preference to a lexically scoped regex declaration,
+dispatching directly to it as if it were function.  If there is no such
+lexical regex (or lexical method) in scope, the call is dispatched to the
+current grammar, assuming there is one. That is, if there is a
+C<my regex foo> visible from the current lexical scope, then
+
+    <foo(1,2,3)>
+
+means the same as
+
+    <foo=&foo(1,2,3)>
+
+However, if there is no such lexically scoped regex (and note that within
+a grammar, regexes are installed as methods which have no lexical alias
+by default), then the call is dispatched as a normal method on the current
+C<Cursor> (which will fail if you're not currently within a grammar).  So
+in that case:
+
+    <foo(1,2,3)>
+
+means the same as:
+
+    <foo=.foo(1,2,3)>
+
+A call to C<< <foo> >> will fail if there is neither any lexically
+scoped routine of that name it can call, nor any method of that name
+that be reached via method dispatch.  (The decision of which dispatcher
+to use is made at compile time, not at run time; the method call is not
+a fallback mechanism.)
+
 =item *
 
-A leading C<.> causes a named assertion not to capture what it matches (see
-L<Subrule captures>. For example:
+A leading C<.> explicitly calls a method as a subrule; the fact
+that the initial character is not alphanumeric also causes the named
+assertion to not capture what it matches (see L<Subrule captures>. For
+example:
 
      / <ident>  <ws>  /      # $/<ident> and $/<ws> both captured
      / <.ident> <ws>  /      # only $/<ws> captured
@@ -1208,23 +1252,63 @@ L<Subrule captures>. For example:
 The assertion is otherwise parsed identically to an assertion beginning with
 an identifier, provided the next thing after the dot is an identifier.  As with
 the identifier form, any extra arguments pertaining to the matching engine
-are automatically supplied to the argument list.
+are automatically supplied to the argument list via the implicit C<Cursor> invocant.
+If there is no current class/grammar, or the current class is not derived
+from C<Cursor>, the call is likely to fail.
 
-If the dot is not followed by an identifier, it
-is parsed as a "dotty" postfix of some type, such as an indirect method call:
+If the dot is not followed by an identifier, it is parsed as a "dotty"
+postfix of some type, such as an indirect method call:
 
-    <.$indirect($depth, $binding, $fate, @args)>
+    <.$indirect(@args)>
 
-In this case the object passed as the invocant is the current match
-state, and the method is expected to return a new match state object.
-The extra pattern matching arguments (C<$depth>, C<$binding>, and
-C<$fate>) must be supplied explicitly.
+As with all regex matching, the current match state (some derivative
+of C<Cursor>) is passed as the first argument, which in this case
+is simply the method's invocant.  The method is expected to return
+a new match state object.
 
 =item *
 
-A leading C<$> indicates an indirect subrule.  The variable must contain
-either a C<Regex> object, or a string to be compiled as the regex.  The
-string is never matched literally.
+Whereas a leading C<.> unambiguously calls a method, a leading C<&>
+unambiguously calls a routine instead.  Such a regex routine must
+be declared (or imported) with C<my> or C<our> scoping to make its
+name visible to the lexical scope, since by default a regex name is
+installed only into the current class's metaobject instance, just
+as with an ordinary method. The routine serves as a kind of private
+submethod, and is called without any consideration of inheritance.
+It must still take a C<Cursor> as its first argument (which it can
+think of as an invocant if it likes), and must return the new match
+state as a cursor object.  Hence,
+
+     <&foo(1,2,3)>
+
+is sugar for something like:
+
+     { $¢ = foo($¢,1,2,3) }
+
+(where C<$¢> represents the current match state in the outer match).
+
+As with the C<.> form, an explicit C<&> suppresses capture.
+
+Note that all normal C<Regex> objects are really such routines in disguise.
+When you say:
+
+    rx/stuff/
+
+you're really declaring an anonymous method, something like:
+
+    my $internal = anon regex :: ($¢: ) { stuff }
+
+and then passing that object off to someone else who will call it
+indirectly.  In this case, the method is installed neither into
+a class nor into a lexical scope, but as long as the value stays
+live somehow, it can still be called indirectly (see below).
+
+=item *
+
+A leading C<$> indicates an indirect subrule call.  The variable must
+contain either a C<Regex> object (really an anonymous method--see
+above), or a string to be compiled as the regex.  The string is never
+matched literally.
 
 If the compilation of the string form fails, the error message is converted
 to a warning and the assertion fails.
@@ -1234,9 +1318,8 @@ is captured by default.)  You may always capture it explicitly, of course:
 
     / <name=$rx> /
 
-A subrule is considered declarative to the extent that the front of it
-is declarative, and to the extent that the variable doesn't change.
-Prefix with a sequence point to defeat repeated static optimizations.
+An indirect subrule is always considered procedural, and may not participate
+in longest-token matching.
 
 =item *
 
@@ -1273,19 +1356,6 @@ into the pattern at that point as a subrule:
 
 The closure is guaranteed to be run at the canonical time; it declares
 a sequence point, and is considered to be procedural.
-
-=item *
-
-A leading C<&> interpolates the return value of a subroutine call as
-a regex.  Hence
-
-     <&foo()>
-
-is short for
-
-     <{ foo() }>
-
-This is considered procedural.
 
 =item *
 
@@ -2616,7 +2686,18 @@ like a C<return>, but doesn't clobber the match state:
              /;
     say $();                      # says 'bar'
 
-The abstract object of any C<Match> object is available via the C<< .ast >> method.
+The abstract object of any C<Match> object is available via the
+C<< .ast >> method.  Hence these abstract objects can be managed
+independently of the returned cursor objects.
+
+The current cursor object must always be derived from C<Cursor>, or the
+match will not work.  However, within that constraint, the actual type
+of the current cursor defines which language you are currently parsing.
+When you enter the top of a grammar, this cursor generally starts out
+as an object whose type is the name of the grammar you are in, but the
+current language can be modified by various methods as they mutate the
+current language by returning cursor objects blessed into a different
+type, which may or may not be derived from the current grammar.
 
 =back
 
@@ -4097,12 +4178,10 @@ undefined, and references to C<$0> or other capture variables may
 be compiled to produce the current value without reference to C<$/>.
 Likewise a reference to C<< $<foo> >> does not necessarily mean C<<
 $/<foo> >> within the regex proper.  During the execution of a match,
-the current match state is likely to be stored in a C<$_> variable
+the current match state is actually stored in a C<$¢> variable
 lexically scoped to an appropriate portion of the match, but that is
 not guaranteed to behave the same as the C<$/> object, because C<$/>
-is of type C<Match>, while the match state is of type C<Cursor>.
-(It really depends on the implementation of the pattern matching
-engine.)
+is of type C<Match>, while the match state is of a type derived from C<Cursor>.
 
 In any case this is all transparent to the user for simple matches;
 and outside of regex code (and inside closures within the regex)
