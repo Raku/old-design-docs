@@ -17,12 +17,13 @@ DRAFT: Synopsis 32: Setting Library - Temporal
     Tim Nelson <wayland@wayland.id.au>
     Daniel Ruoso <daniel@ruoso.com>
     Dave Rolsky <autarch@urth.org>
+    Matthew (lue) <rnddim@gmail.com>
 
 =head1 VERSION
 
     Created: 19 Mar 2009 extracted from S29-functions.pod and S16-IO.pod
 
-    Last Modified: 18 Feb 2010
+    Last Modified: 2 Apr 2010
     Version: 6
 
 The document is a draft.
@@ -31,223 +32,143 @@ If you read the HTML version, it is generated from the Pod in the pugs
 repository under /docs/Perl6/Spec/S32-setting-library/Temporal.pod so edit it there in
 the SVN repository if you would like to make changes.
 
-=head1 Roles
+=head1 Temporal
 
-=head2 Instant
+Time is just a jumbled iTem.
 
-The epoch used in Perl 6 to represent time instants is the
-International Atomic Time - TAI - which is independent of calendars,
-timezones as well as leap seconds. Of course Perl can't go beyond the
-machine to get a real TAI value, but it should perform any
-platform-specific transformation to give you the most precise value it
-can for the TAI.
+Temporal is divided into two parts: date and time.
 
- our Instant sub time()
+=head2 Time
 
-Returns a TAI epoch value for the current time.
+Time is called upon as such:
+
+=over
+
+=item Time.new($timesystem = $*CLOCK, $time = $*NOW)
+
+Creates a new Time object. $timesystem is what clock you wish to use. If unspecified, whatever is in $*CLOCK is used. $time specifies the $time, it defaults to what is in $*NOW. What you enter in $time should match the format that $timesystem is in. $*NOW and $*CLOCK should be specified in the same format (i.e., if $*CLOCK is 'unixepoch', $*NOW should be something like 127666216.432)
+Possible (string!) values for $timesystem (and therefore $*CLOCK) are:
+
+=over
+
+=item * 12hour
+
+=item * 24hour (this and 12hour are essentialy the same system, but for simplicity they are separate)
+
+=item * hextime
+
+=item * unixepoch
+
+=item * tai
+
+=back
+
+If the time system you want is not up on the list, you are at the mercy of the implementation (which can, of course, add in rarer time systems) and/or available libraries and other addons. A shortcut to the time (in the default as defined by $*CLOCK) is through the $*TIME variable.
+
+=item Time.convert($convertto = $*CLOCK)
+
+returns the time converted to the time system specified in $convertto. If you were to call convert(), then it would default to what's in $*CLOCK
+
+=item Time.format($formatto)
+
+returns the time formatted to the way specified in $formatto. If the time has no options for formatting (for example hextime can be either 3_A0_9 or .3A09, but a 24 hour clock is typically only formatted as 15:17), or $formatto is left blank, it is sent back without processing.
+
+=back
+
+=head2 Date
+
+Date is called in a similar fashion:
+
+=over
+
+=item Date.new($datesystem = $*CALENDAR, $date = $*TODAY)
+
+Defines a new Date object. $datesystem defines the calendar to use. If not specified, it defaults to what is in $*CALENDAR. $date specifies the date. If not specified, then the date used is the one in $*TODAY. Make sure $date is in the same format as specified in $datesystem. $*CALENDAR and $*TODAY should be specified in the same calendar (i.e. if $*CALENDAR is 'Gregorian' $*TODAY should be something like '12-31-10', depending on how things are formatted)
+Possible string values for $datesystem (and therefore $*CALENDAR) are:
+
+=over
+
+=item * Gregorian
+
+=item * Julian (the predecessor of Gregorian. NOT the astronomical Julian Year)
+
+=item * Discordian
+
+=back
+
+There aren't that many calendar in use today (heck, Discordian is up there only because you can get it using ddate, a command found on almost every Linux distribution). If you need something different from what is on the list, you are at the mercy of the implementation and any available libraries/modules. You can shortcut to the current date in the default calendar (in $*CALENDAR), by using the $*DATE variable.
+
+=item Date.convert($convertto = $*CALENDAR)
+
+Returns the date in the format specified in $convertto (defaults to what's in $*CALENDAR)
+
+=item Date.format($formatto)
+
+Formats the date (i.e. 4/2/10 or 2 April 2010 in Gregorian) to what's specified in $formatto. If unspecified, it returns the date without any processing.
+
+=back
 
 =head2 Duration
 
-Duration objects describe an amount of time, it's the fundamental type
-for time math. The base Duration object is only TAI-seconds aware, but
-if you use its constructor with any other parameters it will delegate
-to Gregorian::Duration in order to make the most common cases easier.
-
-The following attribute is declared:
+A duration is a certain length of time (i.e. from 12:00 to 14:15, the duration can be said to be 2:15).
 
 =over
 
-=item tai
+=item Duration.new($begin = 0, $end, $format)
 
-Returns the amount of TAI seconds described in this duration. Note
-that usually you shouldn't be doing math with the result of .tai for
-different datetime and duration objects. The result of .tai might also
-be an estimated value for Duration types that depend on an anchor date
-(i.e.: 1 month).
+Specifies a new Duration object. $begin is at the beginning of duration (i.e. 4 seconds), $end is the end of the duration (i.e. 72 seconds), and $format is in what format $begin and $end are in. $format can be anything that either $*CLOCK or $*CALENDAR can be.
+
+=item Duration.convert($convertto)
+
+returns the Duration in the format as specified by $convertto. It defaults to doing nothing.
+
+=item Duration.format($formatto)
+
+Returns the Duration formatted as specified in $formatto. If the time given cannot be formatted (i.e. 13:47, which has no common alternative format), it returns the duration as it was entered.
 
 =back
 
-=head2 Calendar
+=head2 Arithmetic
 
-Every DateTime needs to follow the rules of a given calendar. The
-default is the Gregorian calendar, but several other calendars exist
-in the real world.
+Any sort of arithmetic between Time, Date, and Duration objects require these objects to give the equivalent of that object's data (13:15 or 3/4/10) in TAI seconds first. What's returned is a Duration object, because it can be formatted however you wish using Duration's convert and format.
 
-The current default calendar is stored in $*CALENDAR.
+=head2 Specifics on formats
+
+Whenever a date/time format is added/removed to/from the spec, please update this listing. This listing describes how each date/time format stores information, and available formatting.
+
+Formatting options are those used in the unix utility date (search for Date_(Unix) on wikipedia for the formatting options), mapped to the current date/time as best as possible.
 
 =over
 
-=item method calendartime($epoch = time(), *%options)
+=item Twelve Hour
 
-=item multi calendartime($epoch = time(), $calendar = $*CALENDAR, *%options)
+The twelve-hour format should store the data as an array, containing the hour, minute, second, AM/PM, and if the interpreter chooses, parts less than a second. The only format it can be in is 12:31:07 AM)
 
-Returns a DateTime object in the current calendar for the given TAI
-epoch time. Each calendar type might accept different options.
+=item Twenty-Four Hour
 
-Note that simply changing the current calendar is not magically going
-to make any code portable to different calendars. The code using it
-should either use only the methods in the generic Calendar and
-DateTime roles, or special case for the known Calendars.
+The twenty-four-hour format is the same as 12 Hour, except for the the fact that AM/PM is not needed.
 
-=item method formatter is rw
+=item Hextime
 
-The default formatter object used for DateTime objects in this
-calendar.
+Hextime should be stored as an array of strings, consisting of the hexhour, hexminute, and hexsecond (alternatively, it could also be held as a hex hour, hex maxime, hex minute, and hex second). The time can be formatted either as .3A02 or 3_A0_2 (if stored as maxime & hexminute, they must combine as one. i.e in 3_A0_2, A is the maxime, and 0 is the hexminute. If stored as hex-hour/minute/second, then A0 is the minute.)
 
-=back
+=item Unix Epoch & TAI
 
-=head2 Calendar::TimeZoneObservant
+Both are stored as a # of seconds, and only shown/formatted as such.
 
-This is a generic role used to identify all calendars that observe the
-time zones. Not all calendars are time-zone observants. One way or
-another, two multi subs will be available that depend on a time-zone
-observant calendar. They will fail if you try to call them with a
-non-tz calendar.
+=item Gregorian
 
-This role also implies that the calendartime method might receive a
-time-zone named parameter.
+Gregorian ought to be stored in an array as the day, month, and year, along with the name of the day. Year can either be a +/- number, or you can add another element for AD and BC. It can be formatted in any myriad of ways, including: "Sunday, April 4th, 2010", or "4/2/10".
 
-=over
+=item Julian
 
-=item method gmtime($epoch = time(), *%options )
+Same as Gregorian in terms of storage and formatting. (Just remember that Julian != Gregorian)
 
-=item multi gmtime($epoch = time(), $calendar = $*CALENDAR, *%options)
+=item Discordian
 
-Returns a DateTime object in the GMT timezone, considering $epoch to
-be TAI. Same as:
-
- calendartime($epoch, $calendar, :time-zone('GMT'))
-
-=item method localtime($epoch = time(), *%options )
-
-=item multi localtime($epoch = time(), $calendar = $*CALENDAR, *%options)
-
-Returns a DateTime object in the local timezone taken from the system,
-considering $epoch to be TAI. Same as:
-
- calendartime($epoch, $calendar, :time-zone('local'))
+Stored in an array as the year, the season, and the day of the season. Formatting is similar to Gregorian & Julian (see the man page for ddate for a list of Discordian format options)
 
 =back
-
-=head2 DateTime
-
-The generic DateTime role specifies the basic operations that should
-be possible independent of the Calendar being used, and are,
-therefore, considerably restricted.
-
-In order to make it easier to deal with the most common scenario, the
-constructor of the bare DateTime type will delegate to
-Gregorian::DateTime.
-
-It defines the following attributes.
-
-=over
-
-=item formatter
-
-The object that will stringify this specific object.
-
-=item calendar
-
-Returns the calendar that governs this datetime.
-
-=back
-
-And the following methods
-
-=over
-
-=item tai
-
-Returns the TAI value for this specific datetime, useful for
-inter-calendar comparison and conversion.
-
-=back
-
-=head2 TimeZone
-
-This is the base for the entire time-zone database with the complete
-information about daylight-saving-time and other variations that can
-happen.
-
-This should be a straight port from perl 5 DateTime::TimeZone module.
-
-=head2 TimeRange
-
-This object represents a given period of time, and may exclude either endpoint.
-It might be composed by:
-
-  $datetime1 .. $datetime2
-  $datetime1 ^.. $datetime2
-  $datetime1 ..^ $datetime2
-
-These may be iterated, but only on seconds.  To iterate with some
-other duration, you may use the series operator to produce a series
-of datetimes:
-
-  $datetime1, *+$duration ... $datetime2
-
-=head2 Gregorian::Calendar
-
-Also known as the "civil" calendar. This is the calendar used in most
-of the world, specially in the western countries.
-
-=head2 Gregorian::DateTime
-
-The gregorian DateTime declares the following additional attributes.
-
-=over
-
-=item year
-
-=item month
-
-=item day
-
-=item minute
-
-=item second
-
-=item nanosecond
-
-=item time-zone
-
-=back
-
-The following methods provide additional information
-
-=over
-
-=item week-of-year
-
-=item day-of-week
-
-=item week-of-month
-
-=item year-of-week
-
-=back
-
-=head2 Gregorian::Duration
-
-The gregorian Duration declares the following attributes.
-
-=over
-
-=item year
-
-=item month
-
-=item day
-
-=item minute
-
-=item second
-
-=item nanosecond
-
-=back
-
 
 =head1 Additions
 
