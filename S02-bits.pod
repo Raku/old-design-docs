@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 30 Mar 2010
-    Version: 210
+    Last Modified: 5 Apr 2010
+    Version: 211
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -576,9 +576,39 @@ can speed it up.)
 Some object types can behave as value types.  Every object can produce
 a "WHICH" value that uniquely identifies the
 object for hashing and other value-based comparisons.  Normal objects
-just use their address in memory, but if a class wishes to behave as a
+just use their location as their identity, but if a class wishes to behave as a
 value type, it can define a C<.WHICH> method that makes different objects
 look like the same object if they happen to have the same contents.
+
+When we say that a normal object uses its location as its identity,
+we do I<not> mean that it returns its address as a number.  In the first
+place, not all objects are in the same memory space (see the literature
+on NUMA, for instance), and two objects should not accidentally have
+the same identity merely because they were stored at the same offset in
+two different memory spaces.  We also do not want to allow accidental
+identity collisions with values that really are numbers (or strings,
+or any other mundane value type).  Nor should we be encouraging people
+to think of object locations that way in any case.  So C<WHICH> still
+returns a value rather than another object, but that value must be of
+a special C<ObjID> type that prevents accidental confusion with normal
+value types, and at least discourages trivial pointer arithmetic.
+
+Certainly, it is difficult to give a unique name to every possible
+address space, let alone every possible address within every such
+a space.  In the absence of a universal naming scheme, it can only
+be made improbable that two addresses from two different spaces will
+collide.  A sufficently large random number may represent the current
+address space on output of an C<ObjID> to a different address space,
+or if serialized to YAML or XML.  (This extra identity component
+need not be output for debugging messages that assume the current
+address space, since it will be the same big number consistently,
+unless your process really is running under a NUMA.)
+
+Alternately, if an object is being serialized to a form that does
+not preserve object identity, there is no requirement to preserve
+uniqueness, since the object is in this case is really being translated
+to a value type representation, and reconstituted on the other end
+as a different unique object.
 
 =item *
 
