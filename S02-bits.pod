@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 5 Apr 2010
-    Version: 211
+    Last Modified: 7 Apr 2010
+    Version: 212
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -886,16 +886,18 @@ translation as well.)
 
 A C<Buf> is a stringish view of an array of
 integers, and has no Unicode or character properties without explicit
-conversion to some kind of C<Str>.  (A C<buf> is the native counterpart.)
-Typically it's an array of bytes serving as a buffer.  Bitwise
+conversion to some kind of C<Str>.  (The C<buf8>, C<buf16>, C<buf32>,
+and C<buf64> types are the native counterparts; native buf types are
+required to occupy contiguous memory for the entire buffer.)
+Typically a C<Buf> is an array of bytes serving as a buffer.  Bitwise
 operations on a C<Buf> treat the entire buffer as a single large
 integer.  Bitwise operations on a C<Str> generally fail unless the
 C<Str> in question can provide an abstract C<Buf> interface somehow.
 Coercion to C<Buf> should generally invalidate the C<Str> interface.
-As a generic type C<Buf> may be instantiated as (or bound to) any
-of C<buf8>, C<buf16>, or C<buf32> (or to any type that provides the
+As a generic role C<Buf> may be instantiated as any
+of C<buf8>, C<buf16>, or C<buf32> (or as any type that provides the
 appropriate C<Buf> interface), but when used to create a buffer C<Buf>
-defaults to C<buf8>.
+is punned to a class implementing C<buf8> (actually C<Buf[uint8]>).
 
 Unlike C<Str> types, C<Buf> types prefer to deal with integer string
 positions, and map these directly to the underlying compact array
@@ -907,6 +909,32 @@ integers when dealing with positions.  As a limiting case, C<buf8> is
 just an old-school byte string, and the positions are byte positions.
 Note, though, that if you remap a section of C<buf32> memory to be
 C<buf8>, you'll have to multiply all your positions by 4.
+
+These native types are defined based on the C<Buf> role, parameterized
+by the native integer type it is composed of:
+
+    Name        Is really
+    ====        =========
+    buf8        Buf[uint8]
+    buf16       Buf[uint16]
+    buf32       Buf[uint32]
+    buf64       Buf[uint64]
+
+There are no signed buf types provided as built-ins, but you may say
+
+    Buf[int8]
+    Buf[int16]
+    Buf[int32]
+    Buf[int64]
+
+to get buffers of signed integers.  It is also possible to defined
+a C<Buf> based on non-integers or on non-native types:
+
+    Buf[complex64]
+    Buf[FatRat]
+    Buf[Int]
+
+However, no guarantee of memory contiguity can be made for non-native types.
 
 =item *
 
@@ -1349,7 +1377,7 @@ because they can be wrapped in place.)
     KeyBag      KeyHash of UInt (does Bag in list/array context)
     Pair        A single key-to-value association
     PairSeq     A Seq of Pairs
-    Buf         Perl buffer (a stringish array of memory locations)
+    Buf         Perl buffer (array of integers with some stringy features)
     IO          Perl filehandle
     Routine     Base class for all wrappable executable objects
     Sub         Perl subroutine
