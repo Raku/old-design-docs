@@ -85,8 +85,7 @@ The full list of named arguments is as follows:
     :day        defaults to 1   range 1..31
     :hour       defaults to 0   range 0..23
     :minute     defaults to 0   range 0..59
-    :second     defaults to 0   range 0..61
-    :nanosecond defaults to 0
+    :second     defaults to 0   range 0.0..^62.0
     :timezone   defaults to '+0000' (UTC)
     :formatter  defaults to an iso8601 formatter, see below
 
@@ -110,14 +109,10 @@ month (for example April 31st) or in that non-leap year (for example February
 class also explicitly does not check against ambiguous or invalid local times
 caused by Daylight Saving Time.
 
-If you pass in a C<:nanosecond> value greater or equal to one billion (1e9),
-it will be normalized, and the excess seconds will be transferred to the
-C<:second> value.
-
 =head2 "Get" methods
 
-There are methods C<year>, C<month>, C<day>, C<hour>, C<minute>, C<second>,
-and C<nanosecond>, giving you the corresponding values of the C<DateTime>
+There are methods C<year>, C<month>, C<day>, C<hour>, C<minute>,
+and C<second>, giving you the corresponding values of the C<DateTime>
 object. The C<day> method also has the synonym C<day_of_month>.
 
 The method C<week> returns two values, the I<week year> and I<week number>.
@@ -141,10 +136,7 @@ The C<day_of_quarter> method returns the day of the quarter.
 The C<day_of_year> method returns the day of the year, a value between 1 and
 366.
 
-The method C<fractional_second> returns the second as a real number, with the
-fractional part coming from the C<nanosecond> value. The methods
-C<millisecond>, C<microsecond>, and C<nanosecond> return the nanosecond part
-in the corresponding unit, rounded to an integer.
+The method C<whole_second> returns the second truncated to an integer.
 
 The following methods work as a sort of formatting methods:
 
@@ -171,7 +163,7 @@ public accessor:
     $dt.day = 15;
 
 The same methods exists for all the values you can set in the constructor:
-C<year>, C<month>, C<day>, C<hour>, C<minute>, C<second>, C<nanosecond>,
+C<year>, C<month>, C<day>, C<hour>, C<minute>, C<second>,
 C<time_zone> and C<formatter>. Also, there's a C<set> method, which accepts
 all of these as named arguments, allowing several values to be set at once:
 
@@ -192,7 +184,7 @@ local time zone is adjusted accordingly:
 The C<truncate> method allows you to "clear" a number of time values below
 a given resolution:
 
-    $dt.truncate( :to<hour> ); # clears minutes, seconds, and nanoseconds
+    $dt.truncate( :to<hour> ); # clears minutes and seconds
 
 The time units are "cleared" in the sense that they are set to their inherent
 defaults: 1 for months and days, 0 for the time components.
