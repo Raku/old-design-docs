@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 7 Apr 2010
-    Version: 212
+    Last Modified: 10 Apr 2010
+    Version: 213
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -3148,6 +3148,10 @@ as they think look like digits in the radix specified.  None of these
 notations work in normal Perl code.  They work only in interpolations
 and regexes and the like.
 
+Note that the inside of the brackets is not an expression, and you
+may not interpolate there, since that would be a double interpolation.
+Use curlies to interpolate the values of expressions.
+
 The old C<\123> form is now illegal, as is the C<\0123> form.
 Only C<\0> remains, and then only if the next character is not in
 the range C<'0'..'7'>.  Octal characters must use C<\o> notation.
@@ -3602,6 +3606,17 @@ and is equivalent to
 
     "Val = { $a.ord.fmt('%x') }\n"
 
+However, no interpolated postfix may start with a backslash, so any
+backslash or unspace is not recognized, but instead will be assumed
+to be part of the string outside of the interpolation, and subject
+to the normal backslashing rules of that quote context:
+
+    my $a = 42;
+    "Val = $a\[junk\]";  # Val = 42[junk]
+    "Val = $a\[junk]";   # Val = 42[junk]
+    "Val = $a\ [junk]";  # Val = 42 [junk]
+    "Val = $a\.[junk]";  # Val = 42.[junk]
+
 
 =item *
 
@@ -3664,12 +3679,18 @@ end-bracket rule.)
 =item *
 
 Multiple dereferencers may be stacked as long as each one ends in
-some kind of bracket:
+some kind of bracket or is a bare method:
 
-    print "The attribute is @baz[3](1,2,3){$xyz}<blurfl>.attr().\n"
+    print "The attribute is @baz[3](1, 2, 3).gethash.{$xyz}<blurfl>.attr().\n"
 
 Note that the final period above is not taken as part of the expression since
-it doesn't introduce a bracketed dereferencer.
+it doesn't introduce a bracketed dereferencer.  The parens are not required
+on the C<.gethash>, but they are required on the C<.attr()>, since that
+terminates the entire interpolation.
+
+In no case may any of the top-level components be separated by
+whitespace or unspace.  (These are allowed, though, inside any
+bracketing constructs, such as in the C<(1, 2, 3)> above.)
 
 =item *
 
@@ -3678,11 +3699,14 @@ not be followed by any dereferencers, since you can always put them
 inside the closure.  The expression inside is evaluated in string item
 context.  You can force list context on the expression using
 the C<list> operator if necessary.  A closure in a string establishes
-its own lexical scope.
+its own lexical scope.  (Expressions that sneak in without curlies,
+such as C<$(...)>, do not establish their own lexical scope, but use
+the outer scope, and may even declare variables in the outer scope, since
+all the code inside (that isn't in an eval) is seen at compile time.)
 
 The following means the same as the previous example.
 
-    print "The attribute is { @baz[3](1,2,3){$xyz}<blurfl>.attr }.\n"
+    print "The attribute is { @baz[3](1,2,3).gethash.{$xyz}<blurfl>.attr }.\n"
 
 The final parens are unnecessary since we're providing "real" code in
 the curlies.  If you need to have double quotes that don't interpolate
