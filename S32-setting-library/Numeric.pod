@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Numeric
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 15 Feb 2010
-    Version: 5
+    Last Modified: 9 Apr 2010
+    Version: 6
 
 The document is a draft.
 
@@ -123,26 +123,20 @@ unary C<rand> function in Perl 6, so just multiply C<rand> by your
 desired multiplier.  For picking a random integer you probably want
 to use something like C<(1..6).pick> instead.
 
+=item sqrt
+
+ our Numeric multi method sqrt ( Numeric $x: ) is export
+
+Returns the principle square root of the parameter.
+
 =item roots
 
-  method roots (Numeric $x: Int $n --> List of Num) is export
+  method roots (Numeric $x: Int $n ) is export
 
 Returns a list of all C<$n>th (complex) roots of C<$x>. Returns C<NaN> if
 C<< $n <= 0 >>, itself if C<$n == 0>,  and is free to return a single C<NaN>
 if C<$x> is C<NaN> or C<Inf>, or in case of complex numbers if one of the
 components is.
-
-=item cis
-
-    our Complex multi method cis (Real $angle:) is export
-
-Returns 1.unpolar($angle)
-
-=item unpolar
-
-    our Complex multi method unpolar (Real $mag: Real $angle) is export
-
-Returns a complex number specified in polar coordinates.  Angle is in radians.
 
 =item i
 
@@ -154,6 +148,18 @@ with the postfix, it's necessary to use a backslash or parentheses:
 
     $land\i
     ($land)i
+
+=item to-radians
+
+ our Numeric multi method to-radians ( Numeric $x: TrigBase $base ) is export
+
+Convert from C<$base> to radians.
+
+=item from-radians
+
+ our Numeric multi method from-radians ( Numeric $x: TrigBase $base ) is export
+
+Convert from radians to C<$base>.
 
 =back
 
@@ -225,11 +231,17 @@ Note that you get one C<srand()> for free when you start a Perl program, so
 you I<must> call C<srand()> yourself if you wish to specify a deterministic seed
 (or if you wish to be differently nondeterministic).
 
-=item sqrt
+=item cis
 
- our Real multi method sqrt ( Real $x: ) is export
+    our Complex multi method cis (Real $angle:) is export
 
-Returns the square root of the parameter.
+Returns 1.unpolar($angle)
+
+=item unpolar
+
+    our Complex multi method unpolar (Real $mag: Real $angle) is export
+
+Returns a complex number specified in polar coordinates.  Angle is in radians.
 
 
 =back
