@@ -59,7 +59,7 @@ A C<DateTime> object describes the time as it would appear on someone's
 calendar and someone's clock. You can create a C<DateTime> object from
 the C<Instant> returned by the C<time> function:
 
-    my $now = DateTime.from_epoch(time);
+    my $now = DateTime.from-epoch(time);
 
 This is such a common use case, that there's a C<DateTime.now>
 constructor that does this for you:
@@ -114,30 +114,30 @@ against ambiguous or invalid local times caused by Daylight Saving Time.
 
 There are methods C<year>, C<month>, C<day>, C<hour>, C<minute>, and
 C<second>, giving you the corresponding values of the C<DateTime>
-object. The C<day> method also has the synonym C<day_of_month>.
+object. The C<day> method also has the synonym C<day-of-month>.
 
 The method C<week> returns two values, the I<week year> and I<week number>.
-(These are also available through the methods C<week_year> and C<week_number>,
+(These are also available through the methods C<week-year> and C<week-number>,
 respectively.) The first week of the year is defined by ISO as the one which
 contains the fourth day of January. Thus, dates early in January often end
 up in the last week of the prior year, and similarly, the final few days of
 December may be placed in the first week of the next year.
 
-There's a C<day_of_week> method, which returns the day of the week as a
+There's a C<day-of-week> method, which returns the day of the week as a
 number 1..7, with 1 being Monday and 7 being Sunday.
 
-The C<weekday_of_month> method returns a number 1..5 indicating the
+The C<weekday-of-month> method returns a number 1..5 indicating the
 number of times a particular weekday has occurred so far during that
 month, the day itself included. For example, June 9, 2003 is the second
 Monday of the month, and so this method returns 2 for that day.
 
 The C<quarter> method returns the quarter of the year, a value between 1
-and 4. The C<day_of_quarter> method returns the day of the quarter.
+and 4. The C<day-of-quarter> method returns the day of the quarter.
 
-The C<day_of_year> method returns the day of the year, a value between 1
+The C<day-of-year> method returns the day of the year, a value between 1
 and 366.
 
-The method C<whole_second> returns the second truncated to an integer.
+The method C<whole-second> returns the second truncated to an integer.
 
 The following methods work as a sort of formatting methods:
 
@@ -150,7 +150,7 @@ The following methods work as a sort of formatting methods:
 The single argument of each of those methods is optional, but the above
 shows the defaults: C<'-'> for dates and C<':'> for times.
 
-The C<time_zone> method returns the C<DateTime::TimeZone> object for the
+The C<timezone> method returns the C<DateTime::TimeZone> object for the
 C<DateTime> object. The method C<offset> returns the offset from UTC, in
 seconds, of the C<DateTime> object according to the time zone.
 
@@ -165,7 +165,7 @@ its public accessor:
 
 The same methods exists for all the values you can set in the
 constructor: C<year>, C<month>, C<day>, C<hour>, C<minute>, C<second>,
-C<time_zone> and C<formatter>.  Also, there's a C<set> method, which
+C<timezone> and C<formatter>.  Also, there's a C<set> method, which
 accepts all of these as named arguments, allowing several values to be
 set at once:
 
@@ -175,12 +175,12 @@ Just as with the C<new> method, validation is performed on the resulting
 values, and an exception is thrown if the result isn't a sensible date
 and time.
 
-If you use the C<time_zone> public accessor to adjust the time zone, the
+If you use the C<timezone> public accessor to adjust the time zone, the
 local time zone is adjusted accordingly:
 
     my $dt = DateTime.new('2005-02-01T15:00:00+0900');
     say $dt.hour;     # 15
-    $dt.time_zone = '+0600';
+    $dt.timezone = '+0600';
     say $dt.hour;     # 12
 
 The C<truncate> method allows you to "clear" a number of time values
