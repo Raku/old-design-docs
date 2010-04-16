@@ -8,6 +8,7 @@ DRAFT: Synopsis 32: Setting Library - Temporal
 
     Carl Mäsak <cmasak@gmail.com>
     Martin Berends <mberends@autoexec.demon.nl>
+    Moritz Lenz <moritz@faui2k3.org>
     (and others named in FOOTNOTE at bottom)
 
 =head1 VERSION
@@ -73,6 +74,11 @@ the C<today> method instead:
 
 This has the same effect as doing C<DateTime.now().truncate('day')>; see
 '"Set" methods' below.
+
+Or if you want to extract the date as a C<Date> object (see below),
+you can use simple type coercion:
+
+    my $today = $datetime.Date;
 
 General dates can be specified through the C<new> constructor:
 
@@ -194,6 +200,62 @@ inherent defaults: 1 for months and days, 0 for the time components.
 If you pass in C<< :to<week> >>, the C<DateTime> object is set to the
 Monday of the week in which it occurs, and the time components are all
 set to 0.
+
+=head1 Date
+
+C<Date> objects represent a day without a time component, and allow easier
+manipulation by assuming that integers always mean days.
+
+Days, Months and days of week are 1-based.
+
+=head2 Constructors
+
+    Date.today();               # today's date
+    Date.new('2010-12-24');     # YYYY-MM-DD format
+    Date.new(:year(2010), :month(12), :day(24));
+    Date.new(2010, 12, 24);
+
+The constructors die with a helpful error message if month or day are out of
+range.
+
+=head2 Accessors
+
+The following accessors are pretty obvious, and are defined by example only.
+See the test suite for more formal definitions.
+
+    my $d = Date.new('2010-12-24');
+    $d.year             # 2010
+    $d.month            # 12
+    $d.day              # 24
+    $d.day-of-week      # 5     # Friday
+    $d.is-leap-year     # Bool::False
+    $d.days-in-month    # 31
+    $d.Str              # '2010-12-24'
+
+=head2 Arithmetics
+
+    $d.succ                     # Date.new('2010-12-25')
+    $d.pred                     # Date.new('2010-12-23')
+    $d - Date.new('1984-03-02') # 9793      # (difference in days)
+    $d - 42                     # Date.new('2010-11-12')
+    $d + 3                      # Date.new('2010-12-27')
+    3  + $d                     # Date.new('2010-12-27')
+
+=head2 Semi-internal methods
+
+[This section is severely conjectural]
+
+For efficient implementation of arithmetics on C<Date> objects, two more
+methods are exposed:
+
+    $d.daycount
+    Date.new-from-daycount(Int $daycount)
+
+The C<daycount> method returns the difference of number of days between the
+current object and an arbitrary start of epoch. This epoch is arbitrary and
+implementation dependent, and is even allowed to change between invocations of
+the same program. The C<new-from-daycount> constructor creates a new C<Date>
+object with a given daycount.
 
 =head1 Additions
 
