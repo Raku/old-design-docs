@@ -67,19 +67,6 @@ constructor that does this for you:
 
     my $now = DateTime.now();
 
-If you're interested in the current date but not the time, you can use
-the C<today> method instead:
-
-    my $today = DateTime.today();
-
-This has the same effect as doing C<DateTime.now().truncate('day')>; see
-'"Set" methods' below.
-
-Or if you want to extract the date as a C<Date> object (see below),
-you can use simple type coercion:
-
-    my $today = $datetime.Date;
-
 General dates can be specified through the C<new> constructor:
 
     my $moonlanding = DateTime.new( :year(1969), :month(7), :day(16),
@@ -95,6 +82,10 @@ The full list of named arguments is as follows:
     :second     defaults to 0   range 0.0..^62.0
     :timezone   defaults to '+0000' (UTC)
     :formatter  defaults to an iso8601 formatter, see below
+
+Another multi exists with C<Date :date>
+instead of C<:year>, C<:month> and C<:day> (and the same defaults as listed
+above).
 
 A shorter way to send in date and time information to is providing a
 single string with a full ISO8601 date and time. The example from above
@@ -156,6 +147,9 @@ The following methods work as a sort of formatting methods:
 The single argument of each of those methods is optional, but the above
 shows the defaults: C<'-'> for dates and C<':'> for times.
 
+The C<Date> method returns a C<Date> object, and is the same as
+C<Date.new(|$dt.ymd)>.
+
 The C<timezone> method returns the C<DateTime::TimeZone> object for the
 C<DateTime> object. The method C<offset> returns the offset from UTC, in
 seconds, of the C<DateTime> object according to the time zone.
@@ -203,14 +197,15 @@ set to 0.
 
 =head1 Date
 
-C<Date> objects represent a day without a time component, and allow easier
-manipulation by assuming that integers always mean days.
+C<Date> objects are immutable and represent a day without a time component.
+They allow easier manipulation by assuming that integers always mean days.
 
 Days, Months and days of week are 1-based.
 
 =head2 Constructors
 
     Date.today();               # today's date
+    Date.new(DateTime.now);     # same
     Date.new('2010-12-24');     # YYYY-MM-DD format
     Date.new(:year(2010), :month(12), :day(24));
     Date.new(2010, 12, 24);
