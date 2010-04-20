@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 10 Apr 2010
-    Version: 213
+    Last Modified: 19 Apr 2010
+    Version: 214
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1291,7 +1291,7 @@ addition and subtraction of C<Duration> values.  Note that the
 C<Duration> values are still just atomic time without any cultural
 deformations; in particular, the C<Duration> formed of by subtracting
 C<Instant::Epoch::POSIX> from the current instant will contain more
-seconds than the current POSIX time due to POSIX's abysmal ignorance
+seconds than the current POSIX C<time()> due to POSIX's abysmal ignorance
 of leap seconds.  This is not the fault of the universe, which is
 not fooled (neglecting relativistic considerations).  C<Instant>s and
 C<Duration>s are always linear atomic seconds.  Systems which cannot
@@ -1313,6 +1313,30 @@ can find the difference in integer seconds between two years, since
 (so far) nobody has had the nerve to propose fractional leap seconds.
 Or whatever.  C<Instant> is opaque, so we can swap implementations
 in and out without user-visible consequences.
+
+The term C<now> returns the current time as an C<Instant>.  As with the
+C<rand> and C<self> terms, it is not a function, so don't put parens after it.
+It also never looks for arguments, so the next token should be an operator
+or terminator.
+
+    now + 300   # the instant five minutes from now
+
+Basic math operations are defined for instants and durations such
+that the sum of an instant and a duration is always an instant,
+while the difference of two instants is always a duration.  Math on
+instants may only be done with durations (or numbers that will
+be taken as durations, as above); you may not add two instants.
+
+    $instant + $instant      # WRONG
+    $instant - $instant      # ok, returns a duration
+    $instant + $duration     # ok, returnas an instant
+
+Durations allow additive operations with other durations, and allow
+any numeric operation with a number as the other argument:
+
+    $duration * $duration    # WRONG, durations aren't geometric
+    $duration * 2            # ok, a duration twice as long
+    2 * $duration            # same
 
 These types do (at least) the following roles:
 
