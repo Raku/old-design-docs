@@ -378,6 +378,30 @@ canonicalized($how)> are allowed on the positional elements.
 For a C<max> function that does not require an ordering, see the
 C<[max]> reduction operator.
 
+=item minmax
+
+ our multi method minmax( @values: *&by )
+ our multi method minmax( @values: Ordering @by )
+ our multi method minmax( @values: Ordering $by = &infix:<cmp> )
+
+ our multi minmax( Ordering @by,  *@values )
+ our multi minmax( Ordering $by,  *@values )
+
+Returns the earliest (i.e., lowest index) minimum and maximum elements
+of C<@values> , using criteria C<$by> or C<@by> for
+comparisons. C<@by> differs from C<$by> in that each criterion
+is applied, in order, until a non-zero (tie) result is achieved.
+
+C<Ordering> is as described in L<"Type Declarations">.  Any
+C<Ordering> may receive the mixin C<canonicalized(Code $how)> to
+adjust the case, sign, or other order sensitivity of C<cmp>.
+(Mixins are applied to values using C<but>.)  If a C<Signature>
+is used as an C<Ordering> then sort-specific traits such as C<is
+canonicalized($how)> are allowed on the positional elements.
+
+For a C<minmax> function that does not require an ordering, see the
+C<[minmax]> reduction operator.
+
 =item any
 
  our Junction multi method any( @values: )
