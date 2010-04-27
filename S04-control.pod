@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 18 Feb 2010
-    Version: 97
+    Last Modified: 27 Apr 2010
+    Version: 98
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -172,7 +172,8 @@ There is a new C<state> declarator that introduces a lexically scoped
 variable like C<my> does, but with a lifetime that persists for the
 life of the closure, so that it keeps its value from the end of one
 call to the beginning of the next.  Separate clones of the closure
-get separate state variables.
+get separate state variables.  However, recursive calls to the same
+clone use the same state variable.
 
 Perl 5's "C<local>" function has been renamed to C<temp> to better
 reflect what it does.  There is also a C<let> function that sets a
@@ -1626,24 +1627,24 @@ remain in existence over the life of the reference.)
 In particular, named subroutines are a special problem when embedded in
 a changing lexical scope (when they make reference to it).  The binding
 of such a definition to a name within a symbol table counts as taking
-a reference, so at compile time there is an initial C<::=> binding
+a reference, so at compile time there is an initial binding
 to the symbol table entry in question.  For "global" bindings to
 symbol tables visible at compile time, this binds to the compile-time
 view of the lexical scopes.  (At run-time, the initial run-time view
 of these scopes is copied from the compiler's view of them, so that
 initializations carry over, for instance.)  At run time, when such
-a subroutine is cloned, an additional C<:=> binding is done
-at clone time to the same symbol table entry that the original C<::=>
+a subroutine is cloned, an additional binding is done
+at clone time to the same symbol table entry that the original
 was bound to.  (The binding is not restored on exit from the current
-lexical scope; this C<:=> binding records the I<last> cloning, not
+lexical scope; this binding records the I<last> cloning, not
 the currently in-use cloning, so any use of the global reference must
 take into consideration that it is functioning only as a cache of the
 most recent cloning, not as a surrogate for the current lexical scope.)
 
 Lexical names do not share this problem, since the symbol goes out
 of scope synchronously with its usage.  Unlike global subs, they
-do not need a compile-time C<::=> binding, but like global subs,
-they perform a C<:=> binding to the lexical symbol at clone time
+do not need a compile-time binding, but like global subs,
+they perform a binding to the lexical symbol at clone time
 (again, conceptually at the entry to the outer lexical scope, but
 possibly deferred.)
 
