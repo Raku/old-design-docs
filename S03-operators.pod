@@ -50,7 +50,7 @@ each level:
     R  Conditional       ?? !! ff fff
     R  Item assignment   = := ::= => += -= **= xx= .=
     L  Loose unary       so not
-    X  Comma operator    , p5=> :
+    X  Comma operator    , :
     X  List infix        Z minmax X X~ X* Xeqv ... E
     R  List prefix       print push say die map substr ... [+] [*] any $ @
     X  Loose and         and andthen
@@ -1635,32 +1635,6 @@ C<< infix:<,> >>, the argument separator
 
 Unlike in Perl 5, comma operator never returns the last value.  (In item
 context it returns a list instead.)
-
-=item *
-
-C<< infix:«p5=>» >>, the Perl 5 fatarrow
-
-This operator, which behaves exactly like the Perl 5 fatarrow in being
-equivalent to a comma, is purely for easier migration from Perl 5
-to Perl 6.  It is not intended for use by programmers in fresh code;
-it is for use by the p5-to-p6 translator to preserve Perl 5 argument
-passing semantics without losing the intent of the notation.
-
-This operator is purposefully ugly and easy to search for.  Note that,
-since the operator is equivalent to a comma, arguments come in as
-positional pairs rather than named arguments.  Hence, if you have
-a Perl 5 sub that manually handles named argument processing by
-assigning to a hash, it will continue to work.  If, however, you edit
-the C<< p5=> >> operator in an argument list to Perl 6's C<< => >>
-operator, it becomes a real named argument, so you must also change
-the called sub to handle real named args, since the named pair will no
-longer come in via C<@_>.  You can either name your formal parameters
-explicitly if there is an explicit signature, or pull them out of C<%_>
-rather than C<@_> if there is no explicit signature.
-
-[This operator will not actually be supplied by the core Perl 6 language
-but only by the translator as a macro, so don't write any new
-code with it.]
 
 =item *
 
