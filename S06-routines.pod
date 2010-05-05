@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 26 Mar 2010
-    Version: 131
+    Last Modified: 5 May 2010
+    Version: 132
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -82,6 +82,62 @@ A modifier keyword may occur before the routine keyword in a named routine:
 If the routine keyword is omitted, it defaults to C<sub>.
 
 Modifier keywords cannot apply to anonymous routines.
+
+When you call any routine (or method, or rule) that may have multiple
+candidates, the C<proto> is always called first (at least in the abstract--this
+can often be optimized away).  In essence, a proto is dispatched exactly like
+an C<only> sub, but the proto itself may delegate to any of the candidates
+it is "managing".
+
+It is the proto's responsibility to first vet the arguments for all the
+candidates; any call that does not match the proto's signature fails outright.
+Named arguments that bind to positionals in the proto sig will become positionals
+for all subsequent calls to its managed multis.
+
+The proto then builds (or otherwise acquires) a list of its managed candidates
+from the viewpoint of the caller or object, sorts them into some order,
+and dispatches them according to the rules of multiple dispatch as defined
+for each of the various dispatchers.
+
+This default behavior is implied by an empty body on the proto.  It may
+be overridden with an explicit proto body.  The default dispatcher may be
+called from within the body using 'nextsame'.  (That is, an empty body C<{}>
+is equivalent to C<{nextsame;}>.)
+
+The syntactic form C<&foo> (without a modifying signature) can never refer to
+a multi candidate.  It may only refer to the single C<only> or C<proto> routine
+that would first be called by C<foo()>.  Individual multis may be named by
+appending a signature to the noun form: C<&foo:($,$,*@)>.
+
+We used the term "managed" loosely above to indicate the set of multis in
+question; the "managed set" is more accurately defined as the intersection
+of all the multis in the proto's downward scope with all the multis that
+are visible to the caller's upward-looking scope.  For ordinary routines
+this means looking down lexical scopes and looking up lexical scopes.  [This
+is more or less how multis already behave.]
+
+For methods this means looking down or up the inheritance tree; "managed set"
+in this case translates to the intersection of all methods in the proto's
+class or its subclasses with all multi methods visible to the object in its
+parent classes, that is, the parent classes of the object's actual type on
+whose behalf the method was called.  [Note, this is a change from prior
+multi method semantics, which restricted multimethods to a single class;
+the old semantics is equivalent to defining a proto in every class that has
+multimethods.  The new way gives the user the ability to intermix multis at
+different inheritance levels.  (The first versoin of Rakudo * is not expected
+to implement this).]
+
+Also, the old semantics of C<proto> providing the most-default multi body
+is hereby deprecated.  Default multis should be marked with "C<is default>".
+
+It is still possible to provide default behavior in the proto, however, by
+use of C<callsame> rather than C<nextsame>:
+
+    my proto sub foo () {
+        do-something-before();
+        callsame;       # call into the managed set, then come back
+        do-something-after();
+    }
 
 =head2 Named subroutines
 
