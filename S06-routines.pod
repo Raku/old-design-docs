@@ -139,6 +139,24 @@ use of C<callsame> rather than C<nextsame>:
         do-something-after();
     }
 
+Note that, in addition to making multis work similarly to each other,
+the new proto semantics greatly simplify top-level dispatchers, which
+never have to worry about multis, because multis are always in the
+second half of the double dispatch (again, just in the abstract, since
+the first dispatch can often be optimized away, as if the proto were
+inlined).  So in the abstract, C<foo()> only ever calls a single
+only/proto routine, and We Know Which One It Is at compile time.
+
+This is less of a shift for method dispatch, which already assumed that there
+is something like a single proto in each class that redispatches inside
+the class.  Here the change is that multi-method dispatcher needs to look
+more widely for its candidates than the current class.  But note that our
+semantics were inconsistent before, insofar as regex methods already had to
+look for this larger managed set in order to do transitive LTM correctly.
+Now the semantics of normal method protos and regex protos are nearly
+identical, apart from the fact that regex candidate lists naturally have
+fancier tiebreaking rules involving longest token matching.
+
 =head2 Named subroutines
 
 The general syntax for named subroutines is any of:
