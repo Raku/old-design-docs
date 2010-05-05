@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 5 apr 2010
-    Version: 118
+    Last Modified: 5 May 2010
+    Version: 119
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -33,6 +33,30 @@ to be treated as declarative, and which parts as procedural.
 
 In any case, when referring to recursive patterns within a grammar,
 the terms I<rule> and I<token> are generally preferred over I<regex>.
+
+=head1 Overview
+
+In essence, Perl 6 natively implements Parsing Expression Grammars (PEGs)
+as an extension of regular expression notation.  PEGs require that you
+provide a "pecking order" for ambiguous parses.  Perl 6's packing order
+is determined by a multi-level tie-breaking test:
+
+    1) Longest token matching: food\s+ beats foo by 2 or more positions
+    2) Longest literal prefix: food\w* beats foo\w* by 1 position
+    3) Declaration from most-derived grammar beats less-derived
+    4) Within a given compilation unit, earlier declaration wins
+    5) Declaration with least number of 'uses' wins
+
+Note that tiebreaker #5 can occur only when a grammar is monkey-patched
+from another compilation unit.  Like #3, it privileges local declarations
+over distant ones.
+
+In addition to this pecking order, if any rule chosen under the pecking
+backtracks, the next best rule is chosen.  That is, the pecking order
+determines a candidate list; just because one candidate is chosen does not
+mean the rest are thrown away.  They may, however, be explicitly thrown away
+by an appropriate backtracking control (sometimes called a "cut" operator,
+but Perl6 has several of them, depending on how much you want to cut).
 
 =head1 New match result and capture variables
 
