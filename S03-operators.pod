@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 27 Apr 2010
-    Version: 202
+    Last Modified: 6 May 2010
+    Version: 203
 
 =head1 Overview
 
@@ -4575,14 +4575,22 @@ the order of the metaoperators:
 
 =head2 Nesting of metaoperators
 
-Any ordinary infix operator may be enclosed in square brackets
-with the same meaning.  You may therefore use square brackets
+Anywhere you may use an ordinary infix operator, you may use the infix operator enclosed in square brackets
+with the same meaning.  (No whitespace is allowed.)  You may therefore use square brackets
 within a metatoken to disambiguate sequences that might
 otherwise be misinterpreted, or to force a particular order
 of application when there are multiple metaoperators in the metatoken:
 
     @a [X+]= @b
     @a X[+=] @b
+
+Since metatokens may never be disambiguated with internal whitespace,
+use of brackets is especially useful when the operator and its
+associated metaoperator share characters that would be confusing to the
+reader, even if not to the compiler:
+
+    @a >>>>> $b        # huh?
+    @a >>[>]>> $b      # oh yeah
 
 Any infix function may be referred to as a noun either by the normal long
 form or a short form using square brackets directly after the C<&> sigil:
