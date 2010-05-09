@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 19 Apr 2010
-    Version: 214
+    Last Modified: 8 May 2010
+    Version: 215
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -4501,74 +4501,77 @@ be temporized with C<temp>, or hypotheticalized with C<let>.
 Lexing in Perl 6 is controlled by a system of grammatical categories.
 At each point in the parse, the lexer knows which subset of the
 grammatical categories are possible at that point, and follows the
-longest-token rule across all the active grammatical categories.
-The grammatical categories that are active at any point are specified
-using a regex construct involving a set of magical hashes.  For example,
-the matcher for the beginning of a statement might look like:
+longest-token rule across all the active alternatives, including those
+representing any grammatical categories that are ready to match.  
+See L<S05> for a detailed description of this process.
 
-    <%statement_control
-    | %scope_declarator
-    | %prefix
-    | %prefix_circumfix_meta_operator
-    | %circumfix
-    | %quote
-    | %term
-    >
+To get a list of the current categories, grep 'token category:' from STD.pm6.
 
-(Ordering of grammatical categories within such a construct matters
-only in case of a "tie", in which case the grammatical category that
-is notionally "first" wins.  For instance, given the example above, a
-statement_control is always going to win out over a prefix operator of
-the same name.  And the reason you can't call a function named "if"
-directly as a list operator is because it would be hidden either by
-the statement_control category at the beginning of a statement or by
-the statement_modifier category elsewhere in the statement.  Only the
-C<if(...)> form unambiguously calls an "if" function, and even that
-works only because statement controls and statement modifiers require
-subsequent whitespace, as do list operators.)
+Category names are used as the short name of both various operators
+and the rules that parse them, though the latter include an extra "sym":
 
-Here are the current grammatical categories:
+    infix:<cmp>           # the infix cmp operator
+    infix:sym<cmp>        # the rule that parses cmp
 
-    category:<prefix>                           prefix:<+>
-    circumfix:<[ ]>                             [ @x ]
-    dotty:<.=>                                  $obj.=method
-    infix_circumfix_meta_operator:('»','«')     @a »+« @b
-    infix_postfix_meta_operator:<=>             $x += 2;
-    infix_prefix_meta_operator:<!>              $x !~~ 2;
-    infix:<+>                                   $x + $y
-    package_declarator:<role>                   role Foo;
-    postcircumfix:<[ ]>                         $x[$y] or $x.[$y]
-    postfix_prefix_meta_operator:('»')          @array »++
-    postfix:<++>                                $x++
-    prefix_circumfix_meta_operator:('[',']')    [*]
-    prefix_postfix_meta_operator:('«')          -« @magnitudes
-    prefix:<!>                                  !$x (and $x.'!')
-    q_backslash:<\\>                            '\\'
-    qq_backslash:<n>                            "\n"
-    quote_mod:<x>                               q:x/ ls /
-    quote:<qq>                                  qq/foo/
-    regex_assertion:<!>                         /<!before \h>/
-    regex_backslash:<w>                         /\w/ and /\W/
-    regex_metachar:<.>                          /.*/
-    regex_mod_internal:<P5>                     m:/ ... :P5 ... /
-    routine_declarator:<sub>                    sub foo {...}
-    scope_declarator:<has>                      has $.x;
-    sigil:<%>                                   %hash
-    special_variable:<$!>                       $!
-    statement_control:<if>                      if $condition { 1 } else { 2 }
-    statement_mod_cond:<if>                     .say if $condition
-    statement_mod_loop:<for>                    .say for 1..10
-    statement_prefix:<gather>                   gather for @foo { .take }
-    term:<!!!>                                  $x = { !!! }
-    trait_auxiliary:<does>                      my $x does Freezable
-    trait_verb:<handles>                        has $.tail handles <wag>
-    twigil:<?>                                  $?LINE
-    type_declarator:<subset>                    subset Nybble of Int where ^16
-    version:<v>                                 v4.3.*
+As you can see, the extention of the name uses colon pair notation.
+The C<:sym> typically takes an argument giving the string name of the
+operator; some of the "circumfix" categories require two arguments
+for the opening and closing strings.  Since there are so many match
+rules whose symbol is an identifier, we allow a shorthand:
 
-Any category containing "circumfix" requires two token arguments, supplied
-in slice notation.  Note that many of these names do not represent real
-operators, and you wouldn't be able to call them even though you can name
-them.
+    infix:cmp             # same as infix:sym<cmp> (not infix:<cmp>)
+
+Conjecturally, we might also have other kinds of rules, such as tree rewrite rules:
+
+    infix:match<cmp>      # rewrite a match node after reducing its arguments
+    infix:ast<cmp>        # rewrite an ast node after reducing its arguments
+
+Within a grammar, matching the proto subrule <infix> will match all visible rules
+in the infix category as parallel alteratives, as if they were separated by 'C<|>'.
+
+Here are some of the names of parse rules in STD:
+
+    category:sym<prefix>                           prefix:<+>
+    circumfix:sym<[ ]>                             [ @x ]
+    dotty:sym<.=>                                  $obj.=method
+    infix_circumfix_meta_operator:sym['»','«']     @a »+« @b
+    infix_postfix_meta_operator:sym<=>             $x += 2;
+    infix_prefix_meta_operator:sym<!>              $x !~~ 2;
+    infix:sym<+>                                   $x + $y
+    package_declarator:sym<role>                   role Foo;
+    postcircumfix:sym<[ ]>                         $x[$y] or $x.[$y]
+    postfix_prefix_meta_operator:sym('»')          @array »++
+    postfix:sym<++>                                $x++
+    prefix_circumfix_meta_operator:sym<[ ]>       [*]
+    prefix_postfix_meta_operator:sym('«')          -« @magnitudes
+    prefix:sym<!>                                  !$x (and $x.'!')
+    quote:sym<qq>                                  qq/foo/
+    routine_declarator:sym<sub>                    sub foo {...}
+    scope_declarator:sym<has>                      has $.x;
+    sigil:sym<%>                                   %hash
+    special_variable:sym<$!>                       $!
+    statement_control:sym<if>                      if $condition { 1 } else { 2 }
+    statement_mod_cond:sym<if>                     .say if $condition
+    statement_mod_loop:sym<for>                    .say for 1..10
+    statement_prefix:sym<gather>                   gather for @foo { .take }
+    term:sym<!!!>                                  $x = { !!! }
+    trait_does:sym<does>                           my $x does Freezable
+    twigil:sym<?>                                  $?LINE
+    type_declarator:sym<subset>                    subset Nybble of Int where ^16
+
+Note that some of these produce correspondingly named operators,
+but not all of them.  When they do correspond (such as in the C<cmp>
+example above), this is by convention, not by enforcement.  (However,
+matching C<< <sym> >> within one of these rules instead of the literal
+operator makes it easier to set up this correspondence in subsequent
+processing.)
+
+The STD::Regex grammar also adds these:
+
+    assertion:sym<!>                         /<!before \h>/
+    backslash:sym<w>                         /\w/ and /\W/
+    metachar:sym<.>                          /.*/
+    mod_internal:sym<P5>                     m:/ ... :P5 ... /
+    quantifier:sym<*>                        /.*/
 
 =for vim:set expandtab sw=4:
