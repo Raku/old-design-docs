@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 5 May 2010
-    Version: 119
+    Last Modified: 17 May 2010
+    Version: 120
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -4100,6 +4100,31 @@ the "official" string result of the match, that is, the portion of
 the string between the C<$/.from> and C<$/.to> positions.
 (Here we set those explicitly using the C<< <(...)> >> pair; otherwise we
 would have had to use lookbehind to match the C<$>.)
+
+Please note that the C<:ii>/C<:samecase> and C<:aa>/C<:sameaccent>
+switches are really two different modifiers in one, and when the compiler desugars
+the quote-like forms it distributes semantics to both the pattern
+and the replacement.  That is, C<:ii> on the replacement implies a C<:i> on the
+pattern, and C<:aa> implies C<:a>.  The proper method equivalents to:
+
+    s:ii/foo/bar/
+    s:aa/boo/far/
+
+are not:
+
+    .subst(/foo/, 'bar', :ii)   # WRONG
+    .subst(/boo/, 'far', :aa)   # WRONG
+
+but rather:
+
+    .subst(rx:i/foo/, 'bar', :ii)   # okay
+    .subst(rx:a/boo/, 'far', :aa)   # okay
+
+It is specifically I<not> required of an implementation that it treat
+the regexes as generic with respect to case and accent.  Retroactive
+recompilation is considered harmful.  If an implement does do lazy
+generic case and accent semantics, it is erroneous and non-portable
+for a program to depend on it.
 
 =head1 Positional matching, fixed width types
 
