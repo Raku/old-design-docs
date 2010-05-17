@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 6 May 2010
-    Version: 203
+    Last Modified: 16 May 2010
+    Version: 204
 
 =head1 Overview
 
@@ -3432,6 +3432,10 @@ compilation unit).  Smart matching is generally done on the current
 left side of the C<~~> operator, or the argument to a C<given>,
 or to any other topicalizer.  C<X> represents the pattern to be
 matched against on the right side of C<~~>, or after a C<when>.
+(And, in fact, the C<~~> operator works as a small topicalizer; that is,
+it binds C<$_> to the value of the left side for the evaluation
+of the right side.  Use the underlying C<.ACCEPTS> form to avoid
+this topicalization.)
 
 The first section contains privileged syntax; if a match can be done
 via one of those entries, it will be.   These special syntaxes are
@@ -3456,22 +3460,16 @@ as a default because the more specific types listed above it didn't match.
 
     $_        X         Type of Match Implied   Match if (given $_)
     ======    =====     =====================   ===================
-    Any       Callable:($)  item sub truth          X($_)
-    Any       Callable:()   simple closure truth    X() (ignoring $_)
-    Any       !.defined     undefined               not .defined
-    Any       *         block signature match   block successfully binds to |$_
-    Any       .foo      method truth            ?X       i.e. ?.foo
-    Any       .foo(...) method truth            ?X       i.e. ?.foo(...)
-    Any       .(...)    sub call truth          ?X       i.e. ?.(...)
-    Any       .[...]    array value slice truth ?all(X)  i.e. ?all(.[...])
-    Any       .{...}    hash value slice truth  ?all(X)  i.e. ?all(.{...})
-    Any       .<...>    hash value slice truth  ?all(X)  i.e. ?all(.<...>)
     Any       True      ~~ True                 (parsewarn)
     Any       False     ~~ False match          (parsewarn)
+    Any       *         block signature match   block successfully binds to |$_
 
+    Any       Callable:($)  item sub truth          X($_)
+    Any       Callable:()   simple closure truth    X() (ignoring $_)
     Any       Bool      simple truth            X
     Any       Numeric   numeric equality        +$_ == X
     Any       Stringy   string equality         ~$_ eq X
+    Any       Whatever  always matches          True
 
     Hash      Pair      test hash mapping       $_{X.key} ~~ X.value
     Any       Pair      test object attribute   ?."{X.key}" === ?X.value (e.g. filetests)
