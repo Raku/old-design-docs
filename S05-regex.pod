@@ -17,7 +17,7 @@ Synopsis 5: Regexes and Rules
     Created: 24 Jun 2002
 
     Last Modified: 17 May 2010
-    Version: 120
+    Version: 121
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -210,7 +210,7 @@ the next character is a left parenthesis.)
 The single-character modifiers also have longer versions:
 
          :i        :ignorecase
-         :a        :ignoreaccent
+         :m        :ignoremark
          :g        :global
 
 =item *
@@ -256,8 +256,8 @@ included in the analysis.
 
 =item *
 
-The C<:a> (or C<:ignoreaccent>) modifier scopes exactly like C<:ignorecase>
-except that it ignores accents instead of case.  It is equivalent
+The C<:m> (or C<:ignoremark>) modifier scopes exactly like C<:ignorecase>
+except that it ignores marks (accents and such) instead of case.  It is equivalent
 to taking each grapheme (in both target and pattern), converting
 both to NFD (maximally decomposed) and then comparing the two base
 characters (Unicode non-mark characters) while ignoring any trailing
@@ -266,9 +266,9 @@ of determining the truth of the assertion; the actual text matched
 includes all ignored characters, including any that follow the final
 base character.
 
-The C<:aa> (or C<:sameaccent>) variant may be used on a substitution to change the
-substituted string to the same accent pattern as the matched string.
-Accent info is carried across on a character by character basis.  If
+The C<:mm> (or C<:samemark>) variant may be used on a substitution to change the
+substituted string to the same mark/accent pattern as the matched string.
+Mark info is carried across on a character by character basis.  If
 the right string is longer than the left one, the remaining characters
 are substituted without any modification.  (Note that NFD/NFC distinctions
 are usually immaterial, since Perl encapsulates that in grapheme mode.)
@@ -381,7 +381,7 @@ do.
 The C<:s> modifier is considered sufficiently important that
 match variants are defined for them:
 
-    mm/match some words/                        # same as m:sigspace
+    ms/match some words/                        # same as m:sigspace
     ss/match some words/replace those words/    # same as s:samespace
 
 Note that C<ss///> is defined in terms of C<:ss>, so:
@@ -929,9 +929,9 @@ next item succeeds.
 When significant space is used under C<:sigspace> with the separator
 form, it applies on both sides of the separator, so
 
-    mm/<element> ** ','/
-    mm/<element>** ','/
-    mm/<element> **','/
+    ms/<element> ** ','/
+    ms/<element>** ','/
+    ms/<element> **','/
 
 all allow whitespace around the separator like this:
 
@@ -939,7 +939,7 @@ all allow whitespace around the separator like this:
 
 while
 
-    mm/<element>**','/
+    ms/<element>**','/
 
 excludes all significant whitespace:
 
@@ -1089,8 +1089,8 @@ As with a scalar variable, each element is matched as a literal
 unless it happens to be a C<Regex> object, in which case it is matched
 as a subrule.  As with scalar subrules, a tainted subrule always fails.
 All string values pay attention to the current C<:ignorecase>
-and C<:ignoreaccent> settings, while C<Regex> values use their own
-C<:ignorecase> and C<:ignoreaccent> settings.
+and C<:ignoremark> settings, while C<Regex> values use their own
+C<:ignorecase> and C<:ignoremark> settings.
 
 When you get tired of writing:
 
@@ -2100,7 +2100,7 @@ without a subsequent C<?> or C<!>.
 Backtracking over a single colon causes the regex engine not to retry
 the preceding atom:
 
-     mm/ \( <expr> [ , <expr> ]*: \) /
+     ms/ \( <expr> [ , <expr> ]*: \) /
 
 (i.e. there's no point trying fewer C<< <expr> >> matches, if there's
 no closing parenthesis on the horizon)
@@ -2114,7 +2114,7 @@ Backtracking over a double colon causes the immediately surrounding
 group (usually but not always a group of alternations) to immediately
 fail:
 
-     mm/ [ if :: <expr> <block>
+     ms/ [ if :: <expr> <block>
          | for :: <list> <block>
          | loop :: <loop_controls>? <block>
          ]
@@ -2142,7 +2142,7 @@ outright (no matter where in the regex it occurs):
          || " [<alpha>|_] \w* "
      }
 
-     mm/ get <ident>? /
+     ms/ get <ident>? /
 
 (i.e. using an unquoted reserved word as an identifier is not permitted)
 
@@ -2154,7 +2154,7 @@ to fail outright, no matter how many subrules down it happens:
      regex subname {
          ([<alpha>|_] \w*) <commit> { fail if %reserved{$0} }
      }
-     mm/ sub <subname>? <block> /
+     ms/ sub <subname>? <block> /
 
 (i.e. using a reserved word as a subroutine name is instantly fatal
 to the I<surrounding> match as well)
@@ -2298,7 +2298,7 @@ This makes it easier to catch errors like this:
 
 As a special case, however, the first null alternative in a match like
 
-     mm/ [
+     ms/ [
          | if :: <expr> <block>
          | for :: <list> <block>
          | loop :: <loop_controls>? <block>
@@ -2308,7 +2308,7 @@ As a special case, however, the first null alternative in a match like
 is simply ignored.  Only the first alternative is special that way.
 If you write:
 
-     mm/ [
+     ms/ [
              if :: <expr> <block>              |
              for :: <list> <block>             |
              loop :: <loop_controls>? <block>  |
@@ -2575,24 +2575,24 @@ This construct does not set the C<.ast> attribute.
 When used as an array, a C<Match> object pretends to be an array of all
 its positional captures.  Hence
 
-     ($key, $val) = mm/ (\S+) => (\S+)/;
+     ($key, $val) = ms/ (\S+) => (\S+)/;
 
 can also be written:
 
-     $result = mm/ (\S+) '=>' (\S+)/;
+     $result = ms/ (\S+) '=>' (\S+)/;
      ($key, $val) = @$result;
 
 To get a single capture into a string, use a subscript:
 
-     $mystring = "{ mm/ (\S+) '=>' (\S+)/[0] }";
+     $mystring = "{ ms/ (\S+) '=>' (\S+)/[0] }";
 
 To get all the captures into a string, use a I<zen> slice:
 
-     $mystring = "{ mm/ (\S+) '=>' (\S+)/[] }";
+     $mystring = "{ ms/ (\S+) '=>' (\S+)/[] }";
 
 Or cast it into an array:
 
-     $mystring = "@( mm/ (\S+) '=>' (\S+)/ )";
+     $mystring = "@( ms/ (\S+) '=>' (\S+)/ )";
 
 Note that, as a scalar variable, C<$/> doesn't automatically flatten
 in list context.  Use C<@()> as a shorthand for C<@($/)> to flatten
@@ -2755,7 +2755,7 @@ I<subpattern>. For example:
         # |       subpattern  subpattern         |
         # |          __/\__    __/\__            |
         # |         |      |  |      |           |
-      mm/ (I am the (walrus), ( khoo )**2  kachoo) /;
+      ms/ (I am the (walrus), ( khoo )**2  kachoo) /;
 
 
 =item *
@@ -2790,7 +2790,7 @@ For example, if the following pattern matched successfully:
         # |         subpat-B  subpat-C          |
         # |          __/\__    __/\__           |
         # |         |      |  |      |          |
-      mm/ (I am the (walrus), ( khoo )**2 kachoo) /;
+      ms/ (I am the (walrus), ( khoo )**2 kachoo) /;
 
 then the C<Match> objects representing the matches made by I<subpat-B>
 and I<subpat-C> would be successively pushed onto the array inside I<subpat-
@@ -3076,7 +3076,7 @@ object. For example:
       # : $/<ident>   :        $/[0]<ident>         : :
       # :   __^__     :           __^__             : :
       # :  |     |    :          |     |            : :
-      mm/  <ident> \: ( known as <ident> previously ) /
+      ms/  <ident> \: ( known as <ident> previously ) /
 
 
 =back
@@ -3095,7 +3095,7 @@ C<$«bar»>, C<< $<baz> >>, etc.)  So the previous example also implies:
       #    $<ident>             $0<ident>
       #     __^__                 __^__
       #    |     |               |     |
-      mm/  <ident> \: ( known as <ident> previously ) /
+      ms/  <ident> \: ( known as <ident> previously ) /
 
 =item *
 
@@ -3124,7 +3124,7 @@ Successive matches of the same subrule (whether from separate calls, or
 from a single quantified repetition) append their individual C<Match>
 objects to this array. For example:
 
-     if mm/ mv <file> <file> / {
+     if ms/ mv <file> <file> / {
          $from = $<file>[0];
          $to   = $<file>[1];
      }
@@ -3136,14 +3136,14 @@ with whitespace on its own.)
 
 Likewise, with a quantified subrule:
 
-     if mm/ mv <file> ** 2 / {
+     if ms/ mv <file> ** 2 / {
          $from = $<file>[0];
          $to   = $<file>[1];
      }
 
 And with a mixture of both:
 
-     if mm/ mv <file>+ <file> / {
+     if ms/ mv <file>+ <file> / {
          $to   = pop @($<file>);
          @from = @($<file>);
      }
@@ -3153,7 +3153,7 @@ And with a mixture of both:
 To avoid name collisions, you may suppress the original name by use
 of a leading dot, and then use an alias to give the capture a different name:
 
-     if mm/ mv <file> <dir=.file> / {
+     if ms/ mv <file> <dir=.file> / {
          $from = $<file>;  # Only one subrule named <file>, so scalar
          $to   = $<dir>;   # The Capture Formerly Known As <file>
      }
@@ -3163,7 +3163,7 @@ Likewise, neither of the following constructions causes C<< <file> >> to
 produce an array of C<Match> objects, since none of them has two or more
 C<< <file> >> subrules in the same lexical scope:
 
-     if mm/ (keep) <file> | (toss) <file> / {
+     if ms/ (keep) <file> | (toss) <file> / {
          # Each <file> is in a separate alternation, therefore <file>
          # is not repeated in any one scope, hence $<file> is
          # not an Array object...
@@ -3171,7 +3171,7 @@ C<< <file> >> subrules in the same lexical scope:
          $target = $<file>;
      }
 
-     if mm/ <file> \: (<file>|none) / {
+     if ms/ <file> \: (<file>|none) / {
          # Second <file> nested in subpattern which confers a
          # different scope...
          $actual  = $/<file>;
@@ -3183,7 +3183,7 @@ C<< <file> >> subrules in the same lexical scope:
 On the other hand, unaliased square brackets don't confer a separate
 scope (because they don't have an associated C<Match> object). So:
 
-     if mm/ <file> \: [<file>|none] / { # Two <file>s in same scope
+     if ms/ <file> \: [<file>|none] / { # Two <file>s in same scope
          $actual  = $/<file>[0];
          $virtual = $/<file>[1] if $/<file>[1];
      }
@@ -3210,7 +3210,7 @@ If a named scalar alias is applied to a set of I<capturing> parens:
         #         _____/capturing parens\_____
         #        |                            |
         #        |                            |
-      mm/ $<key>=( (<[A..E]>) (\d**3..6) (X?) ) /;
+      ms/ $<key>=( (<[A..E]>) (\d**3..6) (X?) ) /;
 
 then the outer capturing parens no longer capture into the array of
 C<$/> as unaliased parens would. Instead the aliased parens capture
@@ -3268,7 +3268,7 @@ If a named scalar alias is applied to a set of I<non-capturing> brackets:
         #         __/non-capturing brackets\__
         #        |                            |
         #        |                            |
-      mm/ $<key>=[ (<[A..E]>) (\d**3..6) (X?) ] /;
+      ms/ $<key>=[ (<[A..E]>) (\d**3..6) (X?) ] /;
 
 then the corresponding C<< $/<key> >> C<Match> object contains only the string
 matched by the non-capturing brackets.
@@ -3333,7 +3333,7 @@ Hence aliasing a dotted subrule I<changes> the destination of the subrule's C<Ma
 object. This is particularly useful for differentiating two or more calls to
 the same subrule in the same scope. For example:
 
-     if mm/ mv <file>+ <dir=.file> / {
+     if ms/ mv <file>+ <dir=.file> / {
          @from = @($<file>);
          $to   = $<dir>;
      }
@@ -3439,7 +3439,7 @@ contain an array, instead of a single C<Match> object.
 In other words, aliasing and quantification are completely orthogonal.
 For example:
 
-     if mm/ mv $0=<.file>+ / {
+     if ms/ mv $0=<.file>+ / {
          # <file>+ returns a list of Match objects,
          # so $0 contains an array of Match objects,
          # one for each successful call to <file>
@@ -3492,7 +3492,7 @@ This is useful for creating consistent capture semantics across
 structurally different alternations (by enforcing array captures in all
 branches):
 
-     mm/ Mr?s? @<names>=<ident> W\. @<names>=<ident>
+     ms/ Mr?s? @<names>=<ident> W\. @<names>=<ident>
         | Mr?s? @<names>=<ident>
         /;
 
@@ -3506,7 +3506,7 @@ branches):
 For convenience and consistency, C<< @<key> >> can also be used outside a
 regex, as a shorthand for C<< @( $/<key> ) >>. That is:
 
-     mm/ Mr?s? @<names>=<ident> W\. @<names>=<ident>
+     ms/ Mr?s? @<names>=<ident> W\. @<names>=<ident>
         | Mr?s? @<names>=<ident>
         /;
 
@@ -3518,13 +3518,13 @@ If an array alias is applied to a quantified pair of non-capturing
 brackets, it captures the substrings matched by each repetition of the
 brackets into separate elements of the corresponding array. That is:
 
-     mm/ mv $<files>=[ f.. \s* ]* /; # $/<files> assigned a single
+     ms/ mv $<files>=[ f.. \s* ]* /; # $/<files> assigned a single
                                      # Match object containing the
                                      # complete substring matched by
                                      # the full set of repetitions
                                      # of the non-capturing brackets
 
-     mm/ mv @<files>=[ f.. \s* ]* /; # $/<files> assigned an array,
+     ms/ mv @<files>=[ f.. \s* ]* /; # $/<files> assigned an array,
                                      # each element of which is a
                                      # Match object containing
                                      # the substring matched by Nth
@@ -3540,7 +3540,7 @@ C<Match> object returned by one repetition of the subpattern. That is,
 an array alias on a subpattern flattens and collects all nested
 subpattern captures within the aliased subpattern. For example:
 
-     if mm/ $<pairs>=( (\w+) \: (\N+) )+ / {
+     if ms/ $<pairs>=( (\w+) \: (\N+) )+ / {
          # Scalar alias, so $/<pairs> is assigned an array
          # of Match objects, each of which has its own array
          # of two subcaptures...
@@ -3552,7 +3552,7 @@ subpattern captures within the aliased subpattern. For example:
      }
 
 
-     if mm/ @<pairs>=( (\w+) \: (\N+) )+ / {
+     if ms/ @<pairs>=( (\w+) \: (\N+) )+ / {
          # Array alias, so $/<pairs> is assigned an array
          # of Match objects, each of which is flattened out of
          # the two subcaptures within the subpattern
@@ -3572,7 +3572,7 @@ repetition of the subrule, all flattened into a single array:
 
      rule pair { (\w+) \: (\N+) \n }
 
-     if mm/ $<pairs>=<pair>+ / {
+     if ms/ $<pairs>=<pair>+ / {
          # Scalar alias, so $/<pairs> contains an array of
          # Match objects, each of which is the result of the
          # <pair> subrule call...
@@ -3584,7 +3584,7 @@ repetition of the subrule, all flattened into a single array:
      }
 
 
-     if mm/ mv @<pairs>=<pair>+ / {
+     if ms/ mv @<pairs>=<pair>+ / {
          # Array alias, so $/<pairs> contains an array of
          # Match objects, all flattened down from the
          # nested arrays inside the Match objects returned
@@ -3669,7 +3669,7 @@ C<Match> object is stored:
 
      rule one_to_many {  (\w+) \: (\S+) (\S+) (\S+) }
 
-     if mm/ %0=<one_to_many>+ / {
+     if ms/ %0=<one_to_many>+ / {
          # $/[0] contains a hash, in which each key is provided by
          # the first subcapture within C<one_to_many>, and each
          # value is an array containing the
@@ -3761,14 +3761,14 @@ As with any multidimensional list, each sublist can be lazy separately.
 
 For example:
 
-     if $text ~~ mm:g/ (\S+:) <rocks> / {
+     if $text ~~ ms:g/ (\S+:) <rocks> / {
          say "Full match context is: [$/]";
      }
 
 But the list of individual match objects corresponding to each separate
 match is also available:
 
-     if $text ~~ mm:g/ (\S+:) <rocks> / {
+     if $text ~~ ms:g/ (\S+:) <rocks> / {
          say "Matched { +@().slice } times";    # Note: forced eager here by +
 
          for @().slice -> $m {
@@ -4101,29 +4101,29 @@ the string between the C<$/.from> and C<$/.to> positions.
 (Here we set those explicitly using the C<< <(...)> >> pair; otherwise we
 would have had to use lookbehind to match the C<$>.)
 
-Please note that the C<:ii>/C<:samecase> and C<:aa>/C<:sameaccent>
+Please note that the C<:ii>/C<:samecase> and C<:mm>/C<:samemark>
 switches are really two different modifiers in one, and when the compiler desugars
 the quote-like forms it distributes semantics to both the pattern
 and the replacement.  That is, C<:ii> on the replacement implies a C<:i> on the
-pattern, and C<:aa> implies C<:a>.  The proper method equivalents to:
+pattern, and C<:mm> implies C<:m>.  The proper method equivalents to:
 
     s:ii/foo/bar/
-    s:aa/boo/far/
+    s:mm/boo/far/
 
 are not:
 
     .subst(/foo/, 'bar', :ii)   # WRONG
-    .subst(/boo/, 'far', :aa)   # WRONG
+    .subst(/boo/, 'far', :mm)   # WRONG
 
 but rather:
 
     .subst(rx:i/foo/, 'bar', :ii)   # okay
-    .subst(rx:a/boo/, 'far', :aa)   # okay
+    .subst(rx:m/boo/, 'far', :mm)   # okay
 
 It is specifically I<not> required of an implementation that it treat
-the regexes as generic with respect to case and accent.  Retroactive
+the regexes as generic with respect to case and mark.  Retroactive
 recompilation is considered harmful.  If an implementatoin does do lazy
-generic case and accent semantics, it is erroneous and non-portable
+generic case and mark semantics, it is erroneous and non-portable
 for a program to depend on it.
 
 =head1 Positional matching, fixed width types
