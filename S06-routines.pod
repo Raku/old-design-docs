@@ -192,6 +192,27 @@ But one can also use the C<anon> scope modifier to introduce the return type fir
 
     anon RETTYPE sub ( PARAMS ) TRAITS {...}
 
+When an anonymous subroutine will be assigned to a scalar variable,
+the variable can be declared with the signature of the routines that
+will be assigned to it:
+
+    my &:(Str, int, int --> Grammar) $grammar_factory;
+    $grammar_factory = sub (Str $name, int $n, int $x --> Grammar) { ... }; 
+
+Covariance allows a routine (that has a more derived return type than what is
+defined in the scalar's signature) to be assigned to that scalar.
+Contravariance allows a routine (with parameter types that are less derived
+than those in the scalar's signature) to be assigned to that scalar. The
+compiler may choose to enforce (by type-checking) such assignments at
+compile-time, if possible. Such type annotations are intended to help the
+compiler optimize code to the extent such annotations are included and/or to
+the extent they aid in type inference.
+
+The same signature can be used to mark the type of a closure parameter to
+another subroutine:
+
+    sub (int $n, &:(Str, int, int --> Grammar) --> Str) { ... }
+
 B<Trait> is the name for a compile-time (C<is>) property.
 See L<"Properties and traits">.
 
