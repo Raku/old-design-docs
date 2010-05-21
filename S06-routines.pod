@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 13 May 2010
-    Version: 133
+    Last Modified: 21 May 2010
+    Version: 134
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -196,7 +196,7 @@ When an anonymous subroutine will be assigned to a scalar variable,
 the variable can be declared with the signature of the routines that
 will be assigned to it:
 
-    my &:(Str, int, int --> Grammar) $grammar_factory;
+    my $grammar_factory:(Str, int, int --> Grammar);
     $grammar_factory = sub (Str $name, int $n, int $x --> Grammar) { ... }; 
 
 Covariance allows a routine (that has a more derived return type than what is
@@ -211,7 +211,7 @@ the extent they aid in type inference.
 The same signature can be used to mark the type of a closure parameter to
 another subroutine:
 
-    sub (int $n, &:(Str, int, int --> Grammar) $g_fact --> Str) { ... }
+    sub (int $n, &g_fact:(Str, int, int --> Grammar) --> Str) { ... }
 
 B<Trait> is the name for a compile-time (C<is>) property.
 See L<"Properties and traits">.
@@ -462,8 +462,8 @@ a one or more strings.  So any of these indicates the same binary addition opera
     infix:<+>
     infix:«+»
     infix:<<+>>
-    infix:('+')
-    infix:("+")
+    infix:['+']
+    infix:["+"]
 
 Use the C<&> sigil just as you would on ordinary subs.
 
@@ -482,7 +482,7 @@ containing the leading and trailing delimiters is the name of the
 operator.
 
     sub circumfix:<LEFTDELIM RIGHTDELIM> ($contents) {...}
-    sub circumfix:('LEFTDELIM','RIGHTDELIM') ($contents) {...}
+    sub circumfix:['LEFTDELIM','RIGHTDELIM'] ($contents) {...}
 
 Contrary to Apocalypse 6, there is no longer any rule about splitting an even
 number of characters.  You must use a two-element slice.  Such names
@@ -492,12 +492,9 @@ directly (as in C<< PKG::{'infix:<+>'} >>).  Otherwise any form will
 do.  (Symbolic references do not count as direct subscripts since they
 go through a parsing process.)  The canonical form always uses angle
 brackets and a single space between slice elements.  The elements
-are not escaped, so C<< PKG::circumfix:('<','>') >> is canonicalized
-to C<<< PKG::{'circumfix:<< >>'} >>>, and decanonicalizing always
-involves stripping the outer angles and splitting on space, if any.
-This works because a hash key knows how long it is, so there's no
-ambiguity about where the final angle is.  And space works because
-operators are not allowed to contain spaces.
+are escaped on brackets, so C<< PKG::circumfix:['<','>'] >> is canonicalized
+to C<<< PKG::{'circumfix:<\< \>>'} >>>, and decanonicalizing may always
+be done left-to-right.
 
 Operator names can be any sequence of non-whitespace characters
 including Unicode characters. For example:
@@ -1937,16 +1934,16 @@ C<equiv> may be useful for cloning other traits of these operators.)
     circumfix:<( )>
     dotty:<.>
     infix:<+>
-    infix_circumfix_meta_operator:('»','«')
+    infix_circumfix_meta_operator:['»','«']
     infix_postfix_meta_operator:<=>
     infix_prefix_meta_operator:<!>
     package_declarator:<class>
     postcircumfix:<( )>
     postfix:<++>
-    postfix_prefix_meta_operator:('»')
+    postfix_prefix_meta_operator:['»']
     prefix:<++>
-    prefix_circumfix_meta_operator:('[',']')
-    prefix_postfix_meta_operator:('«')
+    prefix_circumfix_meta_operator:['[',']']
+    prefix_postfix_meta_operator:['«']
     q_backslash:<\\>
     qq_backslash:<n>
     quote_mod:<c>
