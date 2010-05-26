@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 21 May 2010
-    Version: 205
+    Last Modified: 26 May 2010
+    Version: 206
 
 =head1 Overview
 
@@ -3118,21 +3118,28 @@ and not run the others at all.  Or if running in parallel, the first
 successful thread may terminate the other threads abruptly.  In general
 you probably want to avoid code with side effects in junctions.
 
-Use of negative operators with syntactically recognizable junctions may
-produce a warning on code that works differently in English than in Perl.
-Instead of writing
+Use of negative operators with junctions is potentially problematic if
+auththreaded naively.  However, by defining C<!=> and C<ne> in terms
+of the negation metaoperator, we automatically get the "not raising"
+that is expected by an English speaker.  That is
 
     if $a != 1 | 2 | 3 {...}
 
-you need to write
+really means
+
+    if $a ![==] 1 | 2 | 3 {...}
+
+which the metaoperator rewrites to a higher-order function resembling
+something like:
+
+    negate((* == *), $a, (1|2|3));
+
+which ends up being equivalent to:
 
     if not $a == 1 | 2 | 3 {...}
 
-However, this is only a syntactic warning, and
-
-    if $a != $b {...}
-
-will not complain if $b happens to contain a junction at runtime.
+which is the semantics an English speaker expects.  However, it may well
+be better style to write the latter form yourself.
 
 Junctive methods on arrays, lists, and sets work just like the
 corresponding list operators.  However, junctive methods on a hash
