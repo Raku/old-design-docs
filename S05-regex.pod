@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 17 May 2010
-    Version: 121
+    Last Modified: 26 May 2010
+    Version: 122
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -461,12 +461,21 @@ which is the same as:
 
      m/(\d+)/ && m:c/(\d+)/ && s:c/(\d+)/@data[$0]/;
 
-Lists and junctions are allowed: C<:nth(1|2|3|5|8|13|21|34|55|89)>.
+The argument to C<:nth> is allowed to be a list of integers, but such a list
+should be monotically increasing.  (Values which are less than or equal to the previous
+value will be ignored.)  So:
 
-So are closures: C<:nth({.is_fibonacci})>
+
+    :nth(2,4,6...*)    # return only even matches
+    :nth(1,1,*+*...*)  # match only at 1,2,3,5,8,13...
+
+This option is no longer required to support smartmatching.  You can grep a list
+of integers if you really need that capability:
+
+    :nth(grep *.oracle, 1..*)
 
 If both C<:nth> and C<:x> are present, the matching routine looks for submatches
-that are compatiable with C<:nth>. If the number of matches is compatible with
+that match with C<:nth>. If the number of post-nth matches is compatible with
 the constraint in C<:x>, the whole match succeeds with the highest possible
 number of submatches. The combination of C<:nth> and C<:x> typically only
 makes sense if C<:nth> is not a single scalar.
