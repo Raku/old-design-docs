@@ -2471,6 +2471,13 @@ a token declaration such as
 
 considers its "longest token" to be just the left square bracket, because
 the first thing the C<expr> rule will do is traverse optional whitespace.
+As an exception to this, and in order to promote readability, a special
+exception is made for alternations inside rules.  If an alteration in a
+rule, or any other context where C<:sigspace> is active, has whitespace
+before a group of alternations, then any leading whitespace on the
+alternatives is ignored.  That is, C<rule { [ a | b ] }> is treated as
+if it were C<rule { [a |b ] }>, and the LTM match begins with the first
+non-sigspace atom.
 
 The initial token matcher must take into account case sensitivity
 (or any other canonicalization primitives) and do the right thing even
