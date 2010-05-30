@@ -22,8 +22,8 @@ DRAFT: Synopsis 32: Setting Library - IO
 
     Created: 19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
 
-    Last Modified: 5 Mar 2010
-    Version: 11
+    Last Modified: 30 May 2010
+    Version: 12
 
 The document is a draft.
 
@@ -615,16 +615,16 @@ C<NoOpen> is passed to C<IO::Streamable.new()>
 Examples:
 
     # Read, no interpolation
-    $fobj = new IO::File(Path => qp{/path/to/file});
+    $fobj = IO::File.new(Path => qp{/path/to/file});
 
     # Write, interpolation
-    $fobj = new IO::File(
+    $fobj = IO::File.new(
         Path => p:qq{$filename},
         Writeable => 1
     );
 
     # Read using file descriptor
-    $fobj = new IO::File(fd => $fd);
+    $fobj = IO::File.new(fd => $fd);
 
 This final example associates an C<IO> object with an already-open file descriptor,
 presumably passed in from the parent process.
@@ -794,12 +794,12 @@ Examples:
 
     # These three do the same thing (on a Unix machine)
     $path = qp{/home/wayland};
-    $path = new Path(PathElements => ['home', 'wayland']);
-    $path = new Path(Constraints => ['Unix'], Path => qp{/home/wayland});
-    $path = new Path(Path => qp{/home/wayland});
+    $path = Path.new(PathElements => ['home', 'wayland']);
+    $path = Path.new(Constraints => ['Unix'], Path => qp{/home/wayland});
+    $path = Path.new(Path => qp{/home/wayland});
 
     # This creates a symlink from /home/wayland/m to /home/wayland/Music
-    $path = new Path(
+    $path = Path.new(
         Path => qp{/home/wayland/m},
         Target => qp{/home/wayland/Music},
     );
