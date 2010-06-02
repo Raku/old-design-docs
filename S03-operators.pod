@@ -4039,16 +4039,29 @@ Once we have two lists to process, we have to decide how to put the elements
 into correspondence.  If both sides are dwimmy, the short list will have be repeated
 as many times as necessary to make the appropriate number of elements.
 
-If only one side is dwimmy, then the list on that side only will be grown or
-truncated to fit the list on the non-dwimmy side.
+If only one side is dwimmy, then the list on that side only will be
+grown or truncated to fit the list on the non-dwimmy side.
+
+Regardless of whether the dwim is forced or emergent from the shapes
+of the arrays, once the side to dwim on has been chosen, the dwim
+semantics on the dwimmy side are always:
+
+    (@dwimmyside xx *).batch(@otherside.elems)
+
+This produces a list the same length as the corresponding dimension
+on the other side.  The original operator is then recursively applied
+to each corresponding pair of elements, in case there are more dimensions
+to handle.
+
+Here are some examples:
 
     (1,2,3,4) »+« (1,2)   # always error
-    (1,2,3,4) «+» (1,2)   # 2,4,4,6     rhs dwims to ((1,2) xx *).batch(4)
-    (1,2,3)   «+» (1,2)   # 2,4,4       rhs dwims to ((1,2) xx *).batch(3)
-    (1,2,3,4) «+« (1,2)   # 2,4         lhs dwims to (1,2,3,4).batch(2)
-    (1,2,3,4) »+» (1,2)   # 2,4,4,6     rhs dwims to ((1,2) xx *).batch(4)
-    (1,2,3)   »+» (1,2)   # 2,4,4,6     rhs dwims to ((1,2) xx *).batch(3)
-    (1,2,3)   »+» 1       # 2,3,4       rhs dwims to (1 xx *).batch(3)
+    (1,2,3,4) «+» (1,2)   # 2,4,4,6     rhs dwims to 1,2,1,2
+    (1,2,3)   «+» (1,2)   # 2,4,4       rhs dwims to 1,2,1
+    (1,2,3,4) «+« (1,2)   # 2,4         lhs dwims to 1,2
+    (1,2,3,4) »+» (1,2)   # 2,4,4,6     rhs dwims to 1,2,1,2
+    (1,2,3)   »+» (1,2)   # 2,4,4       rhs dwims to 1,2,1
+    (1,2,3)   »+» 1       # 2,3,4       rhs dwims to 1,1,1
 
 Another way to look at it is that the dwimmy list's elements are
 indexed modulo its number of elements so as to produce as many or as
