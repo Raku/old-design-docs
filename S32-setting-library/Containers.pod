@@ -797,26 +797,30 @@ KeyBag, Pair, and PairMap.
     class Buf does Positional does Stringy {...}
 
 A mutable container for an array of integer values in contiguous
-memory. The default constructor takes a slurpy array parameter of
+memory. The default constructor takes a single array parameter of
 integers, the largest of which determines the actual type. So
 
-    Buf.new(:16<c3>, :16<B6>) # or
-    Buf.new(195, 182)         # which is exactly the same
+    Buf.new([:16<c3>, :16<B6>]) # or
+    Buf.new([195, 182])         # which is exactly the same
 
 returns a C<buf8> containing two C<uint8> items, while
 
-    Buf.new(256)
+    Buf.new([256])
 
 returns a C<buf16> which consists of a single C<uint16>.
 
 To explicit request a C<Buf> of a specific size, you can use
 
-    Buf.new(127, :size(16))     # returns a buf16
-    Buf.new(1024, :size(8))     # dies, because 1024 >= 2**8
+    Buf.new([127], :size(16))     # returns a buf16
+    Buf.new([1024], :size(8))     # dies, because 1024 >= 2**8
 
 Subtypes with additional constraints like C<utf8> (which only allows valid
 UTF-8 byte sequences) exist and provide similar constructors. See
 L<S02/Built-In Data Types>.
+
+The array in the constructor used to be slurpy rather than positional, but
+the former was deemed to be too inefficient (during signature construction)
+for arrays of many elements.
 
 =head3 Methods
 
