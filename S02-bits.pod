@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 21 May 2010
-    Version: 216
+    Last Modified: 2 Jun 2010
+    Version: 217
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -666,6 +666,8 @@ normal object types.  Common roles include:
     Callable
     Positional
     Associative
+    Buf
+    Blob
 
 =item *
 
@@ -915,6 +917,7 @@ by the native integer type it is composed of:
 
     Name        Is really
     ====        =========
+    buf1        Buf[bit]
     buf8        Buf[uint8]
     buf16       Buf[uint16]
     buf32       Buf[uint32]
@@ -1258,7 +1261,7 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Parcel      Arguments in a comma list
     Slicel      Arguments in a semicolon list (or equiv, like Z)
     Capture     Function call arguments (right-hand side of a binding)
-    Blob        An undifferentiated mass of bits
+    Blob        An undifferentiated mass of ints, an immutable Buf
     Instant     A point on the continuous atomic timeline
     Duration    The difference between two Instants
     HardRoutine A routine that is committed to not changing
@@ -1338,6 +1341,12 @@ any numeric operation with a number as the other argument:
     $duration * 2            # ok, a duration twice as long
     2 * $duration            # same
 
+The C<Blob> type is like an immutable buffer, and therefore
+responds both to array and (some) stringy operations.  Note that,
+like a C<Buf>, its size is measured in whatever the base unit is,
+which is not always bytes.  If you have a C<my Blob[bit] $blob>,
+then C<$blob.elems> returns the number of bits in it.
+
 These types do (at least) the following roles:
 
     Class       Roles
@@ -1361,7 +1370,7 @@ These types do (at least) the following roles:
     Signature   
     Parcel      Positional
     Capture     Positional Associative
-    Blob        Stringy
+    Blob        Stringy Positional
     Instant     Real
     Duration    Real
     HardRoutine Routine
