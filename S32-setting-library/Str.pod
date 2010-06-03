@@ -594,8 +594,17 @@ newline).
 If C<$steps> is negative, removes that many spaces instead. Should any line
 contain too few leading spaces, only those are removed and a warning is issued.
 
-Only spaces are considered indentation; tabs or other Unicode whitespace
-characters are not considered.
+If C<$steps> is C<*>, removes exactly as many spaces as are needed to make at
+least one line have zero indentation.
+
+When removing indentation, the method will assume hard tabs to be
+C<< ($?TABSTOP // 8) >> spaces, and will treat other horizontal whitespace
+characters as synonymous to spaces. Characters not participating in the
+re-indenting will be left untouched, and those added in an indent call will
+be either (1) consistent with subsequent leading whitespace already on the
+line, if these are all the same, or (2) spaces. During an unindent, the
+trailing tab character in a chain of leading tab characters may explode
+into a number of space characters.
 
 =back
 
