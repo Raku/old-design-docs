@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 26 May 2010
-    Version: 122
+    Last Modified: 4 Jun 2010
+    Version: 123
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1319,7 +1319,9 @@ postfix of some type, such as an indirect method call:
 As with all regex matching, the current match state (some derivative
 of C<Cursor>) is passed as the first argument, which in this case
 is simply the method's invocant.  The method is expected to return
-a new match state object.
+a lazy list of new match state objects, or C<Nil> if the match fails
+entirely.  Ratcheted routines will typicaly return a list containing only
+one match.
 
 =item *
 
@@ -1338,9 +1340,11 @@ state as a cursor object.  Hence,
 
 is sugar for something like:
 
-     { $¢ = foo($¢,1,2,3) }
+     foo($¢,1,2,3)
 
-(where C<$¢> represents the current match state in the outer match).
+where C<$¢> represents the current incoming match state, and the
+routine must return C<Nil> for failure, or a lazy list of one or or
+more match states (C<Cursor>-derived objects) for successful matches.
 
 As with the C<.> form, an explicit C<&> suppresses capture.
 
