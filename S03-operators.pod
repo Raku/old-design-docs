@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 2 Jun 2010
-    Version: 207
+    Last Modified: 7 Jun 2010
+    Version: 208
 
 =head1 Overview
 
@@ -748,12 +748,12 @@ that point.)
 
 =item *
 
-C<< infix:<div> >>, generic division
+C<< infix:<div> >>, integer division
 
     $numerator div $denominator
 
 Dispatches to the C<< infix:<div> >> multi most appropriate to the
-operand types, typically returning a value of the same type.
+operand types, returning a value of the same type.
 Not coercive, so fails on differing types.
 
 Policy on what to do about division by zero is up to the type,
@@ -764,10 +764,11 @@ general, other operators that might fail should also consider their
 use in hyperops and junctions, and whether they can profitably benefit
 from a lazy exception model.)
 
-Use of C<div> on built-in integer types is equivalent to taking the
-floor of a real division:
+In general, C<div> should give the same result as 
 
     $x div $y == floor($x/$y);
+
+but the return value should be the same type as $x.
 
 =item *
 
@@ -782,15 +783,15 @@ then calculates the remainder, which is defines as:
 
 =item *
 
-C<< infix:<mod> >>, generic modulo
+C<< infix:<mod> >>, integer modulo
 
     $x mod $y
 
 Dispatches to the C<< infix:<mod> >> multi most appropriate to
-the operand types, typically returning a value of the same type.
+the operand types, returning a value of the same type.
 Not coercive, so fails on differing types.
 
-For built-in types, preserves the identity
+This should preserve the identity
 
     $x mod $y == $x - ($x div $y) * $y
 
