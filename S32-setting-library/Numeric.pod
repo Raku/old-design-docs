@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Numeric
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 26 May 2010
-    Version: 8
+    Last Modified: 11 June 2010
+    Version: 9
 
 The document is a draft.
 
@@ -70,6 +70,35 @@ mathematical functions.
     constant i  is export = 1i;
 
 =over
+
+=item Real
+
+ our Real multi method Real ()
+
+If this C<Numeric> is equivalent to a C<Real>, return that C<Real>.  
+(For instance, if this number is a C<Complex> with a zero imaginary part.)  
+Fail otherwise.
+
+=item Int
+
+ our Int multi method Int ()
+
+If this C<Numeric> is equivalent to a C<Real>, return the equivalent of
+calling C<truncate> on that C<Real> to get an C<Int>. 
+
+=item Rat
+
+ our Rat multi method Rat ( Real $epsilon = 1.0e-6 )
+
+If this C<Numeric> is equivalent to a C<Real>, return a C<Rat> which is
+within C<$epsilon> of that C<Real>'s value.
+
+=item Num
+
+ our Num multi method Num ()
+
+If this C<Numeric> is equivalent to a C<Real>, return that C<Real> as a C<Num>
+as accurately as is possible.
 
 =item succ
 
@@ -174,29 +203,18 @@ C<Num>, C<Int>, C<Bool> and C<Rat> implement the C<Real> role.
 
 =over
 
-=item Int
-
- our Int multi method Int ()
-
-Converts this C<Real> to an C<Int> as if C<truncate> had been called.
-
-=item Rat
-
- our Rat multi method Rat ( Real $epsilon = 1.0e-6 )
-
-Converts this C<Real> to a C<Rat> with an accuracy of C<$epsilon>.
-
-=item Num
-
- our Num multi method Num ()
-
-Converts this C<Real> to a C<Num> as accurately as is possible for a C<Num>.
-
 =item Complex
 
  our Complex multi method Complex ()
 
 Returns a C<Complex> whose real part is this C<Real> and whose imaginary part is 0.
+
+=item Str
+
+ our Str multi method Str ()
+
+Returns the C<Real> as a C<Str>.  All built-in C<Real> types format it as a decimal 
+number, so for example, the C<Rat> C<5/4> is returned as C<"1.2">.
 
 =item floor
 
