@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 4 Jun 2010
-    Version: 124
+    Last Modified: 11 Jun 2010
+    Version: 125
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1952,6 +1952,10 @@ but only if you interpose whitespace:
      rx( 1,2,3 )         # tries to call rx function
 
 (This is true for all quotelike constructs in Perl 6.)
+
+The C<rx> form may be used directly as a pattern anywhere a normal C<//> match can.
+The C<regex> form is really a method definition, and must be used in such a way that
+the grammar class it is to be used in is apparent.
 
 =item *
 
@@ -3921,10 +3925,27 @@ For example, to match an expression <expr> from $funnylang that is embedded in c
 
 =item *
 
-A string can be matched against a grammar by calling C<.parse> on the grammar,
-and optionally pass an I<actions> object to that grammar:
+A string can be matched against a grammar by calling C<.parse>
+or C<.parsefile> on the grammar, and optionally pass an I<actions>
+object to that grammar:
 
-    MyGrammar.parse($str, :actions($action-object))
+    MyGrammar.parse($string, :actions($action-object))
+    MyGrammar.parse($filename, :actions($action-object))
+
+This creates a C<Grammar> object, whose type denotes the current language being
+parsed, and from which other grammars may be derived as extended languages.
+All grammar objects are derived from C<Cursor>, so every grammar object's
+value embodies the current state of the current match.  This new grammar
+object is then passed as the invocant to the C<TOP> method (regex, token,
+or rule) of C<MyGrammar>.  Grammar objects are considered immutable, so
+every match returns a different match state, and multiple match states may
+exist simultaneously.  Each such match state is considered a hypothesis on
+how the pattern will eventually match.  A backtrackable choice in pattern
+matching may be easily represented in Perl 6 as a lazy list of match state
+cursors; backtracking consists of merely throwing away the front value of
+the list and continuing to match with the next value.  Hence, the management
+of these match cursors controls how backtracking works, and falls naturally
+out of the lazy list paradigm.
 
 =back
 
