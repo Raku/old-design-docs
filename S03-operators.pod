@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 7 Jun 2010
-    Version: 208
+    Last Modified: 15 Jun 2010
+    Version: 209
 
 =head1 Overview
 
@@ -2026,16 +2026,37 @@ expressing the desire to fail when the list reaches that point:
 
     1..20, ... "I only know up to 20 so far mister"
 
+A special exception is made for any series whose endpoints are strings that
+happen to represent single codepoints, since the user will typically be thinking
+of such strings as characters rather than strings.  If you say something like:
+
+    'A' ... 'z'
+    "\xff" ... "\0"
+
+it is assumed that you aren't interested in carrying within alphabetic
+ranges, so instead of using the ordinary C<.succ>/C<.pred> for
+strings, it uses a monotonic function that increments or decrements
+the underlying codepoint number like
+
+    'A', { $^prev.ord.succ.chr } ... 'z';
+    "\xff", { $^prev.ord.pred.chr } ... "\0";
+
+You will note that this alternate definition doesn't change the meaning of
+any sequence that falls within a conventional range:
+
+    'a'..'z'
+    '9'..'0'
+
 If a series is generated using a non-monotonic C<.succ> function, it is
 possible for it never to reach the endpoint.  The following matches:
 
-    'A' ... 'Z'
+    'A' ... 'ZZ'
 
 but since 'Z' increments to 'AA', none of these ever terminate:
 
-    'A' ... 'z'
-    'A' ... '_'
-    'A' ... '~'
+    'A' ... 'zz'
+    'A' ... '00'
+    'A' ... '~~'
 
 The compiler is allowed to complain if it notices these, since if you
 really want the infinite list you can always write:
@@ -2050,20 +2071,20 @@ But since lists are lazy in Perl 6, we don't try to protect the user this way.
 
 The astute reader will note that
 
-    'A' ... 'Z'
+    'A' ... 'ZZ'
 
 doesn't terminate with a simple C<!after> test either.  The actual function used
 is something like:
 
-    'A', *.succ ... -> $old,$new { $old ne 'Z' and $new !after 'Z'; }
+    'A', *.succ ... -> $old,$new { $old ne 'ZZ' and $new !after 'ZZ'; }
 
 Likewise, since Z comes after A:
 
-    'Z' ... 'A'
+    'ZZ' ... 'AA'
 
 uses the function:
 
-    'Z', *.pred ... -> $old,$new { $old ne 'A' and $new !before 'A'; }
+    'ZZ', *.pred ... -> $old,$new { $old ne 'AA' and $new !before 'AA'; }
 
 For purposes of deciding when to terminate the eager part of a 'mostly
 eager' list, any series that terminates with an exact value (or
