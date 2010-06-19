@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 15 Jun 2010
-    Version: 209
+    Last Modified: 18 Jun 2010
+    Version: 210
 
 =head1 Overview
 
@@ -4221,6 +4221,23 @@ and replicating it:
 is short for something like:
 
     @array[0..^@array], @array[*-1] xx *
+
+Note that hypers promise that you don't care what order the processing
+happens in, only that the resulting structure ends up in a form consistent
+with the inputs.  There is no promise from the system that the operation
+I<will> be parallelized.  Effective parallelization requires some means
+of partitioning the work without doing more extra work than you save.
+This will differ from structure to structure.  In particular, infinite
+structures cannot be completely processed, and the system is allowed to
+balance out the demands of laziness with parallel processing.  For instance,
+an algorithm that wants to divide a list into two equal sublists will not
+work if you have to calculate the length in advance, since you can't always
+calculate the length.  Various approaches can be taken: handing off batches
+to be processed in parallel on demand, or interleaving roundrobin with a
+set of N processors, or whatever.  In the limit, a simple, non-parallel,
+item-by-item lazy implementation is within spec, but unlikely to use multiple
+cores efficiently.  Outside of performance requirements, if the algorithm
+depends on which of these approaches is taken, it is erroneous.
 
 =head2 Reduction operators
 
