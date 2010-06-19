@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 21 May 2010
-    Version: 134
+    Last Modified: 18 Jun 2010
+    Version: 135
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -2211,6 +2211,31 @@ candidates and an additional constraint.
 
 
 =head1 Advanced subroutine features
+
+=head2 Processing of returned values
+
+It is a general policy that lvalues should only be returned up the dynamic
+call stack if specifically requested.  Therefore, by default the returned
+arguments are processed to enforce this, both for the implicit return from
+the last statement of any block, as well as the explicit return done by
+operators such as:
+
+    return
+    leave
+    take
+
+Specifically, this processing involves examining the returned parcel's
+arguments and dereferencing any container that could be used as an lvalue,
+replacing it with the container's value.
+
+To override this processing for a routine, it must be declared C<rw>, or
+the form C<return-rw> must be used.
+
+To override for a C<gather>, use C<gather-rw> instead, or C<take-rw> on the
+individual take.
+
+Since blocks don't generally have traits, you must use C<leave-rw> to pass
+an lvalue out of a block.
 
 =head2 The C<return> function
 
