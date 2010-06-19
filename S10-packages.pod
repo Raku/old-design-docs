@@ -227,18 +227,19 @@ First, presuming you have a C<CANDO> that adds to your current package,
 you can simply call a newly-minted subroutine explicitly via the
 current package:
 
-    OUR::"$somename"();
+    OUR::($somename)();
 
-This bypasses the lexical namespaces entirely.  Alternately, we can set up a
-mechanism whereby, if you import or define a C<CANDO> into a given lexical
-scope, all calls from within that scope register a failover that adds the
-current package to the list of places to look for subroutines (or, obviously,
-call the C<CANDO> as a last resort after that).  This is no performance
-impact on existing lexically scoped definitions, including those from C<CORE>.
-It does require that failures to find a function name be reported at run-time
-rather than compile time.  The package's routine names are also shadowed by
-all names defined in your outer lexical scopes, including C<CORE>.  If this
-is a problem, use the direct C<OUR> call above.
+This bypasses the lexical namespaces entirely.  Alternately, we can set
+up a mechanism whereby, if you import or define a C<CANDO> into a given
+lexical scope, all calls from within that scope register a failover that
+adds the current package to the list of places to look for subroutines (or,
+obviously, call the C<CANDO> as a last resort after that).  There is no
+performance impact on existing lexically scoped definitions, including those
+from C<CORE>.  This approach does require that failure to find a function name
+cannot be reported at compile time, but must be delayed till run time instead.
+Another potential disadvantage is that the package's symbols are also shadowed
+by all symbols defined in your outer lexical scopes, including C<CORE>.
+If this is a problem, use the direct C<OUR> call above.
 
 Another way to look at it is that a lexical C<CANDO> adds itself to
 the end of the function dispatcher's search, but sets up the current
