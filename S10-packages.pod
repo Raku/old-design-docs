@@ -13,8 +13,8 @@ Synopsis 10: Packages
 
     Created: 27 Oct 2004
 
-    Last Modified: 19 Nov 2009
-    Version: 11
+    Last Modified: 19 Jun 2010
+    Version: 12
 
 =head1 Overview
 
@@ -151,9 +151,6 @@ locate C<$PROCESS::PID> if not hidden by an inner callframe's C<$*PID>.)
 
 =head1 Autoloading
 
-[Note: neither multisubs nor multimethods dispatch to package routines
-anymore, so this section will need revision/excision.]
-
 A package (or any other similar namespace) can control autoloading.
 However, Perl 5's C<AUTOLOAD> is being superseded by MMD autoloaders
 that distinguish declaration from definition, but are not restricted
@@ -219,5 +216,33 @@ real methods or submethods:
 The method form is inherited by subclasses.  Submethods are never
 inherited but may still do MMD within the class.   (Ordinary multisubs
 are inherited only to the extent allowed by the MMD mechanism.)
+
+When the package in question is not a class, there is a slight problem
+insofar as Perl 6 doesn't by default look into packages for functions
+anymore, only lexical scopes.  However, we'd still like the ability
+to dynamic add functions to a package, so there are two ways to get
+around the lexical limitation.
+
+First, presuming you have a C<CANDO> that adds to your current package,
+you can simply call a newly-minted subroutine explicitly via the
+current package:
+
+    OUR::"$somename"();
+
+This bypasses the lexical namespaces entirely.  Alternately, we can set up a
+mechanism whereby, if you import or define a C<CANDO> into a given lexical
+scope, all calls from within that scope register a failover that adds the
+current package to the list of places to look for subroutines (or, obviously,
+call the C<CANDO> as a last resort after that).  This is no performance
+impact on existing lexically scoped definitions, including those from C<CORE>.
+It does require that failures to find a function name be reported at run-time
+rather than compile time.  The package's routine names are also shadowed by
+all names defined in your outer lexical scopes, including C<CORE>.  If this
+is a problem, use the direct C<OUR> call above.
+
+Another way to look at it is that a lexical C<CANDO> adds itself to
+the end of the function dispatcher's search, but sets up the current
+package as a kind of cache for newly-defined functions just ahead of itself
+in the search path.
 
 =for vim:set expandtab sw=4:
