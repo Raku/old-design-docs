@@ -108,14 +108,8 @@ instantiate a C<Mu> it would be considered defined, and thus true.
 The following are defined in the C<Any> role:
 
  role Any does Mu does Pattern {
-     our Bool multi sub eqv (Ordering @by, $a, $b) {...}
-     our Bool multi sub eqv (Ordering $by = &infix:<eqv>, $a, $b) {...}
-
      our multi method clone (::T $self --> T) {...}
      our multi method clone (::T $self, *%attributes --> T) {...}
-
-     our Order multi sub cmp (Ordering @by, $a, $b) {...}
-     our Order multi sub cmp (Ordering $by = &infix:<cmp>, $a, $b) {...}
 
      our Callable multi method can ($self:, Str $method) {...}
      our Bool     multi method does ($self:, $type) {...}
@@ -125,16 +119,6 @@ The following are defined in the C<Any> role:
  }
 
 =over
-
-=item eqv
-
- our Bool multi sub eqv (Ordering @by, $a, $b)
- our Bool multi sub eqv (Ordering $by = &infix:<eqv>, $a, $b)
-
-Returns a Bool indicating if the parameters are equivalent,
-using criteria C<$by> or C<@by> for comparisons. C<@by> differs
-from C<$by> in that each criterion is applied, in order,
-until a non-zero (equivalent) result is achieved.
 
 =item can
 
@@ -156,19 +140,6 @@ to C<$o>.
 
 The second variant does the same, but any named arguments override an
 attribute during the cloning process.
-
-=item cmp
-
- our Order multi sub cmp (Ordering @by, $a, $b)
- our Order multi sub cmp (Ordering $by = &infix:<cmp>, $a, $b)
-
-Returns C<Order::Increase>, or C<Order::Same>, or C<Order::Decrease>
-(which numify to -1, 0, +1 respectively) indicating if parameter C<$a> should
-be ordered before/tied with/after parameter C<$b>, using criteria
-C<$by> or C<@by> for comparisons. C<@by> differs from C<$by>
-in that each criterion is applied, in order, until a non-zero
-(tie) result is achieved.  If the values are not comparable,
-returns an C<Order> type object that is undefined.
 
 =item does
 
