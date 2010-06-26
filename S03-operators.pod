@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 24 Jun 2010
-    Version: 211
+    Last Modified: 26 Jun 2010
+    Version: 212
 
 =head1 Overview
 
@@ -36,7 +36,7 @@ each level:
     N  Autoincrement     ++ --
     R  Exponentiation    **
     L  Symbolic unary    ! + - ~ ? | || +^ ~^ ?^ ^
-    L  Multiplicative    * / % +& +< +> ~& ~< ~> ?& div mod
+    L  Multiplicative    * / % %% +& +< +> ~& ~< ~> ?& div mod
     L  Additive          + - +| +^ ~| ~^ ?| ?^
     L  Replication       x xx
     X  Concatenation     ~
@@ -780,6 +780,18 @@ If necessary, coerces non-numeric arguments to an appropriate C<Numeric> type,
 then calculates the remainder, which is defines as:
 
     $x % $y == $x - floor($x / $y) * $y
+
+=item *
+
+C<< infix:<%%> >>, is divisible by
+
+    $x %% $y
+
+Performs a C<%> and then tests the result for 0, returning C<Bool::True> if
+the C<$x> is evenly divisible by C<$y>, and C<Bool::False> otherwise.
+
+You may use C<!%%> to mean "not divisible by", though C<%> itself generally
+has the same effect.
 
 =item *
 
@@ -3962,13 +3974,8 @@ any operator already beginning with C<!>.
 
 The precedence of any negated operator is the same as the base operator.
 
-The operator
-
-    !%
-
-is specially allowed for testing even divisibility by an integer.
-
-Note that logical operators such as C<||> and C<^^> do not return a Bool,
+You may negate only those operators that return a C<Bool>.  Note that
+logical operators such as C<||> and C<^^> do not return a C<Bool>,
 but rather one of the operands.
 
 =head2 Reversed operators
