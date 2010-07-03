@@ -184,6 +184,15 @@ handled with lexical scoping in Perl 6.  The fact that importation
 is lexical by default also means that any names your class imports
 are also private by default.
 
+Class declarations (in particular, role composition) are strictly
+compile time statements.  In particular, if a class declaration appears
+inside a nested scope, the class declaration is constrained to compose
+in exactly the same way on any possible execution.  All named roles and
+superclasses must be bound as non-rebindable readonly values; any
+parameters to traits will be evaluated only in a non-cloning context.
+Names bound by the class declaration are made non-rebindable and read
+only so they may be used as superclasses.
+
 In an anonymous class declaration, C<::> by itself may represent the
 anonymous class name if desired:
 
