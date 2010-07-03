@@ -1625,7 +1625,7 @@ in this case--references are not allowed to be lazily cloned, since
 no guarantee can be made that the scope needed for cloning will
 remain in existence over the life of the reference.)
 
-In particular, named subroutines are a special problem when embedded in
+In particular, package subroutines are a special problem when embedded in
 a changing lexical scope (when they make reference to it).  The binding
 of such a definition to a name within a symbol table counts as taking
 a reference, so at compile time there is an initial binding
@@ -1641,6 +1641,21 @@ lexical scope; this binding records the I<last> cloning, not
 the currently in-use cloning, so any use of the global reference must
 take into consideration that it is functioning only as a cache of the
 most recent cloning, not as a surrogate for the current lexical scope.)
+
+Matters are more complicated if the package in question is lexically defined.
+In such cases, the package must be cloned as if it were a sub on entry to the
+corresponding lexical scope.  All runtime instances of a single package
+declaration share the same set of compile-time declared functions, however,
+the runtime instances can have different lexical environments as described in
+the preceding paragraph.  If multiple conflicting definitons of a sub exist
+for the same compile-time package, an error condition exists and behavior is
+not specified for Perl 6.0.
+
+Methods in classes behave functionally like package subroutines, and have the
+same binding behavior if the classes are cloned.  Note that a class declaration,
+even an augment, is fundamentally a compile-time operation; composition only
+happens once and the results are recorded in the prototype class.  Runtime
+typological manipulations are limited to reseating C<OUTER::> scopes of methods.
 
 Lexical names do not share this problem, since the symbol goes out
 of scope synchronously with its usage.  Unlike global subs, they
