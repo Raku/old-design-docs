@@ -22,8 +22,8 @@ DRAFT: Synopsis 32: Setting Library - IO
 
     Created: 19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
 
-    Last Modified: 30 May 2010
-    Version: 12
+    Last Modified: 4 July 2010
+    Version: 13
 
 The document is a draft.
 
@@ -147,7 +147,7 @@ This role provides unbuffered read access to the data stream.
 
     role IO::Readable {
         has $.isReadable;
-        method read($buf is rw, Int $bytes --> Int)
+        method read(Int $bytes --> Buf)
     }
 
 When the C<$.isReadable> is set, it tries to change the readability of the filehandle.  This
@@ -156,16 +156,14 @@ readability by calling C<shutdown>, for example.
 
 =over
 
-=item method read($buf is rw, Int $bytes --> Int)
+=item method read(Int $bytes --> Buf)
 
-Tries to read C<$bytes> bytes and store in C<$buf>. The contents of C<$buf>
-are replaced and the actual number of bytes read is returned. A return
-of 0 means end of file. It might return unthrown failures, to be
-specified by each C<IO> implementation.
+Tries to read C<$bytes> bytes and return it as a C<Buf>. The C<Buf> may be
+shorter than the actual specified number of C<$bytes>.
 
-It is important to realize that this is "raw" read. You're going to
-have plain octets stored in C<$buf>, if this is actually encoded data,
-you're going to need to encode it later, or use "getc" or other
+This is "raw" read. You're going to
+have plain octets stored in C<$buf>. If what you want is a C<Str>,
+you're going to need to C<.decode> it after C<read>ing, or use "getc" or other
 C<IO::Readable::Encoded> methods.
 
 =back
@@ -176,7 +174,7 @@ This role provides unbuffered write access to the data stream.
 
     role IO::Writeable {
         has $.isWriteable;
-        method write($buf, Int $bytes --> Int)
+        method write(Buf $buf --> Int)
     }
 
 When the C<$.isWriteable> is set, it tries to change the writeability of the filehandle.
@@ -185,15 +183,14 @@ writeability by calling shutdown(), for example.
 
 =over
 
-=item method write($buf, Int $bytes --> Int)
+=item method write(Buf $buf --> Int)
 
-Tries to write C<$bytes> bytes of C<$buf>. The actual number of bytes
+Tries to write C<$buf>. The actual number of bytes
 written is returned. It might return unthrown failures, to be
 specified by each C<IO> implementation.
 
-It is important to realize that this is "raw" write. C<$buf> should
-contain plain octets that are going to be sent. If C<$buf> contains
-encoded data, you should decode it first, or use "print" or other
+This is "raw" write. C<$buf> contains plain octets. If you want to C<write>
+a C<Str>, you should C<.encode> it first, or use "print" or other
 C<IO::Writeable::Encoded> methods.
 
 =back
