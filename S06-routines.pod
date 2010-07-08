@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 18 Jun 2010
-    Version: 135
+    Last Modified: 8 Jul 2010
+    Version: 136
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -99,10 +99,23 @@ from the viewpoint of the caller or object, sorts them into some order,
 and dispatches them according to the rules of multiple dispatch as defined
 for each of the various dispatchers.
 
-This default behavior is implied by an empty body on the proto.  It may
-be overridden with an explicit proto body.  The default dispatcher may be
-called from within the body using 'nextsame'.  (That is, an empty body C<{}>
-is equivalent to C<{nextsame;}>.)
+This default behavior is implied by a statement consisting of a single
+C<*> (that is, a "whatever").  Hence the typical proto will simply
+have a body of C<{*}>.
+
+    proto method bar {*}
+
+(We don't use C<...> for that because it would fail at run time,
+and proto blocks are not stubs, but are intended to be executed.)
+
+Other statements may be inserted before and after the C<*>
+statement to capture control before or after the multi dispatch:
+
+    proto foo ($a,$b) { say "Called with $a $b"; *; say "Returning"; }
+
+(That proto is only good for multis with side effects and no return
+value, since it returns the result of C<say>, which might not be what
+you want.  See below for how to fix that.)
 
 The syntactic form C<&foo> (without a modifying signature) can never refer to
 a multi candidate.  It may only refer to the single C<only> or C<proto> routine
@@ -135,9 +148,28 @@ use of C<callsame> rather than C<nextsame>:
 
     my proto sub foo () {
         do-something-before();
-        callsame;       # call into the managed set, then come back
+        my |$cap = (*);       # call into the managed set, then come back
         do-something-after();
+        return |$cap;
     }
+
+or more simply:
+
+    my proto sub foo () {
+        ENTER do-something-before();
+        *; 
+        LEAVE do-something-after();
+    }
+
+Note that in the first example the C<*> must be placed into a
+context where it is a standalone statement in order to get its
+return value.
+
+Another common variant would be to propagate control to the
+outer/higher routine that would have been found if this one didn't
+exist:
+
+    my proto method foo { *; UNDO nextsame; }  # failover to super foo
 
 Note that, in addition to making multis work similarly to each other,
 the new proto semantics greatly simplify top-level dispatchers, which
