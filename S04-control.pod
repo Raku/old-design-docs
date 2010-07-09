@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 27 Apr 2010
-    Version: 98
+    Last Modified: 9 Jul 2010
+    Version: 99
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1342,7 +1342,8 @@ These are now separate notions.  C<ENTER> and C<LEAVE> are used only for
 their side effects.  C<PRE> and C<POST> must return boolean values that are
 evaluated according to the usual Design by Contract (DBC) rules.  (Plus,
 if you use C<ENTER>/C<LEAVE> in a class block, they only execute when the
-class block is executed, but C<PRE>/C<POST> in a class block are evaluated
+class block is executed, but you may declare C<PRE>/C<POST> submethods
+in a class block that will be evaluated
 around every method in the class.)  C<KEEP> and C<UNDO> are just variants
 of C<LEAVE>, and for execution order are treated as part of the queue of
 C<LEAVE> phasers.
@@ -1376,7 +1377,18 @@ the C<LEAVE> variants, C<KEEP> and C<UNDO>.  C<POST> phasers are evaluated after
 everything else, to guarantee that even C<LEAVE> phasers can't violate DBC.
 Likewise C<PRE> phasers fire off before any C<ENTER> or C<FIRST> (though not
 before C<BEGIN>, C<CHECK>, or C<INIT>, since those are done at compile or
-process initialization time).
+process initialization time).  Much like C<BUILD> and C<DESTROY> are implicitly
+called in the correct order by C<BUILDALL> and C<DESTROYALL>, the C<PRE>/C<POST>
+calls are via an implicit C<ENFORCEALL> method that runs
+outside the actual call to the method in question.  Class-level C<PRE>/C<POST>
+submethods are notionally outside of the method-level C<PRE>/C<POST> blocks.
+At each submethod level, C<ENFORCEALL> calls (in the normal course of things):
+
+    1. class's C<PRE> submethod
+    2. method's C<PRE> phaser
+    3. method call
+    4. method's C<POST> phaser
+    5. class's C<POST> submethod
 
 If exit phasers are running as a result of a stack unwind initiated
 by an exception, C<$!> contains the exception that caused it, though
@@ -1404,10 +1416,14 @@ In other words, it's exactly what C<return> is sending to the outside
 world in raw form, so that the phaser doesn't accidentally impose
 context prematurely.)
 
-The topic of the outer block is still available as C<< OUTER::<$_> >>.
+The topic of the outer block of a phaser is still available as C<< OUTER::<$_> >>.
 Whether the return value is modifiable may be a policy of the phaser
 in question.  In particular, the return value should not be modified
 within a C<POST> phaser, but a C<LEAVE> phaser could be more liberal.
+
+Class-level C<PRE> and C<POST> submethods are not in the lexical
+scope of a method, and are not run in the dynamic scope of the method,
+so cannot see the method's C<$_> at all.
 
 =head1 Statement parsing
 
@@ -1578,14 +1594,7 @@ exception, though returning a defined value after catching an exception
 is okay.
 
 In the absence of error exception propagation, a successful exit is one that
-returns a defined value in item context, or any number of values
-in list context as long as the length is defined.  (A length of +Inf
-is considered a defined length.  A length of 0 is also a defined length,
-which means it's a "successful" return even though the list would evaluate
-to false in a boolean context.)  A list can have a defined length
-even if it contains undefined scalar values.  A list is of undefined
-length only if it contains an undefined generator, which, happily, is
-what is returned by the C<fail> function when used in list context.
+returns a defined value or parcel.  (A defined parcel may contain undefined values.)
 So any Perl 6 function can say
 
     fail "message";
