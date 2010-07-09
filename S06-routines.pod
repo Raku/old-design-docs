@@ -17,7 +17,7 @@ Synopsis 6: Subroutines
     Created: 21 Mar 2003
 
     Last Modified: 9 Jul 2010
-    Version: 137
+    Version: 138
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -2093,7 +2093,8 @@ C<POST> phasers (and "C<will post>" phaser traits) declared within a C<PRE>
 or C<ENTER> block are automatically hoisted outward to be called at the
 same time as other C<POST> phasers.  This conveniently gives "circum"
 semantics by virtue of wrapping the post lexical scope within the pre
-lexical scope.
+lexical scope.  That is, the C<POST> closes over its outer scope, even
+if that scope is gone by the time the C<POST> is run.
 
     method push ($new_item) {
         ENTER {
@@ -2113,12 +2114,19 @@ lexical scope.
         return pop @.items;
     }
 
-[Conjecture: class and module invariants can similarly be supplied
-by embedding C<POST>/C<post> declarations in a C<FOREIGN> block that
-only runs when any routine of this module is called from "outside"
-the current module or type, however that's defined.  The C<FOREIGN> block
-itself could perhaps refine the concept of what is foreign, much like
-an exception handler.]
+Note that C<self> is available in phasers defined within methods.
+
+Class invariants are declared with C<PRE>/C<POST> submethods instead of phasers.
+
+Module invariants are declared with C<PRE>/C<POST> subs or protos.
+
+[Conjecture: class and module invariants can applied more selectively
+by marking C<PRE>/C<POST> declarations with a C<selective> trait that
+stops it from running on internal calls (which might allow temporary
+violations of invariants), but enforces the invariants when any routine
+of this module is called from "outside" the current module or type,
+however that's defined.  There could be arguments to this trait that
+could refine the concept of what is foreign.]
 
 =item C<ENTER>/C<LEAVE>/C<KEEP>/C<UNDO>/etc.
 

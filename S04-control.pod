@@ -14,7 +14,7 @@ Synopsis 4: Blocks and Statements
     Created: 19 Aug 2004
 
     Last Modified: 9 Jul 2010
-    Version: 99
+    Version: 100
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1379,16 +1379,30 @@ Likewise C<PRE> phasers fire off before any C<ENTER> or C<FIRST> (though not
 before C<BEGIN>, C<CHECK>, or C<INIT>, since those are done at compile or
 process initialization time).  Much like C<BUILD> and C<DESTROY> are implicitly
 called in the correct order by C<BUILDALL> and C<DESTROYALL>, the C<PRE>/C<POST>
-calls are via an implicit C<ENFORCEALL> method that runs
+calls are via an implicit C<CALL-VIA-DBC> method that runs
 outside the actual call to the method in question.  Class-level C<PRE>/C<POST>
 submethods are notionally outside of the method-level C<PRE>/C<POST> blocks.
-At each submethod level, C<ENFORCEALL> calls (in the normal course of things):
+In the normal course of things, C<CALL-VIA-DBC> follows these steps:
 
-    1. class's C<PRE> submethod
-    2. method's C<PRE> phaser
-    3. method call
-    4. method's C<POST> phaser
-    5. class's C<POST> submethod
+    1. create an empty stack for scheduling postcalls.
+    2. call all the appropriate per-class C<PRE> submethods,
+        pushing any corresponding C<POST> onto the postcall stack.
+    3. call all the appropriate per-method C<PRE> phasers,
+        pushing any corresponding C<POST> onto the postcall stack.
+    4. enforce DBC logic of C<PRE> calls
+    5. call the method call itself, capturing return/unwind status.
+    6. pop and call every C<POST> on the postcall stack.
+    7. enforce DBC logic of C<POST> calls
+    8. continue with the return or unwind.
+
+Note that in steps 2 and 3, the C<POST> block can be defined in
+one of two ways.  Either the corresponding C<POST> is defined as a
+separate declaration (submethod for 2, phaser for 3), in which case
+C<PRE> and C<POST> share no lexical scope.  Alternately, any C<PRE>
+(either submethod or phaser) may define its corresponding C<POST>
+as an embedded phaser block that closes over the lexical scope of
+the C<PRE>.  In either case, the code is pushed onto the postphaser
+stack to be run at the appropriate moment.
 
 If exit phasers are running as a result of a stack unwind initiated
 by an exception, C<$!> contains the exception that caused it, though
@@ -1416,14 +1430,21 @@ In other words, it's exactly what C<return> is sending to the outside
 world in raw form, so that the phaser doesn't accidentally impose
 context prematurely.)
 
-The topic of the outer block of a phaser is still available as C<< OUTER::<$_> >>.
+The topic of the block outside a phaser is still available as C<< OUTER::<$_> >>.
 Whether the return value is modifiable may be a policy of the phaser
 in question.  In particular, the return value should not be modified
 within a C<POST> phaser, but a C<LEAVE> phaser could be more liberal.
 
-Class-level C<PRE> and C<POST> submethods are not in the lexical
-scope of a method, and are not run in the dynamic scope of the method,
-so cannot see the method's C<$_> at all.
+Class-level C<PRE> and C<POST> submethods are not in the lexical scope
+of a method (and are not run in the dynamic scope of the method),
+so they cannot see the method's C<$_> at all.  As methods, they
+do have access to the current C<self>, of course.  And the C<POST>
+submethod gets the return value as the topic, just as exit phasers do.
+
+Any phaser defined in the lexical scope of a method is a closure that
+closes over C<self> as well as normal lexicals.  (Or equivalently,
+an implementation may simply turn all such phasers into submethods
+whose curried invocant is the current object.)
 
 =head1 Statement parsing
 
