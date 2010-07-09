@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 8 Jul 2010
-    Version: 126
+    Last Modified: 9 Jul 2010
+    Version: 127
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1147,12 +1147,17 @@ still proceeds via longest-token rules first.  If that results in a
 tie, a normal multiple dispatch is made using the arguments to the
 remaining variants, assuming they can be differentiated by type.
 
-The proto calls into the subdispatcher when it sees a C<*> that
-cannot be a quantifier and is the only thing in its bracket.  Therefore
+The C<proto> calls into the subdispatcher when it sees a C<*> that
+cannot be a quantifier and is the only thing in its block.  Therefore
 you can put items before and after the subdispatch by putting
-the C<*> into square brackets:
+the C<*> into curlies:
 
-proto token foo { <prestuff> [*] <poststuff> }
+    proto token foo { <prestuff> {*} <poststuff> }
+
+This works only in a proto.  See L<S06> for a discussion of the
+semantics of C<{*}>.  (Unlike a proto sub, a proto regex
+automatically remembers the return values from C<{*}> because
+they are carried along with the match cursor.)
 
 =item *
 
