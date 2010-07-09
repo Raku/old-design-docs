@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 11 Jun 2010
-    Version: 125
+    Last Modified: 8 Jul 2010
+    Version: 126
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1127,7 +1127,7 @@ regexes for the same category, differentiated only by the symbol they
 match.  The symbol is specified as part of the "long name".  It may also
 be matched within the rule using C<< <sym> >>, like this:
 
-    proto token sigil { }
+    proto token sigil {*}
     multi token sigil:sym<$>  { <sym> }
     multi token sigil:sym<@>  { <sym> }
     multi token sigil:sym<%>  { <sym> }
@@ -1146,6 +1146,13 @@ If there are formal parameters on multi regex methods, matching
 still proceeds via longest-token rules first.  If that results in a
 tie, a normal multiple dispatch is made using the arguments to the
 remaining variants, assuming they can be differentiated by type.
+
+The proto calls into the subdispatcher when it sees a C<*> that
+cannot be a quantifier and is the only thing in its bracket.  Therefore
+you can put items before and after the subdispatch by putting
+the C<*> into square brackets:
+
+proto token foo { <prestuff> [*] <poststuff> }
 
 =item *
 
@@ -1571,15 +1578,6 @@ Note: the effect of a forward-scanning lookbehind at the top level
 can be achieved with:
 
     / .*? prestuff <( mainpat )> /
-
-=item *
-
-The C<< <...> >>, C<< <???> >>, and C<< <!!!> >> special tokens
-have the same "not-defined-yet" meanings within regexes that the bare
-elipses have in ordinary code.  (However, by the recursive rules above,
-C<< <!!> >> is equivalent to C<< <?> >>, which matches the null string.
-Likewise C<< <!!before x> >> is just like C<< <?before x> >>, except
-that it is ignored by the longest-token matcher.)
 
 =item *
 
