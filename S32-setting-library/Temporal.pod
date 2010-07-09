@@ -48,31 +48,32 @@ load a module, or roll their own variants.  Put differently, the below
 are the aspects of time that are felt to be stable enough to belong in
 the core.
 
+Note that in this document, the term "POSIX time" means the number of
+seconds since midnight UTC of 1 January 1970, not counting leap seconds.
+This is the same as the output of the ISO C C<time> function except that it
+includes a fractional part.
+
 =head1 C<time>
 
-Returns an C<Instant> representing the current time as measured in
-atomic seconds since the Unix epoch, suitable for feeding to some of the
-C<DateTime> constructors.
+Returns the current POSIX time. Use the C<now> function for an
+epoch-agnostic measure of atomic seconds (i.e., an C<Instant>).
 
 =head1 C<DateTime>
 
 A C<DateTime> object describes the time as it would appear on someone's
-calendar and someone's clock. You can create a C<DateTime> object from
-the C<Instant> returned by the C<time> function:
+calendar and someone's clock. You can create a C<DateTime> object from an
+C<Instant> or from any object that does the C<Numeric> role; in the latter
+case, the argument is interpreted as POSIX time.
 
-    my $now = DateTime.from-epoch(time);
+    my $now = DateTime.new(now);
+    my $now = DateTime.new(time); # same thing
 
-This is such a common use case, that there's a C<DateTime.now>
-constructor that does this for you:
-
-    my $now = DateTime.now();
-
-General dates can be specified through the C<new> constructor:
+Or you can use named arguments:
 
     my $moonlanding = DateTime.new( :year(1969), :month(7), :day(16),
                                     :hour(20), :minute(17) ); # UTC time
 
-The full list of named arguments is as follows:
+This form allows the following arguments:
 
     :year       required
     :month      defaults to 1   range 1..12
@@ -80,24 +81,33 @@ The full list of named arguments is as follows:
     :hour       defaults to 0   range 0..23
     :minute     defaults to 0   range 0..59
     :second     defaults to 0   range 0.0..^62.0
-    :timezone   defaults to '+0000' (UTC)
-    :formatter  defaults to an iso8601 formatter, see below
 
-Another multi exists with C<Date :date>
-instead of C<:year>, C<:month> and C<:day> (and the same defaults as listed
-above).
+Another multi exists with C<Date :date> instead of C<:year>, C<:month> and
+C<:day> (and the same defaults as listed above).
 
-A shorter way to send in date and time information to is providing a
-single string with a full ISO8601 date and time. The example from above
+All four of the aforementioned forms of C<new> accept two additional named
+arguments. C<:formatter> is a callable object that takes a C<DateTime> and
+returns a string. The default formatter creates an ISO 8601 timestamp (see
+below). C<:timezone> is a callable object that takes a C<DateTime> and
+returns a two-element list giving the difference from UTC in (possibly both
+negative, but not of opposite signs) hours and minutes. Alternatively,
+C<:timezone> can be a two-element C<Seq>, which is interpreted as a static
+offset from UTC. The default time zone is C<(0, 0)> (i.e., UTC).
+
+A shorter way to send in date and time information is to provide a
+single string with a full ISO 8601 date and time. The example from above
 would then be
 
     my $moonlanding = DateTime.new( '1969-07-16T20:17:00Z' ); # UTC time
 
-The general form is C<[date]T[time][offset]>, with [date] given
-as C<YYYY-MM-DD> and [time] given as C<hh:mm:ss>.
-
-The final C<Z> is a short form for C<+0000>, meaning UTC time. The
-general notation for the C<< <offset> >> is C<+hhmm> or C<-hhmm>.
+The general form is C<[date]T[time][offset]>, with [date] given as
+C<YYYY-MM-DD> and [time] given as C<hh:mm:ss>. The final C<Z> is a short
+form for C<+0000>, meaning UTC. (Note that while this form of C<new>
+accepts all of C<+0000>, C<-0000>, and C<Z>, the default formatter for
+C<DateTime> always expresses UTC as C<Z>.) The general notation for the C<<
+<offset> >> is C<+hhmm> or C<-hhmm>. As before, a C<:formatter> argument is
+permitted. The C<:timezone>, if not supplied, is assumed to be a static
+offset equal to the offset in the given timestamp.
 
 With all the above constructors, if you attempt to pass in values that
 are outside of the ranges specified in the list above, you'll get an
@@ -107,11 +117,18 @@ year (for example February 29th 2006). By default, no such checking is
 done against leap seconds. This class also explicitly does not check
 against ambiguous or invalid local times caused by Daylight Saving Time.
 
+There's one additional constructor: C<now>. It works just like
+C<DateTime.new(now)> except that there is no positional parameter and the
+C<:timezone> argument defaults to the system's local time zone.
+
 =head2 "Get" methods
 
-There are methods C<year>, C<month>, C<day>, C<hour>, C<minute>, and
-C<second>, giving you the corresponding values of the C<DateTime>
-object. The C<day> method also has the synonym C<day-of-month>.
+There are methods C<year>, C<month>, C<day>, C<hour>, C<minute>, C<second>,
+C<timezone>, and C<formatter>, giving you the corresponding values of the
+C<DateTime> object. The C<day> method also has the synonym C<day-of-month>.
+
+The method C<Instant> returns an C<Instant>, and the method C<posix>
+returns a POSIX time.
 
 The method C<week> returns two values, the I<week year> and I<week number>.
 (These are also available through the methods C<week-year> and C<week-number>,
@@ -133,25 +150,13 @@ and 366.
 
 The method C<whole-second> returns the second truncated to an integer.
 
-The following methods work as a sort of formatting methods:
-
-    $dt.ymd('-')    (also $dt.date('-'))
-    $dt.mdy('-')
-    $dt.dmy('-')
-    
-    $dt.hms(':')    (also $dt.time(':'))
-
-The single argument of each of those methods is optional, but the above
-shows the defaults: C<'-'> for dates and C<':'> for times.
-
 The C<Date> method returns a C<Date> object, and is the same as
 C<Date.new(|$dt.ymd)>.
 
-The C<timezone> method returns the C<DateTime::TimeZone> object for the
-C<DateTime> object. The method C<offset> returns the offset from UTC, in
-seconds, of the C<DateTime> object according to the time zone.
-
-The C<formatter> method returns the formatter for the C<DateTime> object.
+The method C<offset> returns the object's current offset from UTC: if
+C<$dt.timezone> does C<Callable>, C<$dt.offset> is equivalent to
+C<$dt.timezone($dt)>; otherwise, C<$dt.offset> is equivlent to
+C<@($dt.timezone)>.
 
 =head2 "Set" methods
 
@@ -177,7 +182,7 @@ local time zone is adjusted accordingly:
 
     my $dt = DateTime.new('2005-02-01T15:00:00+0900');
     say $dt.hour;     # 15
-    $dt.timezone = '+0600';
+    $dt.timezone = (6, 0);
     say $dt.hour;     # 12
 
 The C<truncate> method allows you to "clear" a number of time values
