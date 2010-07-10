@@ -16,8 +16,8 @@ DRAFT: Synopsis 17: Processes and Concurrency
 
     Created: 13 Jun 2005
 
-    Last Modified: 27 Feb 2009
-    Version: 4
+    Last Modified: 10 Jul 2010
+    Version: 5
 
 This draft document is a paste together from various sources.  The bulk of it is simply
 the old S17-concurrency.pod, which dealt only with concurrency.  Signals were added from
@@ -188,7 +188,7 @@ One can set up multiple alarms using repeated alarm calls:
         my $a2 = alarm(2);
         sleep 10;
         CATCH {
-            is critical; # if you don't want $a2 to be raised inside this
+            also is critical; # if you don't want $a2 to be raised inside this
             when Sig::ALARM { ... }
         }
     }
@@ -406,7 +406,7 @@ uninterruptability, you could use the "is critical" trait.
  }
 
  if ($update) {
-     is critical;
+     also is critical;
      # code accessing external info, not to be interrupted
  }
 
@@ -609,15 +609,15 @@ Live in userland for the time being.
     module Blah;
     {
 
-        is atomic;   # contend/maybe/whatever other rollback stuff
-                     # limitation: no external IO (without lethal warnings anyway)
-                     # can't do anything irreversible
+        also is atomic;   # contend/maybe/whatever other rollback stuff
+                          # limitation: no external IO (without lethal warnings anyway)
+                          # can't do anything irreversible
 
-        is critical; # free to do anything irreversible
-                     # means "don't interrupt me"
-                     # in system with critical section, no interrupts from
-                     # other threads will happen during execution
-                     # you can't suspend me
+        also is critical; # free to do anything irreversible
+                          # means "don't interrupt me"
+                          # in system with critical section, no interrupts from
+                          # other threads will happen during execution
+                          # you can't suspend me
 
         my $boo is export;
         $boo = 1;

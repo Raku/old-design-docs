@@ -15,8 +15,8 @@ Synopsis 14: Roles and Parametric Types [DRAFT]
 
     Created: 24 Feb 2009 (extracted from S12-objects.pod)
 
-    Last Modified: 8 Jul 2009
-    Version: 8
+    Last Modified: 10 Jul 2009
+    Version: 9
 
 =head1 Overview
 
@@ -157,7 +157,7 @@ A role is allowed to declare an additional inheritance for its class when
 that is considered an implementation detail:
 
     role Pet {
-        is Friend;
+        also is Friend;
     }
 
 =head2 Compile-time Composition
@@ -169,9 +169,16 @@ A class incorporates a role with the verb "does", like this:
 or equivalently, within the body of the class closure:
 
     class Dog {
-        is Mammal;
-        does Pet;
-        does Sentry;
+        also is Mammal;
+        also does Pet;
+        also does Sentry;
+        ...
+    }
+
+or
+
+    class Dog {
+        also is Mammal does Pet does Sentry;
         ...
     }
 
