@@ -17,7 +17,7 @@ Synopsis 6: Subroutines
     Created: 21 Mar 2003
 
     Last Modified: 9 Jul 2010
-    Version: 138
+    Version: 139
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -63,7 +63,8 @@ of that name in the scope of the C<proto> declaration.  A C<proto>
 also adds an implicit C<multi> to all routines of the same short
 name within its scope, unless they have an explicit modifier.
 (This is particularly useful when adding to rule sets or when attempting
-to compose conflicting methods from roles.)
+to compose conflicting methods from roles.)  Abstractly, the C<proto>
+is a wrapper around the dispatch to the C<multi>.s
 
 B<Only> (keyword: C<only>) routines do not share their short names
 with other routines.  This is the default modifier for all routines,
@@ -85,13 +86,13 @@ Modifier keywords cannot apply to anonymous routines.
 
 When you call any routine (or method, or rule) that may have multiple
 candidates, the C<proto> is always called first (at least in the abstract--this
-can often be optimized away).  In essence, a proto is dispatched exactly like
-an C<only> sub, but the proto itself may delegate to any of the candidates
+can often be optimized away).  In essence, a C<proto> is dispatched exactly like
+an C<only> sub, but the C<proto> itself may delegate to any of the candidates
 it is "managing".
 
-It is the proto's responsibility to first vet the arguments for all the
+It is the C<proto>'s responsibility to first vet the arguments for all the
 candidates; any call that does not match the proto's signature fails outright.
-Named arguments that bind to positionals in the proto sig will become positionals
+Named arguments that bind to positionals in the C<proto> sig will become positionals
 for all subsequent calls to its managed multis.
 
 The proto then builds (or otherwise acquires) a list of its managed candidates
@@ -100,50 +101,51 @@ and dispatches them according to the rules of multiple dispatch as defined
 for each of the various dispatchers.
 
 This default behavior is implied by a block containing of a single
-C<*> (that is, a "whatever").  Hence the typical proto will simply
+C<*> (that is, a "whatever").  Hence the typical C<proto> will simply
 have a body of C<{*}>.
 
     proto method bar {*}
 
 (We don't use C<...> for that because it would fail at run time,
-and proto blocks are not stubs, but are intended to be executed.)
+and C<proto> blocks are not stubs, but are intended to be executed.)
 
 Other statements may be inserted before and after the C<{*}>
 statement to capture control before or after the multi dispatch:
 
     proto foo ($a,$b) { say "Called with $a $b"; {*}; say "Returning"; }
 
-(That proto is only good for multis with side effects and no return
+(That C<proto> is only good for C<multi>s with side effects and no return
 value, since it returns the result of C<say>, which might not be what
 you want.  See below for how to fix that.)
 
 The syntactic form C<&foo> (without a modifying signature) can never refer to
-a multi candidate.  It may only refer to the single C<only> or C<proto> routine
-that would first be called by C<foo()>.  Individual multis may be named by
+a C<multi> candidate.  It may only refer to the single C<only> or C<proto> routine
+that would first be called by C<foo()>.  Individual C<multi>s may be named by
 appending a signature to the noun form: C<&foo:($,$,*@)>.
 
-We used the term "managed" loosely above to indicate the set of multis in
+We used the term "managed" loosely above to indicate the set of C<multi>s in
 question; the "managed set" is more accurately defined as the intersection
-of all the multis in the proto's downward scope with all the multis that
+of all the C<multi>s in the C<proto>'s downward scope with all the C<multi>s that
 are visible to the caller's upward-looking scope.  For ordinary routines
 this means looking down lexical scopes and looking up lexical scopes.  [This
-is more or less how multis already behave.]
+is more or less how C<multi>s already behave.]
 
 For methods this means looking down or up the inheritance tree; "managed set"
-in this case translates to the intersection of all methods in the proto's
-class or its subclasses with all multi methods visible to the object in its
+in this case translates to the intersection of all methods in the C<proto>'s
+class or its subclasses with all C<multi> methods visible to the object in its
 parent classes, that is, the parent classes of the object's actual type on
 whose behalf the method was called.  [Note, this is a change from prior
 multi method semantics, which restricted multimethods to a single class;
-the old semantics is equivalent to defining a proto in every class that has
-multimethods.  The new way gives the user the ability to intermix multis at
+the old semantics is equivalent to defining a C<proto> in every class that has
+multimethods.  The new way gives the user the ability to intermix C<multi>s at
 different inheritance levels.  (The first version of Rakudo * is not expected
 to implement this).]
 
-Also, the old semantics of C<proto> providing the most-default multi body
-is hereby deprecated.  Default multis should be marked with "C<is default>".
+Also, the old semantics of C<proto> providing the most-default C<multi> body
+is hereby deprecated.  Default C<multi>s should be marked with "C<is default>".
 
-It is still possible to provide default behavior in the proto, however:
+It is still possible to provide default behavior in the C<proto>, however, by
+using it as a wrapper:
 
     my proto sub foo (@args) {
         do-something-before(@args);
@@ -151,7 +153,7 @@ It is still possible to provide default behavior in the proto, however:
         do-something-after(@args);
     }
 
-Note that this returns the value of do-something-after(), not the multi.
+Note that this returns the value of do-something-after(), not the C<multi>.
 There are two ways to get around that.  Here's one way:
 
     my proto sub foo (@args) {
@@ -183,13 +185,13 @@ exist:
 
     my proto method foo { {*}; UNDO nextsame; }  # failover to super foo
 
-Note that, in addition to making multis work similarly to each other,
-the new proto semantics greatly simplify top-level dispatchers, which
-never have to worry about multis, because multis are always in the
+Note that, in addition to making C<multi>s work similarly to each other,
+the new C<proto> semantics greatly simplify top-level dispatchers, which
+never have to worry about C<multi>s, because C<multi>s are always in the
 second half of the double dispatch (again, just in the abstract, since
-the first dispatch can often be optimized away, as if the proto were
+the first dispatch can often be optimized away, as if the C<proto> were
 inlined).  So in the abstract, C<foo()> only ever calls a single
-only/proto routine, and We Know Which One It Is at compile time.
+C<only>/C<proto> routine, and We Know Which One It Is at compile time.
 
 This is less of a shift for method dispatch, which already assumed that there
 is something like a single proto in each class that redispatches inside
@@ -197,7 +199,7 @@ the class.  Here the change is that multi-method dispatcher needs to look
 more widely for its candidates than the current class.  But note that our
 semantics were inconsistent before, insofar as regex methods already had to
 look for this larger managed set in order to do transitive LTM correctly.
-Now the semantics of normal method protos and regex protos are nearly
+Now the semantics of normal method C<proto>s and regex C<proto>s are nearly
 identical, apart from the fact that regex candidate lists naturally have
 fancier tiebreaking rules involving longest token matching.
 
@@ -795,8 +797,8 @@ If you have a call of the form:
 
     foo(|$capture)
 
-the compiler must defer the decision on whether to treat it as a single
-or multiple dispatch based on whether the supplied C<Capture>'s first
+the compiler must defer the decision on whether to treat it as a method
+or function dispatch based on whether the supplied C<Capture>'s first
 argument is marked as an invocant.  For ordinary calls this can
 always be determined at compile time, however.
 
@@ -953,7 +955,7 @@ a C<:a()> argument in preference to the first positional argument.
 It might seem that performance of binding would suffer by requiring
 a named lookup before a positional lookup, but the compiler is able
 to guarantee that subs with known fixed signatures (both C<only>s and
-C<multi>s with C<proto>s) translate named arguments to positional in the
+C<proto>s) translate named arguments to positional in the
 first N positions.  Also, purely positional calls may obviously omit any
 named lookups, as may bindings that have already used up all the named
 arguments.  The compiler is also free to intuit proto signatures for
@@ -1061,7 +1063,7 @@ signature:
 
     method addto (|$args ($self: @x)) { trace($args); $self += [+] @x }
 
-The inner signature is not required for non-multis since there can
+The inner signature is not required for non-C<multi>s since there can
 only be one candidate, but for multiple dispatch the inner signature
 is required at least for its types, or the declaration would not know
 what signature to match against.
@@ -1602,6 +1604,7 @@ the reverse transformation is not derivable.  For instance, to bind to
 an array of children named C<.kids> or C<< .<kids> >>, use something
 like:
 
+    proto traverse ($) {*}
     multi traverse ( NAry $top ( :kids [$eldest, *@siblings] ) ) {
         traverse($eldest);
         traverse(:kids(@siblings));  # (binds @siblings to $top)
@@ -2815,8 +2818,8 @@ You can get the current routine name by calling C<&?ROUTINE.name>.
 Outside of any sub declaration, this call returns failure.
 
 Note that C<&?ROUTINE> refers to the current single sub, even if it is
-declared "multi".  To redispatch to the entire suite under a given short
-name, just use the named form, since there are no anonymous multis.
+declared C<multi>.  To redispatch to the entire suite under a given short
+name, just use the named form to call the C<proto>, since there are no anonymous C<multi>s.
 
 =head2 The C<&?BLOCK> object
 
@@ -2872,8 +2875,8 @@ module's subroutines/methods/etc. simultaneously:
 
 This special form should generally be restricted to named parameters.
 
-To curry a particular multi variant, it may be necessary to specify the type
-for one or more of its parameters:
+To curry a particular C<multi> variant, it may be necessary to specify the type
+for one or more of its parameters to pick out a single function:
 
     &woof ::= &bark:(Dog).assuming :pitch<low>;
     &pine ::= &bark:(Tree).assuming :pitch<yes>;
@@ -3160,7 +3163,8 @@ or the slurpy array:
         for @filenames { ... }
     }
 
-If C<MAIN> is declared as a set of multi subs, MMD dispatch is performed.
+If C<MAIN> is declared as a C<proto> with a set of C<multi> subs,
+multi dispatch is performed by the C<proto>.
 
 As with module and class declarations, a sub declaration
 ending in semicolon is allowed at the outermost file scope if it is the
@@ -3171,8 +3175,8 @@ first such declaration, in which case the rest of the file is the body:
 
 This form is allowed only for simple subs named C<MAIN> that are intended
 to be run from the command line.
-Proto or multi definitions may not be written in semicolon form,
-nor may C<MAIN> subs within a module or class.  (A C<MAIN> routine
+A C<proto> or C<multi> definition may not be written in semicolon form,
+nor may C<MAIN> subs within a module or class be written in semicolon form.  (A C<MAIN> routine
 is allowed in a module or class, but is not usually invoked unless
 the file is run directly (see a above).  This corresponds to the
 "unless caller" idiom of Perl 5.)  In general, you may have only one
@@ -3314,33 +3318,36 @@ C<YOU_ARE_HERE>.
 
 =head2 Implementation note on autothreading of only subs
 
-The natural way to implement autothreading for multi subs is to
+The natural way to implement autothreading for C<multi> subs is to
 simply have the junctional signatures (the ones that can accept
 C<Mu> or junction as well as C<Any> parameters) match more loosely than
 the non-autothreading versions, and let multiple dispatch find the
 appropriate sub based on the signature.  Those generic routines
 then end up redispatching to the more specific ones.
 
-On the other hand, the natural implementation of only subs is to
+On the other hand, the natural implementation of C<only> subs is to
 call the sub in question directly for efficiency (and maybe even
 inline it in some cases).  That efficiency is, after all, the main
-reason for not just making all subs multi.  However, this direct
+reason for not just making all subs C<multi>.  However, this direct
 call conflicts with the desire to allow autothreading.  It might
 be tempting to simply make everything multi dispatch underneath,
-and then say that the "only" declaration merely means that you get
+and then say that the C<only> declaration merely means that you get
 an error if you redeclare.  And maybe that is a valid approach if
 the multiple dispatch mechanism is fast enough.
 
 However, a direct call still needs to bind its arguments to its
 parameters correctly, and it has to handle the case of failure to
 bind somehow.  So it is also possible to implement autothreading
-of only subs based on failover from the binding failure.  This could
-either be a one-shot failover followed by a conversion to a multi call,
+of C<only> subs based on failover from the binding failure.  This could
+either be a one-shot failover followed by a conversion to a C<multi> call,
 or it could failover every time you try to autothread. If we assume
 that junctional processing is likely to be fairly heavyweight most of
 the time compared to the cost of failing to bind, that tends to argue
 for failing over every time.  This is also more conducive to inlining,
-since it's difficult to rewrite inlined calls.
+since it's difficult to rewrite inlined calls.  In any case, nowadays
+a C<proto> declaration is considered to be a kind of C<only> sub, 
+and needs to handle autothreading similaraly if the signature of
+the C<proto> excludes junctions.
 
 =head2 Introspection
 
@@ -3359,9 +3366,7 @@ single item.
 
 =item .signature
 
-This method returns the signature of the current routine. If this is a
-multi, it should return an "any" junction of the signature of each
-candidate.
+This method returns the signature of the current routine.
 
 =item .cando(\$capture)
 
@@ -3370,11 +3375,11 @@ capture, ordered by goodness of match, with the best match first.
 
 =item .push($candidate)
 
-Adds $candidate to the list of candidates for this multi, calling this
-method in an only routine should result in a failure. It is also
-accepted for multis declared in the source code to finalize the list
-of candidates and also return a failure here. But multis created by
-calling Multi.new() should be able add candidates at run-time.
+Adds C<$candidate> to the list of candidates for this C<proto>, calling this
+method in an C<only> routine should result in a failure. It is also
+accepted for C<multi>s declared in the source code to finalize the list
+of candidates and also return a failure here. But C<Proto>s created by
+calling C<Proto.new()> should be able add candidates at run-time.
 
 =back
 

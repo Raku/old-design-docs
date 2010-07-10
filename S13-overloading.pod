@@ -13,8 +13,8 @@ Synopsis 13: Overloading
 
     Created: 2 Nov 2004
 
-    Last Modified: 2 Feb 2010
-    Version: 13
+    Last Modified: 9 Jul 2010
+    Version: 14
 
 =head1 Overview
 
@@ -49,7 +49,7 @@ existing built-in sub, say something like:
 
     multi sub uc (TurkishStr $s) {...}
 
-A multi is automatically exported if goverened by a proto that is exported.
+A C<multi> is automatically exported if goverened by a proto that is exported.
 It may also be explicitly exported:
 
     multi sub uc (TurkishStr $s) is exported {...}
@@ -94,8 +94,8 @@ except that there really is only one body.  If you declared a C<state>
 variable within the body, for instance, there would only be one
 of them.
 
-A multi is in effect only within the scope in which it is defined or
-imported.  Generally you want to put your multi subs into a package
+A C<multi> is in effect only within the scope in which it is defined or
+imported.  Generally you want to put your C<multi> subs into a package
 that will be imported wherever they are needed.
 
 When you use the multiple signature syntax, the alternate signatures
@@ -106,12 +106,12 @@ words, the compiler is allowed to complain if any of the alternatives
 omits any of the variable names.  This is intended primarily to catch
 editing errors.
 
-Conjectural: If the first parameter to a multi signature is followed
+Conjectural: If the first parameter to a C<multi> signature is followed
 by an invocant colon, that signature represents two signatures, one
-for an ordinary method definition, and one for the corresponding multi
+for an ordinary method definition, and one for the corresponding C<multi>
 definition that has a comma instead of the colon.  This form is legal
 only where the standard method definition would be legal, and only
-if any declared type of the first parameter is consistent with $?CLASS.
+if any declared type of the first parameter is consistent with C<$?CLASS>.
 
 =head1 Fallbacks
 
@@ -122,6 +122,9 @@ to an C<AUTODEF> submethod [conjectural] as appropriate to define the routine.  
 a run-time mechanism for fallbacks.  By default, these declarations
 are taken at face value and do not specify any underlying semantics.
 As such, they're a "shallow" interpretation.
+
+[Note: the following section on "is deep" may no longer be necessary given
+the way metaoperators are now constructed.]
 
 However, sometimes you want to specify a "deep" interpretation of
 your operators.  That is, you're specifying the abstract operation,
@@ -150,7 +153,7 @@ note in particular that
 
 is better written:
 
-    method Str {...}
+    method Stringy {...}
 
 (see below).
 
@@ -212,9 +215,9 @@ is a declared type, it is taken as a coercion to that type:
 
     method Str { self.makestringval() }
 
-As with all methods, you can also export the corresponding multi:
+As with all methods, you can also export the corresponding C<multi>:
 
-    method Str is export { self.makestringval() }
+    multi method Str is export { self.makestringval() }
 
 in which case you can use both calling forms:
 
@@ -223,10 +226,8 @@ in which case you can use both calling forms:
 
 If the source class and the destination class both specify a
 coercion routine, the ambiguity is settled by the ordinary rules
-of multiple dispatch.  Usually the source class will have the more
-specific argument and will win; ties are also possible, and those
-calls will fail.  Additional arguments may sway the dispatch one way
-or the other depending on the candidate list.
+of dispatch.  That is, C<$x.Str> will always prefer the method form
+and C<Str($x)> will always prefer the functional form.
 
 Note that, because the name of an anonymous class is unknown, coercion to
 an anonymous class can only be specified by the destination class:

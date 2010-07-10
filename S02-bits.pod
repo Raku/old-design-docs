@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 2 Jun 2010
-    Version: 217
+    Last Modified: 9 Jul 2010
+    Version: 218
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1748,9 +1748,9 @@ numeric type if C<$x> is "cool" but doesn't already support a method
 of that name.  Conversely, C<$x.substr> implies conversion to a string
 or buffer type.
 
-The C<Cool> namespace also contains all multimethods of last resort;
+The C<Cool> module also contains all multisubs of last resort;
 these are automatically searched if normal multiple dispatch does not
-find a viable candidate.  Note that the C<Cool> namespace is mutable,
+find a viable candidate.  Note that the C<Cool> package is mutable,
 and both single and multiple dispatch must take into account changes
 there for the purposes of run-time monkey patching.  However, since
 the multiple dispatcher uses the C<Cool> package only as a failover,
@@ -2271,19 +2271,22 @@ then dereference the result of that.
 
 =item *
 
-With multiple dispatch, C<&foo> may actually be the name of a set
-of candidate functions (which you can use as if it were an ordinary function).
+With multiple dispatch, C<&foo> is actually the name of the C<proto> controlling a set
+of candidate functions (which you can use as if it were an ordinary function, because
+a C<proto> is really an C<only> function with pretentions to management of a dispatcher).
 However, in that case C<&foo> by itself is not sufficient to uniquely
 name a specific function.  To do that, the type may be refined by
 using a signature literal as a postfix operator:
 
     &foo:(Int,Num)
 
-It still just returns the C<Routine> object.  A call may also be partially
+Use of a signature that does not unambiguously select a single multi results in
+failure.
+
+It still just returns a C<Routine> object.  A call may also be partially
 applied by using the C<.assuming> method:
 
     &foo.assuming(1,2,3,:mice<blind>)
-
 
 =item *
 

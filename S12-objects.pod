@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 21 May 2010
-    Version: 103
+    Last Modified: 9 Jul 2010
+    Version: 104
 
 =head1 Overview
 
@@ -76,8 +76,8 @@ It is also possible to extend classes via the C<augment> declarator,
 but that is considered somewhat antisocial and should not be used
 for forward declarations.
 
-[Conjecture: we may also allow the C<proto> and C<multi> modifiers
-to explicitly declare classes with multiple bodies participating in
+[Conjecture: we may also allow the C<proto> and C<multi> declarator modifiers
+on class definitions to explicitly declare classes with multiple bodies participating in
 a single definition intentionally.]
 
 A named class declaration can occur as part of an expression, just like
@@ -225,10 +225,6 @@ To mark an explicit invocant, just put a colon after it:
 
     method doit ($x: $a, $b, $c) { ... }
 
-This is true also for multi methods:
-
-    multi method doit ($x: $a; $b; $c) { ... }
-
 If you declare an explicit invocant for an Array type using an array variable,
 you may use that directly in list context to produce its elements
 
@@ -287,7 +283,7 @@ from the invocation line:
 
 However, here the built-in B<IO> class defines C<method close () is export>,
 which puts a C<multi sub close (IO)> in scope by default.  Thus if the
-C<$handle> evaluates to an IO object, then the two subroutine calls above
+C<$handle> evaluates to an C<IO> object, then the two subroutine calls above
 are still translated into method calls.
 
 Dot notation can omit the invocant if it's in C<$_>:
@@ -924,8 +920,8 @@ dispatcher until after the last call.)
 Since it's possible to be dispatching within more than one candidate
 list at a time, these control flow calls are defined to apply only to
 the dynamically innermost dispatcher.  If, for instance, you have a
-single dispatch that then calls into a multiple dispatch on the multi
-methods within a class, C<nextsame> would go to the next best multi
+single dispatch to a C<proto> method that then calls into a multiple dispatch on the C<multi>
+methods within a class, C<nextsame> within one of those C<multi>s would go to the next best C<multi>
 method within the class, not the next method candidate in the original
 single dispatch.  This is not a bad limitation, since dispatch loops
 are dynamically scoped; to get to the outermost lists you can "pop"
@@ -978,9 +974,8 @@ The "long name" of a subroutine or method includes the type signature
 of its invocant arguments.  The "short name" doesn't.  If you put
 C<multi> in front of any sub (or method) declaration, it allows
 multiple long names to share a short name, provided all of them are
-declared C<multi>.  (Putting C<proto> on the first such declaration has
-the same effect, but usually you want to put the C<multi> explicitly
-anyway for documentation.)  If a sub (or method) is not marked
+declared C<multi>, and there is a single C<proto> that manages them.
+If a sub (or method) is not marked
 with C<multi> and it is not within the package or lexical scope of
 a C<proto> of the same short name, it is considered unique, an I<only>
 sub.  You may mark a sub explicitly as C<only> if you're worried it
@@ -1002,27 +997,23 @@ non-listop operator it is free to apply the global C<proto> since
 any user-defined C<only> version of it must of necessity be declared
 earlier in the user's lexical scope or not at all.)
 
-A C<proto> may share dispatch with multis declared after it in the same scope,
-but in that case it functions only as the final tie-breaker if the
-inner multis can't decide among themselves what to do.  (It may
-then, of course, decide to redispatch outside of the current scope.)
+A C<proto> always functions as a dispatcher around any C<multi>s declared after it in the same scope,
 
-Within its scope,
-the signature of a C<proto> also nails down the presumed order
-and naming of positional parameters, so that any multi call with named
-arguments in that scope can presume to rearrange those arguments into
-positional parameters based on that information.  (Unrecognized names
+Within its scope, the signature of a C<proto> also nails down the presumed
+order and naming of positional parameters, so that any C<multi> call with
+named arguments in that scope can presume to rearrange those arguments
+into positional parameters based on that information.  (Unrecognized names
 remain named arguments.)  Any other type information or traits attached
-to the C<proto> are also shared by the routines within its scope,
-so a C<proto> definition can be used to factor out common traits.
-This is particularly useful for establishing grammatical categories
-in a grammar by declaring a C<proto> C<token> or C<proto> C<rule>.  (Perl 6's
-grammar does this, for instance.)
+to the C<proto> may also be passed along to the routines within its scope,
+so a C<proto> definition can be used to factor out common traits.  This is
+particularly useful for establishing grammatical categories in a grammar by
+declaring a C<proto> C<token> or C<proto> C<rule>.  (Perl 6's grammar does
+this, for instance.)
 
 You can have multiple C<multi> variables of the same name in the
 same scope, and they all share the same storage location and type.
-Usually these are declared by one C<proto> declaration at the top,
-and leaving the C<multi> implicit on the rest of the declarations.
+These are declared by one C<proto> declaration at the top, in which case
+you may leave the C<multi> implicit on the rest of the declarations in the same scope.
 You might do this when you suspect you'll have multiple declarations
 of the same variable name (such code might be produced by a macro
 or by a code generator, for instance) and you wish to suppress any
@@ -1031,10 +1022,10 @@ possible warnings about redefinition.
 In contrast, C<multi> routines can have only one instance of the long
 name in any namespace, and that instance hides any outer (or less-derived)
 routines with the same long name.  It does not hide any routines with
-the same short name but a different long name.  In other words, multis
+the same short name but a different long name.  In other words, C<multi>s
 with the same short name can come from several different namespaces
 provided their long names differ and their short names aren't hidden
-by an C<only> declaration in some intermediate scope.
+by an C<only> or C<proto> declaration in some intermediate scope.
 
 When you call a routine with a particular short name, if there are
 multiple visible long names, they are all considered candidates.
@@ -1049,6 +1040,7 @@ which the constrained type is based is considered for the nominal type
 match (along with the fact that it is constrained).  That is, if you have a parameter:
 
     subset Odd of Int where { $_ % 2 }
+    proto foo {*}
     multi foo (Odd $i) {...}
 
 it is treated as if you'd instead said:
@@ -1133,7 +1125,7 @@ double semicolon instead of a comma before it:
     multi sub infix:<..>(Int $min, Int $max;; Int $by = 1) {...}
 
 The double semicolon, if any, determines the complete long name of
-a multi.  (In the absence of that, a double semicolon is assumed
+a C<multi>.  (In the absence of that, a double semicolon is assumed
 after the last declared argument, but before any return signature.)
 Note that a call to the routine must still be compatible with
 subsequent arguments.
@@ -1176,13 +1168,13 @@ they are all considered to be declared at the point of of importation
 for purposes of tiebreaking; subsequent tiebreaking is provided by
 the original order in the used module.
 
-[Conjecture: However, a given multi may advertise multiple long names,
+[Conjecture: However, a given C<multi> may advertise multiple long names,
 some of which are shorter than the complete long name.  This is done
 by putting a semicolon after each advertised long name (replacing
 the comma, if present).  A semicolon has the effect of inserting two
 candidates into the list.  One of them is inserted with exactly the
 same types, as if the semicolon were a comma.  The other is inserted
-as if all the types after the semicolon were of type Any, which puts
+as if all the types after the semicolon were of type C<Any>, which puts
 it later in the list than the narrower actual candidate.  This merely
 determines its sort order; the candidate uses its real type signature
 if the dispatcher gets to it after rejecting all earlier entries on the
@@ -1201,18 +1193,6 @@ form will be implemented in the standard language.]
 A C<method> or C<submethod> doesn't ordinarily participate in any
 subroutine-dispatch process. However, they can be made to do so if
 prefixed with a C<my> or C<our> declarator.
-
-The multi-method tiebreaking happens only within a given class; all
-parent classes' multis appear to the outside world to be C<only>
-methods (and indeed, a foreign object may have no clue how to
-advertise multiple methods anyway).  In other words, longnames from
-different classes don't intermix as do the longnames in ordinary
-multi-sub dispatch.  So multi methods work only within a class;
-outside the class, single-dispatch semantics are enforced to preserve
-encapsulation.  To put it another way, multi methods are only for
-convenience of implementation within a given class; and specifically
-to make it easier to compose roles with similar but not identical
-methods into a single class.
 
 Conjecture: In order to specify dispatch that includes the return
 type context, it is necessary to place the return type before the double
@@ -1252,23 +1232,23 @@ foreign types can be coerced into Perl types, otherwise they fail).
 
 There is no fail-over either from subroutine to method dispatch or
 vice versa.  However, you may use C<is export> on a method
-definition to make it available also as a multi sub.  As with indirect
+definition to make it available also as a C<multi> sub.  As with indirect
 object syntax, the first argument is still always the invocant,
 but the export allows you to use a comma after the invocant instead of
 a colon, or to omit the colon entirely in the case of a method with
 no arguments other than the invocant.  Many standard methods (such
 as C<IO::close> and C<Array::push>) are automatically exported to the
 C<CORE> namespace by default.  For other exported methods, you will not
-see the multi sub definition unless you C<use> the class in your scope,
-which will import the multi sub lexically, after which you can call it
+see the C<multi> sub definition unless you C<use> the class in your scope,
+which will import the C<proto> (and associated C<multi> subs) lexically, after which you can call it
 using normal subroutine call syntax.
 
 In the absence of an explicit type on the method's invocant, the
-exported multi sub's first argument is implicitly constrained to
+exported C<multi> sub's first argument is implicitly constrained to
 match the class in which it was defined or composed, so for instance
-the multi version of C<close> requires its first argument to be of
+the C<multi> version of C<close> requires its first argument to be of
 type C<IO> or one of its subclasses.  If the invocant is explicitly
-typed, that will govern the type coverage of the corresponding multi's
+typed, that will govern the type coverage of the corresponding C<multi>'s
 first argument, whether that is more specific or more general than
 the class's invocant would naturally be.  (But be aware that if it's
 more specific than C<::?CLASS>, the binding may reject an otherwise
@@ -1277,44 +1257,19 @@ it does no good to overgeneralize the invocant if the routine itself
 cannot handle the broader type.  In such a situation you must write
 a wrapper to coerce to the narrower type.
 
-Note that explicit use of a syntactic category as a method name
-overrides the choice of dispatcher, so
-
-    $x.infix:<*>($y)
-
-and
-
-    infix:<*>($x,$y)
-
-are exactly equivalent.  That is, both calls use the subroutine/multi
-dispatcher, not the method/single dispatcher.  Likewise
-
-    foo($bar)
-
-can be written
-
-    $bar.prefix:<foo>()
-
-with the same meaning.  To get single dispatch of that method
-name to a foreign function, you must say:
-
-    $bar.'prefix:<foo>'()
-
-Most foreign languages are not going to understand such a method name,
-however.
-
 =head1 Multi dispatch
 
 Multi submethods work just like multi methods except they are constrained
 to an exact type match on the invocant, just as ordinary submethods are.
 
-Perl 6.0.0 is not required to support multiple dispatch on named parameters,
-only on positional parameters.  Note that most builtins will map known
-named parameters to positional via a C<proto> declaration.
+Perl 6.0.0 is not required to support multiple dispatch on named
+parameters, only on positional parameters.  Note however that any
+C<proto> will map named arguments to known declared positional
+parameters and call the C<multi> candidates with positionals for
+those arguments rather than named arguments.
 
 Within a multiple dispatch, C<nextsame> means to try the next best
-match, or next best default in case of tie, or the proto sub if there
-is one.
+match, or next best default in case of tie.
 
 Attributes are tied to a particular class definition, so a multi method
 can only directly access the attributes of a class it's defined within
@@ -1483,10 +1438,11 @@ anded together anyway.
 You can leave out the block when matching against a literal value of some
 kind:
 
+    proto sub fib (Int $) {*}
     multi sub fib (Int $n where 0|1) { return $n }
     multi sub fib (Int $n) { return fib($n-1) + fib($n-2) }
 
-In fact, you can leave out the 'where' declaration altogether:
+In fact, you can leave out the C<where> declaration altogether:
 
     multi sub fib (0) { return 0 }
     multi sub fib (1) { return 1 }
@@ -2203,7 +2159,7 @@ The C<.^methods> method returns method-descriptors containing:
     name                the name of the method
     signature           the parameters of the method
     as                  the coercion type of the method
-    multi               whether duplicate names are allowed
+    proto               whether this method governs a set of multi methods
     do                  the method body
 
 The C<.^methods> method has a selector parameter that lets you
@@ -2216,7 +2172,7 @@ whether you're interested in private methods, and so forth.
 
 Note that, since introspection is primarily for use by the outside
 world (the class already knows its own structure, after all), a set of
-multi methods are presented to be a single C<Routine> object.  You need to
+C<multi> methods are presented to be a single C<proto> method.  You need to
 use C<.candidates> on that to break it down further.
 
 The C<.^attributes> method returns a list of attribute descriptors
