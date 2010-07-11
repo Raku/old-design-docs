@@ -15,8 +15,8 @@ DRAFT: Synopsis 32: Setting Library - Temporal
 
     Created: 19 Mar 2009
 
-    Last Modified: 8 Apr 2010
-    Version: 7
+    Last Modified: 11 July 2010
+    Version: 8
 
 The document is a draft.
 
@@ -88,11 +88,12 @@ C<:day> (and the same defaults as listed above).
 All four of the aforementioned forms of C<new> accept two additional named
 arguments. C<:formatter> is a callable object that takes a C<DateTime> and
 returns a string. The default formatter creates an ISO 8601 timestamp (see
-below). C<:timezone> is a callable object that takes a C<DateTime> and
-returns a two-element list giving the difference from UTC in (possibly both
-negative, but not of opposite signs) hours and minutes. Alternatively,
-C<:timezone> can be a two-element list, which is interpreted as a static
-offset from UTC. The default time zone is C<(0, 0)> (i.e., UTC).
+below). C<:timezone> is a callable object that takes a C<DateTime> to
+convert and a C<Bool> that specifies the direction of the conversion: to
+UTC if true, from UTC if false. The C<:timezone> signifies the necessary
+conversion by returning an integer giving the difference from UTC in
+seconds. Alternatively, C<:timezone> can be a number, which is interpreted
+as a static offset from UTC. The default time zone is C<0> (i.e., UTC).
 
 A shorter way to send in date and time information is to provide a
 single string with a full ISO 8601 date and time. The example from above
@@ -100,14 +101,16 @@ would then be
 
     my $moonlanding = DateTime.new( '1969-07-16T20:17:00Z' ); # UTC time
 
-The general form is C<[date]T[time][offset]>, with [date] given as
-C<YYYY-MM-DD> and [time] given as C<hh:mm:ss>. The final C<Z> is a short
+The general form is C<[date]T[time][offset]>, with C<[date]> given as
+C<YYYY-MM-DD> and C<[time]> given as C<hh:mm:ss>. The final C<Z> is a short
 form for C<+0000>, meaning UTC. (Note that while this form of C<new>
 accepts all of C<+0000>, C<-0000>, and C<Z>, the default formatter for
-C<DateTime> always expresses UTC as C<Z>.) The general notation for the C<<
-<offset> >> is C<+hhmm> or C<-hhmm>. As before, a C<:formatter> argument is
-permitted. The C<:timezone>, if not supplied, is assumed to be a static
-offset equal to the offset in the given timestamp.
+C<DateTime> always expresses UTC as C<Z>.) The general notation for the
+C<[offset]> is C<+hhmm> or C<-hhmm>. The time zone of the new object is
+assumed to be a static offset equal to the C<[offset]>. The C<[offset]> is
+optional; if omitted, a C<:timezone> argument is permitted; if this too is
+omitted, UTC is assumed. Finally, the constructor also accepts a
+C<:formatter> argument.
 
 With all the above constructors, if you attempt to pass in values that
 are outside of the ranges specified in the list above, you'll get an
@@ -155,8 +158,8 @@ C<Date.new(|$dt.ymd)>.
 
 The method C<offset> returns the object's current offset from UTC: if
 C<$dt.timezone> does C<Callable>, C<$dt.offset> is equivalent to
-C<$dt.timezone($dt)>; otherwise, C<$dt.offset> is equivlent to
-C<@($dt.timezone)>.
+C<$dt.timezone($dt, True)>; otherwise, C<$dt.offset> returns
+C<$dt.timezone> as is.
 
 =head2 "Set" methods
 
@@ -181,9 +184,9 @@ If you use the C<timezone> public accessor to adjust the time zone, the
 local time zone is adjusted accordingly:
 
     my $dt = DateTime.new('2005-02-01T15:00:00+0900');
-    say $dt.hour;     # 15
-    $dt.timezone = (6, 0);
-    say $dt.hour;     # 12
+    say $dt.hour;                # 15
+    $dt.timezone = 6 * 60 * 60;  # 6 hours ahead of UTC
+    say $dt.hour;                # 12
 
 The C<truncate> method allows you to "clear" a number of time values
 below a given resolution:
@@ -196,6 +199,9 @@ inherent defaults: 1 for months and days, 0 for the time components.
 If you pass in C<< :to<week> >>, the C<DateTime> object is set to the
 Monday of the week in which it occurs, and the time components are all
 set to 0.
+
+For the convenience of method chaining, C<set> and C<truncate> return the
+calling object.
 
 =head1 Date
 
