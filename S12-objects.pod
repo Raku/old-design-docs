@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 10 Jul 2010
-    Version: 105
+    Last Modified: 11 Jul 2010
+    Version: 106
 
 =head1 Overview
 
@@ -2031,6 +2031,31 @@ There is I<no> syntax for declaring individual classes closed or final.
 The application may only request that the optimizer close and finalize
 unmarked classes.
 
+=head1 Representations
+
+By default Perl 6 assumes that all objects have a representation
+of C<P6opaque>.  This may be overridden with a trait:
+
+    class Mammal is repr(P6Hash) {...}
+
+Whether implicit or explicit, the representation is considered to be
+fixed for the class after declaration, and the optimizer is free to
+optimize based on this guarantee.  It is illegal to create an object
+of the same type with any other representation.  If you wish to allow
+objects to be created with run-time specified representations, you
+must specifically pessimize the class:
+
+    class Mammal is repr(*) {...}
+
+All non-native representations are required to support undefined type
+objects that may contain unthrown exceptions (C<Failure> objects);
+while this can be implemented using an alternate representation,
+Perl 6 doesn't think of it that way.  All normal objects in Perl 6
+may be used as a specific object (proper noun) if they are defined,
+or as a generic object (common noun) whether or not they are defined.
+You get this representation polymorphism for free independently of
+the restriction above.
+
 =head1 Interface Consistency
 
 By default, all methods and submethods that do not declare an explicit
@@ -2142,7 +2167,7 @@ Class traits may include:
     parents       list of parent classes
     roles         list of roles
     disambig      how to deal with ambiguous method names from roles
-    layout        P6opaque, P6hash, P5hash, P5array, PyDict, Cstruct, etc.
+    repr          P6opaque, P6hash, P5hash, P5array, PyDict, Cstruct, etc.
 
 These are for the standard Perl 6 Meta-Object Protocol, but other MOPs
 may define other traits.  The identifier should probably be accessed
