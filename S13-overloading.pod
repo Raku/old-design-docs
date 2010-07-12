@@ -99,12 +99,14 @@ imported.  Generally you want to put your C<multi> subs into a package
 that will be imported wherever they are needed.
 
 When you use the multiple signature syntax, the alternate signatures
-must all bind the same set of formal variable names, though they
-are allowed to vary in any other way, such as by type, or by which
-parameters are considered optional or named-only or slurpy.  In other
-words, the compiler is allowed to complain if any of the alternatives
-omits any of the variable names.  This is intended primarily to catch
-editing errors.
+are not required to all bind the same set of formal variable names,
+nor are all parameters of a given name required to bind with the
+same type.  Unbound parameters will be born with an undefined value
+(even if they have a default).  For any parameter that occurs in
+multiple signatures with non-identical nominal types, the actual
+lexical variable will declared with a nominal type of C<Mu>, and
+if unbound, will contain C<Mu>.  To catch parameter name typos,
+the compiler may warn about unused parameters.
 
 Conjectural: If the first parameter to a C<multi> signature is followed
 by an invocant colon, that signature represents two signatures, one
