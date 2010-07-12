@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 9 Jul 2010
-    Version: 100
+    Last Modified: 12 Jul 2010
+    Version: 101
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -985,6 +985,25 @@ of the C<CATCH> block.  Handled exceptions break out past this implicit
 rethrow.)  Hence, C<CATCH> is unlike all other switch statements in that
 it treats code inside a C<default> block differently from code that's after
 all the C<when> blocks but not in a C<default> block.
+
+More specifically, when you write:
+
+    CATCH {
+        when Mumble {...}
+        default {...}
+    }
+
+you're really getting something more like:
+
+    CATCH {
+        when Mumble {...}
+        default {...}
+
+        leave(Failure);
+
+        KEEP (die("Pending exceptions not handled in $!") unless all($!.pending».handled); $!.handled = 1);
+        UNDO die $!;
+    }
 
 A C<CATCH> block sees the lexical scope in which it was defined, but
 its caller is the dynamic location that threw the exception.  That is,
