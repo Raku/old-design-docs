@@ -1350,6 +1350,7 @@ various native types are automatically derived from native unsigned int types:
 
     blob1       Blob[bit], a bit string
     blob2       Blob[uint2], a DNA sequence?
+    blob3       Blob[Uint[3]], an octal string
     blob4       Blob[uint4], a hex string
     blob8       Blob[uint8], a byte string
     blob16      Blob[uint16]
@@ -3189,16 +3190,14 @@ rules of qw quotes described below.)
 
 =item *
 
-Blob literals look similar to integer literals with radix markers, but are
-distinct in their details.  A Blob literal has 1 format with 3 radix
-options:
+C<Blob> literals look similar to integer literals with radix markers, but use
+curlies instead of angles:
 
-    0b<00101110100010>      base 2, 1 bit per column
-    0o<523504376>           base 8, 3 bits per column
-    0x<A705E>               base 16, 4 bits per column
+    :2{0010_1110_1000_10}   a blob1, base 2, 1 bit per column
+    :8{5235 0437 6}         a blob3, 3 bits per column
+    :16{A705E}              a blob4, 4 bits per column
 
-TODO:  Expand this for more generality.  Meanwhile, this existing
-definition covers the common cases of specifying in bits and hexits.
+Whitespace and underscores are allowed but ignored.
 
 =item *
 
