@@ -16,7 +16,7 @@ DRAFT: Synopsis 32: Setting Library - Temporal
     Created: 19 Mar 2009
 
     Last Modified: 12 Jul 2010
-    Version: 9
+    Version: 10
 
 The document is a draft.
 
@@ -50,12 +50,14 @@ the core.
 
 Note that in this document, the term "POSIX time" means the number of
 seconds since midnight UTC of 1 January 1970, not counting leap seconds.
-This is the same as the output of the ISO C C<time> function except that it
-also includes a fractional part.
+This is the same as the output of the ISO C C<time> function.
+Unlike in Perl 5, C<time> does not return fractional seconds, since C<POSIX>
+does not define the concept during leap seconds.  You want
+to use C<now> for that instead.
 
 =head1 C<time>
 
-Returns the current POSIX time. Use the C<now> function for an
+Returns the current POSIX time as an Int. Use the C<now> function for an
 epoch-agnostic measure of atomic seconds (i.e., an C<Instant>).
 Note that both C<time> and C<now> are not functions, but terms
 of the pseudo-constant variety; as such they never take an argument.
@@ -70,7 +72,11 @@ C<Instant> or from any object that does the C<Numeric> role; in the latter
 case, the argument is interpreted as POSIX time.
 
     my $now = DateTime.new(now);
-    my $now = DateTime.new(time); # same thing
+    my $now = DateTime.new(time); # same thing (usually)
+
+Note that a C<DateTime> based on C<now> can return a C<DateTime>
+that cannot be produced using C<time>, since C<time> doesn't know
+about leap seconds.
 
 Or you can use named arguments:
 
