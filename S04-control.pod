@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 12 Jul 2010
-    Version: 101
+    Last Modified: 14 Jul 2010
+    Version: 102
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -993,17 +993,45 @@ More specifically, when you write:
         default {...}
     }
 
-you're really getting something more like:
+you're really calling into a I<catch lambda> that looks like:
 
-    CATCH {
-        when Mumble {...}
-        default {...}
+    -> $! {
+        my $SUCCEEDED = 1;     # assume we will handle it
 
-        leave(Failure);
+        given $! {
+            when Mumble {...}
+            default {...}
+            $SUCCEEDED = 0;    # unassume we handled it
+        }
 
-        KEEP (die("Pending exceptions not handled in $!") unless all($!.pending».handled); $!.handled = 1);
-        UNDO die $!;
+        # the user may handle exception either by
+        #      1. pattern matching in the given
+        #      2. explicitly setting $!.handled = 1
+        $!.handled = 1 if $SUCCEEDED;
+
+        # conjecture: this might be enforced by the exception thrower instead
+        if $!.handled {
+            $!.wrap-die("Pending exceptions not handled") unless all($!.pending».handled);
+        }
+
+        $!;
     }
+
+The exception thrower looks up the call stack for a catch lambda
+that returns the exception object as handled, and then it is happy,
+and unwinds the stack to that point.  If the exception is returned
+as not handled. the exception thrower keeps looking for a higher
+dynamic scope for a spot to unwind to.  Note that any C<die> in the
+catch lambda rethrows outside the lambda as a new exception, wrapping
+up the old exception in its new pending list.  In this case the lambda
+never finishes executing.  Resumable exceptions may or may not leave
+normally depending on the implementation.  If continuations are used,
+the C<$!.resume> call will simply goto the continuation in question,
+and the lambda's callframe is abandoned.  Resumable exceptions may also
+be implemented by simply marking the C<$!> exception as "resumed",
+in which case the original exception thrower simply returns to
+the code that threw the resumable exception, rather than unwinding
+before returning.
 
 A C<CATCH> block sees the lexical scope in which it was defined, but
 its caller is the dynamic location that threw the exception.  That is,
@@ -1013,7 +1041,7 @@ if the C<CATCH> block throws its own exception, you would expect the
 C<CATCH> block to catch its own exception recursively forever.  However,
 a C<CATCH> must not behave that way, so we say that a C<CATCH> block
 never attempts to handle any exception thrown within its own dynamic scope.
-(Otherwise the C<die> in the previous paragraph would never work.)
+(Otherwise any C<die> would cause an infinite loop.)
 
 =head1 Control Exceptions
 
@@ -1132,7 +1160,11 @@ associated continuation) when the compiler or runtime can determine
 that the semantics would be preserved by merely printing out the
 error and going on.  Since all exception handlers run in the dynamic
 scope of the throw, that reduces to simply returning from the C<warn>
-function most of the time.
+function most of the time.  See previous section for discussion of
+ways to return from catch lambdas.  The control lambda is logically
+separate from the catch lambda, though an implementation is allowed
+to combine them if it is careful to retain separate semantics for
+catch and control exceptions.
 
 =head1 The goto statement
 X<goto>
