@@ -1043,6 +1043,16 @@ a C<CATCH> must not behave that way, so we say that a C<CATCH> block
 never attempts to handle any exception thrown within its own dynamic scope.
 (Otherwise any C<die> would cause an infinite loop.)
 
+Any attempt to throw a fatal exception past an already active exception
+handler must guarantee to steal the existing fatal exception (plus
+any pending exceptions it contains) and add all those to the new
+exception's pending list.  (This does not apply to control exceptions
+described in the next section.)  When the new exception is handled,
+it must also deal with the list of pending exceptions, or the C<wrap-die>
+mentioned above will throw a "Pending exceptions not handled" at that point.
+Even this does not discard the pending exceptions, so in the final outermost
+message, all non-handled exceptions are guaranteed to be listed.
+
 =head1 Control Exceptions
 
 All abnormal control flow is, in the general case, handled by the
