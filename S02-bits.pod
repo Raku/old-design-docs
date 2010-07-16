@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 11 Jul 2010
-    Version: 219
+    Last Modified: 16 Jul 2010
+    Version: 220
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2492,7 +2492,24 @@ to gain control of the main execution, it merely needs to declare
 a C<MAIN> routine as documented in S06.  In this case the ordinary
 execution of the user's code is suppressed; instead, execution
 of the user's code is entirely delegated to the setting's C<MAIN> routine,
-which calls back to the user's lexically embedded code with C<YOU_ARE_HERE>.
+which calls back to the user's lexically embedded code with C<{YOU_ARE_HERE}>.
+
+The C<{YOU_ARE_HERE}> functions within the setting as a proxy for
+the user's C<UNIT> block, so C<-n> and C<-p> may be implemented in
+a setting with:
+
+    for $*ARGFILES.lines {YOU_ARE_HERE}                 # -n
+    map *.say, do for $*ARGFILES.lines {YOU_ARE_HERE}   # -p
+
+or
+
+    map {YOU_ARE_HERE}, $*ARGFILES.lines;               # -n
+    map *.say, map {YOU_ARE_HERE}, $*ARGFILES.lines;    # -p
+
+and the user may use loop control phasers as if they were directly in
+the loop block.  Any C<OUTER> in the user's code refers to the block
+outside of C<{YOU_ARE_HERE}>.  If used as a standalone statement,
+C<{YOU_ARE_HERE}> runs as if it were a bare block.
 
 Note that, since the C<UNIT> of an eval is the eval string itself,
 the C<SETTING> of an eval is the language in effect at the point

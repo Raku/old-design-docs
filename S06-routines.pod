@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 12 Jul 2010
-    Version: 141
+    Last Modified: 16 Jul 2010
+    Version: 142
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -3300,26 +3300,26 @@ There may also be an implicit C<MAIN> routine supplied by the setting
 of the current compilation unit.  (The C<-n> and C<-p> command-line
 switches are implemented this way.)  In this case the user's mainline
 code is not automatically executed; instead, execution is controlled
-by the setting's C<MAIN> routine.  That routine calls C<YOU_ARE_HERE>
+by the setting's C<MAIN> routine.  That routine calls C<{YOU_ARE_HERE}>
 at the point where the user's code is to be lexically inserted (in
-the abstract).  A setting may also call C<YOU_ARE_HERE> outside of
+the abstract).  A setting may also call C<{YOU_ARE_HERE}> outside of
 a C<MAIN> routine, in which case it functions as a normal setting,
-and the C<YOU_ARE_HERE> merely indicates where the user's code
+and the C<{YOU_ARE_HERE}> merely indicates where the user's code
 goes logically.  (Or from the compiler's point of view, which the
 lexical scope to dump a snapshot of for later use by the compiler
 as the setting for a different compilation unit.)  In this case the
 execution of the user code proceeds as normal.  In fact, the C<CORE>
-setting ends with a C<YOU_ARE_HERE> to dump the C<CORE> lexical
+setting ends with a C<{YOU_ARE_HERE}> to dump the C<CORE> lexical
 scope as the standard setting.  In this sense, C<CORE> functions as
 an ordinary prelude.
 
 If a C<MAIN> routine is declared both in the setting and in the
 user's code, the setting's C<MAIN> functions as the actual mainline
 entry point.  The user's C<MAIN> functions in an embedded fashion;
-the setting's invocation of C<YOU_ARE_HERE> functions as the main
+the setting's invocation of C<{YOU_ARE_HERE}> functions as the main
 invocation from the point of view of the user's code, and the
 user's C<MAIN> routine will be invoked at the end of each call to
-C<YOU_ARE_HERE>.
+C<{YOU_ARE_HERE}>.
 
 =head2 Implementation note on autothreading of only subs
 
