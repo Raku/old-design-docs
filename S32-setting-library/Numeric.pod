@@ -56,9 +56,15 @@ Returns C<Bool::False>.
 
 C<Numeric> is a role for everything that's a scalar number. So C<Num>, C<Int>,
 C<Rat>, C<Complex> and other numeric types do that role. However it is an
-abstract interface, so C<$number.WHAT> will never return C<Numeric>. Users who
-provide their own scalar numeric types are encouraged to implement the
-C<Numeric> role.
+abstract interface, so C<$number.WHAT> will never return C<Numeric>. 
+
+Users who provide their own scalar numeric types are encouraged to implement the
+C<Numeric> role.  It is intended that such types such support the basic arithmetic
+operators to the extent possible, as well as C<==>.  In addition, it is hoped that
+comparison operators will at least return consistent results, even if there is no
+sensible mathemtical ordering of your type.  That allows functions like sort to 
+not choke and die if they are handed a value of your type.  (See also the C<Real>
+role for scalar numeric types that represent real numbers.)
 
 The following are all defined in the C<Numeric> role:
 
@@ -200,6 +206,15 @@ Convert from radians to C<$base>.
 C<Real>, like C<Numeric>, is an abstract role that represents the interface of
 a real scalar number (i.e. neither C<Complex> nor vector-like). For example
 C<Num>, C<Int>, C<Bool> and C<Rat> implement the C<Real> role.
+
+Users who provide their own scalar real numeric types are encouraged to implement the
+C<Real> role.  Because all C<Real> types are well-ordered, it is desirable that any two
+C<Real> types be mutally compatiable, even if they are not aware of each other.  The
+current proposal requires you to define a C<Bridge> method in your C<Real> type, which
+converts your type into a neutral C<Real> type by restating it in terms of the fundamental
+Perl 6 types and calling C<Bridge> on them.  This then makes the default C<Real> methods
+and operators all work with your C<Real> type.  While the name of this method may changed,
+it is hoped that something like this will remain in the spec.
 
 =over
 
