@@ -16,7 +16,7 @@ DRAFT: Synopsis 32: Setting Library - Temporal
     Created: 19 Mar 2009
 
     Last Modified: 20 Jul 2010
-    Version: 15
+    Version: 16
 
 The document is a draft.
 
@@ -67,11 +67,7 @@ of that name defined.
 =head1 C<DateTime>
 
 A C<DateTime> object describes the time as it would appear on someone's
-calendar and someone's clock.
-
-C<DateTime> objects are immutables.
-
-You can create a C<DateTime> object from an
+calendar and someone's clock. You can create a C<DateTime> object from an
 C<Instant> or from an C<Int>; in the latter case, the argument is
 interpreted as POSIX time.
 
@@ -98,11 +94,7 @@ This form allows the following arguments:
 Another multi exists with C<Date :date> instead of C<:year>, C<:month> and
 C<:day> (and the same defaults as listed above).
 
-A C<DateTime> can also be created by modifying an existing object:
-
-    my $moonlanding_anniv = DateTime.new($moonlanding, :year(2010));
-
-All five of the aforementioned forms of C<new> accept two additional named
+All four of the aforementioned forms of C<new> accept two additional named
 arguments. C<:formatter> is a callable object that takes a C<DateTime> and
 returns a string. The default formatter creates an ISO 8601 timestamp (see
 below). C<:timezone> is a callable object that takes a C<DateTime> to
@@ -186,10 +178,37 @@ C<$dt.timezone> does C<Callable>, C<$dt.offset> is equivalent to
 C<$dt.timezone($dt, True)>; otherwise, C<$dt.offset> returns
 C<$dt.timezone> as is.
 
-The C<truncate> method returns a new object where a number of time values
-have been cleared below a given resolution:
+=head2 "Set" methods
 
-    $dt2 = $dt.truncate( :to<hour> ); # clears minutes and seconds
+To set the the day of a C<DateTime> object to something, just assign to
+its public accessor:
+
+    $dt.day = 15;
+
+The same methods exists for all the values you can set in the
+constructor: C<year>, C<month>, C<day>, C<hour>, C<minute>, C<second>,
+C<timezone> and C<formatter>.  Also, there's a C<set> method, which
+accepts all of these as named arguments, allowing several values to be
+set at once:
+
+    $dt.set( :year(2014), :month(12), :day(25) );
+
+Just as with the C<new> method, validation is performed on the resulting
+values, and an exception is thrown if the result isn't a sensible date
+and time.
+
+If you use the C<timezone> public accessor to adjust the time zone, the
+local time zone is adjusted accordingly:
+
+    my $dt = DateTime.new('2005-02-01T15:00:00+0900');
+    say $dt.hour;                # 15
+    $dt.timezone = 6 * 60 * 60;  # 6 hours ahead of UTC
+    say $dt.hour;                # 12
+
+The C<truncate> method allows you to "clear" a number of time values
+below a given resolution:
+
+    $dt.truncate( :to<hour> ); # clears minutes and seconds
 
 The time units are "cleared" in the sense that they are set to their
 inherent defaults: 1 for months and days, 0 for the time components.
@@ -197,6 +216,9 @@ inherent defaults: 1 for months and days, 0 for the time components.
 If you pass in C<< :to<week> >>, the C<DateTime> object is set to the
 Monday of the week in which it occurs, and the time components are all
 set to 0.
+
+For the convenience of method chaining, C<set> and C<truncate> return the
+calling object.
 
 =head1 Date
 
@@ -245,8 +267,6 @@ The <Str> method returns a string of the form 'yyyy-mm-dd'.
     $d - 42                     # Date.new('2010-11-12')
     $d + 3                      # Date.new('2010-12-27')
     3  + $d                     # Date.new('2010-12-27')
-
-As temporal objects are immutable, += -= ... do not work.
 
 =head1 Additions
 
