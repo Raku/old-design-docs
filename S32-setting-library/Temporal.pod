@@ -15,8 +15,8 @@ DRAFT: Synopsis 32: Setting Library - Temporal
 
     Created: 19 Mar 2009
 
-    Last Modified: 20 Jul 2010
-    Version: 16
+    Last Modified: 21 Jul 2010
+    Version: 17
 
 The document is a draft.
 
@@ -66,10 +66,10 @@ of that name defined.
 
 =head1 C<DateTime>
 
-A C<DateTime> object describes the time as it would appear on someone's
-calendar and someone's clock. You can create a C<DateTime> object from an
-C<Instant> or from an C<Int>; in the latter case, the argument is
-interpreted as POSIX time.
+A C<DateTime> object, which is immutable, describes a moment in time as it
+would appear on someone's calendar and someone's clock. You can create a
+C<DateTime> object from an C<Instant> or from an C<Int>; in the latter
+case, the argument is interpreted as POSIX time.
 
     my $now = DateTime.new(now);
     my $now = DateTime.new(time);
@@ -94,7 +94,7 @@ This form allows the following arguments:
 Another multi exists with C<Date :date> instead of C<:year>, C<:month> and
 C<:day> (and the same defaults as listed above).
 
-All four of the aforementioned forms of C<new> accept two additional named
+All of the aforementioned forms of C<new> accept two additional named
 arguments. C<:formatter> is a callable object that takes a C<DateTime> and
 returns a string. The default formatter creates an ISO 8601 timestamp (see
 below). C<:timezone> is a callable object that takes a C<DateTime> to
@@ -123,17 +123,45 @@ C<:formatter> argument.
 
 With all the above constructors, if you attempt to pass in values that
 are outside of the ranges specified in the list above, you'll get an
-exception.  An exception will also be thrown if the particular day
-doesn't exist in that month (for example April 31st) or in that non-leap
-year (for example February 29th 2006). By default, no such checking is
-done against leap seconds. This class also explicitly does not check
-against ambiguous or invalid local times caused by Daylight Saving Time.
+exception. An exception will also be thrown if the given day (like 31 April
+2000 or 29 February 2006) or second (like 23:59:60 on 1 January 2000)
+doesn't exist. The same checks are run when you produce an object with
+C<clone>:
+
+    my $dt = DateTime.new(:year(1999), :month(1), :day(29));
+    say $dt.clone(:year(2000), :month(2)); # 2000-02-29T00:00:00Z
+    say $dt.clone(:year(1999), :month(2)); # WRONG; 1999 was a common year
+
+However, this class explicitly does not check against ambiguous or invalid
+local times caused by Daylight Saving Time.
+
+To convert an object from one time zone to another, use the C<in-timezone>
+method:
+
+    my $dt = DateTime.new('2005-02-01T15:00:00+0900');
+    say $dt.hour;                       # 15
+    $dt = $dt.in-timezone(6 * 60 * 60); # 6 hours ahead of UTC
+    say $dt.hour;                       # 12
+
+The C<utc> method is shorthand for C<in-timezone(0)>.
+
+The C<truncated-to> method allows you to "clear" a number of time values
+below a given resolution:
+
+    my $dt = DateTime.new('2005-02-01T15:20:35Z');
+    say $dt.truncated-to(:hour); # 2005-02-01T15:00:00Z
+
+An argument of C<:week> yields an object with the date of the last Monday
+(or the same date, if it already is a Monday) and with hours, minutes, and
+seconds all set to zero:
+
+    say $dt.truncated-to(:week); # 2005-01-31T00:00:00Z
 
 There's one additional constructor: C<now>. It works just like
 C<DateTime.new(now)> except that there is no positional parameter and the
 C<:timezone> argument defaults to the system's local time zone.
 
-=head2 "Get" methods
+=head2 Accessors
 
 There are methods C<year>, C<month>, C<day>, C<hour>, C<minute>, C<second>,
 C<timezone>, and C<formatter>, giving you the corresponding values of the
@@ -178,52 +206,11 @@ C<$dt.timezone> does C<Callable>, C<$dt.offset> is equivalent to
 C<$dt.timezone($dt, True)>; otherwise, C<$dt.offset> returns
 C<$dt.timezone> as is.
 
-=head2 "Set" methods
-
-To set the the day of a C<DateTime> object to something, just assign to
-its public accessor:
-
-    $dt.day = 15;
-
-The same methods exists for all the values you can set in the
-constructor: C<year>, C<month>, C<day>, C<hour>, C<minute>, C<second>,
-C<timezone> and C<formatter>.  Also, there's a C<set> method, which
-accepts all of these as named arguments, allowing several values to be
-set at once:
-
-    $dt.set( :year(2014), :month(12), :day(25) );
-
-Just as with the C<new> method, validation is performed on the resulting
-values, and an exception is thrown if the result isn't a sensible date
-and time.
-
-If you use the C<timezone> public accessor to adjust the time zone, the
-local time zone is adjusted accordingly:
-
-    my $dt = DateTime.new('2005-02-01T15:00:00+0900');
-    say $dt.hour;                # 15
-    $dt.timezone = 6 * 60 * 60;  # 6 hours ahead of UTC
-    say $dt.hour;                # 12
-
-The C<truncate> method allows you to "clear" a number of time values
-below a given resolution:
-
-    $dt.truncate( :to<hour> ); # clears minutes and seconds
-
-The time units are "cleared" in the sense that they are set to their
-inherent defaults: 1 for months and days, 0 for the time components.
-
-If you pass in C<< :to<week> >>, the C<DateTime> object is set to the
-Monday of the week in which it occurs, and the time components are all
-set to 0.
-
-For the convenience of method chaining, C<set> and C<truncate> return the
-calling object.
-
 =head1 Date
 
-C<Date> objects are immutable and represent a day without a time component.
-They allow easier manipulation by assuming that integers always mean days.
+C<Date> objects represent a day without a time component. Like C<DateTime>
+objects, they are immutable. They allow easier manipulation by assuming
+that integers always mean days.
 
 Days, Months and days of week are 1-based.
 
@@ -231,9 +218,11 @@ Days, Months and days of week are 1-based.
 
     Date.today();               # today's date
     Date.new(DateTime.now);     # same
-    Date.new('2010-12-24');     # YYYY-MM-DD format
-    Date.new(:year(2010), :month(12), :day(24));
-    Date.new(2010, 12, 24);
+    Date.new('2010-12-20');     # YYYY-MM-DD format
+    Date.new(:year(2010), :month(12), :day(20));
+    Date.new(2010, 12, 20);
+    Date.new(2010, 1, 20).clone(month => 12);
+    Date.new(2010, 12, 24).truncated-to(:week);
 
 The constructors die with a helpful error message if month or day are out of
 range.
@@ -291,3 +280,4 @@ indirect contribution made by the previous authors:
     Dave Rolsky <autarch@urth.org>
     Matthew (lue) <rnddim@gmail.com>
     Olivier Mengué <dolmen@cpan.org>
+    Kodi Arfer
