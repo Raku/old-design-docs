@@ -11,13 +11,14 @@ Synopsis 5: Regexes and Rules
     Allison Randal <al@shadowed.net>
     Patrick Michaud <pmichaud@pobox.com>
     Larry Wall <larry@wall.org>
+    Moritz Lenz <moritz@faui2k3.org>
 
 =head1 VERSION
 
     Created: 24 Jun 2002
 
-    Last Modified: 11 Jul 2010
-    Version: 128
+    Last Modified: 6 Aug 2010
+    Version: 129
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -603,6 +604,56 @@ pattern matches:
     }
 
 =back
+
+=head2 Allowed modifiers
+
+Some modifiers are allowed in all possible places where modifiers can occur,
+but not all of them.
+
+In general, a modifier that affects the compilation of a regex (like C<:i>)
+must be known at compile time. A modifier that affects only the calling
+behaviour, and not the regex itself (eg. C<:pos>, C<:overlap>, C<:x(4)>) may
+only appear on constructs that involve a call (like C<m//> and C<s///>), and
+not on C<rx//>. Finally overlapping is disallowed on substitutions, while
+adverbs that affect modifications (eg. C<:samecase>) are only allowed on
+substitutions.
+
+These principle result in the following rules:
+
+=over
+
+=item *
+
+The C<:ignorecase>, C<:ignoremark> C<:sigspace>, C<:ratchet> and C<:Perl5>
+modifiers and their short forms are allowed everywhere: inside a regex,
+and on C<m//>, C<rx//> and C<s//> constructs. An implementation may require
+that their value is known at compile time, and give a compile-time error
+message if that is not the case.
+
+    rx:i/ hello /           # OK
+    rx:i(1) /hello/         # OK
+    my $i = 1;
+    rx:i($i) /hello/        # may error out at compile time
+
+=item *
+
+The C<:samecase>, C<:samespace> and C<:samemark> modifiers (and their short
+forms) modifiers are only allowed on substitutions (C<s///> and C<s[] = ...>).
+
+=item *
+
+The C<:overlap> and C<:exhaustive> modifiers (and their short forms) are only
+allowed on matches (ie C<m//>), not on substitutions or regex quotes.
+
+=item * 
+
+The C<:pos>, C<:continue>, C<:x> and C<:nth> modifiers and their aliases are
+only allowed on constructs that involve immediate calls, eg. C<m//> and C<s//>
+(but not on C<rx//>).
+
+=item *
+
+The C<:dba> adverb is only allowed inside a regex.
 
 =head1 Changed metacharacters
 
@@ -1967,8 +2018,8 @@ the grammar class it is to be used in is apparent.
 
 If either form needs modifiers, they go before the opening delimiter:
 
-     $regex = regex :g:s:i { my name is (.*) };
-     $regex = rx:g:s:i     / my name is (.*) /;    # same thing
+     $regex = regex :s:i { my name is (.*) };
+     $regex = rx:s:i     / my name is (.*) /;    # same thing
 
 Space is necessary after the final modifier if you use any
 bracketing character for the delimiter.  (Otherwise it would be taken as
@@ -1979,7 +2030,7 @@ an argument to the modifier.)
 You may not use colons for the delimiter.  Space is allowed between
 modifiers:
 
-     $regex = rx :g :s :i / my name is (.*) /;
+     $regex = rx :s :i / my name is (.*) /;
 
 =item *
 
