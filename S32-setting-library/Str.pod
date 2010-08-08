@@ -269,9 +269,7 @@ a warning.
 
 =item pack
 
- our Str multi pack( Str::Encoding $encoding,  Pair *@items )
- our Str multi pack( Str::Encoding $encoding,  Str $template, *@items )
- our buf8 multi pack( Pair *@items )
+ our buf8 multi pack( *@items where { @items »~~» Pair })
  our buf8 multi pack( Str $template, *@items )
 
 C<pack> takes a list of pairs and formats the values according to
@@ -280,26 +278,17 @@ C<$template> and formats the rest of its arguments according to
 the specifications in the template string. The result is a sequence
 of bytes.
 
-An optional C<$encoding> can be used to specify the character
-encoding to use in interpreting the result as a C<Str>, otherwise the return
-value will simply be a C<buf> containing the bytes generated
-by the template(s) and value(s). Note that no guarantee is made
-in terms of the final, internal representation of the string, only
-that the generated sequence of bytes will be interpreted as a
-string in the given encoding, and a string containing those
-graphemes will be returned. If the sequence of bytes represents
-an invalid string according to C<$encoding>, an exception is generated.
-
 Templates are strings of the form:
 
   grammar Str::PackTemplate {
-   regex template  { [ <group> | <specifier> <count>? ]* }
-   token group     { \( <template> \) }
-   token specifier { <[aAZbBhHcCsSiIlLnNvVqQjJfdFDpPuUwxX\@]> \!? }
-   token count     { \* |
-             \[ [ \d+ | <specifier> ] \] |
-             \d+ }
- }
+    regex TOP       { ^ <template> $ }
+    regex template  { [ <group> | <specifier> <count>? ]* }
+    token group     { \( <template> \) }
+    token specifier { <[aAZbBhHcCsSiIlLnNvVqQjJfdFDpPuUwxX\@]> \!? }
+    token count     { \*
+                    | \[ [ \d+ | <specifier> ] \]
+                    | \d+ }
+  }
 
 In the pairwise mode, each key must contain a single C<< <group> >> or
 C<< <specifier> >>, and the values must be either scalar arguments or
