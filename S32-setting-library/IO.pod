@@ -712,7 +712,7 @@ file, link, or something else OS-specific.
         has Str $.Encoding;
         has Buf $.Binary;
         has IO::ACL @.ACLs;
-        has Hash of %.times;
+        has %.times;
     ...
     }
 
@@ -723,9 +723,9 @@ The C<@.Elements> array is a list of Str that contain the path elements, but
 all are checked before being pushed onto the array.  Note that @.Elements
 can not be accessed unless $.Encoding is defined.  
 
-The C<%times> has keys that can be e.g. C<ctime>, C<Modification>, and 
+The C<%.times> has keys that can be e.g. C<ctime>, C<Modification>, and 
 C<Access> (and maybe others on other operating systems), and the values are 
-all C<Temporal::Instant> objects.
+all C<Instant> objects.
 
 When a Path is used as a Str, it allows some operations, so that it can 
 be concatenated easily with other strings.  When used as an Array, it 
@@ -743,7 +743,7 @@ syntax, there are also OO-related alternatives.
 This is called automatically on object creation.
 
     multi method new(
-        Str|Buf :$Path,
+        Stringy :$Path,
         Str :@PathElements,
         Str :$Encoding,
 
