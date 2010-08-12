@@ -278,7 +278,7 @@ Under C<:sigspace> the preceding rules are applied word by word.
 =item *
 
 The C<:c> (or C<:continue>) modifier causes the pattern to continue
-scanning from the specified position (defaulting to C<$/.to>):
+scanning from the specified position (defaulting to C<($/ ?? $/.to !! 0)>):
 
      m:c($p)/ pattern /     # start scanning at position $p
 
@@ -296,7 +296,7 @@ the specified string position:
 
      m:pos($p)/ pattern /  # match at position $p
 
-If the argument is omitted, it defaults to C<$/.to>.  (Unlike in
+If the argument is omitted, it defaults to C<($/ ?? $/.to !! 0)>.  (Unlike in
 Perl 5, the string itself has no clue where its last match ended.)
 All subrule matches are implicitly passed their starting position.
 Likewise, the pattern you supply to a Perl macro's C<is parsed>
