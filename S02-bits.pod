@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 16 Jul 2010
-    Version: 220
+    Last Modified: 16 Aug 2010
+    Version: 221
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2153,22 +2153,27 @@ also the relative identities of several related objects.  Conversely,
 you can think of Perl 5 references as a degenerate form of C<Capture>
 when you want to refer only to a single item.
 
-The empty C<Parcel> is a value with a special name: C<Nil>.  It is the
-named equivalent of the empty C<()> list.  The C<Nil> value returns
-C<Mu> if you iterate it or try to get a positional value from it, but
+There is a special C<Parcel> value named C<Nil>.  It means "there is no
+value here".  It is the undefined equivalent of the empty C<()> list, except that the
+latter is defined and means "there are 0 arguments here".  The C<Nil> value returns
+itself if you iterate it or try to get a positional value from it, but
 interpolates as a null list into flat context, and an empty C<Seq>
 into slice context.  Since method calls are performed directly on
-any object, C<Nil.defined> returns C<True> just as C<().defined> does.
+any object, C<Nil.defined> returns C<False> while C<().defined> returns C<True>.
 
-Assigning or binding C<Nil> to any scalar container causes the
+Assigning C<Nil> to any scalar container causes the
 container to throw out any contents and restore itself to an
 uninitialized state (after which it will contain a type object
 appropriate to the declared type of the container, where C<Any>
-is the default type).
+is the default type).  Binding of C<Nil> has a similar result, except that binding
+C<Nil> to a parameter with a default causes that parameter to be set to its
+default value rather than an undefined value, as if the argument had not
+been supplied.
 
 Assigning or binding C<Nil> to any composite container (such as an
 C<Array> or C<Hash>) empties the container, resetting it back to an
-uninitialized state.  The container object itself remains defined.
+uninitialized state.  The container object itself the becomes undefined.
+(Asssignment of C<()> leaves it defined.)
 
 The C<sink> statement prefix will eagerly evaluate any block or
 statement, throw away the results, and instead return the C<Nil> value.
