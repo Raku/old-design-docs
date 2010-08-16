@@ -14,7 +14,7 @@ Synopsis 2: Bits and Pieces
     Created: 10 Aug 2004
 
     Last Modified: 16 Aug 2010
-    Version: 221
+    Version: 222
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2153,13 +2153,22 @@ also the relative identities of several related objects.  Conversely,
 you can think of Perl 5 references as a degenerate form of C<Capture>
 when you want to refer only to a single item.
 
-There is a special C<Parcel> value named C<Nil>.  It means "there is no
-value here".  It is the undefined equivalent of the empty C<()> list, except that the
-latter is defined and means "there are 0 arguments here".  The C<Nil> value returns
-itself if you iterate it or try to get a positional value from it, but
+There is a special C<Parcel> value named C<Nil>.  It means "there
+is no value here".  It is the undefined equivalent of the empty
+C<()> list, except that the latter is defined and means "there are
+0 arguments here".  The C<Nil> value returns itself if you iterate
+it or try to get a positional value from it via subscripting, but
 interpolates as a null list into flat context, and an empty C<Seq>
-into slice context.  Since method calls are performed directly on
-any object, C<Nil.defined> returns C<False> while C<().defined> returns C<True>.
+into slice context.  In either case, a warning is issued.
+
+Since method calls are performed directly on any object, C<Nil>
+can respond to certain method calls.  C<Nil.defined> returns
+C<False> (whereas C<().defined> returns C<True>).  C<Nil.so> also
+returns C<False>.  C<Nil.ACCEPTS> is always false.  C<Nil.perl> and
+C<Nil.Str> return C<"Nil">.  C<Nil.Stringy> returns '' with a warning.
+C<Nil.Numeric> returns 0 with a warning.  Any undefined method call
+on C<Nil> returns C<Nil>, so that C<Nil> propagates down method
+call chains.
 
 Assigning C<Nil> to any scalar container causes the
 container to throw out any contents and restore itself to an
