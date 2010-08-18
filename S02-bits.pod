@@ -1935,6 +1935,38 @@ scalar in item context.  If you wish to interpolate the regenerated
 object in a list context, it may be necessary to use C<<prefix:<|> >>
 to force interpolation.
 
+Note that C<.perl> has a very specific definition, and it is expected that
+some modules will rely on the ability to roundtrip values with C<eval>.  As
+such, overriding C<.perl> with a different format (globally using
+C<MONKEY_TYPING>, or for specific classes unless special care is taken to
+maintain parsability) is unwise.  Code which does not depend on C<.perl>'s
+definition should use C<.pretty> instead to allow more control.
+
+=item *
+
+C<.pretty>, by contrast with C<.perl>, returns a flexible form of an object
+intended for human interpretation.  Specific user classes are encouraged to
+override C<.pretty> to do something appropriate, and it is completely
+acceptable to monkey patch C<.pretty> methods while doing debugging, without
+risk of breaking any used module.  C<.pretty>, like any method, will accept
+and ignore unrecognized named arguments; implementations of C<.pretty> are
+encouraged to standardize on a set of flags.
+
+[Some conjectural suggestions:
+
+    :oneline        Do not indent or linebreak output
+    :width($d)      Wrap output at $d chars
+    :charset($obj)  Represent unrecognized characters as escapes
+    :ascii          Short for some instantiation of :charset
+
+Conjecturally, C<.pretty> on system-defined classes could redispatch to
+C<&*PRETTYPRINTER> or some similar system, allowing for a more disciplined
+way to change pretty formats.
+
+It may also be desirable to use a richer format for intermediate strings than
+simple C<Str>, for instance using an object format that can handle intelligent
+line breaking.  However, that's probably overkill.]
+
 =item *
 
 To get a formatted representation of any scalar value, use the
