@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 2 Jun 2010
-    Version: 18
+    Last Modified: 20 Aug 2010
+    Version: 19
 
 The document is a draft.
 
@@ -536,8 +536,40 @@ If C<@array> is empty returns a failure.
 
  our Array multi method push ( @array: *@values ) is export
 
-Add to the end of C<@array>, all of the subsequent arguments and
-returns the modified array.
+Adds all the values to the end of C<@array> eagerly.
+Returns the modified array.
+
+=item plan
+
+ our Array multi method plan ( @array: *@list ) is export
+
+Adds the list to the end of C<@array> lazily as a kind of "lazy push".
+(That is, the reified part of the array is not modified, but the list
+is appended to the not-yet-reified specifications for how to
+extend the array on demand, if it is subscripted or shifted beyond the
+currently reified elements.)  Returns the modified array.
+
+Note that the semantics of these are different:
+
+    @ro := (0,1,*+*...*);
+    @rw.plan(0,1,*+*...*);
+
+In the first case, C<@ro> is bound directly to the list, so its
+values are memoized but not considered mutable.  In contrast, C<@rw>
+allows modification of any reified element; new elements are merely
+initialized to the fibonacci sequence.  If you try to modify a
+non-reified element, the array will be reified to that point before
+the modification is attempted.
+
+For all external purposes, the array considers that its plan is
+part of the array.  If you ask for C<.elems>, for instance, it will
+try to reify the entire array, which might take a long time in the
+case of infinite arrays (though a list may return C<Inf> if it can
+determine this).  Methods such as C<.splice> can refer to the rest of
+the list in the abstract, and need only reify those elements necessary
+to perform the operation in question.  (Hence, there is no need for
+an C<.unplan> method, since the plan of an array may be thrown away
+by using C<splice> without the risk of memory exhaustion.)
 
 =item rotate
 
