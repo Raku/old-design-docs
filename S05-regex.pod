@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 7 Aug 2010
-    Version: 130
+    Last Modified: 25 Aug 2010
+    Version: 131
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1936,7 +1936,20 @@ considered procedural, unlike normal variables.
 =item *
 
 New backslash sequences, C<\h> and C<\v>, match horizontal and vertical
-whitespace respectively, including Unicode.
+whitespace respectively, including Unicode.  Horizontal whitespace is defined
+as anything matching C<\s> that doesn't also match C<\v>.  Vertical whitespace is
+defined as any of:
+
+    U+000A  LINE FEED (LF)
+    U+000B  LINE TABULATION
+    U+000C  FORM FEED (FF)
+    U+000D  CARRIAGE RETURN (CR)
+    U+0085  NEXT LINE (NEL)
+    U+2028  LINE SEPARATOR
+    U+2029  PARAGRAPH SEPARATOR
+
+Note that U+000D CARRIAGE RETURN (CR) is considered vertical whitespace despite
+the fact that it only moves the "carriage" horizontally.
 
 =item *
 
