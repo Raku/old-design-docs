@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 25 Aug 2010
-    Version: 131
+    Last Modified: 30 Aug 2010
+    Version: 132
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -2206,9 +2206,8 @@ use C<:ratchet> or C<rule> or C<token>.
 
 =item *
 
-Backtracking over a double colon causes the immediately surrounding
-group (usually but not always a group of alternations) to immediately
-fail:
+Evaluating a double colon throws away all saved choice points in the current
+LTM alternation.
 
      ms/ [ if :: <expr> <block>
          | for :: <list> <block>
@@ -2217,21 +2216,36 @@ fail:
      /
 
 (i.e. there's no point trying to match a different keyword if one was
-already found but failed).  Note that you can still back into such
-an alternation, so you may also need to put C<:> after it if you
-also want to disable that.  If an explicit or implicit C<:ratchet>
-has disabled backtracking by supplying an implicit C<:>, you need to
-put an explicit C<!> after the alternation to enable backing into
-another alternative if the first pick fails.
+already found but failed).
 
-The C<::> also has the effect of hiding any constant string on the right
+The C<::> also has the effect of hiding any declarative match on the right
 from "longest token" processing by C<|>.  Only the left side is evaluated
-for initial constancy.
+for determinacy.
 
 =item *
 
-Backtracking over a triple colon causes the current regex to fail
-outright (no matter where in the regex it occurs):
+Evaluating a C<< ::> >> throws away all saved choice points in the current
+innermost alternation.  It thus acts as a "then".
+
+    ms/ [
+        || <?{ $a == 1 }> ::> <foo>
+        || <?{ $a == 2 }> ::> <bar>
+        || <?{ $a == 3 }> ::> <baz>
+        ]
+    /
+
+Note that you can still back into the "then" part of such
+an alternation, so you may also need to put C<:> after it if you
+also want to disable that.  If an explicit or implicit C<:ratchet>
+has disabled backtracking by supplying an implicit C<:>, you need to
+put an explicit C<!> after the alternation to enable backing into,
+say, the C<< <foo> >> rule above.
+
+=item *
+
+Evaluating a triple colon throws away all saved choice points since
+the current regex was entered.  Backtracking to (or past) this point
+will fail the rule outright (no matter where in the regex it occurs):
 
      regex ident {
            ( [<alpha>|_] \w* ) ::: { fail if %reserved{$0} }
@@ -2244,8 +2258,10 @@ outright (no matter where in the regex it occurs):
 
 =item *
 
-Backtracking over a C<< <commit> >> assertion causes the entire match
-to fail outright, no matter how many subrules down it happens:
+Evaluating a C<< <commit> >> assertion throws away all saved choice
+points since the start of the entire match.  Backtracking to (or past)
+this point will fail the entire match, no matter how many subrules
+down it happens:
 
      regex subname {
          ([<alpha>|_] \w*) <commit> { fail if %reserved{$0} }
