@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 14 Jul 2010
-    Version: 102
+    Last Modified: 6 Sep 2010
+    Version: 103
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -69,11 +69,11 @@ in Perl 6 include:
     goto
 
 Some of these operators also fall back to a purely dynamic interpretation
-if the lexotic interpretation doesn't work.  For instance, C<next>
+if the lexotic interpretation doesn't work.  For instance, C<next> with a label
 will prefer to exit a loop lexotically, but if there is no loop with
 an appropriate label in the lexical context, it will then scan upward
 dynamically through the call frames for any loop with the appropriate label, even though that
-loop will not be lexically visible.  Lexotic and dynamic control flow
+loop will not be lexically visible.  (C<next> without a label is purely dynamic.)  Lexotic and dynamic control flow
 is implemented by a system of control exceptions.  For the lexotic
 return of C<next>, the control exception will contain the identity of
 the loop scope to be exited (since the label was already "used up" to
@@ -333,19 +333,26 @@ is allowed to contain a single conditional statement modifier:
 
     @evens = ($_ * 2 if .odd for 0..100);
 
-Loop modifiers C<next>, C<last>, and C<redo> also work as in Perl 5.
-However, the labelled forms use method call syntax: C<LABEL.next>, etc.
-The C<.next> and C<.last> methods take an optional argument giving
-the final value of that loop iteration.  So the old C<next LINE>
-syntax is still allowed but is really short for C<next LINE:> using
-indirect object syntax.  Any block object can be used, not just labels,
-so to return a value from this iteration of the current block you can say:
+Loop modifiers C<next>, C<last>, and C<redo> also work much as in
+Perl 5.  However, the labeled forms can use method call syntax:
+C<LABEL.next>, etc.  The C<.next> and C<.last> methods take an
+optional argument giving the final value of that loop iteration.
+So the old C<next LINE> syntax is still allowed but really does
+something like C<LINE.next(Nil)> underneath.  Any block object can
+be used, not just labels, so to return a value from this iteration
+of the current block you can say:
 
     &?BLOCK.next($retval);
 
 [Conjecture: a bare C<next($retval)> function could be taught to do
 the same, as long as C<$retval> isn't a loop label.  Presumably multiple
 dispatch could sort this out.]
+
+With a target object or label, loop modifiers search lexotically
+for the scope to modify.  Without a target, however, they are purely
+dynamic, and choose the innermost dynamic loop, which may well be a
+C<map> or other implicitly looping function, including user-defined
+functions.
 
 There is no longer a C<continue> block.  Instead, use a C<NEXT> block
 within the body of the loop.  See below.
@@ -358,9 +365,9 @@ it's either an ordinary object or a parcel containing multiple values.
 Normal flat list context ignores parcel boundaries and flattens the list.
 Slice context turns any parcel objects into C<Seq> objects.
 
-Iterations that return Nil (such as by calling C<next> with no extra return
-arguments) return that Nil as the next value, which will therefore disappear
-when interpolated in flat context, but will interpolate a null Seq into slice
+Iterations that return C<Nil> (such as by calling C<next> with no extra return
+arguments) return that C<Nil> as the next value, which will therefore disappear
+when interpolated in flat context, but will interpolate an empty C<Seq> into slice
 context.
 
 For finer-grained control of which iterations return values, use
@@ -934,7 +941,7 @@ the switch "succeeds"), control merely goes to the end of that block,
 and thence on to the next iteration of the loop.  You must use C<last>
 (or some more violent control exception such as C<return>) to break
 out of the entire loop early.  Of course, an explicit C<next> might
-be clearer than a C<break> if you really want to go directly to the
+be clearer than a C<succeed> if you really want to go directly to the
 next iteration.  On the other hand, C<succeed> can take an optional
 argument giving the value for that iteration of the loop.  As with
 the C<.leave> method, there is also a C<.succeed> method to break from a
@@ -1063,7 +1070,7 @@ for example, is considered a form of abnormal control flow, since it
 can jump out of multiple levels of closures to the end of the scope
 of the current subroutine definition.  Loop commands like C<next>
 are abnormal, but looping because you hit the end of the block is not.
-The implicit break of a C<when> block is abnormal.
+The implicit break (what C<succeed> does explicitly) of a C<when> block is abnormal.
 
 A C<CATCH> block handles only "bad" exceptions, and lets control
 exceptions pass unhindered.  Control exceptions may be caught with a
@@ -1129,7 +1136,8 @@ exception it likes.  However, there have to be some culturally enforced
 standards on which constructs capture which exceptions.  Much like
 C<return> may only return from an "official" subroutine or method,
 a loop exit like C<next> should be caught by the construct the user
-expects it to be caught by.  In particular, if the user labels a loop
+expects it to be caught by.  (Always assuming the user expects the
+right thing, of course...)  In particular, if the user labels a loop
 with a specific label, and calls a loop control from within the lexical
 scope of that loop, and if that call mentions the outer loop's label,
 then that outer loop is the one that must be controlled.  In other words,
