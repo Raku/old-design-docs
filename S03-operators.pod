@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 27 Aug 2010
-    Version: 215
+    Last Modified: 7 Sep 2010
+    Version: 216
 
 =head1 Overview
 
@@ -1817,7 +1817,10 @@ C<< infix:<...> >>, the series operator.
 
 As a list infix operator, C<...> takes a list on both its left and
 right and evaluates them as lazily as possible to produce the desired
-series of values.  The lists are evaluated as flat lists.
+series of values.  The lists are evaluated as flat lists.  As with
+all list infix operators, this operator is looser in precedence than
+comma, so you do not need to parenthesize comma lists on either side
+of it.
 
 The operator starts by getting the first value of righthand list.
 This is the only value of the right list that the C<...> operator is
@@ -1831,22 +1834,40 @@ operator itself.
 Once we know the limit of the series, the left list is evaluated item
 by item, and ordinary numeric or string values are passed through
 unchanged (to the extent allowed by the limit on the right).
-If any value in the series is C<eqv> to the limit value,
-the series terminates, including that final limit value.  For any value
-after the first lefthand value, if that value and the previous value
-fall on opposite sides of the limit, the series terminates without
-including either the limit value or the value that exceeded the limit.
+If any value in the series smartmatches the limit value,
+the series terminates, including that final limit value.  To omit
+the final value, use the C<...^> form instead.
 
-If the limit is C<*>, the series has no limit.  If the limit is
-a closure, it will be evaluated for boolean truth on the tail of
-the current list, and the series will continue as long as the closure
-returns true.  (We can't implement this till we fix all the old
-usages of right-hand generators, however.)
+Internally, these two forms are checking to see if an anonymous loop
+is going to terminate, where the loop is what is returning the values
+of the series.  Assuming the next candidate value is in C<$x> and the
+first element of the right side is in C<$limit>, the two operators
+are implemented respectively as:
+
+    ...     last($x) if $x ~~ $limit;
+    ...^    last     if $x ~~ $limit;
+
+Since this uses smartmatching via the C<~~> operator (see L<Smart
+matching> below), the usual smartmatching rules apply.  If the
+limit is C<*>, the series has no limit.  If the limit is a closure,
+it will be evaluated for boolean truth on the current candidate,
+and the series will continue as long as the closure returns false.
+It's quite possible for a series to return fewer values than are
+listed if the very first value matches the end test:
+
+    my $lim = 0;
+    1,2,3 ...^ * > $lim      # returns Nil, since 1 > 0
 
 This operator would be fairly useless if it could only return the
 literal values on the left.  The power comes from generating 
-new values from the old ones.  If the last item in the left-hand 
-list is a closure, it is not returned, but rather it is called
+new values from the old ones.  You may, for instance, use an existing
+generator that happens to produce an infinite list:
+
+    1..* ... * >= $lim
+    @fib ... * >= $lim
+
+More typically, if the next item in the left-hand 
+list is a closure, it is not returned; rather it is called
 on the tail of the existing list to produce a new value.  The
 arity of the closure determines how many preceding values to
 use as input in generating the next value in the series.  For
@@ -1870,9 +1891,9 @@ in the lefthand list may be construed as human-readable documentation:
 
     0,2,4, { $_ + 2 } ... 42   # all the evens up to 42
     0,2,4, *+2 ... 42          # same thing
-    <a b c>, {.succ } ... *    # same as 'a'..*
+    <a b c>, { .succ } ... *   # same as 'a'..*
 
-When no limit is given, the function need not be monotonic:
+The function need not be monotonic:
 
     1, -* ... *                # 1, -1, 1, -1, 1, -1...
     False, &prefix:<!> ... *   # False, True, False...
@@ -1880,24 +1901,29 @@ When no limit is given, the function need not be monotonic:
 The function can be 0-ary as well, in which case it's okay for the
 closure to be the first thing:
 
-    { rand }...*   # list of random numbers
+    { rand } ... *             # list of random numbers
 
 The function may also be slurpy (n-ary), in which case C<all> the
 preceding values are passed in (which means they must all be cached
-by the operator, so performance may suffer).
+by the operator, so performance may suffer, and you may find yourself
+with a "space leak").
 
 The arity of the function need not match the number of return values, but
 if they do match you may interleave unrelated sequences:
 
     1,1,{ $^a + 1, $^b * 2 }...*   # 1,1,2,2,3,4,4,8,5,16,6,32...
 
+Note in this case that the any limit test is applied to the entire parcel
+returned from the function, which contains two values.
+
 A series operator generated from an explicit function places no type
 constraints on the series other than those constraints implied by
 the signature of the function.  If the signature of the function does
 not match the existing values, the series terminates.
 
-If no closure is provided, and the sequence is numeric, and is obviously
-arithmetic or geometric (from examining its I<last> 3 values), the appropriate function is deduced:
+If no generating closure is provided, and the sequence is numeric,
+and is obviously arithmetic or geometric (from examining its I<last>
+3 values), the appropriate function is deduced:
 
     1, 3, 5 ... *   # odd numbers
     1, 2, 4 ... *   # powers of 2
@@ -1951,43 +1977,35 @@ so these come out the same:
     'a','b','c' ... *
     <a b c> ... *
 
-If the list on the left is C<Nil>, we use the function C<{Nil}> to generate an
+If the list on the left is C<()>, we use the function C<{()}> to generate an
 infinite supply of nothing.
 
-For intuited numeric generators that don't involve geometric sign changes, all
-values are assumed to be monotonically increasing or decreasing, as determined
-by the (up to) three values used above; if a supplied limit value is on the
-"wrong" side of the first value of the full left list, Nil is returned, even
-though the limit value never matches, and never falls between two generated values.
-Examples:
-
-    my $n = 0;
-    1,2,4 ... $n;      # (), geometric increasing
-    -1,-2 ... $n;      # (), arithmetic decreasing
-
-For a geometric series with sign changes, the same criterion is used, but
-applied only to the absolute value, and the impossibility of a limit is
-evaluated by whether it's inside or outside the possible range:
-
-    1,-2,4 ... 0       # (), geometric alternating increasing abs
-    1,-1/2,1/4 ... 2   # (), geometric alternating decreasing abs
-
-But since "asymptotically approaching" is not the same as "equals", both of
-the following are infinite lists, as if you'd specified C<*> for the limit
-rather than 0:
+If a limit is given, it must smartmatch exactly.  If it does not,
+an infinite list results.  For instance, since "asymptotically
+approaching" is not the same as "equals", both of the following are
+infinite lists, as if you'd specified C<*> for the limit rather than 0:
 
     1,1/2,1/4 ... 0    # like 1,1/2,1/4 ... *
     1,-1/2,1/4 ... 0   # like 1,-1/2,1/4 ... *
 
+Likewise, this is all of the even numbers:
+
+    my $end = 7;
+    0,2,4 ... $end
+
+To catch such a situation, it is advised to write an inequality instead:
+
+    0,2,4 ...^ { $_ > $end }
+
 When an explicit limit function is used, it
-may choose to terminate its list by returning any false value.
+may choose to terminate its list by returning any true value.
 Since this operator is list associative, an inner function may be
 followed by a C<...> and another function to continue the list,
 and so on.  Hence,
 
-    1,   *+1   ... { $_ <   10 },
-    10,  *+10  ... { $_ <  100 },
-    100, *+100 ... { $_ < 1000 }
+    1,   *+1   ... { $_ ==   9 },
+    10,  *+10  ... { $_ ==  90 },
+    100, *+100 ... { $_ == 900 }
 
 produces
 
@@ -1995,7 +2013,7 @@ produces
     10,20,30,40,50,60,70,80,90,
     100,200,300,400,500,600,700,800,900
 
-Given the heuristic when there's no closure,
+Given the normal matching rules when there's no closure,
 we can write that more simply as:
 
     1, 2, 3 ... 9,
@@ -2009,28 +2027,22 @@ or even just:
     100, 200, 300 ... 900
 
 since an exactly matching limit is returned as part of the
-sequence.  And, in fact, since C<...> is list associative,
-and the heuristic depends only on the list to the immediate
-left, we can even say:
+sequence, provided it is a value of the appropriate type, and
+not a closure.
 
-    1, 2 ...
-    10, 20 ...
-    100, 200 ... 900
+For functions deduced when there is only one value on the left,
+the final value is used to determine whether C<*.succ> or C<*.pred> is
+more appropriate.  The two values are compared with C<cmp> to determine
+the direction of the progression.
 
-This works because the second C<...> sees only the 10,20, not
-the 9 before that, and likewise the third C<...> is blind to
-the 90 value.  You can use parens to force one C<...> to be
-part of the list of another C<...> operator.
+Hence the series operator is "auto-reversing", unlike a range operator.
 
-The exact function deduced depends on the direction from the final
-value on the left to the limit value on the right.  If the limit is
-greater than the last value according to C<cmp>, then comparisons
-are done with C<!after>.  If the limit is less, then comparisons are
-done with C<!before>, and if the generator function was C<.succ>, it
-is switched to C<.pred>.  Hence we have this difference:
-
-    'z' .. 'a'   # null range
+    'z' .. 'a'   # represents a null range
     'z' ... 'a'  # z y x ... a
+
+As with numeric values, a string match must be exact, or an infinite series
+is produced.  Use a different smartmatch such as a regular expression or
+a closure to do fancier tests.
 
 Note that the sequence
 
@@ -2067,51 +2079,94 @@ any sequence that falls within a conventional rangechar range:
     'a'...'z'
     '9'...'0'
 
-If a series is generated using a non-monotonic C<.succ> function, it is
-possible for it never to reach the endpoint.  The following matches:
+If the start and stop strings are the same length, this is applied at every position, with carry.
 
-    'A' ... 'ZZ'
+    'aa' ... 'zz'   # same as 'a' .. 'z' X~ 'a' .. 'z'
 
-but since 'Z' increments to 'AA', none of these ever terminate:
+Hence, to produce all octal numbers that fit in 16 bits, you can say:
 
-    'A' ... 'zz'
-    'A' ... '00'
-    'A' ... '~~'
+    '000000' ... '177777'
 
-The compiler is allowed to complain if it notices these, since if you
-really want the infinite list you can always write:
+If the start string is shorter than the stop string, the strings are
+assumed to be right justitifed, and the leftmost start character is
+duplicated when there is a carry:
 
-    'A' ... *
+    '0' ... '177777'    # same octal sequence, without leading 0's
 
-To preserve Perl 5 semantics, you'd need something like:
+Going the other way, digits are dropped when they go to the first existing
+digit until the current value is as short as the final value, then the digits
+are left there.  Which is a fancy way of saying that
 
-    'A' ... -> $old,$new { $old ne $endpoint and $new.chars <= 1; }
+    '177777' ... '000000' 
 
-But since lists are lazy in Perl 6, we don't try to protect the user this way.
+and
 
-The astute reader will note that
+    '177777' ... '0' 
 
-    'A' ... 'ZZ'
+both do exactly what the forward series do above, only in reverse.
 
-doesn't terminate with a simple C<!after> test either.  The actual function used
-is something like:
+As an extra special rule, that works in either direction, if the bottom
+character is a '0' and the top character is alphanumeric, it is assumed
+to be representing a number in some base up to base 36, where digits above ten 
+are represented by letters.  Hence the seme sequences of 16-bit numbers, only in
+hexadecimal, may be produced with:
 
-    'A', *.succ ... -> $old,$new { $old ne 'ZZ' and $new !after 'ZZ'; }
+    '0000' ... 'ffff'
+    '0' ... 'ffff'
+    'ffff' ... '0000' 
+    'ffff' ... '0' 
 
-Likewise, since Z comes after A:
+And as a limiting case, this applies to single characters also:
 
-    'ZZ' ... 'AA'
+    '0' .. 'F'    # 0..9, 'A'..'F'
 
-uses the function:
+Note that case is intuited from the top character of the range.
 
-    'ZZ', *.pred ... -> $old,$new { $old ne 'AA' and $new !before 'AA'; }
+There are many different possible semantics for string increment.
+If these isn't the semantics you want, you can always write your own
+successor function.  Sometimes the stupid codepoint counting is what you want.
+For instance, you can get away with ranges of capital Greek letters:
+
+    'ΑΑΑ' ... 'ΩΩΩ'
+
+However, if you try it with the lowercase letters, you'll get both
+forms of lower-case sigma, which you proably don't want.  If there's
+only one or two letters you don't want, you can grep out those entries,
+but in the general case, you need an incrementer that knows what sequence
+you're interested in.  Perhaps there can be a generic method,
+
+    'ααα', *.succ-in(@greek) ... 'ωωω'
+
+that will take any given sequence and use it as the universe of incrementation
+for any matching characters in the string.
+
+To preserve Perl 5 length limiting semantics of a range like
+C<'A'..'zzz'>, you'd need something like:
+
+    'A', *.succ ... { last if .chars > 3; $_ eq 'zzz' }
+
+(That's not an exact match to what Perl 5 does, since C<Str.succ> is
+a bit fancier in Perl 6, but starting with 'A' it'll work the same.
+You can always supply your own increment function.)
+
+Note that the C<last> call above returns no argument, so even though
+the internal test calls C<last($x)>, this call to C<last> bypasses that
+as if the series had been specified with C<...^> instead.  Going the
+other way, a C<...^> maybe be forced to have a final value by passing
+an argument to an explicit C<last($my-last-value)>.  In the same way,
+that will bypass the argumentless internal C<last>.
+
+In a similar way, the series may be terminated by calling C<last>
+from the generator function:
+
+    10,9,8, { $_ - 1 || last } ... *   # same as 10 ... 1
 
 For purposes of deciding when to terminate the eager part of a 'mostly
 eager' list, any series that terminates with an exact value (or
 that starts another series with exact values) is considered finite,
 as is any series that has an explicit ending closure.
 However, any series that ends C<*> is considered to be of unknowable
-length (even if extended with a closure that has internal logic to
+length (even if generated with a closure that has internal logic to
 terminate).  However, by the definition of "mostly eager" in L<S07>,
 the implementation may be able to determine that such a sequence is
 finite by conjectural evaluation; such workahead cannot, of course,
@@ -2124,16 +2179,12 @@ come to grief:
 
     @a = 1, *+0.00000000000000000000000000000000000001 ... 2;  # heat death
 
-Much like the C<..^> range operator, there is an alternate form of
-the operator that excludes the limit if it happens to match exactly:
-
-    0,1,2 ...^ 100,42    # same as ^100,42
-
-There is no corresponding exclusion on the left side.  The compiler
-may complain if it sees anything on the right that is not a literal:
-
-    0,1,2 ...^ *
-    0,1,2 ...^ {$_ < 100}
+For any such series or list that the user knows to be infinite, but
+the computer can't easily know it, it is allowed to mark the end of
+the list with a C<*>, which indicates that it is to be treated as an
+infinite list in contexts which care.  Similarly, any list ending
+with an operator that interprets C<*> as infinity may be taken the
+same way, such as C<$n xx *>, or C<1..*>.
 
 =item *
 
