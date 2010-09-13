@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 11 Sep 2010
-    Version: 217
+    Last Modified: 12 Sep 2010
+    Version: 218
 
 =head1 Overview
 
@@ -48,11 +48,11 @@ each level:
     X  Tight and         &&
     X  Tight or          || ^^ // min max
     R  Conditional       ?? !! ff fff
-    R  Item assignment   = := ::= => += -= **= xx= .=
+    R  Item assignment   = => += -= **= xx= .=
     L  Loose unary       so not
     X  Comma operator    , :
     X  List infix        Z minmax X X~ X* Xeqv ... E
-    R  List prefix       print push say die map substr ... [+] [*] any $ @
+    R  List prefix       print push say die map substr ... [+] [*] any Z=
     X  Loose and         and andthen
     X  Loose or          or xor orelse
     X  Sequencer         <==, ==>, <<==, ==>>
@@ -1529,72 +1529,6 @@ With simple lvalues, C<=> has this precedence, which is tighter than comma.
 
 =item *
 
-C<< infix:<:=> >>, run-time binding
-
-    $signature := $capture
-
-A new form of assignment is present in Perl 6, called I<binding>, used in
-place of typeglob assignment.  It is performed with the C<:=> operator.
-Instead of replacing the value in a container like normal assignment, it
-replaces the container itself.  For instance:
-
-    my $x = 'Just Another';
-    my $y := $x;
-    $y = 'Perl Hacker';
-
-After this, both C<$x> and C<$y> contain the string C<"Perl Hacker">,
-since they are really just two different names for the same variable.
-
-There is also an identity test, C<=:=>, which tests whether two names
-are bound to the same underlying variable.  C<$x =:= $y> would return
-true in the above example.
-
-The binding fails if the type of the variable being bound is sufficiently
-inconsistent with the type of the current declaration.  Strictly speaking,
-any variation on
-
-    my Any $x;
-    $x := [1,2,3];
-
-should fail because the type being bound is not consistent with
-C<Scalar of Any>, but since the C<Any> type is not a real instantiable
-type but a generic (non)constraint, and C<Scalar of Any> is sort of
-a double non-constraint similar to C<Any>, we treat this situation
-specially as the equivalent of binding to a typeless variable.
-
-The binding operator parses as a list assignment, so it is reasonable to
-generate a list on the right without parens:
-
-    @list := 1 ... *;
-
-=item *
-
-C<< infix:<::=> >>, bind and make readonly
-
-    $signature ::= $capture
-
-This does the same as C<:=>, then marks any destination parameters as
-readonly (unless the individual parameter overrides this with either
-the C<rw> trait or the C<copy> trait).  It's particularly useful
-for establishing readonly dynamic variables for a dynamic scope:
-
-    {
-        my $*OUT ::= open($file, :w) || die $!;
-        doit();     # runs with redirected stdout
-    }
-    doit();     # runs with original stdout
-
-If C<doit> wants to change C<$*OUT>, it must declare its own
-dynamic variable.  It may not simply assign to C<$*OUT>.
-
-Note that the semantics of C<::=> are virtually identical to
-the normal binding of arguments to formal subroutine parameters
-(which also default to readonly).
-
-This operator parses as a list assignment.
-
-=item *
-
 C<< infix:['=>'] >>, Pair constructor
 
     foo => 1, bar => "baz"
@@ -2291,6 +2225,72 @@ If it cannot determine this, it is allowed to use all your
 memory, and then some.  C<:)>
 
 Assignment to a hash is not lazy (probably).
+
+=item *
+
+C<< infix:<:=> >>, run-time binding
+
+    $signature := $capture
+
+A new form of assignment is present in Perl 6, called I<binding>, used in
+place of typeglob assignment.  It is performed with the C<:=> operator.
+Instead of replacing the value in a container like normal assignment, it
+replaces the container itself.  For instance:
+
+    my $x = 'Just Another';
+    my $y := $x;
+    $y = 'Perl Hacker';
+
+After this, both C<$x> and C<$y> contain the string C<"Perl Hacker">,
+since they are really just two different names for the same variable.
+
+There is also an identity test, C<=:=>, which tests whether two names
+are bound to the same underlying variable.  C<$x =:= $y> would return
+true in the above example.
+
+The binding fails if the type of the variable being bound is sufficiently
+inconsistent with the type of the current declaration.  Strictly speaking,
+any variation on
+
+    my Any $x;
+    $x := [1,2,3];
+
+should fail because the type being bound is not consistent with
+C<Scalar of Any>, but since the C<Any> type is not a real instantiable
+type but a generic (non)constraint, and C<Scalar of Any> is sort of
+a double non-constraint similar to C<Any>, we treat this situation
+specially as the equivalent of binding to a typeless variable.
+
+The binding operator parses as a list assignment, so it is reasonable to
+generate a list on the right without parens:
+
+    @list := 1 ... *;
+
+=item *
+
+C<< infix:<::=> >>, bind and make readonly
+
+    $signature ::= $capture
+
+This does the same as C<:=>, then marks any destination parameters as
+readonly (unless the individual parameter overrides this with either
+the C<rw> trait or the C<copy> trait).  It's particularly useful
+for establishing readonly dynamic variables for a dynamic scope:
+
+    {
+        my $*OUT ::= open($file, :w) || die $!;
+        doit();     # runs with redirected stdout
+    }
+    doit();     # runs with original stdout
+
+If C<doit> wants to change C<$*OUT>, it must declare its own
+dynamic variable.  It may not simply assign to C<$*OUT>.
+
+Note that the semantics of C<::=> are virtually identical to
+the normal binding of arguments to formal subroutine parameters
+(which also default to readonly).
+
+This operator parses as a list assignment.
 
 =item *
 
