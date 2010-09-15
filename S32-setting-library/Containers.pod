@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 6 Sep 2010
-    Version: 20
+    Last Modified: 15 Sep 2010
+    Version: 21
 
 The document is a draft.
 
@@ -214,14 +214,14 @@ C<first> searches exactly like C<grep> but returns only the first matching value
 
 =item pick
 
- our multi method pick ( @values: Int $num = 1, Bool :$replace )
- our multi method pick ( @values: Whatever, Bool :$replace )
- our multi pick ( Int $num, Bool :$replace, *@values )
- our multi pick ( Whatever, Bool :$replace, *@values )
+ our multi method pick ( @values: Int $num = 1 )
+ our multi method pick ( @values: Whatever )
+ our multi pick ( Int $num, *@values )
+ our multi pick ( Whatever, *@values )
 
 C<pick> takes a list or array of values and returns a random
-selection of elements from the list (without replacement unless
-C<:replace> is indicated).  When selecting without replacement if C<*>
+selection of elements from the list (without replacement;
+see C<roll> for replacement semantics).  If C<*>
 is specified as the number (or if the number of elements in
 the list is less than the specified number), all the available
 elements are returned in random order:
@@ -229,14 +229,26 @@ elements are returned in random order:
     @team = @volunteers.pick(5);
     @shuffled = @deck.pick(*);
 
-When selecting with replacement the specified number of picks
-are provided.  In this case C<*> would provide an infinite list
-of random picks from C<@values>:
-
-    @byte = (0,1).pick(8, :replace);
-    for (1..20).pick(*, :replace) -> $die_roll { ... }
-
 Due to the normal semantics of returning a C<Parcel>, a pick of a
+single element may be used as an item without requiring C<.[0]>.
+
+=item roll
+
+ our multi method roll ( @values: Int $num = 1 )
+ our multi method roll ( @values: Whatever )
+ our multi roll ( Int $num, *@values )
+ our multi roll ( Whatever, *@values )
+
+C<roll> takes a list or array of values and returns a random
+selection of elements from the list (with replacement, that is, like
+rolling C<$num> independent dice; see C<pick> for non-replacement semantics).
+If C<*> is specified as the number, C<*> provides an infinite list
+of random choices from C<@values>:
+
+    @byte = (0,1).roll(8);                   # 8d2
+    for (1..20).roll(*) -> $die_roll { ... } # 1d20 xx *
+
+Due to the normal semantics of returning a C<Parcel>, a roll of a
 single element may be used as an item without requiring C<.[0]>.
 
 =item join
@@ -959,10 +971,17 @@ if it were a C<Hash of True>.
 
 =item pick
 
- our multi method pick ( $set: Int $num = 1, Bool :$replace )
- our multi method pick ( $set: Whatever, Bool :$replace )
+ our multi method pick ( $set: Int $num = 1 )
+ our multi method pick ( $set: Whatever )
 
 Works like an ordinary list C<pick>.
+
+=item roll
+
+ our multi method roll ( $set: Int $num = 1 )
+ our multi method roll ( $set: Whatever )
+
+Works like an ordinary list C<roll>.
 
 =back
 
@@ -982,10 +1001,10 @@ The C<.elems> method returns the sum of all replication values.
 
 =item pick
 
- our multi method pick ( $bag: Int $num = 1, Bool :$replace )
- our multi method pick ( $bag: Whatever, Bool :$replace )
- our multi method pickpairs ( $bag: Int $num = 1, Bool :$replace )
- our multi method pickpairs ( $bag: Whatever, Bool :$replace )
+ our multi method pick ( $bag: Int $num = 1 )
+ our multi method pick ( $bag: Whatever )
+ our multi method pickpairs ( $bag: Int $num = 1 )
+ our multi method pickpairs ( $bag: Whatever )
 
 Like an ordinary list C<pick>, but returns keys of the bag weighted by
 values, as if the keys were replicated the number of times indicated
@@ -994,15 +1013,26 @@ mutable form of C<Bag>.  A C<Bag> responds to hash operators as
 if it were a C<Hash of UInt>.
 
 The default metaphor for picking is that you're pulling colored
-marbles out a bag.  Picking with replacement is easy to implement,
-since the weights never change, and the chance of getting any key is
-simply its replication value over C<.elems>.  Other forms of picking
-require tracking the temporary state, so the immutable C<Bag> is copied to
+marbles out a bag.  (For "picking with replacement" see C<roll> instead.)
+Picking require tracking the temporary state, so the immutable C<Bag> is copied to
 a temporary private C<KeyBag>, and the picks are made from that
 using the corresponding C<.grab> or C<.grabpairs> method (see below).
 
 Each C<.pick> invocation maintains its own private state and has no
 effect on subsequent C<.pick> invocations.
+
+=item roll
+
+ our multi method roll ( $bag: Int $num = 1 )
+ our multi method roll ( $bag: Whatever )
+
+Like an ordinary list C<pick>, but returns keys of the bag weighted by
+values, as if the keys were replicated the number of times indicated
+by the corresponding value and then list C<roll> used.
+
+The default metaphor for picking is that you're pulling colored
+marbles out a bag and then putting them back.  (For "picking without replacement" see C<pick> instead.)
+Rolling requires no temporary state.
 
 =back
 
