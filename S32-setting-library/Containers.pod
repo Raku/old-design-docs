@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 15 Sep 2010
-    Version: 21
+    Last Modified: 16 Sep 2010
+    Version: 22
 
 The document is a draft.
 
@@ -221,7 +221,7 @@ C<first> searches exactly like C<grep> but returns only the first matching value
 
 C<pick> takes a list or array of values and returns a random
 selection of elements from the list (without replacement;
-see C<roll> for replacement semantics).  If C<*>
+see C<roll> for dice roll aka replacement semantics).  If C<*>
 is specified as the number (or if the number of elements in
 the list is less than the specified number), all the available
 elements are returned in random order:
@@ -239,17 +239,22 @@ single element may be used as an item without requiring C<.[0]>.
  our multi roll ( Int $num, *@values )
  our multi roll ( Whatever, *@values )
 
-C<roll> takes a list or array of values and returns a random
-selection of elements from the list (with replacement, that is, like
-rolling C<$num> independent dice; see C<pick> for non-replacement semantics).
-If C<*> is specified as the number, C<*> provides an infinite list
-of random choices from C<@values>:
+C<roll> takes a list or array of values and returns a random selection
+of elements from the list, like rolling N independent dice, where
+each list element corresponds to one side of your dice.  This is also known
+as "pick with replacement", that is, like pulling one marble out of
+bag and putting it back, and doing this N times; see C<pick> for the
+non-replacement semantics.  If C<*> is specified as the number, C<*>
+provides an infinite list of random choices from C<@values>:
 
     @byte = (0,1).roll(8);                   # 8d2
     for (1..20).roll(*) -> $die_roll { ... } # 1d20 xx *
 
 Due to the normal semantics of returning a C<Parcel>, a roll of a
 single element may be used as an item without requiring C<.[0]>.
+
+Note that C<roll 1, 6> is not the same as a 1d6, but always returns
+C<6> as a degenerate one-sided die.  Use C<roll 1, 1..6> to simulate a six-sided die.
 
 =item join
 
@@ -1012,7 +1017,7 @@ by the corresponding value and then list pick used.  C<KeyBag> is the
 mutable form of C<Bag>.  A C<Bag> responds to hash operators as
 if it were a C<Hash of UInt>.
 
-The default metaphor for picking is that you're pulling colored
+The underlying metaphor for picking is that you're pulling colored
 marbles out a bag.  (For "picking with replacement" see C<roll> instead.)
 Picking require tracking the temporary state, so the immutable C<Bag> is copied to
 a temporary private C<KeyBag>, and the picks are made from that
@@ -1026,12 +1031,16 @@ effect on subsequent C<.pick> invocations.
  our multi method roll ( $bag: Int $num = 1 )
  our multi method roll ( $bag: Whatever )
 
-Like an ordinary list C<pick>, but returns keys of the bag weighted by
-values, as if the keys were replicated the number of times indicated
-by the corresponding value and then list C<roll> used.
-
-The default metaphor for picking is that you're pulling colored
-marbles out a bag and then putting them back.  (For "picking without replacement" see C<pick> instead.)
+Like an ordinary list C<roll>, but returns keys of the bag weighted
+by values, as if the keys were replicated the number of times
+indicated by the corresponding value and then list C<roll> used.
+The underlying metaphor for rolling is that you're throwing C<$num>
+dice that are independent of each other, which (in bag terms) is
+equivalent to picking a colored marble out your bag and then putting
+it back, and doing this C<$num> times.  In dice terms, the number
+of marbles corresponds to the number of sides, and the number of
+marbles of the same color corresponds to number of sides with the
+same color.  (For "picking without replacement" see C<pick> instead.)
 Rolling requires no temporary state.
 
 =back
