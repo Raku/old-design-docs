@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 16 Jul 2010
-    Version: 142
+    Last Modified: 16 Sep 2010
+    Version: 143
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -1417,19 +1417,19 @@ from each list in turn, so
 produces 0,'a',1,'b',2,'c'.
 
 If you want the zip's result as a list of subarrays, then you need to put
-the zip itself into a "chunky" slice context instead:
+the zip itself into a "chunky" C<LoL> context instead:
 
     (0..2; 'a'..'c') ==> my $tmp;
-    for $tmp.zip.slice { .say }
+    for $tmp.zip.lol { .say }
 
-This produces [0,'a'],[1,'b'],[2,'c'].  But usually you want the flat
+This produces two values on each line.  But usually you want the flat
 form so you can just bind it directly to a signature:
 
     for $tmp.zip -> $i, $a { say "$i: $a" }
 
 Otherwise you'd have to say this:
 
-    for $tmp.zip.slice -> [$i, $a] { say "$i: $a" }
+    for $tmp.zip.lol -> [$i, $a] { say "$i: $a" }
 
 Conjectural: To interpolate a feed into a subscript such that the
 slice turns into multiple subscripts, you need to use C<< prefix:<||> >>,

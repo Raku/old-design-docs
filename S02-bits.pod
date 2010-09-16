@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 2 Sep 2010
-    Version: 224
+    Last Modified: 16 Sep 2010
+    Version: 225
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1259,7 +1259,7 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     EnumMap     A mapping of Enums with no duplicate keys
     Signature   Function parameters (left-hand side of a binding)
     Parcel      Arguments in a comma list
-    Slicel      Arguments in a semicolon list (or equiv, like Z)
+    LoL         Arguments in a semicolon list
     Capture     Function call arguments (right-hand side of a binding)
     Blob        An undifferentiated mass of ints, an immutable Buf
     Instant     A point on the continuous atomic timeline
@@ -2002,11 +2002,11 @@ the sigil.
 The context in which a subscript is evaluated is no longer controlled
 by the sigil either.  Subscripts are always evaluated in list context.
 (More specifically, they are evaluated in a variant of list context
-known as I<slice> context, which preserves dimensional information
+known as I<lol> context (List of List), which preserves dimensional information
 so that you can do multi-dimensional slices using semicolons.  However,
 each slice dimension evaluates its sublist in normal list context,
-so functions called as part of a subscript don't see a slice context.
-See S09 for more on slice context.)
+so functions called as part of a subscript don't see a lol context.
+See S09 for more on slicing.)
 
 If you need to force inner context to item (scalar), we now have convenient
 single-character context specifiers such as + for numbers and ~ for strings:
@@ -2162,9 +2162,10 @@ eventual value may well be unknown.  All we know is that we have the promise
 to make the bits of it immutable as they become known.
 
 C<Capture> objects may contain multiple unresolved iterators such as feeds
-or slices.  How these are resolved depends on what they are eventually
+or parcels or lists of parcels.  How these are resolved depends on what they are eventually
 bound to.  Some bindings are sensitive to multiple dimensions while
-others are not.
+others are not.  Binding to a list of lists is often known as "slicing",
+because it's commonly used to index "slices" of a potentially multi-dimensional array.
 
 You may retrieve parts from a C<Capture> object with a prefix sigil operator:
 
@@ -2194,7 +2195,7 @@ C<()> list, except that the latter is defined and means "there are
 0 arguments here".  The C<Nil> value returns itself if you iterate
 it or try to get a positional value from it via subscripting, but
 interpolates as a null list into flat context, and an empty C<Seq>
-into slice context.  In either case, a warning is issued.
+into a tree context.  In either case, a warning is issued.
 
 Since method calls are performed directly on any object, C<Nil>
 can respond to certain method calls.  C<Nil.defined> returns
@@ -2342,7 +2343,18 @@ applied by using the C<.assuming> method:
 
 Slicing syntax is covered in S09.  A multidimensional
 slice will be done with semicolons between individual slice sublists.
-Each such slice sublist is evaluated lazily.
+The semicolons imply one extra level of tree-ness, where the top
+list is of type C<LoL> and sublists are C<Lists>s (or non-iterable
+items that can function as single-item parcels).  So
+when you say
+
+    @matrix[1..*; 0]
+
+really means
+
+    @matrix[LoL( (1..*), 0 )]
+
+Each such slice sub-parcel is evaluated lazily.
 
 =item *
 
@@ -4443,14 +4455,34 @@ flatten the list on demand, but not before.
 
 There is a "C<list>" operator which imposes a list context on
 its arguments even if C<list> itself occurs in a item context.
-In list context, it flattens lazily.  In an item context, a list is
+
+To force explicit flattening, use the C<flat> contextualizer.
+This recursively flattens all parcels into a 1-dimensional list.
+When bound to a slurpy parameter, a capture flattens the rest of its positional arguments.
+
+To reform a list so that sub-parcels turn into tree nodes, use the C<.tree>
+method, which is essentially a level-sensitive map, with one closure provided
+for remapping the parcels at each level:
+
+    $p.tree(*.Seq)        # force level 1 parcels to Seq
+    $p.tree(1)            # same thing
+    $p.tree               # same thing, defaults to 1 level
+    $p.tree(*.Seq,*.list) # force level 1 parcels to Seq, level 2 to list
+    $p.tree(*.Seq xx *)   # Turn all subparcels into Seq recursively
+    $p.tree(*)            # same thing
+
+When bound to a slice parameter (indicated with C<**>), a capture reforms the rest of its
+positional arguments with one level of "treeness", equivalent to
+C<@args.tree(1)>, that is, a list of lists, or C<LoL>.  The sublists are not
+automatically flattened; that is, if a sublist is a C<Parcel>, it
+remains a list until subsequent processing decides how flat or
+treelike the sublist should be.
+
+When bound to an item parameter that is not an invocant, a list is
 turned into a lazy C<Seq> object, that is, an array that can
 extend itself on demand, use the iterators of the list as its new values.
 (Once determined, the values are readonly, however.  To create an anonymous
 mutable array, use explicit square brackets around the list.)
-
-To force explicit flattening or slicing (anti-flattening), use either the C<flat>
-or C<slice> contextualizers.
 
 To force a non-flattening item context, use the "C<item>" operator.
 
