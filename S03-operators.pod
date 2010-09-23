@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 16 Sep 2010
-    Version: 219
+    Last Modified: 23 Sep 2010
+    Version: 220
 
 =head1 Overview
 
@@ -1749,11 +1749,11 @@ See L</Cross operators>.
 
 =item *
 
-C<< infix:<...> >>, the series operator.
+C<< infix:<...> >>, the sequence operator.
 
 As a list infix operator, C<...> takes a list on both its left and
 right and evaluates them as lazily as possible to produce the desired
-series of values.  The lists are evaluated as flat lists.  As with
+sequence of values.  The lists are evaluated as flat lists.  As with
 all list infix operators, this operator is looser in precedence than
 comma, so you do not need to parenthesize comma lists on either side
 of it.
@@ -1764,19 +1764,19 @@ actually interested in; any additional list elements are treasured
 up lazily to be returned after the C<...> is done.
 
 The righthand first value is considered to be the endpoint or limit of the
-series that is to be generated from the lefthand side by the C<...>
+sequence that is to be generated from the lefthand side by the C<...>
 operator itself.
 
-Once we know the limit of the series, the left list is evaluated item
+Once we know the limit of the sequence, the left list is evaluated item
 by item, and ordinary numeric or string values are passed through
 unchanged (to the extent allowed by the limit on the right).
-If any value in the series smartmatches the limit value,
-the series terminates, including that final limit value.  To omit
+If any value in the sequence smartmatches the limit value,
+the sequence terminates, including that final limit value.  To omit
 the final value, use the C<...^> form instead.
 
 Internally, these two forms are checking to see if an anonymous loop
 is going to terminate, where the loop is what is returning the values
-of the series.  Assuming the next candidate value is in C<$x> and the
+of the sequence.  Assuming the next candidate value is in C<$x> and the
 first element of the right side is in C<$limit>, the two operators
 are implemented respectively as:
 
@@ -1785,10 +1785,10 @@ are implemented respectively as:
 
 Since this uses smartmatching via the C<~~> operator (see L<Smart
 matching> below), the usual smartmatching rules apply.  If the
-limit is C<*>, the series has no limit.  If the limit is a closure,
+limit is C<*>, the sequence has no limit.  If the limit is a closure,
 it will be evaluated for boolean truth on the current candidate,
-and the series will continue as long as the closure returns false.
-It's quite possible for a series to return fewer values than are
+and the sequence will continue as long as the closure returns false.
+It's quite possible for a sequence to return fewer values than are
 listed if the very first value matches the end test:
 
     my $lim = 0;
@@ -1806,7 +1806,7 @@ More typically, if the next item in the left-hand
 list is a closure, it is not returned; rather it is called
 on the tail of the existing list to produce a new value.  The
 arity of the closure determines how many preceding values to
-use as input in generating the next value in the series.  For
+use as input in generating the next value in the sequence.  For
 instance, counting by twos only requires a single argument:
 
     2, { $^a + 2 } ... *      # 2,4,6,8,10,12,14,16...
@@ -1852,10 +1852,10 @@ if they do match you may interleave unrelated sequences:
 Note in this case that the any limit test is applied to the entire parcel
 returned from the function, which contains two values.
 
-A series operator generated from an explicit function places no type
-constraints on the series other than those constraints implied by
+A sequence operator generated from an explicit function places no type
+constraints on the sequence other than those constraints implied by
 the signature of the function.  If the signature of the function does
-not match the existing values, the series terminates.
+not match the existing values, the sequence terminates.
 
 If no generating closure is provided, and the sequence is numeric,
 and is obviously arithmetic or geometric (from examining its I<last>
@@ -1971,12 +1971,12 @@ the final value is used to determine whether C<*.succ> or C<*.pred> is
 more appropriate.  The two values are compared with C<cmp> to determine
 the direction of the progression.
 
-Hence the series operator is "auto-reversing", unlike a range operator.
+Hence the sequence operator is "auto-reversing", unlike a range operator.
 
     'z' .. 'a'   # represents a null range
     'z' ... 'a'  # z y x ... a
 
-As with numeric values, a string match must be exact, or an infinite series
+As with numeric values, a string match must be exact, or an infinite sequence
 is produced.  Use a different smartmatch such as a regular expression or
 a closure to do fancier tests.
 
@@ -1994,7 +1994,7 @@ expressing the desire to fail when the list reaches that point:
 
     1..20, ... "I only know up to 20 so far mister"
 
-A special exception is made for any series whose endpoints are strings that
+A special exception is made for any sequence whose endpoints are strings that
 happen to represent single codepoints, since the user will typically be thinking
 of such strings as characters rather than strings.  If you say something like:
 
@@ -2039,7 +2039,7 @@ and
 
     '177777' ... '0' 
 
-both do exactly what the forward series do above, only in reverse.
+both do exactly what the forward sequences do above, only in reverse.
 
 As an extra special rule, that works in either direction, if the bottom
 character is a '0' and the top character is alphanumeric, it is assumed
@@ -2087,35 +2087,35 @@ You can always supply your own increment function.)
 
 Note that the C<last> call above returns no argument, so even though
 the internal test calls C<last($x)>, this call to C<last> bypasses that
-as if the series had been specified with C<...^> instead.  Going the
+as if the sequence had been specified with C<...^> instead.  Going the
 other way, a C<...^> maybe be forced to have a final value by passing
 an argument to an explicit C<last($my-last-value)>.  In the same way,
 that will bypass the argumentless internal C<last>.
 
-In a similar way, the series may be terminated by calling C<last>
+In a similar way, the sequence may be terminated by calling C<last>
 from the generator function:
 
     10,9,8, { $_ - 1 || last } ... *   # same as 10 ... 1
 
 For purposes of deciding when to terminate the eager part of a 'mostly
-eager' list, any series that terminates with an exact value (or
-that starts another series with exact values) is considered finite,
-as is any series that has an explicit ending closure.
-However, any series that ends C<*> is considered to be of unknowable
+eager' list, any sequence that terminates with an exact value (or
+that starts another sequence with exact values) is considered finite,
+as is any sequence that has an explicit ending closure.
+However, any sequence that ends C<*> is considered to be of unknowable
 length (even if generated with a closure that has internal logic to
 terminate).  However, by the definition of "mostly eager" in L<S07>,
 the implementation may be able to determine that such a sequence is
 finite by conjectural evaluation; such workahead cannot, of course,
 prove that a sequence is infinite without running a Very Long Time.
 Note also that, by using the form that specifies both a closure and
-a final value, it is possible to write series that appears to be
+a final value, it is possible to write sequence that appears to be
 finite but that never actually reaches its final value before resources
-are exhausted; such a series will be treated as finite, but eventually
+are exhausted; such a sequence will be treated as finite, but eventually
 come to grief:
 
     @a = 1, *+0.00000000000000000000000000000000000001 ... 2;  # heat death
 
-For any such series or list that the user knows to be infinite, but
+For any such sequence or list that the user knows to be infinite, but
 the computer can't easily know it, it is allowed to mark the end of
 the list with a C<*>, which indicates that it is to be treated as an
 infinite list in contexts which care.  Similarly, any list ending
@@ -3394,7 +3394,7 @@ routine can usually auto-generate the range for you.
 Range objects support C<.min> and C<.max> methods representing
 their left and right arguments.  The C<.bounds> method returns both
 values as a two-element list representing the interval.  Ranges are
-not autoreversing: C<2..1> is always a null range.  (The series
+not autoreversing: C<2..1> is always a null range.  (The sequence
 operator C<...> can autoreverse, however.  See below.)
 
 Range objects support C<.excludes_min> and C<.excludes_max> methods
@@ -3409,15 +3409,15 @@ endpoint in the Range.
     1^..^10    | 1    | 10   | Bool::True    | Bool::True
 
 If used in a list context, a C<Range> object returns an iterator that
-produces a series of values starting at the min and ending at the max.
+produces a sequence of values starting at the min and ending at the max.
 Either endpoint may be excluded using C<^>.  Hence C<1..2> produces
 C<(1,2)> but C<1^..^2> is equivalent to C<2..1> and produces no values (Nil).
-To specify a series that counts down, use a reverse:
+To specify a sequence that counts down, use a reverse:
 
     reverse 1..2
     reverse 'a'..'z'
 
-Alternately, for numeric sequences, you can use the series operator instead
+Alternately, for numeric sequences, you can use the sequence operator instead
 of the range operator:
 
     100,99,98 ... 0
@@ -3426,7 +3426,7 @@ of the range operator:
 In other words, any C<Range> used as a list assumes C<.succ> semantics,
 never C<.pred> semantics.  No other increment is allowed; if you wish
 to increment a numeric sequence by some number other than 1, you must
-use the C<...> series operator.  (The C<Range> operator's C<:by> adverb
+use the C<...> sequence operator.  (The C<Range> operator's C<:by> adverb
 is hereby deprecated.)
 
     0, *+0.1 ... 100    # 0, 0.1, 0.2, 0.3 ... 100
@@ -3462,8 +3462,8 @@ to the C<.max> I<and> at least one of C<.excludes_min> or C<.excludes_max> is tr
 3. Both C<.excludes_min> and C<.excludes_max> are true I<and> C<.min> and C<.max>
 are consecutive values.
 
-Ranges that are iterated transmute into the corresponding series operator,
-and hence use C<!after> semantics to determine an end to the sequence.
+Ranges that are iterated transmute into the corresponding sequence operator,
+and hence use smartmatch semantics to determine an end to the sequence.
 
 =head2 Unary ranges
 
@@ -4749,7 +4749,7 @@ form or a short form using square brackets directly after the C<&> sigil:
 
 This is convenient for function application:
 
-    1, 1, &[+] ... *       # fibonacci series
+    1, 1, &[+] ... *       # fibonacci sequence
     sort &[Rleg], @list    # reverse sort as strings
 
 The C<&[op]> form always refers to a binary function of the operator,
