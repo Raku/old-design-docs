@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 12 Jul 2010
-    Version: 107
+    Last Modified: 24 Jul 2010
+    Version: 108
 
 =head1 Overview
 
@@ -2194,9 +2194,13 @@ prototype objects, in which case stringification is not likely to
 produce something of interest to non-gurus.)
 
 The C<.^parents> method by default returns a flattened list of all
-parents sorted in MRO (dispatch) order. Other options are:
+parents out to (but not including) C<Cool> or C<Any>,
+sorted in MRO (dispatch) order. Other options are:
 
     :local              just returns the immediate parents
+    :local($n)          return $n levels
+    :excl               exclude Cool and Any (the default)
+    :all                include Cool and Any
     :tree               the inheritance hierarchy as nested arrays
 
 The C<.^methods> method returns method-descriptors containing:
@@ -2212,6 +2216,9 @@ specify whether you want to see a flattened or hierarchical view,
 whether you're interested in private methods, and so forth.
 
     :local              only methods defined in the current class
+    :local($n)          out $n levels
+    :excl               exclude Cool and Any (the default)
+    :all                include Cool and Any
     :tree               methods by class structure (inheritance hierarchy)
     :private            include private methods
 
@@ -2235,6 +2242,9 @@ that have traits like these:
 It also takes the parameters:
 
     :local              only methods defined in the current class
+    :local($n)          out $n levels
+    :excl               exclude Cool and Any (the default)
+    :all                include Cool and Any
     :tree               attributes by class structure (inheritance hierarchy)
 
 Strictly speaking, metamethods like C<.isa()>, C<.does()>, and C<.can()>
@@ -2283,6 +2293,21 @@ in the class, even if they haven't been declared yet.  Role composition
 sometimes relies on this ability to determine whether a superclass supplies
 a method of a particular name if it's required and hasn't been supplied
 by the class or one of its roles.
+
+The motivation for stopping at C<Cool> and C<Any> by default is that
+the first derivation from one of those is really what the user thinks
+of as the root class of the type hierarchy most of the time.  Methods
+outside of that are really part of Perl 6's lexicon, recognizable
+across all types.  Hence if you say, for exampe, C<$object.sort>
+or C<$object.arctan>, you're invoking well-known cultural concepts
+that tend to transcend the user's type hierarchy.  When the user
+asks for $object.^methods, listing such methods by default is
+rather irritating.
+
+Note that when we say "C<Cool> and C<Any>" above, we really mean
+those types as well as any types outside of them, such as C<Mu> or
+C<Junction>.  But users should not generally be deriving from those
+types anyway.
 
 =head1 Autovivifying objects
 
