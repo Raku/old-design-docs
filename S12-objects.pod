@@ -2227,8 +2227,8 @@ world (the class already knows its own structure, after all), a set of
 C<multi> methods are presented to be a single C<proto> method.  You need to
 use C<.candidates> on that to break it down further.
 
-The C<.^attributes> method returns a list of attribute descriptors
-that have traits like these:
+The C<.^attributes> method returns a list of C<Attribute> objects
+that have methods like these:
 
     name
     type
@@ -2238,8 +2238,21 @@ that have traits like these:
     has-accessor
     build
     readonly
+    get_value($obj)
+    set_value($obj, $new_value)
 
-It also takes the parameters:
+Note that an C<Attribute> is not tied to a particular object of a type, but
+rather to the type itself. Which is why C<get_value> and C<set_value> need to
+receive the actual object as first positional parameter.
+
+[Conjecture: if it's not feasible for a meta class or a representation to
+implement C<set_value> and C<get_value>, it may die with an helpful error
+message when these methods are called.]
+
+C<set_value> and C<get_value> violate the perceived privateness of attributes,
+and thus should be used with care, and at the user's own risk.
+
+C<.^attributes> It also takes the parameters:
 
     :local              only methods defined in the current class
     :local($n)          out $n levels
