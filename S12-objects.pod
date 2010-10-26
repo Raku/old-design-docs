@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 25 Oct 2010
-    Version: 109
+    Last Modified: 26 Oct 2010
+    Version: 110
 
 =head1 Overview
 
@@ -1114,14 +1114,13 @@ all candidates in the circle are considered tied.  A warning will be
 issued at C<CHECK> time if this is detected and there is no suitable
 tiebreaker that could break the tie.
 
-There are three tiebreaking modes, in increasing order of desperation:
+There are two tiebreaking modes, in increasing order of desperation:
 
     A) run-time constraint processing
     B) use of a candidate marked with "is default"
-    C) use of a candidate marked as "proto"
 
 In the absence of any constraints, ties in the nominal typing
-immediately failover to tiebreaker B or C; if not resolved by B or C,
+immediately failover to tiebreaker B; if not resolved by B,
 they warn at compile time about an ambiguous dispatch.
 
 If there are any tied candidates with constraints, it follows from our
@@ -1144,9 +1143,8 @@ unconstrained variants without extra arguments.
 For ranks that are not decided by constraint (tiebreaker A),
 tiebreaker B is used: only candidates marked with the C<default>
 trait are considered, and the best matching default routine is used.
-If there are no default routines, or if the available defaults are
-also tied, tiebreaker C is used: a final tie-breaking proto sub is
-called, if there is one (see above).  Otherwise the dispatch fails.
+If there are no default routines, or if two or more of the defaults
+are tied for best, the dispatch fails.
 
 Ordinarily all the parameters of a multi sub are considered for dispatch.
 Here's a declaration for an integer range operator with two parameters
