@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 24 Jul 2010
-    Version: 108
+    Last Modified: 25 Oct 2010
+    Version: 109
 
 =head1 Overview
 
@@ -976,37 +976,68 @@ want to do something with ordered side effects, such as I/O.
 
 =head1 Multisubs and Multimethods
 
-The "long name" of a subroutine or method includes the type signature
-of its invocant arguments.  The "short name" doesn't.  If you put
-C<multi> in front of any sub (or method) declaration, it allows
+The "long name" of a subroutine or method includes the type
+signature of its invocant arguments.  The "short name" doesn't.
+
+If you put C<multi> in front of any sub declaration, it allows
 multiple long names to share a short name, provided all of them are
-declared C<multi>, and there is a single C<proto> that manages them.
-If a sub (or method) is not marked
-with C<multi> and it is not within the package or lexical scope of
-a C<proto> of the same short name, it is considered unique, an I<only>
-sub.  You may mark a sub explicitly as C<only> if you're worried it
-might be within the scope of a C<proto>, and you want to suppress
-any other declarations within this scope.  An C<only> sub (or method)
-doesn't share with anything outside of it or declared prior to it.
-Only one such sub (or method) can inhabit a given namespace, and it
-hides any outer subs (or less-derived methods) of the same short name.
+declared C<multi>, or there is a single prior or outer C<proto> in
+the same file that causes all unmarked subs to default to multi in
+that lexical scope.  If a sub is not marked with C<multi> and it is
+not governed within that same file by a C<proto> of the same short
+name, it is considered unique, an I<only> sub.  (An imported C<proto>
+can function as such a governing declaration.)
 
-The default C<proto> declarations provided by Perl from the global
-scope are I<not> automatically propagated to the user's scope
-unless explicitly imported, so a C<sub> declaration there that
-happens to be the same as a global multi is considered C<only> unless
-explicitly marked C<multi>.  In the absence of such an explicit C<sub>
-declaration, however, the global proto is used by the compiler in
-the analysis of any calls to that short name.  (Since only list
-operators may be post-declared, as soon as the compiler sees a
-non-listop operator it is free to apply the global C<proto> since
-any user-defined C<only> version of it must of necessity be declared
-earlier in the user's lexical scope or not at all.)
+For method declaratoins, the C<proto>, C<multi>, and C<only>
+declarations work similarly but not identically.  The explicit
+declarations work the same, except that calculation of of governance
+and candidate sets proceeds via the inheritance tree rather than via
+lexical scoping.  The other difference is that a proto method of a
+given short name forcing all unmarked method declarations to assume
+multi in all subclasses regardless of which file they are declared in,
+unless explicitly overridden via C<only method>.
 
-A C<proto> always functions as a dispatcher around any C<multi>s declared after it in the same scope,
+An C<only> sub (or method) doesn't share with anything outside of it
+or declared prior to it.  Only one such sub (or method) can inhabit a
+given namespace (lexical scope or class), and it hides any outer subs
+(or less-derived methods) of the same short name.  It is illegal for
+a C<multi> or C<proto> declaration to share the same scope with an
+C<only> declaration of the same short name.
+
+Since they come from a different file, the default C<proto>
+declarations provided by Perl from the setting scope do I<not>
+automatically set the defaults in the user's scope unless explicitly
+imported, so a C<sub> declaration there that happens to be the same
+as a setting C<proto> is considered C<only> unless explicitly marked
+C<multi>.  (This allows us to add new C<proto> declarations in the
+setting without breaking the user's old code.)  In the absence of
+such an explicit C<sub> declaration, however, the C<proto> from the
+innermost outer lexical scope is used by the compiler in the analysis
+of any calls to that short name.  (Since only list operators may be
+post-declared, as soon as the compiler sees a non-listop operator it
+is free to apply the setting's C<proto> since any user-defined C<only>
+version of it must of necessity be declared or imported earlier in
+the user's file or not at all.)
+
+A C<proto> always functions as a dispatcher around any C<multi>s
+declared after it in the same scope, More specifically, it is the
+generic prototype of a dispatcher, which must be instantiated anew
+in each scope that has a different candidate list.  (This works
+much like type punning from roles to classes.  Or you can think of
+this dispatcher as a currying of the proto's code with the candidate
+list appropriate to the scope.)  For the sake of discussion, let us
+say that there is a declarator equivalent to C<only> that is instead
+spelled C<dispatch>.  Generally a user never writes a C<dispatch> sub
+(it might not even be allowed); a C<dispatch> is always instantiated
+from the governing C<proto>.  A new C<dispatch> sub or method is
+autogenerated in any scope that contains C<multi> declarations.
+Since C<dispatch> is nearly identical to C<only>, saying C<&foo>
+always refers to the innermost visible C<dispatch> or C<only> sub,
+never to a C<proto> or C<multi>.  Likewise, C<$obj.can('foo')> will
+return the most-derived C<dispatch> or C<only> method.
 
 Within its scope, the signature of a C<proto> also nails down the presumed
-order and naming of positional parameters, so that any C<multi> call with
+order and naming of positional parameters, so that any call to that short name with
 named arguments in that scope can presume to rearrange those arguments
 into positional parameters based on that information.  (Unrecognized names
 remain named arguments.)  Any other type information or traits attached
@@ -1200,20 +1231,6 @@ A C<method> or C<submethod> doesn't ordinarily participate in any
 subroutine-dispatch process. However, they can be made to do so if
 prefixed with a C<my> or C<our> declarator.
 
-Conjecture: In order to specify dispatch that includes the return
-type context, it is necessary to place the return type before the double
-semicolon:
-
-    multi infix:<..>(Int $min, Int $max --> Iterator;; Int $by = 1) {...}
-    multi infix:<..>(Int $min, Int $max --> Selector;; Int $by = 1) {...}
-
-Note that such a declaration might have to delay dispatch until the
-actual desired type is known!  (Generally, you might just consider
-returning a flexible C<Range> object instead of an anonymous partial
-dispatch that may or may not be resolved at compile time via type
-inferencing.  Therefore return-type tiebreaking need not be supported
-in 6.0.0 unless some enterprising soul decides to make it work.)
-
 =head2 Method call vs. Subroutine call
 
 The caller indicates whether to make a method call or subroutine
@@ -1270,7 +1287,7 @@ to an exact type match on the invocant, just as ordinary submethods are.
 
 Perl 6.0.0 is not required to support multiple dispatch on named
 parameters, only on positional parameters.  Note however that any
-C<proto> will map named arguments to known declared positional
+dispatcher derived from C<proto> will map named arguments to known declared positional
 parameters and call the C<multi> candidates with positionals for
 those arguments rather than named arguments.
 

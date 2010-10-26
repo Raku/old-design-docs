@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 6 Oct 2010
-    Version: 144
+    Last Modified: 25 Oct 2010
+    Version: 145
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -64,50 +64,72 @@ also adds an implicit C<multi> to all routines of the same short
 name within its scope, unless they have an explicit modifier.
 (This is particularly useful when adding to rule sets or when attempting
 to compose conflicting methods from roles.)  Abstractly, the C<proto>
-is a wrapper around the dispatch to the C<multi>s.
+is a generic wrapper around the dispatch to the C<multi>s.  Each C<proto>
+is instantianted into an actual dispatcher for each scope that
+needs a different candidate list.
 
 B<Only> (keyword: C<only>) routines do not share their short names
 with other routines.  This is the default modifier for all routines,
-unless a C<proto> of the same name was already in scope.
+unless a C<proto> of the same name was already in scope.  (For subs,
+the governing C<proto> must have been declared in the same file, so
+C<proto> declarations from the setting or other modules don't have
+this effect unless explicitly imported.)
 
 A modifier keyword may occur before the routine keyword in a named routine:
 
     only sub foo {...}
     proto sub foo {...}
+    dispatch sub foo {...}      # internal
     multi sub foo {...}
 
     only method bar {...}
     proto method bar {...}
+    dispatch method bar {...}   # internal
     multi method bar {...}
 
 If the routine keyword is omitted, it defaults to C<sub>.
 
 Modifier keywords cannot apply to anonymous routines.
 
-When you call any routine (or method, or rule) that may have multiple
-candidates, the C<proto> is always called first (at least in the abstract--this
-can often be optimized away).  In essence, a C<proto> is dispatched exactly like
-an C<only> sub, but the C<proto> itself may delegate to any of the candidates
-it is "managing".
+A C<proto> is a generic dispatcher, which any given scope with a unique
+candidate list will instantiate into a C<dispatch> routine.  Hence
+a C<proto> is never called directly, much like a C<role> can't be
+used as an instantiated object.
 
-It is the C<proto>'s responsibility to first vet the arguments for all the
-candidates; any call that does not match the proto's signature fails outright.
-Named arguments that bind to positionals in the C<proto> sig will become positionals
+When you call any routine (or method, or rule) that may have multiple
+candidates, the basic dispatcher is really only calling an "only"
+sub or method--but if there are multiple candidates, the "only" that
+will be found is really a dispatcher.  This instantiated C<dispatch>
+is always called first (at least in the abstract--this can often be
+optimized away).  In essence, a C<dispatch> is dispatched exactly
+like an C<only> sub, but the C<dispatch> itself may delegate to any
+of the candidates it is "managing".
+
+It is the C<dispatch>'s responsibility to first vet the arguments for all the
+candidates; any call that does not successfully bind the C<dispatch>'s signature fails outright.
+(Its signature is a copy of one belonging to the C<proto> from which it was instantiated.)
+The C<dispatch> does not necessarily send the original capture to its candidates, however.
+Named arguments that bind to positionals in the C<dispatch> sig will become positionals
 for all subsequent calls to its managed multis.
 
-The proto then builds (or otherwise acquires) a list of its managed candidates
-from the viewpoint of the caller or object, sorts them into some order,
-and dispatches them according to the rules of multiple dispatch as defined
-for each of the various dispatchers.
+The dispatch then considers its list of managed candidates from the
+viewpoint of the caller or object, sorts them into some order, and
+dispatches them according to the rules of multiple dispatch as defined
+for each of the various dispatchers.  In the case of multi subs, the
+candidate list is known at compile time.  In the case of multi methods,
+it may be necessary to generate (or regenerate) the candidate list at
+run time, depending on what is known when about the inheritance tree.
 
-This default behavior is implied by a block containing of a single
-C<*> (that is, a "whatever").  Hence the typical C<proto> will simply
-have a body of C<{*}>.
+This default dispatch behavior is symbolized within the original
+C<proto> by a block containing of a single C<*> (that is, a
+"whatever").  Hence the typical C<proto> will simply have a body
+of C<{*}>.
 
     proto method bar {*}
 
 (We don't use C<...> for that because it would fail at run time,
-and C<proto> blocks are not stubs, but are intended to be executed.)
+and the proto's instantiated C<dispatch> blocks are not stubs, but
+are intended to be executed.)
 
 Other statements may be inserted before and after the C<{*}>
 statement to capture control before or after the multi dispatch:
@@ -118,10 +140,11 @@ statement to capture control before or after the multi dispatch:
 value, since it returns the result of C<say>, which might not be what
 you want.  See below for how to fix that.)
 
-The syntactic form C<&foo> (without a modifying signature) can never refer to
-a C<multi> candidate.  It may only refer to the single C<only> or C<proto> routine
-that would first be called by C<foo()>.  Individual C<multi>s may be named by
-appending a signature to the noun form: C<&foo:($,$,*@)>.
+The syntactic form C<&foo> (without a modifying signature) can never
+refer to a C<multi> candidate or a generic C<proto>.  It may only
+refer to the single C<only> or C<dispatch> routine that would first
+be called by C<foo()>.  Individual C<multi>s may be named by appending
+a signature to the noun form: C<&foo:($,$,*@)>.
 
 We used the term "managed" loosely above to indicate the set of C<multi>s in
 question; the "managed set" is more accurately defined as the intersection
@@ -202,6 +225,22 @@ look for this larger managed set in order to do transitive LTM correctly.
 Now the semantics of normal method C<proto>s and regex C<proto>s are nearly
 identical, apart from the fact that regex candidate lists naturally have
 fancier tiebreaking rules involving longest token matching.
+
+A C<dispatch> must be generated for every scope that contains one or more C<multi>
+declaration.  This is done by searching backwards and outwards (or up the
+inheritance chain for methods) for a C<proto> to instantiate.  If no such
+C<proto> is found, a "most generic" C<proto> will be generated, something like:
+
+    proto sub foo (*@, *%) {*}
+    proto method foo (*@, *%) {*}
+
+Obviously, no named-to-positional remapping can be done in this case.
+
+[Conjecture: we could instead autogen a more specific signature for
+each such autogenerated C<dispatch> once we know its exact candidate
+set, such that consistent use of positional parameter names is rewarded
+with positional names in the generated signature, which could remap
+named parameters.]
 
 =head2 Named subroutines
 

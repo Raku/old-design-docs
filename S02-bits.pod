@@ -14,7 +14,7 @@ Synopsis 2: Bits and Pieces
     Created: 10 Aug 2004
 
     Last Modified: 25 Oct 2010
-    Version: 226
+    Version: 227
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2325,12 +2325,14 @@ then dereference the result of that.
 
 =item *
 
-With multiple dispatch, C<&foo> is actually the name of the C<proto> controlling a set
-of candidate functions (which you can use as if it were an ordinary function, because
-a C<proto> is really an C<only> function with pretentions to management of a dispatcher).
-However, in that case C<&foo> by itself is not sufficient to uniquely
-name a specific function.  To do that, the type may be refined by
-using a signature literal as a postfix operator:
+With multiple dispatch, C<&foo> is actually the name of a C<dispatch>
+routine (instantiated from a C<proto>) controlling a set of candidate
+functions (which you can use as if it were an ordinary function,
+because a C<dispatch> is really an C<only> function with pretentions
+to management of a dispatcher).  However, in that case C<&foo>
+by itself is not sufficient to uniquely name a specific function.
+To do that, the type may be refined by using a signature literal as
+a postfix operator:
 
     &foo:(Int,Num)
 
@@ -4073,7 +4075,7 @@ be multis, or a compile-time error is declared and you must predeclare,
 even if one postdeclaration is obviously "closer".  A single
 C<proto> predeclaration may make all postdeclared C<multi> work fine,
 since that's a run-time dispatch, and all multis are effectively
-visible at the point of the controlling C<proto> declaration.
+visible by the time a C<dispatch>'s candidate list is generated.
 
 Parsing of a bareword function as a provisional call is always done
 the same way list operators are treated.  If a postdeclaration
