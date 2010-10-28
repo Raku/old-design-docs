@@ -61,11 +61,11 @@ forward-declare your classes:
 
     my A $root .= new(:a(B));
 
-    class A { 
+    class A {
         has B $.a;
     }
 
-    class B { 
+    class B {
         has A $.b;
     }
 
@@ -77,8 +77,8 @@ but that is considered somewhat antisocial and should not be used
 for forward declarations.
 
 [Conjecture: we may also allow the C<proto> and C<multi> declarator modifiers
-on class definitions to explicitly declare classes with multiple bodies participating in
-a single definition intentionally.]
+on class definitions to explicitly declare classes with multiple bodies
+participating in a single definition intentionally.]
 
 A named class declaration can occur as part of an expression, just like
 named subroutine declarations.
@@ -151,19 +151,20 @@ understood as generic when placed in the role header, which tends to
 communicate the false impression that the trait in question is to be
 applied directly to the role rather than to the composed class.)
 
-Every object (including any class-based object) delegates to an instance of
-its metaclass.  You can get at the metaclass of any object via the
-C<HOW> method, which returns an instance of the metaclass.  A "class" object is just considered an "empty"
-instance in Perl 6, more properly called a "prototype" or "generic" object, or just
-"type object".  Perl 6 doesn't really have any classes named C<Class>.
-Types of all kinds are instead named via these undefined type objects,
-which are considered to have exactly the same type as an instantiated
-version of themsleves.  But such type objects are inert, and do not
-manage the state of class instances.
+Every object (including any class-based object) delegates to an instance
+of its metaclass.  You can get at the metaclass of any object via the
+C<HOW> method, which returns an instance of the metaclass.  A "class"
+object is just considered an "empty" instance in Perl 6, more properly
+called a "prototype" or "generic" object, or just "type object".
+Perl 6 doesn't really have any classes named C<Class>.  Types of all
+kinds are instead named via these undefined type objects, which are
+considered to have exactly the same type as an instantiated version of
+themsleves.  But such type objects are inert, and do not manage the
+state of class instances.
 
-The actual object that manages instances is the metaclass object pointed to by the
-C<HOW> syntax.  So when you say "C<Dog>", you're referring to both a
-package and a type object, the latter of which points to the
+The actual object that manages instances is the metaclass object pointed
+to by the C<HOW> syntax.  So when you say "C<Dog>", you're referring to
+both a package and a type object, the latter of which points to the
 object representing the class via C<HOW>.  The type object
 differs from an instance object not by having a different
 type but rather in the extent to which it is defined.  Some objects
@@ -345,12 +346,12 @@ or more succinctly but less readably:
 
     $obj.$($foo ?? &bar !! &baz)(1,2,3)
 
-The variable must contain a C<Callable> object (usually of type C<Code>), that is, a closure of some
-sort.  Regardless of whether the closure was defined as a method or
-a sub or a block, the closure is called directly without any class
-dispatch; from the closure's point of view, however, it is always
-called as a method, with the object as its first argument, and the
-rest of the arguments second, third, and so on.   For instance, such
+The variable must contain a C<Callable> object (usually of type C<Code>),
+that is, a closure of some sort.  Regardless of whether the closure was
+defined as a method or a sub or a block, the closure is called directly
+without any class dispatch; from the closure's point of view, however,
+it is always called as a method, with the object as its first argument,
+and the rest of the arguments second, third, and so on.   For instance, such
 a closure may be used to abstract a "navigational" path through a
 data structure without specifying the root of the path till later:
 
@@ -435,7 +436,8 @@ You must use a special syntax to call a private method:
     $mybrain!think($pinky)
     self!think($pinky)
 
-For a call on your own private method, you may also use the attribute-ish form:
+For a call on your own private method, you may also use the attribute-ish
+form:
 
     $!think($pinky)     # short for $(self!think($pinky))
 
@@ -570,27 +572,28 @@ You can also get at the container through the appropriate symbol table:
 
 =head1 Class methods
 
-Other OO languages give you the ability to declare "class" methods that either don't
-need or actively prohibit calls on instances.  Perl 6 gives you a choice.
-If you declare an ordinary method, it can function as a "class" method when you
-pass it a type object such as "C<Dog>" regardless of how defined the prototype
-object is, as long as the method body doesn't try to access any information that
-is undefined in the current instance.
+Other OO languages give you the ability to declare "class" methods that
+either don't need or actively prohibit calls on instances.  Perl 6 gives
+you a choice.  If you declare an ordinary method, it can function as a
+"class" method when you pass it a type object such as "C<Dog>" regardless
+of how defined the prototype object is, as long as the method body doesn't
+try to access any information that is undefined in the current instance.
 
-Alternately, you can associate a method with the current metaclass instance, which
-as a singleton object knows your package, and can function as a more traditional
-"class" method:
+Alternately, you can associate a method with the current metaclass instance,
+which as a singleton object knows your package, and can function as a
+more traditional "class" method:
 
     our $count;
     method ^count { return $count }
 
-Such a I<metaclass method> is always delegated to the C<HOW> object just as methods like
-C<.does> are, so it's possible to call this as C<Dog.count> or C<$dog.count>.
-However, best practice is probably to call such a class method as C<Dog.^count>
-or C<$dog.^count> to make it clear that it's in its own namespace separate
-from ordinary methods, and so that your class method cannot be accidentally
-overridden by an ordinary method in a subclass--presuming you don't want to
-allow for that possibility.
+Such a I<metaclass method> is always delegated to the C<HOW> object
+just as methods like C<.does> are, so it's possible to call this as
+C<Dog.count> or C<$dog.count>.  However, best practice is probably to
+call such a class method as C<Dog.^count> or C<$dog.^count> to make it
+clear that it's in its own namespace separate from ordinary methods, and
+so that your class method cannot be accidentally overridden by an
+ordinary method in a subclass--presuming you don't want to allow for
+that possibility.
 
 =head1 Submethods
 
@@ -693,9 +696,9 @@ C<self.foo> with different contexts, the class does not need to declare
 any of those as an attribute -- a C<method foo> declaration can work
 just as well.
 
-As with the normal method call forms, only dotless parentheses may contain arguments.
-If you use the C<.()> form it will perform an extra level of indirection after
-the method call:
+As with the normal method call forms, only dotless parentheses may
+contain arguments.  If you use the C<.()> form it will perform an extra
+level of indirection after the method call:
 
     self.foo(1,2,3);    # a regular method call
     self.foo.(1,2,3);   # self.foo().(1,2,3), call .() on closure returned by .foo
@@ -926,8 +929,9 @@ dispatcher until after the last call.)
 Since it's possible to be dispatching within more than one candidate
 list at a time, these control flow calls are defined to apply only to
 the dynamically innermost dispatcher.  If, for instance, you have a
-single dispatch to a C<proto> method that then calls into a multiple dispatch on the C<multi>
-methods within a class, C<nextsame> within one of those C<multi>s would go to the next best C<multi>
+single dispatch to a C<proto> method that then calls into a multiple
+dispatch on the C<multi> methods within a class, C<nextsame> within
+one of those C<multi>s would go to the next best C<multi>
 method within the class, not the next method candidate in the original
 single dispatch.  This is not a bad limitation, since dispatch loops
 are dynamically scoped; to get to the outermost lists you can "pop"
@@ -1037,23 +1041,23 @@ never to a C<proto> or C<multi>.  Likewise, C<$obj.can('foo')> will
 return the most-derived C<dispatch> or C<only> method.
 
 Within its scope, the signature of a C<proto> also nails down the presumed
-order and naming of positional parameters, so that any call to that short name with
-named arguments in that scope can presume to rearrange those arguments
-into positional parameters based on that information.  (Unrecognized names
-remain named arguments.)  Any other type information or traits attached
-to the C<proto> may also be passed along to the routines within its scope,
-so a C<proto> definition can be used to factor out common traits.  This is
-particularly useful for establishing grammatical categories in a grammar by
-declaring a C<proto> C<token> or C<proto> C<rule>.  (Perl 6's grammar does
-this, for instance.)
+order and naming of positional parameters, so that any call to that
+short name with named arguments in that scope can presume to rearrange
+those arguments into positional parameters based on that information.
+(Unrecognized names remain named arguments.)  Any other type information
+or traits attached to the C<proto> may also be passed along to the
+routines within its scope, so a C<proto> definition can be used to factor
+out common traits.  This is particularly useful for establishing
+grammatical categories in a grammar by declaring a C<proto> C<token>
+or C<proto> C<rule>.  (Perl 6's grammar does this, for instance.)
 
 You can have multiple C<multi> variables of the same name in the
 same scope, and they all share the same storage location and type.
 These are declared by one C<proto> declaration at the top, in which case
-you may leave the C<multi> implicit on the rest of the declarations in the same scope.
-You might do this when you suspect you'll have multiple declarations
-of the same variable name (such code might be produced by a macro
-or by a code generator, for instance) and you wish to suppress any
+you may leave the C<multi> implicit on the rest of the declarations in
+the same scope.  You might do this when you suspect you'll have multiple
+declarations of the same variable name (such code might be produced by a
+macro or by a code generator, for instance) and you wish to suppress any
 possible warnings about redefinition.
 
 In contrast, C<multi> routines can have only one instance of the long
@@ -1071,10 +1075,11 @@ of the arguments match up with the declared types of the parameters of
 each candidate.  The best candidate is called, unless there's a tie,
 in which case the tied candidates are redispatched using any additional
 tiebreaker strategies (see below).  For the purpose of this nominal typing,
-no constrained type is considered to be a type name; instead the constrained type
-is unwound into its base type plus constraint.  Only the base type upon
-which the constrained type is based is considered for the nominal type
-match (along with the fact that it is constrained).  That is, if you have a parameter:
+no constrained type is considered to be a type name; instead the
+constrained type is unwound into its base type plus constraint.  Only the
+base type upon which the constrained type is based is considered for the
+nominal type match (along with the fact that it is constrained).  That
+is, if you have a parameter:
 
     subset Odd of Int where { $_ % 2 }
     proto foo {*}
@@ -1084,12 +1089,13 @@ it is treated as if you'd instead said:
 
     multi foo (Int $i where { $_ % 2 }) {...}
 
-Any constrained type is considered to have a base type that is "epsilon" narrower than
-the corresponding unconstrained type.  The compile-time topological sort
-takes into account the presence of at least one constraint, but nothing about the
-number or nature of any additional constraints.  If we think of Int' as
-any constrained version of Int, then Int' is always tighter nominally than Int.
-(Int' is a meta-notation, not Perl 6 syntax.)
+Any constrained type is considered to have a base type that is "epsilon"
+narrower than the corresponding unconstrained type.  The compile-time
+topological sort takes into account the presence of at least one
+constraint, but nothing about the number or nature of any additional
+constraints.  If we think of Int' as any constrained version of Int,
+then Int' is always tighter nominally than Int.  (Int' is a meta-notation,
+not Perl 6 syntax.)
 
 The order in which candidates are considered is defined by a
 topological sort based on the "type narrowness" of each candidate's
@@ -1261,8 +1267,8 @@ no arguments other than the invocant.  Many standard methods (such
 as C<IO::close> and C<Array::push>) are automatically exported to the
 C<CORE> namespace by default.  For other exported methods, you will not
 see the C<multi> sub definition unless you C<use> the class in your scope,
-which will import the C<proto> (and associated C<multi> subs) lexically, after which you can call it
-using normal subroutine call syntax.
+which will import the C<proto> (and associated C<multi> subs) lexically,
+after which you can call it using normal subroutine call syntax.
 
 In the absence of an explicit type on the method's invocant, the
 exported C<multi> sub's first argument is implicitly constrained to
@@ -1285,9 +1291,9 @@ to an exact type match on the invocant, just as ordinary submethods are.
 
 Perl 6.0.0 is not required to support multiple dispatch on named
 parameters, only on positional parameters.  Note however that any
-dispatcher derived from C<proto> will map named arguments to known declared positional
-parameters and call the C<multi> candidates with positionals for
-those arguments rather than named arguments.
+dispatcher derived from C<proto> will map named arguments to known
+declared positional parameters and call the C<multi> candidates with
+positionals for those arguments rather than named arguments.
 
 Within a multiple dispatch, C<nextsame> means to try the next best
 match, or next best default in case of tie.
@@ -1565,10 +1571,10 @@ is considered equivalent to
     subset Weekday of Day where 'Mon'..'Fri';
     Weekday $d
 
-Types mentioned in a dynamic C<where> class are not considered part of the official
-type, except insofar as the type includes the notion: "is also constrained
-by a dynamic C<where> clause", which narrows it by epsilon over the equivalent
-type without a C<where> clause.
+Types mentioned in a dynamic C<where> class are not considered part of
+the official type, except insofar as the type includes the notion: "is
+also constrained by a dynamic C<where> clause", which narrows it by
+epsilon over the equivalent type without a C<where> clause.
 
     Foo Bar @x              # type is Foo & Bar & Positional
     Foo Bar @x where Baz    # slightly tighter than Foo Bar Positional
@@ -1651,8 +1657,8 @@ An enumeration is a type that facilitates the use of a set of symbols to
 represent a set of constant values.  Its most obvious use is the translation
 of those symbols to their corresponding values.  Each enumeration association
 is a constant pair known as an I<enum>, which is of type C<Enum>.
-Each enum associates an I<enum key> with an I<enum value>.  Semantically therefore,
-an enumeration operates like a constant hash, but since it uses a
+Each enum associates an I<enum key> with an I<enum value>.  Semantically
+therefore, an enumeration operates like a constant hash, but since it uses a
 package C<Stash> to hold the entries, it presents itself to the
 user's namespace as a typename package containing a set of constant
 declarations.  That is,
@@ -1690,10 +1696,11 @@ The values are generated implicitly by default, but may be also be
 specified explicitly.  If the first value is unspecified, it defaults
 to 0.  To specify the first value, use pair notation (see below).
 
-If the declared enumeration typename begins with an uppercase letter, the enum values
-will be derived from C<Int> or C<Str> as appropriate.
-If the enumeration typename is lowercase, the enumeration is assumed to be representing a
-set of native values, so the default value type is C<int> or C<buf>.
+If the declared enumeration typename begins with an uppercase letter,
+the enum values will be derived from C<Int> or C<Str> as appropriate.
+If the enumeration typename is lowercase, the enumeration is assumed
+to be representing a set of native values, so the default value type
+is C<int> or C<buf>.
 
 The base type can be specified if desired:
 
@@ -1704,7 +1711,8 @@ The base type can be specified if desired:
 The declared base type automatically distributes itself to the individual
 constant values.  For non-native types, the enum objects are guaranteed
 only to be derived from and convertible to the specified type.  The
-actual type of the enum object returned by using the symbol is the enumeration type itself.
+actual type of the enum object returned by using the symbol is the
+enumeration type itself.
 
     Fri.WHAT    # Day, not Int.
     +Fri        # 5
@@ -1740,8 +1748,8 @@ out the enum type's C<EnumMap> and invert it:
     constant %dayname := Day.enums.invert;
     %dayname{3} # Wed
 
-The enumeration type itself is an undefined type object, but supplies convenient
-methods:
+The enumeration type itself is an undefined type object, but supplies
+convenient methods:
 
     Day.defined # False
     3 ~~ Day    # True, using Day as a subset of Int
@@ -1782,8 +1790,8 @@ is equivalent to:
     %e<ook?> = 2;
 
 The return value of an anonymous enumeration is an C<EnumMap>.  The
-C<enum> keyword is still a declarator here, so the list is evaluated at compile time.
-Use a coercion to C<EnumMap> to get a run-time map.
+C<enum> keyword is still a declarator here, so the list is evaluated at
+compile time.  Use a coercion to C<EnumMap> to get a run-time map.
 
 The enumeration composer inspects list values for pairs, where the value
 of the pair sets the next value explicitly.  Non-pairs C<++> the
@@ -1821,8 +1829,8 @@ or the old one.)  Any explicit sub or type definition hides all imported
 enum keys of the same name but will produce a warning unless
 C<is redefined> is included.
 
-Since non-native C<Enum> values know their enumeration type, they may be used to
-name a desired property on the right side of a C<but> or C<does>.
+Since non-native C<Enum> values know their enumeration type, they may be
+used to name a desired property on the right side of a C<but> or C<does>.
 So these:
 
     $x = "Today" but Tue;
@@ -1916,7 +1924,7 @@ To export an enumeration, place the export trait just before the list:
 
     enum Maybe is export <No Yes Dunno>;
 
-To declare that an enumeration implies a particular role, 
+To declare that an enumeration implies a particular role,
 supply a C<does> in the same location
 
     enum Maybe does TristateLogic <No Yes Dunno>;
@@ -1926,10 +1934,10 @@ Two built-in enumerations are:
     our enum Bool does Boolean <False True>;
     our enum Taint does Tainting <Untainted Tainted>;
 
-Note that C<Bool> and C<Taint> are not role names themselves but imply roles, and the enum
-values are really subset types of C<Int>, though the constant
-objects themselves know that they are of type C<Bool> or C<Taint>, and can therefore
-be used correctly in multimethod dispatch.
+Note that C<Bool> and C<Taint> are not role names themselves but imply
+roles, and the enum values are really subset types of C<Int>, though the
+constant objects themselves know that they are of type C<Bool> or C<Taint>,
+and can therefore be used correctly in multimethod dispatch.
 
 You can call the low-level C<.Bool> coercion on any built-in type, because
 all built-in types do the C<Boolean> role, which requires a C<.Bool> method.
@@ -1950,8 +1958,8 @@ If you wish to be explicit about a boolean context, use the high-level
 C<so> function or C<?> prefix operator, which are underlying based
 on the C<.Bool> method.  Also, use these high level functions when you wish
 to autothread junctions, since C<.Bool> forces collapse of a junction's
-wavefunction.  (Similarly, C<.Str> forces stringification of the entire junction,
-while prefix:<~> does not.)
+wavefunction.  (Similarly, C<.Str> forces stringification of the entire
+junction, while prefix:<~> does not.)
 
 Like other type names and constant names, enum keynames are parsed as
 standalone tokens representing scalar values, and don't look for any
@@ -2145,9 +2153,9 @@ semantics of returning the empty string (with a warning) on any type
 object.  (There is no "undef", in Perl 6; type objects provide typed
 undefs instead.)
 
-In general, use of these uppercased accessors in ordinary code should be a red flag that
-Something Very Strange is going on.  (Hence the allcaps.)  Most code
-should use Perl 6's operators that make use of this information
+In general, use of these uppercased accessors in ordinary code should
+be a red flag that Something Very Strange is going on.  (Hence the allcaps.)
+Most code should use Perl 6's operators that make use of this information
 implicitly.  For instance, instead of
 
     $obj.WHAT eq 'Dog()'
@@ -2316,11 +2324,11 @@ Unlike in Perl 5 where C<.can> returns a single C<Code> object,
 Perl 6's version of C<.^can> returns a "WALK" iterator for a
 set of routines that match the name, including all autoloaded and
 wildcarded possibilities.  In particular, C<.^can> interrogates
-any class package's C<CANDO> method for names that are to be considered autoloadable methods
-in the class, even if they haven't been declared yet.  Role composition
-sometimes relies on this ability to determine whether a superclass supplies
-a method of a particular name if it's required and hasn't been supplied
-by the class or one of its roles.
+any class package's C<CANDO> method for names that are to be considered
+autoloadable methods in the class, even if they haven't been declared yet.
+Role composition sometimes relies on this ability to determine whether
+a superclass supplies a method of a particular name if it's required
+and hasn't been supplied by the class or one of its roles.
 
 The motivation for stopping at C<Cool> and C<Any> by default is that
 the first derivation from one of those is really what the user thinks
