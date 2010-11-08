@@ -18,7 +18,7 @@ Synopsis 5: Regexes and Rules
     Created: 24 Jun 2002
 
     Last Modified: 8 Nov 2010
-    Version: 134
+    Version: 135
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1223,7 +1223,14 @@ The use of a hash variable in patterns is reserved.
 =item *
 
 Variable matches are considered declarative if and only if the variable
-is declared as a constant,  Otherwise they are procedural.
+is known to represent a constant,  Otherwise they are procedural.
+Note that role parameters (if readonly) are considered constant
+declarations for this purpose despite the absence of an explicit
+C<constant> declarator, since roles themselves are immutable, and
+will presumably be replacing the parameter with a constant value when
+composed (if the value passed is a constant).  Macros instantiated
+with constants would also make those constants eligible for declarative
+treatment.
 
 =back
 
