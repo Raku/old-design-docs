@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 8 Nov 2010
-    Version: 135
+    Last Modified: 11 Nov 2010
+    Version: 136
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1580,6 +1580,27 @@ any C<-> that would be misparsed as an identifier extender.
 
 =item *
 
+Unicode properties are indicated by use of pair notation in place of a normal
+rule name:
+
+    <:Letter>   # a letter
+    <:!Letter>  # a non-letter
+
+Properties with arguments are passed as the argument to the pair:
+
+    <:East_Asian_Width<Narrow>>
+    <:!Blk<ASCII>>
+
+The pair value is smartmatched against the value in the Unicode database.
+
+    <:Nv(0 ^..^ 1)>     # the char has a proper fractional value
+
+These may be combined with pluses and minuses:
+
+    <+ :HexDigit - :Upper >
+
+=item *
+
 The special assertion C<< <.> >> matches any logical grapheme
 (including a Unicode combining character sequences):
 
@@ -1911,10 +1932,9 @@ The C<\p> and C<\P> properties become intrinsic grammar rules such as
 (C<< <alpha> >> and C<< <-alpha> >>).  They may be combined using the
 above-mentioned character class notation: C<< <[_]+alpha+digit> >>.
 Regardless of the higher-level character class names, low-level
-Unicode properties are always available with a prefix of C<is>.
-Hence, C<< <+isLu+isLt> >> is equivalent to C<< <+upper+title> >>.
-If you define your own "is" properties they hide any Unicode properties
-of the same name.
+Unicode properties are always available with a prefix of colon, that is,
+in pair notation within the angle brackets.
+Hence, C<< <+:Lu+:Lt> >> is equivalent to C<< <+upper+title> >>.
 
 =item *
 
