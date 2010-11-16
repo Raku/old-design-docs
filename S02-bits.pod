@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 25 Oct 2010
-    Version: 227
+    Last Modified: 16 Nov 2010
+    Version: 228
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -567,7 +567,8 @@ such as C<Callable>, C<Failure>, and C<Integral>.
 
 Non-object (native) types are lowercase: C<int>, C<num>, C<complex>,
 C<rat>, C<buf>, C<bit>.  Native types are primarily intended for
-declaring compact array storage.  However, Perl will try to make those
+declaring compact array storage, that is, a sequence of storage locations of the specified type
+laid out in memory contiguously without pointer indirection.  However, Perl will try to make those
 look like their corresponding uppercase types if you treat them that way.
 (In other words, it does autoboxing.  Note, however, that sometimes
 repeated autoboxing can slow your program more than the native type
@@ -1072,16 +1073,35 @@ This is only for operators that are not C<Whatever>-aware.  There is no requirem
 that a C<Whatever>-aware operator return a C<WhateverCode> when C<Whatever>
 is used as an argument; that's just the I<typical> behavior for functions
 that have no intrinsic "globbish" meaning for C<*>.  If you want to curry
-one of these operators, you'll need to write an explicit closure or do
-an explicit curry on the operator with C<.assuming()>.
+one of these globbish operators, you'll need to write an explicit closure or do
+an explicit curry on the operator with C<.assuming()>.  Operators in
+this class, such as C<< infix:<..> >> and C<< infix:<xx> >>, typically I<do>
+autocurry arguments of type C<WhateverCode> even though they do not
+autocurry C<Whatever>, so we have:
+
+    "foo" xx *          # infinite supply of "foo"
+    "foo" xx *-1        # { "foo" xx $^a - 1 }
+    0 .. *              # half the real number line
+    0 .. * - 1          # { 0 .. $^a - 1 }
+    * - 3 .. * - 1      # { $^a - 3 .. $^b - 1 }
+
+(If the last is used as a subscript, the subscripter notices there are two
+arguments and passes that dimension's size twice.)
 
 Operators that are known to return non-closure values with C<*> include:
 
-    $a = *      # just assigns Whatever
     0 .. *      # means 0 .. Inf
     0 ... *     # means 0 ... Inf
     'a' xx *    # means 'a' xx Inf
     1,*         # means 1,*  :)
+
+    $a = *      # just assigns Whatever
+    $a ~~ *     # just matches Whatever
+
+Note that the last two also do not autocurry C<WhateverCode>, because
+assignment and smartmatching are not really normal binary operator, but
+syntactic sugar for underlying primitives.  (Such pseudo operators
+may also place restrictions on which meta-operators work on them.)
 
 [Conjecture: it is possible that, for most of the above operators that
 take C<*> to mean C<Inf>, we could still actually return a closure
