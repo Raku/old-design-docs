@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 16 Nov 2010
-    Version: 146
+    Last Modified: 17 Nov 2010
+    Version: 147
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -2202,8 +2202,11 @@ to a readonly parameter never triggers autovivification.
 Specifies that the parameter can be modified (assigned to, incremented,
 etc). Requires that the corresponding argument is an lvalue or can be
 converted to one.  Since this option forces an argument to be required,
-it cannot co-exist with any marks that indicate an optional parameter,
-such as C<?> or a default value.
+it cannot co-exist with the C<?> mark to make an argument optional.
+(It may, however, be used with C<=> indicating a default, but only
+if the default expression represents something that is nameable at
+compile time and that can bind as an lvalue, such as
+C<< CALLER::<$/> >> or C<< OUTER::<$_> >>.)
 
 When applied to a variadic parameter, the C<rw> trait applies to each
 element of the list:
