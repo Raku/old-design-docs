@@ -1103,6 +1103,12 @@ assignment and smartmatching are not really normal binary operator, but
 syntactic sugar for underlying primitives.  (Such pseudo operators
 may also place restrictions on which meta-operators work on them.)
 
+Neither does the sequence operators C<< &infix:<...> >> and
+C<< &infix:<...^> >> autocurry C<WhateverCode>, because we want to allow
+WhateverCode closures as the stopper:
+
+    0 ...^ *>5  # means 0, 1, 2, 3, 4, 5
+
 [Conjecture: it is possible that, for most of the above operators that
 take C<*> to mean C<Inf>, we could still actually return a closure
 that defaults that particular argument to C<Inf>.  However, this would
