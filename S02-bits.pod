@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 17 Nov 2010
-    Version: 229
+    Last Modified: 19 Nov 2010
+    Version: 230
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2906,6 +2906,15 @@ Also, individual subprocesses may not create new process variables.
 If the process wishes to grant subprocesses the ability to communicate
 via the C<PROCESS> namespace, it must supply a writeable dynamic variable
 to all the subprocesses granted that privilege.
+
+=item *
+
+It is illegal to assign or bind a dynamic variable that does not already exist.
+It will not be created in C<GLOBAL> (or C<PROCESS>) automatically, nor is it
+created in any lexical scope.  Instead, you must assign directly using the
+package name to get that to work:
+
+    GLOBAL::<$mynewvar> = $val;
 
 =item *
 
