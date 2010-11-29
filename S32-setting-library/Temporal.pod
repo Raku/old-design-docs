@@ -2,7 +2,7 @@
 
 =head1 TITLE
 
-DRAFT: Synopsis 32: Setting Library - Temporal
+Synopsis 32: Setting Library - Temporal
 
 =head1 AUTHORS
 
@@ -17,15 +17,8 @@ DRAFT: Synopsis 32: Setting Library - Temporal
 
     Created: 19 Mar 2009
 
-    Last Modified: 11 Oct 2010
-    Version: 20
-
-The document is a draft.
-
-If you read the HTML version, it is generated from the Pod in the specs
-repository under
-L<https://github.com/perl6/specs/blob/master/S32-setting-library/Temporal.pod>
-so edit it there in the git repository if you would like to make changes.
+    Last Modified: 29 Nov 2010
+    Version: 21
 
 =head1 Time and time again
 
@@ -211,10 +204,12 @@ The method C<whole-second> returns the second truncated to an integer.
 The C<Date> method returns a C<Date> object, and is the same as
 C<Date.new($dt.year, $dt.month, $dt.day)>.
 
-The method C<offset> returns the object's current offset from UTC: if
-C<$dt.timezone> does C<Callable>, C<$dt.offset> is equivalent to
-C<$dt.timezone($dt, True)>; otherwise, C<$dt.offset> returns
-C<$dt.timezone> as is.
+The method C<offset> returns the object's current offset from UTC.
+In general, C<$dt.offset> is C<$dt.timezone($dt, True)> if
+C<$dt.timezone> does C<Callable> and $<dt.timezone> itself otherwise.
+The exception is when C<$dt> is ambiguous but was created by
+converting an unambiguous C<DateTime>. In that case, implementations
+will need to return a precomputed offset to guarantee correctness.
 
 =head1 C<Date>
 
@@ -266,12 +261,6 @@ The <Str> method returns a string of the form 'yyyy-mm-dd'.
     $d - 42                     # Date.new('2010-11-12')
     $d + 3                      # Date.new('2010-12-27')
     3  + $d                     # Date.new('2010-12-27')
-
-=head1 Additions
-
-Please post errors and feedback to C<perl6-language>. If you are making
-a general laundry list, please separate messages by topic. Please try to
-keep bikeshedding down.
 
 =head1 FOOTNOTE
 
