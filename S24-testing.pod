@@ -1,0 +1,109 @@
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 24: Testing
+
+=head1 AUTHORS
+
+    Moritz Lenz <moritz@faui2k3.org>
+
+=head1 VERSION
+
+Intentionally left blank, since it can be found from the version
+control meta data.
+
+Just be sure to notice that this is a draft.
+
+=head1 SYNOPSIS
+
+    use Test;
+
+    plan 6;
+
+    ok True, 'True is a true value';
+    nok False, 'False is a false value';
+    is 'ab'.uc, 'AB', 'successful string comparison';
+    is_approx 2.sqrt, 1.4142135623, 'Approximate numeric comparison';
+    dies_ok { die "yes"}, 'exceptions';
+    eval_dies_ok '1 1', 'two terms in a row are a parse error';
+
+
+=head1 DESCRIPTION
+
+Perl 6 comes with a standard testing module. It is used by the official
+spectest suite, and is available to the programmer through the line
+C<use Test;>.
+
+The testing functions emits output conforming to the Test Anything
+Protocol. See L<http://testanything.org>
+
+=head2 Testing plans
+
+    sub plan($number_of_tests) is export { ... };
+    sub done_testing() is export { ... };
+
+The number of tests to be run can be set with the C<plan> function,
+which takes one integer argument. The TAP harness can use this count to
+compare it to the number of tests are actually run, and raise an error
+if they differ, hinting at a possible errornous exit of the test
+program.
+
+Passing a C<Whatever> objec to C<plan()> explicit sets the number of
+tests to unknown. In this case, or when no call to C<plan()> occured,
+the function C<done_testing> must be called after the last individual
+test in order to produce a successful test run.
+
+=head2 Test functions
+
+All test functions take a description argument, which is coerced to
+C<Str> or C<Stringy> and will be printed along with the C<ok> or
+C<not ok> tag and the test number. In some cases this description is
+optional. This behaviour can be implemented either with an optional
+parameter, or by supplying two multis.
+
+
+The names of positional parameters are non-normative, so supplying the
+positional arguments to these test files by name is discouraged.
+
+All of the following functions are exported by default:
+
+    # unconditional passing/failing
+    pass($desc)
+    flunk($desc)
+
+    # evaluates $cond in boolean context
+    ok(Mu $cond, $desc?)
+    nok(Mu $cond, $desc?)
+
+    # string comparison
+    is(Mu $got, Mu $expected, $desc?)
+    isnt(Mu $got, Mu $expected, $desc?)
+
+    # structural comparison with infix:<eqv>
+    is_deeply(Mu $got, Mu $expected, $desc?)
+
+    # numeric comparison with 1e-5
+    is_approx(Mu $got, Mu $expected, $desc?)
+
+    # class membership testing
+    # converts the type name to an actual type object
+    # if $type ~~ Str
+    isa_ok(Mu $var, Mu $type, $desc?)
+
+    # exception testing
+    lives_ok(Callable $code, $desc?)
+    dies_ok(Callable $code, $desc?)
+
+    # eval + exception testing
+    eval_lives_ok(Str $code, $desc?)
+    eval_dies_ok(Str $code, $desc?)
+
+These functions work roughly the same way as the functions of the same
+name from Perl 5's L<Test::More> and L<Test::Exception> modules.
+
+TODO: more precise explanation
+
+=head2 todo() and skip() 
+
+TODO
