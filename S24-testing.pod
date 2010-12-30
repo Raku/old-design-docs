@@ -7,13 +7,14 @@ Synopsis 24: Testing
 =head1 AUTHORS
 
     Moritz Lenz <moritz@faui2k3.org>
+    Carl Mäsak <cmasak@gmail.com>
 
 =head1 VERSION
 
-Intentionally left blank, since it can be found from the version
-control meta data.
+    Created: 30 Dec 2010
 
-Just be sure to notice that this is a draft.
+    Last Modified: 31 Dec 2010
+    Version: 2
 
 =head1 SYNOPSIS
 
@@ -31,26 +32,28 @@ Just be sure to notice that this is a draft.
 
 =head1 DESCRIPTION
 
-Perl 6 comes with a standard testing module. It is used by the official
-spectest suite, and is available to the programmer through the line
-C<use Test;>.
+Perl 6 comes with a standard testing module, C<Test>. It is the testing module
+used by the official spectest suite.
 
-The testing functions emits output conforming to the Test Anything
-Protocol. See L<http://testanything.org>
+The testing functions emit output conforming to the Test Anything
+Protocol. See L<http://testanything.org>.
 
-=head2 Testing plans
+For the purposes of this document, a I<test file> is a file that does
+C<use Test>.
+
+=head2 Test plans
 
     sub plan($number_of_tests) is export { ... };
     sub done_testing() is export { ... };
 
-The number of tests to be run can be set with the C<plan> function,
-which takes one integer argument. The TAP harness can use this count to
-compare it to the number of tests are actually run, and raise an error
-if they differ, hinting at a possible errornous exit of the test
-program.
+In order to determine whether a test file ran all its tests, a C<plan> function
+call can be made somewhere in the test file, providing a count of the total
+number of tests. A TAP harness can then flag an error condition when the number
+of tests actually run doesn't match.
 
-Either a C<plan> must be called before the first individual test
-or C<done_testing> after the last one.
+If C<plan> isn't called, C<done_testing> can be called at the end of the test
+file to output an automatically computed tally. A TAP harness will consider
+it an error if neither C<plan> nor C<done_testing> was called.
 
 =head2 Test functions
 
