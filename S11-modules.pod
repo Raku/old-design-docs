@@ -13,8 +13,8 @@ Synopsis 11: Modules
 
     Created: 27 Oct 2004
 
-    Last Modified: 25 Oct 2010
-    Version: 34
+    Last Modified: 30 Dec 2010
+    Version: 35
 
 =head1 Overview
 
@@ -84,12 +84,23 @@ Exportation is now done by trait declaration on the exportable item:
     sub bop is export(:ALL)             {...}  #  :ALL
     sub qux is export(:others)          {...}  #  :ALL, :others
 
-Declarations marked as C<is export> are bound into the C<EXPORT> inner
-modules, with their tagsets as inner module names within it.  For example,
-the C<sub bar> above will bind as C<&Foo::EXPORT::DEFAULT::bar>,
-C<&Foo::EXPORT::ALL::bar>, and C<&Foo::EXPORT::others::bar>.
+Declarations marked as C<is export> are bound into the (lexically scoped) C<EXPORT>
+package, with their tagsets as inner package names within it.  For example,
+the C<sub bar> above will bind as C<< UNIT::EXPORT::DEFAULT::<&bar> >>,
+C<< UNIT::EXPORT::ALL::<&bar> >>, and C<< UNIT::EXPORT::others::<&bar> >>.
 
 Tagset names consisting entirely of capitals are reserved for Perl.
+
+If it is desired that the C<EXPORT> subpackage also be visible in the 
+module's package namespace, it is necessary to declare
+
+    our package EXPORT {}
+
+before any export; ordinarily this is not necessary unless you I<want> people
+to cheat on the normal importation interface.  (But note that adding things to
+the package of an anonymous or lexical module is not going to create anything
+that is accessible via C<GLOBAL>.  [Conjecture: we might even outlaw such a package.]
+This is why C<EXPORT> lives in the module's lexical scope, not the package scope.)
 
 Inner modules automatically add their export list to modules in all their
 outer scopes:
