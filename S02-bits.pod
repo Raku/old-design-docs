@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 19 Nov 2010
-    Version: 230
+    Last Modified: 5 Jan 2011
+    Version: 231
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -3415,15 +3415,30 @@ constructor or composer for clarity as well as correctness:
 For any item in the list that appears to be numeric, the literal is
 stored as an object with both a string and a numeric nature, where
 the string nature always returns the original string.  It is as if
-the item is converted to an appropriate numeric type, then a C<Str>
-conversion is mixed in that reproduces the original string (if normal
-stringification would produce something else).  Hence:
+the item is converted to an appropriate numeric type that is mixed into
+the original string value.  Hence:
 
-    < 1 1/2 6.02e23 1+2i > # Int/Str Rat/Str Num/Str Complex/Str
+    < 1 1/2 6.02e23 1+2i >
+    
+produces objects like:
+
+    '1' but 1              # Int < Str
+    '1/2' but 1/2          # Rat < Str
+    '6.02e23' but 6.02e23  # Num < Str
+    '1+2i' but 1+2i        # Complex < Str
 
 The purpose of this would be to facilitate compile-time analysis of
-multi-method dispatch, when the user prefers angle notation as the
-most readable way to represent a list of numbers, which it often is.
+multi-method dispatch, when the user prefers angle notation as the most
+readable way to represent a list of numbers, which it often is.  Due to
+the mixin semantics, the derived numeric type is taken in preference to
+the string type, but the string type is always available for matching
+if no numeric type matches.  (The string value need not be retained
+if treating the number as a string would produce an identical value.)
+This behavior is not a special case; it's actually an example of
+a more general process of figuring out type information by parsing
+text that comes from any situation where a user is forced to enter
+text when they really mean other kinds of values.
+
 The form with a single value serves as the literal form of numbers
 such as C<Rat> and C<Complex> that would otherwise have to be constructed.
 It also gives us a reasonable way of visually isolating any known
@@ -3679,6 +3694,7 @@ Generalized quotes may now take adverbs:
     :x          :exec           Execute as command and return results
     :w          :words          Split result on words (no quote protection)
     :ww         :quotewords     Split result on words (with quote protection)
+    :v          :val            Evaluate word or words for value literals
     :q          :single         Interpolate \\, \q and \' (or whatever)
     :qq         :double         Interpolate with :s, :a, :h, :f, :c, :b
     :s          :scalar         Interpolate $ vars
@@ -3725,8 +3741,23 @@ or
 to interpolate items into a C<qw>.  Conveniently, arrays and hashes
 interpolate with only whitespace separators by default, so the subsequent
 split on whitespace still works out.  (But the built-in C<«...»> quoter
-automatically does interpolation equivalent to C<qq:ww/.../>.  The
-built-in C<< <...> >> is equivalent to C<q:w/.../>.)
+automatically does interpolation equivalent to C<qq:ww:v/.../>.  The
+built-in C<< <...> >> is equivalent to C<q:w:v/.../>.)
+
+=item *
+
+The C<:v>/C<:val> modifier runs each word through the C<val()> function,
+which will attempt to recognize literals as defined by the current
+slang.  Only pure literals such as numbers and enums are so recognized;
+all other words are left as strings.  In any case, use of such an
+intuited value as a string will reproduce the original string including
+any leading or trailing whitespace:
+
+    say +val(' +2/4 ')   # '0.5'
+    say ~val(' +2/4 ')   # ' +2/4 '
+
+Of course, words derived from C<:w> and C<:ww> will not have any whitespace,
+since that is what the words are split apart on.
 
 =item *
 
