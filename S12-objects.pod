@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 20 Dec 2010
-    Version: 112
+    Last Modified: 5 Jan 2011
+    Version: 113
 
 =head1 Overview
 
@@ -1359,7 +1359,9 @@ The dispatch is still based on the I<run-time> type of the object,
 not the declared type.
 
 Any other kind of argument to C<handles> is considered to be a
-smartmatch selector for method names.  So you can say:
+smartmatch selector for method names.  All such selectors establish a failover
+to be used only if normal method dispatch fails, so it cannot be used to
+override any method in the normal ancestry of the object.  So you can say:
 
     has $.fur is rw handles /^get_/;
 
@@ -1372,12 +1374,15 @@ or class.  To delegate everything, use the C<Whatever> matcher:
 
     has $the_real_me handles *;
 
-Wildcard matches are evaluated only after it has been determined that
-there's no exact match to the method name anywhere.  When you have
-multiple wildcard delegations to different objects, it's possible
-to have a conflict of method names.  Wildcard method matches are
-evaluated in order, so the earliest one wins.  (Non-wildcard method
-conflicts can be caught at class composition time.)
+Wildcard matches are evaluated only after it has been determined
+that there's no exact match to the method name anywhere in this
+object or in any of its parents.  When you have multiple wildcard
+delegations to different objects, it's possible to have a conflict
+of method names.  Wildcard method matches are evaluated in order,
+so the earliest one wins.  (Non-wildcard method conflicts can be
+caught at class composition time.)  If the wildcards for this class
+find nothing, then wildcards are checked for each of the ancestral
+classes in standard method resolution order.
 
 If, where you would ordinarily specify a string, you put a pair, then
 the pair maps the method name in this class to the method name in the
