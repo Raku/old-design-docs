@@ -2408,11 +2408,7 @@ appropriate adverb to the subscript.
     %hash<a b c> :k;    # returns 'a', 'b'
     %hash<a b c> :v;    # returns 'A', 'B'
 
-These adverbial forms all weed out non-existing entries.  You may also
-perform an existence test, which will return true if all the elements
-of the slice exist:
-
-    if %hash<a b c> :exists {...}
+These adverbial forms all weed out non-existing entries.
 
 likewise,
 
@@ -2432,6 +2428,19 @@ operator that is tighter than comma would appear to be topmost:
 (The situation does not often arise for the slice modifiers above
 because they are usually used in list context, which operates
 at comma precedence.)
+
+You may also perform an existence test, either on a single item or
+a junction of items:
+
+    if %hash{any <a b c>} :exists {...}
+    if %hash{all <a b c>} :exists {...}
+    if %hash{one <a b c>} :exists {...}
+    if %hash{none <a b c>} :exists {...}
+
+Using the C<:exists> adverb together with a list slice results in
+an error -- preferably at compile time -- because it could be
+argued both ways whether C<:exists> on a bare list would have
+C<any> or C<all> semantics.
 
 =item *
 
