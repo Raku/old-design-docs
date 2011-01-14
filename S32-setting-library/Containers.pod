@@ -20,7 +20,7 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
     Last Modified: 14 Jan 2011
-    Version: 25
+    Version: 26
 
 The document is a draft.
 
@@ -161,25 +161,62 @@ cache hits.
 
 =item classify
 
- our List of Pair multi method classify ( @values: &test )
- our List of Pair multi classify ( &test, *@values )
+ our Hash multi method classify ( @values: &mapper )
+ our Hash multi method classify ( @values: %mapper )
+ our Hash multi method classify ( @values: @mapper )
+ our Hash multi classify ( &mapper, *@values )
+ our Hash multi classify ( %mapper, *@values )
+ our Hash multi classify ( @mapper, *@values )
 
-C<classify> takes a list or array of values and returns a lazily evaluated
-list comprised of pairs whose values are arrays of values from the
-input list,
-and whose keys are the return value of the C<&test>, when passed that
-value. For example:
+C<classify> transforms a list or array of values into a hash
+representing the classification of those values according to a mapper;
+each hash key represents the classification for one or more of the
+incoming list values, and the corresponding hash value contains
+an array of those list values classified by the mapper into the category
+of the associated key.  For example:
 
   @list = (1, 2, 3, 4);
-  (:@even, :@odd) := classify { $_ % 2 ?? 'odd' !! 'even' }, @list;
+  (:@even, :@odd) := |classify { $_ % 2 ?? 'odd' !! 'even' }, @list;
 
 In this example, @even will contain all even numbers from C<@list>
 and C<@odd> will contain all odd numbers from C<@list>.
 
 To simply transform a list into a hash of arrays:
 
-  %cars_by_color = classify { .color }, @cars;
+  %cars_by_color := classify { .color }, @cars;
   red_car_owners(%cars_by_color<red>.map:{.owner});
+
+A mapper maybe any unary function, hash, or array.
+Values that have no mapping will be classified under an undefined
+failure key (whatever is returned by the mapper in use).  [Conjecture:
+if a hash comes with a default value, it can map anything.]
+
+C<classify> always assumes that the mapper returns a single value.
+To categorize values into multiple categories, see C<categorize>.
+
+=item categorize
+
+ our Hash multi method categorize ( @values: &mapper )
+ our Hash multi method categorize ( @values: %mapper )
+ our Hash multi method categorize ( @values: @mapper )
+ our Hash multi categorize ( &mapper, *@values )
+ our Hash multi categorize ( %mapper, *@values )
+ our Hash multi categorize ( @mapper, *@values )
+
+Like C<classify>, C<categorize> transforms a list or array of values
+into a hash representing the categorizations of those
+values according to a mapper; each hash key represents one possible
+categorization for one or more of the incoming list values, and
+the corresponding hash value contains an array of those list values
+categorized by the mapper into the category of the associated key.
+
+Unlike C<classify>, C<categorize> always assumes that the return
+value of the mapper is a list of categories that are appropriate to
+the current value.  Hence, if the mapper returns C<Nil>, the value
+is discarded rather than being returned under a C<Nil> key.  On the
+other hand, if the mapper returns a list of categories, the value in
+question will be pushed into multiple hash locations (while C<classify>
+would merely make a key out of the list returned from the mapper).
 
 =item grep
 
