@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 6 Feb 2011
-    Version: 137
+    Last Modified: 7 Feb 2011
+    Version: 138
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -3037,20 +3037,36 @@ In Perl 6, nested parens produce properly nested captures:
 
 =item *
 
-If a subpattern is directly quantified (using I<any> quantifier), it
-no longer produces a single C<Match> object. Instead, it produces a
-list of C<Match> objects corresponding to the sequence of individual
-matches made by the repeated subpattern.  If 0 values match,
-the captured value depends on which quantifier is used.  If the
-quantifier is C<?>, a C<Nil> is captured if it matched 0 times.
-If the quantifier is C<*>, the empty list, C<()>, is captured instead.
-(Nothing is captured by the C<+> quantifier if it matches zero times,
-since it causes backtracking, but the variable should return C<Nil>
-if an attempt is made to use it after an unsuccessful match.)
+If a subpattern is directly quantified with C<?>, it either produces
+a single C<Match> object, or C<Nil>.  If a subpattern is directly
+quantified using any other quantifier, it never produces a single
+C<Match> object.  Instead, it produces a list of C<Match> objects
+corresponding to the sequence of individual matches made by the
+repeated subpattern.  If we need to distinguish the two categories,
+C<?> is an I<item quantifier>, while C<*>, C<+>, and C<**> are called
+I<list quantifiers>.
+
+If 0 values match, the captured value depends on which quantifier
+is used.  If the quantifier is C<?>, a C<Nil> is captured if it
+matched 0 times.  If the quantifier is C<*>, the empty list, C<()>,
+is captured instead.  (Nothing is captured by the C<+> quantifier
+if it matches 0 times, since it causes backtracking, but the capture
+variable should return C<Nil> if an attempt is made to use it after
+an unsuccessful match.)  A C<**> quantifier returns () as C<*> does
+if it the minimum of its range is 0, and backtracks otherwise.
+
+Note that C<** 0..1> is always considered a list quantifier, unlike C<?>.
+
+The rationale for treating C<?> as an item quantifier is to make
+it consistent with how C<$object.?meth> is defined, and to reduce
+the need for gratuitous C<.[0]> subscripts, which is surprising to
+most people.  Now that C<Nil> is considered undefined rather than a
+synonym for C<()>, it's easy to use C<$0 // "default"> or some such
+to dereference a capture safely.
 
 =item *
 
-Because a quantified subpattern returns a list of C<Match> objects, the
+Because a list-quantified subpattern returns a list of C<Match> objects, the
 corresponding array element for the quantified capture will store a
 (nested) array rather than a single C<Match> object.  For example:
 
