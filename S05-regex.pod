@@ -1775,6 +1775,14 @@ Note that a consequence of the previous section is that you also get
 
 for free, which fails if the current rule would match again at this location.
 
+=item *
+
+A leading C<|> indicates some kind of a zero-width boundary.
+
+    <|w> word boundary
+    <|g> grapheme boundary (always matches in grapheme mode)
+    <|c> codepoint boundary (always matches in grapheme/codepoint mode)
+
 =back
 
 The following tokens include angles but are not required to balance:
@@ -1809,8 +1817,8 @@ These tokens are considered declarative, but may force backtracking behavior.
 
 A C<«> or C<<< << >>> token indicates a left word boundary.  A C<»> or
 C<<< >> >>> token indicates a right word boundary.  (As separate tokens,
-these need not be balanced.)  Perl 5's C<\b> is replaced by a C<< <?wb> >>
-"word boundary" assertion, while C<\B> becomes C<< <!wb> >>.  (None of
+these need not be balanced.)  Perl 5's C<\b> is replaced by a C<< <|w> >>
+"word boundary" assertion, while C<\B> becomes C<< <!|w> >>.  (None of
 these are dependent on the definition of C<< <.ws> >>, but only on the C<\w>
 definition of "word" characters.  Non-space mark characters are ignored in
 calculating word properties of the preceding character.  See TR18 1.4.)
