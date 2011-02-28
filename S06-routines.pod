@@ -2988,6 +2988,12 @@ Within a quasiquote, variable and function names resolve according
 to the lexical scope of the macro definition.  Unrecognized symbols raise
 errors when the macro is being compiled, I<not> when it's being used.
 
+Use of a macro argument in a quasiquote without unquoting should provide a
+warning, as this is very likely to be an error.
+
+    # Oops; size of the AST of the argument
+    macro mouse ($arg) { quasi { $arg.elems } }
+
 To make a symbol resolve to the (partially compiled) scope of the macro
 call, use the C<COMPILING::> pseudo-package:
 
