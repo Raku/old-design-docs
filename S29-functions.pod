@@ -502,33 +502,24 @@ signal at all, and is used to determine if processes are still running:
   say "Still running" if $proc.kill(0);
 
 =item run
+=item shell
 
- our Proc::Status multi run ( ; Str $command, :%env = %*ENV )
- our Proc::Status multi run ( ; Str $path, *@args, :%env = %*ENV )
- our Proc::Status multi run ( Str @path_and_args, :%env = %*ENV )
 
- our Proc multi run ( ; Str $command, Bool :$bg!, :%env = %*ENV )
- our Proc multi run ( ; Str $path, Bool :$bg!, *@args, :%env = %*ENV )
- our Proc multi run ( Str @path_and_args, Bool :$bg!, :%env = %*ENV )
+ our Proc::Status multi shell ( $expression,   :$bg,  :%env = %*ENV )
+ our Proc::Status multi run   ( *$cmd, *@args, :$bg,  :%env = %*ENV )
 
-C<run> executes an external program, and returns control to the caller
-once the program has exited.
+C<shell> and C<run> execute an external program, and return control to
+the caller once the program has exited.
 
-The default form expects a single string argument which contains the
-full command-line. This command-line will be scanned for special
-characters that the operating system's shell might interpret such as
-C<;> or embedded quotes. If any are found, the command will be run
-through a sub-shell in an operating system specific fashion (on
-POSIX systems, this means C<sh -c>).
+C<shell> goes through the system shell (C<cmd> on windows, C</bin/sh>
+on Unixish systems), thus interpreting all the usuall shell meta characters.
 
-If called like this:
+C<run> treats the first argument as an executable name, and the rest of the
+positional arguments as command line arguments that are passed to the
+exectuable without any processing (except that it encodes Strings to buffers
+first, as does C<shell>).
 
- run( :path<'/some/path'>, 'arg1', 'arg2', ... )
-
-or with a single array (containing both the path and arguments), then the
-path given is executed directly with no shell interpretation.
-
-The return value is the exit status
+The return value of either function is the exit status
 of the program, and can be evaluated in the following contexts:
 
  Bool - True = success; False = failure
@@ -537,7 +528,7 @@ of the program, and can be evaluated in the following contexts:
 See C<wait> for more detail on how the C<Proc::Status> object
 is used.
 
-On failure to execute, an undefined value is returned.
+On failure to execute, the routines C<fail()>.
 
 If the C<:bg> named parameter is passed, the program will be executed
 in the background, and the run command will return as soon as the
@@ -548,15 +539,9 @@ actually a C<Proc>, which represents the created process.
         the functionality of run? Should run be the new open with
         respect to executing external code? -ajs ]
 
-[ Note: system() should be renamed to sys() or sh() or run() or
-some such to avoid P5-induced boolean inversion confusion, plus
-Huffmanize it a little better.  I'm thinking run() might be best
-for MMD reasons. --law
+[ Conjecture: maybe shell() and run() should support a C<:$cwd = $*CWD>
+parameter -moritz ]
 
-Note: exec should also be renamed to something clearer and "final"
-and huffmanly longer.  I'm thinking runinstead().  And maybe the
-function behind qq:x should be rungather() rather than readpipe().  -law
-]
 
 =item runinstead
 
