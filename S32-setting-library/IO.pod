@@ -1094,12 +1094,11 @@ Windows system, this can be a parent directory, as permissions are inherited.
 =head2 IO::Socket::INET
 
     class IO::Socket::INET does IO::Socket {
-        has Int $.Version = 4; # Whether to use IPv4 or IPv6
-        has Str $.Protocol = 'TCP';
-        has Str $.RemoteHost;
-        has Int $.RemotePort;
-        has Str $.LocalHost;
-        has Int $.LocalPort;
+        has Str $.proto = 'TCP';
+        has Str $.host;
+        has Int $.port;
+        has Str $.localhost;
+        has Int $.localport;
         ...
     }
 
@@ -1107,21 +1106,10 @@ Windows system, this can be a parent directory, as permissions are inherited.
 
 =item new
 
-    method new(
-        Str  :$RemoteHost, # Initialises $.RemoteHost
-        Str  :$RemotePort, # Initialises $.RemotePort (if it's not a numeric string, use getservbyname)
-        Str  :$LocalHost,  # Initialises $.LocalHost
-        Str  :$LocalPort,  # Initialises $.LocalPort (if it's not a numeric string, use getservbyname)
-        Str  :$Protocol,   # Initialises $.Protocol
-        Int  :$Version,    # Initialises $.Version (IPv4 vs. IPv6)
+    multi method new(:$host!, :$port, *%attributes) { ... }
+    multi method new(:$localhost!, :$localport, :$listen! *%attributes) { ... }
 
-        Bool :$Listener,   # Passed to IO::Socket.new()
-
-        Bool :$Blocking,   # Passed to IO::Streamable.new()
-        Bool :$NoOpen,     # Passed to IO::Streamable.new()
-
-        --> IO::Socket::INET
-    ) {...}
+Creates a new socket and opens it.
 
 =back
 
