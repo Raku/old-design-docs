@@ -2282,10 +2282,14 @@ The C<::> also has the effect of hiding any declarative match on the right
 from "longest token" processing by C<|>.  Only the left side is evaluated
 for determinacy.
 
+C<::> does nothing if there is no current LTM alternation. "Current"
+is defined dynamically, not lexically.  A C<::> in a subrule will affect
+the enclosing alternation.
+
 =item *
 
 Evaluating a C<< ::> >> throws away all saved choice points in the current
-innermost alternation.  It thus acts as a "then".
+innermost temporal alternation.  It thus acts as a "then".
 
     ms/ [
         || <?{ $a == 1 }> ::> <foo>
@@ -2300,6 +2304,10 @@ also want to disable that.  If an explicit or implicit C<:ratchet>
 has disabled backtracking by supplying an implicit C<:>, you need to
 put an explicit C<!> after the alternation to enable backing into,
 say, the C<< <foo> >> rule above.
+
+C<< ::> >> does nothing if there is no current temporal alternation.
+"Current" is defined dynamically, not lexically.  A C<< ::> >> in a
+subrule will affect the enclosing alternation.
 
 =item *
 
