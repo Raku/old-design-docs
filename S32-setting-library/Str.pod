@@ -584,23 +584,33 @@ See L<S05/Substitution>
      our Str multi method indent ($str: $steps) is export;
 
 Returns a re-indented string wherein C<$steps> number of spaces have been added
-to each line (i.e. to the beginning of the string and after each logical
-newline).
+to each line. If a line already begins with horizontal whitespace, the new
+spaces are added to the end of those.
+
+If the whitespace at the beginning of the line consists of only C<chr(32)>
+spaces, C<chr(32)> spaces are added as indentation as well. If the whitespace
+at the beginning of the line consists of some other kind of horizontal
+whitespace, that kind of whitespace is added as indentation. If the whitespace
+at the beginning of the line consists of two or more different kinds of
+horizontal whitespace, again C<chr(32)> spaces are used.
 
 If C<$steps> is negative, removes that many spaces instead. Should any line
 contain too few leading spaces, only those are removed and a warning is issued.
+At most one such warning is issued per C<.indent> call.
 
 If C<$steps> is C<*>, removes exactly as many spaces as are needed to make at
 least one line have zero indentation.
 
-When removing indentation, the method will assume hard tabs to be
-C<< ($?TABSTOP // 8) >> spaces, and will treat other horizontal whitespace
-characters as synonymous to spaces. Characters not participating in the
-re-indenting will be left untouched, and those added in an indent call will
-be either (1) consistent with subsequent leading whitespace already on the
-line, if these are all the same, or (2) spaces. During an unindent, the
-trailing tab character in a chain of leading tab characters may explode
-into a number of space characters.
+The method will assume hard tabs to be equivalent
+to C<< ($?TABSTOP // 8) >> spaces, and will treat any other horizontal
+whitespace character as equivalent to one spaces. If the indenting doesn't
+"add up evenly", one hard tab needs to be exploded into the equivalent
+number of spaces before the unindenting of that line.
+
+Decisions on how to indent each line are based solely on characters on
+that line. Thus, an C<.indent> call on a multiline string therefore amounts
+to C< .lines».indent.join("\n") >, modulo exotic line endings in the
+original string.
 
 =back
 
