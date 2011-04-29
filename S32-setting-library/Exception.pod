@@ -7,6 +7,10 @@ DRAFT: Synopsis 32: Setting Library - Exception
 
 =head1 AUTHORS
 
+    Moritz Lenz <moritz@faui2k.org>
+
+Authors of previous versions of this document:
+
     Tim Nelson <wayland@wayland.id.au>
     Larry Wall <larry@wall.org>
 
@@ -14,8 +18,8 @@ DRAFT: Synopsis 32: Setting Library - Exception
 
     Created: 26 Feb 2009
 
-    Last Modified: 8 Jan 2010
-    Version: 2
+    Last Modified: 29 April 2011
+    Version: 3
 
 The document is a draft.
 
@@ -26,28 +30,54 @@ so edit it there in the git repository if you would like to make changes.
 
 =head1 Roles
 
-    role Exception does Positional {
-        # XXX How do we tell the difference between a warning and a fatal error?
+All built-in exceptions live in the C<X::> namespace.
+
+=head2 X::Base
+
+All built-in exceptions inherit from C<X::Base>, which provides some basic
+behavior: storing payload data, a backtrace, and providing stringification.
+
+    class X::Base {
+        has $.backtrace;
+        has $.message;
+        has %.payload;
+        method Str { ... }
+        method ID  { %.payload<ID>:exists ?? %.payload<ID> !! self.WHAT.perl }
     }
 
-    role Resumeable {
-        method resume() {...}
+It also provides an C<ID> method, which is used to identify exceptions
+for retrieving translated versions of error messages.
+
+=head2 X::OSError
+
+    role X::OSError { has $.os-error }
+
+for all errors that are triggered by some error reported by the operating
+system (failed IO, system calls, fork, memory allocation).
+
+=head2 X::IO
+
+    role X::IO { }
+
+For IO related errors
+
+=head2 X::NYI
+
+    role X::NYI { }
+
+For errors that stem from incomplete implementations of the Perl 6 language.
+A full Perl 6.0 implementation should not throw such errors.
+
+=head2 X::Compilation
+
+    role X::Syntax {
+        has $.filename;
+        has $.line;
+        has $.column;
     }
 
-    role Failure {
-        method Bool {...}
-        method handled {...}
-    }
-
-=head1 Classes
-
-    class Failure does Failure {
-        has $.handled;
-    }
-
-    class ControlExceptionSigHUP does Exception does Resumeable {}
-
-=head1 Additions
-
-Please post errors and feedback to perl6-language.  If you are making
-a general laundry list, please separate messages by topic.
+For errors that arise from compiling code. Note that in this case the
+backtrace shows how the
+compilation was triggered (through C<use SomeModule;>, C<eval>s etc.).
+The actual location of the error does not appear in the backtrace, but
+rather in the attributes defined in this role.
