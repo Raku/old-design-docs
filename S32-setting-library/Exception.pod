@@ -35,18 +35,22 @@ All built-in exceptions live in the C<X::> namespace.
 =head2 X::Base
 
 All built-in exceptions inherit from C<X::Base>, which provides some basic
-behavior: storing payload data, a backtrace, and providing stringification.
+behavior: storing  a backtrace and providing stringification.
 
     class X::Base {
         has $.backtrace;
         has $.message;
-        has %.payload;
-        method Str { ... }
-        method ID  { %.payload<ID>:exists ?? %.payload<ID> !! self.WHAT.perl }
+        method Str {
+            # munge $.message
+        }
+        method ID { ... } # an actual stub that should be
+                          # supplied by derived classes or
+                          # mixed-in roles
     }
 
-It also provides an C<ID> method, which is used to identify exceptions
-for retrieving translated versions of error messages.
+If C<$.message> contains substrings of the form C<< $<attrib> >>, the
+C<Str> method of the error message looks those attributes up in C<self>
+and interpolates them.
 
 =head2 X::OS
 
@@ -81,3 +85,17 @@ backtrace shows how the
 compilation was triggered (through C<use SomeModule;>, C<eval>s etc.).
 The actual location of the error does not appear in the backtrace, but
 rather in the attributes defined in this role.
+
+=head2 X::AdHoc
+
+    class X::AdHoc is X::Base {
+        has %.payload;
+        method ID() { %.payload<ID> }
+    }
+
+L<X::AdHoc> is meant for those too lazy to write their own exception
+classes, but who still want to benefit from structured exceptions.
+
+The C<Str> method in C<X::AdHoc> lets attribute lookup fall back to items
+in C<%.payload>, ie if there's no C<$.foo> accessor for a name
+C<< $<foo> >>, C<< %.payload<foo> >> is used instead.
