@@ -86,6 +86,32 @@ compilation was triggered (through C<use SomeModule;>, C<eval>s etc.).
 The actual location of the error does not appear in the backtrace, but
 rather in the attributes defined in this role.
 
+=head3 X::Syntax
+
+    role X::Syntax does X::Comp { }
+
+Common role for all syntax errors.
+
+=head4 X::Syntax::Obsolete
+
+    role X::Syntax::Obsolete does X::Syntax {
+        has $.ID;
+        has $.old;
+        has $.new;
+        has $.when = 'in Perl 6'
+    }
+
+Message defaults to C<< Unsupported use of $<old>;$<when> please use $<new> >>.
+
+=head4 X::Syntax::BadInfix
+
+    role X::Syntax::BadInfx does X::Syntax {
+        has $.bad;
+    }
+
+Message defaults to C<< Preceding context expects a term, but found infix
+$<bad> instead >>.
+
 =head2 X::AdHoc
 
     class X::AdHoc is X::Base {
