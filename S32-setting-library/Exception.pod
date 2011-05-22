@@ -125,3 +125,35 @@ classes, but who still want to benefit from structured exceptions.
 The C<Str> method in C<X::AdHoc> lets attribute lookup fall back to items
 in C<%.payload>, ie if there's no C<$.foo> accessor for a name
 C<< $<foo> >>, C<< %.payload<foo> >> is used instead.
+
+=head1 Related types
+
+=head2 Failure
+
+    class Failure is Mu {
+        has Bool $.handled is rw;
+        has $.X;            # the actual exception object
+    }
+
+An unthrown exception, usually produce by C<fail()>.
+
+(Conjecture: S04 implies that all exceptions have a C<$.handled> attribute.
+Do we actually need that?)
+
+=head2 BackTrace
+
+    class X::BackTrace does Positional[CallFrame] {
+        method Str() { ... }
+    }
+
+Backtrace information, typically used (but not limited to) in exceptions.
+Stringifies to
+
+    in '$<routine>' at line $<line>:$<filename>
+    in '$<routine>' at line $<line>:$<filename>
+    ...
+
+with two leading spaces on each line.
+
+If a routine does not have a name, C<< <anon> >> is used instead of the
+routine name.
