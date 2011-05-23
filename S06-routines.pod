@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 5 Jan 2011
-    Version: 148
+    Last Modified: 23 May 2011
+    Version: 149
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -988,16 +988,33 @@ of that name is supplied.
 
 Bindings happen in declaration order, not call order, so any default
 may reliably depend on formal parameters to its left in the signature.
-In other words, if the first parameter is C<$a>, it will bind to
-a C<:a()> argument in preference to the first positional argument.
-It might seem that performance of binding would suffer by requiring
-a named lookup before a positional lookup, but the compiler is able
-to guarantee that subs with known fixed signatures (both C<only>s and
-C<proto>s) translate named arguments to positional in the
-first N positions.  Also, purely positional calls may obviously omit any
-named lookups, as may bindings that have already used up all the named
-arguments.  The compiler is also free to intuit proto signatures for
-a given sub or method name as long as the candidate list is stable.
+
+Positional parameters do not advertise their variable names as part
+of the public interface, so you may not pass them by name using those
+names.  You may, however, specify positional arguments in a name-like
+form using fat-arrow notation anywhere named arguments are expected;
+this can be done by putting the position number as the key of the pair,
+numbering from 0:
+
+    foo(:opt($x), 1 => $b, 0 => $a);  # means foo($a,$b,:opt($x))
+
+(You may not use colon notation for keyed positionals since
+that would be confused with radix notation.)
+
+The use of keyed positionals is not restricted to compile-time
+analysis; the run-time coercion of any non-C<Positional>, C<Associative>
+value to a C<Capture> value also transforms any numeric keys to
+positionals, since it is often more convenient to store positionals as
+numerically keyed hash values when C<Capture> structures are not easily supported
+by the incoming data stream.  (For instance, C<Cursor> objects may store
+their positional matches in keyed positionals.)
+
+This run-time functionality extends to the recognition of string
+keys that look like numbers.  The recognition of such positionals
+does not require a pass over all arguments; since positionals must
+occur in order without gaps, it suffices to look up, "0", "1"...*
+in order until a positional key is not found.  It is erroneous to
+pass keyed positionals with gaps.
 
 =head2 List parameters
 
