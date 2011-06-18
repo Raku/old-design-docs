@@ -1962,28 +1962,29 @@ roles, and the enum values are really subset types of C<Int>, though the
 constant objects themselves know that they are of type C<Bool> or C<Taint>,
 and can therefore be used correctly in multimethod dispatch.
 
-You can call the low-level C<.truth> coercion on any built-in type, because
-all built-in types do the C<Boolean> role, which requires a C<.truth> method.
+You can call the low-level C<.Bool> coercion on any built-in type, because
+all built-in types do the C<Boolean> role, which requires a C<.Bool> method.
 Hence, there is a great difference between saying
 
         $x does Boolean;        # a no-op, since $x already does Boolean
         $x does Bool;           # create a $.Bool attribute, also does Boolean
 
 Conditionals evaluate the truth of a boolean expression by testing
-the return value of C<.truth> like this:
-
-    $obj.truth != 0
+the return value of C<.Bool>; how they do this is a mystery, except
+that they must do something mysterious and platform dependent to
+avoid calling C<.Bool> recursively on the results of C<.Bool>.
 
 Never compare a value to "C<True>".  Just use it
 in a boolean context.  Well, almost never...
 
 If you wish to be explicit about a boolean context, use the high-level
 C<so> function or C<?> prefix operator, which are underlying based
-on the C<.truth> method.  Also, use these high level functions when you wish
-to autothread junctions, since C<.truth> forces collapse of a junction's
-wavefunction.  (Similarly, C<.gist> forces stringification of the entire
-junction, while prefix:<~> does not.)  The C<.Bool> coercion also autothreads
-rather than collapsing.
+on the C<.Bool> method.  Since C<.Bool> always collapses junctions,
+so do these functions.  (Hence if you really need to autothread a
+bunch of boolean values, you'll have to convert them to some other
+type such as C<Bit> that can be used as a boolean value later.
+Generally it makes no sense to autothread booleans, so we have a
+policy of collapsing them sooner rather than later.)
 
 Like other type names and constant names, enum keynames are parsed as
 standalone tokens representing scalar values, and don't look for any
