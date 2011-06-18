@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 15 Jun 2011
-    Version: 117
+    Last Modified: 18 Jun 2011
+    Version: 118
 
 =head1 Overview
 
@@ -1743,7 +1743,8 @@ enumeration type itself.
     Fri.perl    # 'Day::Fri'
     ~Fri        # 'Fri' (only for numeric enums)
     Fri.Stringy # 'Fri' (only for numeric enums)
-    Fri.Str     # 'Day::Fri' (used by say/print)
+    Fri.Str     # 'Fri' (only for numeric enums)
+    Fri.gist    # 'Day::Fri' (used by say)
     Fri.key     # 'Fri'
     Fri.value   # 5
     Fri.pair    # :Fri(5)
@@ -1961,27 +1962,28 @@ roles, and the enum values are really subset types of C<Int>, though the
 constant objects themselves know that they are of type C<Bool> or C<Taint>,
 and can therefore be used correctly in multimethod dispatch.
 
-You can call the low-level C<.Bool> coercion on any built-in type, because
-all built-in types do the C<Boolean> role, which requires a C<.Bool> method.
+You can call the low-level C<.truth> coercion on any built-in type, because
+all built-in types do the C<Boolean> role, which requires a C<.truth> method.
 Hence, there is a great difference between saying
 
         $x does Boolean;        # a no-op, since $x already does Boolean
         $x does Bool;           # create a $.Bool attribute, also does Boolean
 
 Conditionals evaluate the truth of a boolean expression by testing
-the return value of C<.Bool> like this:
+the return value of C<.truth> like this:
 
-    $obj.Bool != 0
+    $obj.truth != 0
 
 Never compare a value to "C<True>".  Just use it
 in a boolean context.  Well, almost never...
 
 If you wish to be explicit about a boolean context, use the high-level
 C<so> function or C<?> prefix operator, which are underlying based
-on the C<.Bool> method.  Also, use these high level functions when you wish
-to autothread junctions, since C<.Bool> forces collapse of a junction's
-wavefunction.  (Similarly, C<.Str> forces stringification of the entire
-junction, while prefix:<~> does not.)
+on the C<.truth> method.  Also, use these high level functions when you wish
+to autothread junctions, since C<.truth> forces collapse of a junction's
+wavefunction.  (Similarly, C<.gist> forces stringification of the entire
+junction, while prefix:<~> does not.)  The C<.Bool> coercion also autothreads
+rather than collapsing.
 
 Like other type names and constant names, enum keynames are parsed as
 standalone tokens representing scalar values, and don't look for any
@@ -2135,7 +2137,7 @@ C<hides Base> instead of C<is Base>.
 
 Metamethods for objects are named with interrogative pronouns in uppercase:
 
-    WHAT        the type object of the type, .Str returns MyClass()
+    WHAT        the type object of the type, .gist returns MyClass()
     WHICH       the object's identity value
     WHO         the package supporting the object, stringifies to long name
     WHERE       the memory address of the object
@@ -2168,9 +2170,9 @@ In particular, the C<.^> forms will automatically supply the invocant
 as the first argument to methods of the metaclass, while the other
 forms require you to pass this explicitly.
 
-Note that C<WHAT.Str> appends C<()> to the name to indicate emptiness.
+Note that C<WHAT.gist> appends C<()> to the name to indicate emptiness.
 Use C<.perl> to get the bare name from a type object.  Use one of
-C<.Stringy>, C<< prefix:<~> >>, or C<< infix:<~> >> to get the Perl5ish
+C<.Str>, C<.Stringy>, C<< prefix:<~> >>, or C<< infix:<~> >> to get the Perl5ish
 semantics of returning the empty string (with a warning) on any type
 object.  (There is no "undef", in Perl 6; type objects provide typed
 undefs instead.)

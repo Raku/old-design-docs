@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 9 Jan 2011
-    Version: 233
+    Last Modified: 18 Jun 2011
+    Version: 234
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2232,7 +2232,7 @@ Since method calls are performed directly on any object, C<Nil>
 can respond to certain method calls.  C<Nil.defined> returns
 C<False> (whereas C<().defined> returns C<True>).  C<Nil.so> also
 returns C<False>.  C<Nil.ACCEPTS> matches only a C<Nil> value.  C<Nil.perl> and
-C<Nil.Str> return C<"Nil">.  C<Nil.Stringy> returns '' with a warning.
+C<Nil.gist> return C<'Nil'>.  C<Nil.Stringy> and C<Nil.Str> return '' with a warning.
 C<Nil.Numeric> returns 0 with a warning.  Any undefined method call
 on C<Nil> returns C<Nil>, so that C<Nil> propagates down method
 call chains.
@@ -4483,21 +4483,22 @@ containers (such as slice and hash context; see S03 for details).
 =item *
 
 Unlike in Perl 5, objects are no longer always considered true.
-It depends on the state of their C<.Bool> property.  Classes get to decide
+It depends on the state of their C<.truth> method, which may either be
+a synthetic attribute or an explicitly represented bit in the object.  Classes get to decide
 which of their values are true and which are false.  Individual objects
 can override the class definition:
 
     return 0 but True;
 
-This overrides the C<.Bool> method of the C<0> without changing its
+This overrides the C<.truth> method of the C<0> without changing its
 official type (by mixing the method into an anonymous derived type).
 
 =item *
 
-The definition of C<.Bool> for the most ancestral type (that is, the
+The definition of C<.truth> for the most ancestral type (that is, the
 C<Mu> type) is equivalent to C<.defined>.  Since type objects are
 considered undefined, all type objects (including C<Mu> itself)
-are false unless the type overrides the definition of C<.Bool>
+are false unless the type overrides the definition of C<.truth>
 to include undefined values.  Instantiated objects default to true
 unless the class overrides the definition.  Note that if you could
 instantiate a C<Mu> it would be considered defined, and thus true.
