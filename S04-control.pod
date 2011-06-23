@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 18 Jun 2011
-    Version: 105
+    Last Modified: 23 Jun 2011
+    Version: 106
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -703,7 +703,11 @@ block in sink (void) context; its return value is instead specified by calling
 the C<take> list prefix operator one or more times within the dynamic scope of
 the C<gather>.  The C<take> function's signature is like that of C<return>;
 while having the syntax of a list operator, it merely returns a single item
-or "argument" (see L<S02> for definition).
+or "argument" (see L<S02> for definition).  The C<take> function is lexotic
+if there is a visible outer C<gather>, but falls back to purely dynamic if not.
+(Use of the dynamic semantics cannot be guaranteed to be portable when passing
+closures into some other construct, either built-in or not, since implementations
+of libraries and of Perl itself may use C<gather>/C<take> internally.)
 
 If you take multiple items in a comma list (since it is, after all, a list
 operator), they will be wrapped up in a C<Parcel> object for return as the
