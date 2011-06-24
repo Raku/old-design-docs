@@ -19,8 +19,8 @@ Synopsis 29: Builtin Functions
 
     Created: 12 Mar 2005
 
-    Last Modified: 10 Dec 2010
-    Version: 49
+    Last Modified: 24 Jun 2011
+    Version: 50
 
 The document is a draft.
 
@@ -242,6 +242,13 @@ support.
 
 Stops all program execution, and returns C<$status> to the calling environment.
 
+An exit runs all appropriate scope-leaving blocks such as C<LEAVE>, C<KEEP>,
+and C<UNDO>, followed by all C<END> blocks, followed by all C<DESTROY>s that
+do more than just reclaim memory, and so cannot be skipped because
+they may have side effects visible outside the process.  If run from
+an embedded interpreter, all memory must also be reclaimed.
+
+[TBD: thread termination policy]
 
 =item sleep
 
