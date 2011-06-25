@@ -19,8 +19,8 @@ Synopsis 29: Builtin Functions
 
     Created: 12 Mar 2005
 
-    Last Modified: 24 Jun 2011
-    Version: 50
+    Last Modified: 25 Jun 2011
+    Version: 51
 
 The document is a draft.
 
@@ -385,6 +385,25 @@ then a hash will be created from the list, taken as a list of C<Pair>s.
 and grab the next value in the list as its value.)  Equivalent to
 C<%()> (except that empty C<%()> means C<%($/)>, while
 empty C<hash()> means an empty hash).
+
+=item gist
+
+ our Str multi gist( |$item )
+ our Str multi method gist( Mu $item: )
+
+Produces an informal string coercion, something a human might want
+to see if debugging, for instance.  Each type may decide its own
+gist representation.  C<Mu.gist> just calls C<.perl>, but any type's
+C<gist> method may override this to remove metainfo that a human
+would find to be cluttery or redundant, or to format a composite value
+with suitable whitespace to tell the bits apart, or to trim down an
+infinite list to something slightly shorter.
+
+C<gist> is used as a last-ditch string coercion on each individual
+argument of various human-facing output routines, specifically
+C<say>, C<note>, C<warn>, and any non-exceptional arguments to C<die>.
+The C<print> function is specifically excluded, since it's outputting
+to a printer. C<:-)>
 
 =item :16, :8, :2, :10
 
