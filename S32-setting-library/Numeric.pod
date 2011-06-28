@@ -14,13 +14,14 @@ DRAFT: Synopsis 32: Setting Library - Numeric
     Carl Mäsak <cmasak@gmail.com>
     Moritz Lenz <moritz@faui2k3.org>
     Tim Nelson <wayland@wayland.id.au>
+    Stefan O'Rear <stefanor@cox.net>
 
 =head1 VERSION
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 16 July 2010
-    Version: 10
+    Last Modified: 28 June 2011
+    Version: 11
 
 The document is a draft.
 
@@ -378,45 +379,66 @@ Returns the imaginary part of a complex number.
 
 =head2 Trigonometric functions
 
-The following are also defined in C<Numeric>.  The trig functions
-depend on the current (lexically scoped) trig base:
+The following are also defined in C<Numeric>.  Most trig functions are
+specified to operate in terms of radians, as the mathematical and programming
+standard.  Functions are provided to convert other angle specifications to and
+from radians.  Angle specifications are given in terms of enum TrigBase:
 
- enum TrigBase is export <Radians Degrees Gradians Circles>;
- constant $?TRIGBASE = Radians;
+ enum TrigBase is export (
+    Radians  => 1,
+    Degrees  => (pi / 180),
+    Gradians => (pi / 200),
+    Circles  => 2*pi
+ );
 
 =over 4
 
 =item I<Standard Trig Functions>
 
- Numeric multi method func ( Numeric  $x: TrigBase $base = CALLER::<$?TRIGBASE> ) is export
+ Numeric multi method func ( Numeric  $x ) is export
 
 where I<func> is one of:
 sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
 acotan, sinh, cosh, tanh, asinh, acosh, atanh, sech, cosech, cotanh,
 asech, acosech, acotanh.
 
-Performs the various trigonometric functions.
+Performs the various trigonometric functions.  The argument is always expressed
+in radians.  The return value from C<CORE::> versions of these functions is
+always C<Num>, unless domain limits force it to be C<Complex> instead.
 
-Option C<$base> is used to declare how you measure your angles.
-Given the value of an arc representing a single full revolution.
+=item I<Converting Angles>
 
- $base       Subdivisions of circle
- ----        ----------------------
- Radians     2*pi
- Degrees     360
- Gradians    400
- Circles     1
+If you prefer to express angles in units other than radians, you have two
+choices.  First, you can convert the angles into radians, by multiplication:
 
-To change the base within your own lexical scope, it suffices to redefine the
-compiler constant with the C<trigbase> pragma:
+ sin(90 * Degrees)
+
+or by using the C<to-radians> method:
+
+ sin(90.to-radians(Degrees));
+
+Alternatively, you can use the C<trigbase> pragma to install a new set of
+trigonometric functions into the current lexical scope, which will handle
+a different unit:
 
  use trigbase Degrees;
+ sin(90)
 
-In addition to setting the new lexical C<$?TRIGBASE>, this also
-curries a new set of functions into the current lexical scope that
-assume the new base.  (Note that methods calls cannot be curried, so
-methods must still look up the caller's trigbase.  The optimizer may,
-of course, optimize these into fast function calls.)
+The parameter to the trigbase pragma must be something that is usable as a
+number.  The above code fragment is more or less equivalent to:
+
+ constant $?TRIGBASE = Degrees;
+ sub sin($x) { CORE::sin($x * Degrees) }
+ # repeat for all the other trig operators
+ sin(90)
+
+Two points must be emphasized.  First, C<trigbase> has no effect on the method
+forms of trig operators; C<.sin> always expects radians.  Second, because it
+defines dozens of subs, it's probably a good idea to use C<trigbase> in the
+highest scope where it makes sense.
+
+The C<$?TRIGBASE> constant is not used by the trig operators themselves.  It
+exists only to allow modules to be C<trigbase> aware.
 
 =item atan2
 
