@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 18 Jun 2011
-    Version: 234
+    Last Modified: 6 Jul 2011
+    Version: 235
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -3255,6 +3255,22 @@ to the run time).  Also allowed in strings are leading plus or minus,
 and maybe a trailing Units type for an implied scaling.  Leading and
 trailing whitespace is ignored.  Note also that leading C<0> by itself
 I<never> implies octal in Perl 6.
+
+In all these cases, the type produced will be the narrowest of Int,
+Rat, or Num that can accurately represent the number.  If no type can
+represent it exactly, it should be returned as either a Rat or a Num,
+whichever is more accurate.  (Rat64 will tend to be more accurate
+for numbers of normal or large magnitude, while Num64 may be more
+accurate for numbers of very small magnitude, since the Rat's size
+mismatch of numerator and denominator will eventually cost more
+accuracy than the Num's exponent overhead.  As a limiting case,
+a Rat64 cannot represent any number smaller than :10<1*2**-64>.)
+
+A consequence of the preceding is that you cannot make a FatRat using
+colon notation.  You must rely on constructors and constant folding:
+
+    (FatRat.new(1,1) * 2 ** -128)
+    FatRat.new(1, 2 ** 128)     # same thing
 
 Any of the adverbial forms may be used as a function:
 
