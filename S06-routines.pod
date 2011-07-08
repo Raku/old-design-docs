@@ -16,13 +16,23 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 30 Jun 2011
-    Version: 149
+    Last Modified: 7 Jul 2011
+    Version: 150
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
 
 =head1 Subroutines and other code objects
+
+C<Routine> is the parent type of all keyword-declared code blocks.
+All routines are born with undefined values of C<$_>, C<$!>,
+and C<$/>, unless the routine declares them otherwise explicitly.
+A compilation unit is also considered a routine, or you would not be
+able to reference C<$!> or C<$/> in them.  (Non-routine code C<Block>s,
+declared with C<< -> >> or with bare curlies, are born only with C<$_>,
+which is aliased to its OUTER::<$_> unless bound as a parameter.  A C<Block>
+always uses whatever C<$!> and C<$/> are defined by the innermost enclosing
+routine, unless explicitly declared in the block.)
 
 B<Subroutines> (keyword: C<sub>) are non-inheritable routines with
 parameter lists.
