@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 23 Jun 2011
-    Version: 106
+    Last Modified: 7 Jul 2011
+    Version: 107
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1001,15 +1001,15 @@ keyword redundant, because any block can function as a C<try> block
 if you put a C<CATCH> block within it.
 
 An exception handler is just a switch statement on an implicit topic
-supplied within the C<CATCH> block.  That implicit topic is the current
-exception object, also known as C<$!>.  Inside the C<CATCH> block, it's
-also bound to C<$_>, since it's the topic.  Because of smart matching,
+that happens to be the current exception to be dealt with.
+Inside the C<CATCH> block, the exception in question is
+bound to C<$_>.  Because of smart matching,
 ordinary C<when> statements are sufficiently powerful to pattern
 match the current exception against classes or patterns or numbers
 without any special syntax for exception handlers.  If none of the
-cases in the C<CATCH> handles the exception, the exception is rethrown.
+cases in the C<CATCH> handles the exception, the exception will be rethrown.
 To ignore all unhandled exceptions, use an empty C<default> case.
-(In other words, there is an implicit C<die $!> just inside the end
+(In other words, there is an implicit C<.die> just inside the end
 of the C<CATCH> block.  Handled exceptions break out past this implicit
 rethrow.)  Hence, C<CATCH> is unlike all other switch statements in that
 it treats code inside a C<default> block differently from code that's after
@@ -1022,45 +1022,50 @@ More specifically, when you write:
         default {...}
     }
 
-you're really calling into a I<catch lambda> that looks like:
+you're really calling into a I<catch lambda> that works
+something like this:
 
-    -> $! {
-        my $SUCCEEDED = 1;     # assume we will handle it
+    -> *@! {
+        my @*unhandled = ();
+        my @*undead = ();
+        SIMPLECATCH { push @*undead, $_ }
 
-        given $! {
+        for @! {
             when Mumble {...}
             default {...}
-            $SUCCEEDED = 0;    # unassume we handled it
+            push @*unhandled, $_ unless .handled;
         }
 
-        # the user may handle exception either by
-        #      1. pattern matching in the given
-        #      2. explicitly setting $!.handled = 1
-        $!.handled = 1 if $SUCCEEDED;
-
-        # conjecture: this might be enforced by the exception thrower instead
-        if $!.handled {
-            $!.wrap-die("Pending exceptions not handled") unless all($!.pending».handled);
-        }
-
-        $!;
+        push @*unhandled, @*undead;
+        @*unhandled;
     }
 
+Whenever an exception occurs during the execution of a handler,
+it is pushed onto the end of the C<@*undead> array for later processing
+by an outer handler.  If there are any unhandled C<@!> exceptions,
+or if any exceptions were caught by the inner SIMPLECATCH (which does
+nothing but runs its push code, which should not produce any exceptions).
+
 The exception thrower looks up the call stack for a catch lambda
-that returns the exception object as handled, and then it is happy,
-and unwinds the stack to that point.  If the exception is returned
+that returns () to indicate all exceptions are handled, and then it is happy,
+and unwinds the stack to that point.  If any exceptions are returned
 as not handled. the exception thrower keeps looking for a higher
 dynamic scope for a spot to unwind to.  Note that any C<die> in the
-catch lambda rethrows outside the lambda as a new exception, wrapping
-up the old exception in its new pending list.  In this case the lambda
-never finishes executing.  Resumable exceptions may or may not leave
+catch lambda eventually rethrows outside the lambda as a new exception, but
+not until the current exception handler has a chance to handle all
+exceptions that came in via C<@!>.
+
+Resumable exceptions may or may not leave
 normally depending on the implementation.  If continuations are used,
-the C<$!.resume> call will simply goto the continuation in question,
+the C<.resume> call will simply goto the continuation in question,
 and the lambda's callframe is abandoned.  Resumable exceptions may also
-be implemented by simply marking the C<$!> exception as "resumed",
+be implemented by simply marking the current exception as "resumed",
 in which case the original exception thrower simply returns to
 the code that threw the resumable exception, rather than unwinding
-before returning.
+before returning.  This could be done by pushing the resumed exception
+onto the unhandled list, and then the thrower checking to see if there is only
+a single resumed exception in the "unhandled" list.  The unhandled list
+is a dynamic variable so that it's easy for .resume to manipulate it.
 
 A C<CATCH> block sees the lexical scope in which it was defined, but
 its caller is the dynamic location that threw the exception.  That is,
@@ -1070,17 +1075,8 @@ if the C<CATCH> block throws its own exception, you would expect the
 C<CATCH> block to catch its own exception recursively forever.  However,
 a C<CATCH> must not behave that way, so we say that a C<CATCH> block
 never attempts to handle any exception thrown within its own dynamic scope.
-(Otherwise any C<die> would cause an infinite loop.)
-
-Any attempt to throw a fatal exception past an already active exception
-handler must guarantee to steal the existing fatal exception (plus
-any pending exceptions it contains) and add all those to the new
-exception's pending list.  (This does not apply to control exceptions
-described in the next section.)  When the new exception is handled,
-it must also deal with the list of pending exceptions, or the C<wrap-die>
-mentioned above will throw a "Pending exceptions not handled" at that point.
-Even this does not discard the pending exceptions, so in the final outermost
-message, all non-handled exceptions are guaranteed to be listed.
+(Otherwise any C<die> would cause an infinite loop.)  Instead we treasure
+them up and rethrow them to a handler further up.
 
 =head1 Control Exceptions
 
@@ -1229,18 +1225,27 @@ prohibition on bypassing formal binding.)
 
 =head1 Exceptions
 
-As in Perl 5, many built-in functions simply return an undefined value when you
-ask for a value out of range, or the function fails somehow.  Perl 6
-has C<Failure> objects, any of which refers to an unthrown C<Exception>
-object in C<$!> and knows whether it has been handled or not.  C<$!>
-contains one main exception, the most recent, plus an internal list
-of unhandled exceptions that may be accessed via the C<.pending> method.
-Whenever a new exception is stored in C<$!>, it becomes the new main
-exception, and if the old main exception is not marked as handled,
-it is pushed onto the internal list of unhandled exceptions.
+As in Perl 5, many built-in functions simply return an undefined value
+when you ask for a value out of range, or the function fails somehow.
+Perl 6 has C<Failure> objects, known as "unthrown exceptions", which
+know whether they have been handled or not.  C<$!> is a convenient
+link to the lastest failure, and only ever contains one exception, the
+most recent.
 
-If you test a C<Failure> for C<.defined> or C<.Bool>, it causes C<$!>
-to mark the main exception as I<handled>; the exception acts as a
+[Conjecture: all unhandled exceptions within a routine could be stored
+in C<@!>, with the most recent first.  C<$!> would then be sugar for
+C<@![0]>.  (Or we use push semantics and C<$!> means C<@![*-1]>.) This
+might be more robust than merely making C<@!> a parameter to CATCH.
+However, the new semantics of autothrowing when sink eats a Failure
+means we won't have many unthrown exceptions waiting around to be
+handled at the end of the block anymore.  We should probably at least
+issue warnings, though, if the GC eventually collects a failure that
+was never handled.  We can't really rely on end-of-routine cleanup
+to deal with failures that are returned as normal data, unless we go
+with the overhead of a lexical C<@!> variable.]
+
+If you test a C<Failure> for C<.defined> or C<.Bool>, the C<Failure>
+marks itself as I<handled>; the exception acts as a
 relatively harmless undefined value thereafter.  Any other use of the
 C<Failure> object to extract a normal value will throw its associated
 exception immediately.  (The C<Failure> may, however, be stored in
@@ -1256,29 +1261,11 @@ by assigning C<True> to it.  Note however that
 
     $!.handled = 1;
 
-marks only the main exception as handled.  To mark them all as handled
-you must access them individually via the C<.pending> method.
+marks only the last exception as handled.  To mark them all as handled
+you must access them individually via the implicit loop of a CATCH block.
 
 A bare C<die>/C<fail> takes C<$!> as the default argument specifying
 the exception to be thrown or propagated outward to the caller's C<$!>.
-
-Because the dynamic variable C<$!> contains all exceptions collected
-in the current lexical scope, saying C<die $!> will rethrow all those
-exceptions as the new thrown exception, keeping the same structure of
-main exception and list of unhandled exceptions.  (The C<$!> seen in a
-C<CATCH> block is specially bound to this in-flight exception as the
-block's initial value for C<$!>, but it may be modified by additional
-failures as can any other block's C<$!> value.)  A C<fail> likewise
-moves all C<$!> exceptions up into C<< CALLER::<$!> >> before
-returning the current exception as normal return of a C<Failure>.
-
-At scope exit, C<$!> discards all handled exceptions from itself,
-then if there are any remaining unhandled exceptions, either as the
-main exception or as any listed unhandled exception, it calls C<die>
-to throw those exceptions as a single new exception, which may then
-be caught with a C<CATCH> block in the current (or caller's) scope.
-The new main exception is the most recent one, with any older unhandled
-exceptions attached as pending.
 
 You can cause built-ins to automatically throw exceptions on failure using
 
@@ -1292,15 +1279,15 @@ up prematurely by thrown exceptions.  Unthrown exceptions are meant
 to provide a failsoft mechanism in which failures can be treated
 as data and dealt with one by one, without aborting execution
 of what may be perfectly valid parallel computations.  If you
-I<don't> deal with the failures as data, then the block exit
-semantics will eventually trigger a thrown exception.
+I<don't> deal with the failures as data, then sink context will
+automatically throw any unhandled C<Failure> that you try to discard.
 
 In any case, the overriding design principle here is that no
 unhandled exception is ever dropped on the floor, but propagated
-outward through subsequent C<$!> variables until it is handled.  If
-that never happens, the implicit outermost exception handler will
-eventually decide to abort and print all unhandled exceptions found
-in the C<$!> that it is responsible for.
+outward until it is handled.  If no explicit handler handles it,
+the implicit outermost exception handler will
+eventually decide to abort and print all unhandled exceptions passed
+in as its current C<@!> list.
 
 =head1 Phasers
 
@@ -1495,23 +1482,23 @@ as an embedded phaser block that closes over the lexical scope of
 the C<PRE>.  In either case, the code is pushed onto the postphaser
 stack to be run at the appropriate moment.
 
-If exit phasers are running as a result of a stack unwind initiated
-by an exception, C<$!> contains the exception that caused it, though
-it will be marked as handled by then.  In any case, the information
-as to whether the block is being exited successfully or unsuccessfully
-needs to be available to decide whether to run C<KEEP> or C<UNDO> blocks.
-If there is no stack-unwinding
-exception when these phasers are run, C<$!> will be C<Nil>.  The last
-exception caught in the outer block is available as C<< OUTER::<$!> >>,
-as usual. 
+If exit phasers are running as a result of a stack unwind initiated by
+an exception, this information needs to be made available.  In any
+case, the information as to whether the block is being exited
+successfully or unsuccessfully needs to be available to decide
+whether to run C<KEEP> or C<UNDO> blocks.  How this information is
+made available is implementation dependent.
 
 An exception thrown from an C<ENTER> phaser will abort the C<ENTER>
 queue, but one thrown from a C<LEAVE> phaser will not.  The exceptions
 thrown by failing C<PRE> and C<POST> phasers cannot be caught by a
 C<CATCH> in the same block, which implies that C<POST> phaser are not
-run if a C<PRE> phaser fails.  If a C<POST> fails while an exception is in
-flight the C<POST> failure doesn't replace C<$!> but goes straight into
-C<$!.pending>.
+run if a C<PRE> phaser fails.
+
+If a C<POST> fails or any kind of C<LEAVE> block throws an exception
+while the stack is unwinding, the unwinding continues and collects
+exceptions to be handled.  When the unwinding is completed all new
+exceptions are thrown from that point.
 
 For phasers such as C<KEEP> and C<POST> that are run when exiting a
 scope normally, the return value (if any) from that scope is available
