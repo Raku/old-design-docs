@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 7 Jul 2011
-    Version: 150
+    Last Modified: 9 Jul 2011
+    Version: 151
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -30,9 +30,16 @@ and C<$/>, unless the routine declares them otherwise explicitly.
 A compilation unit is also considered a routine, or you would not be
 able to reference C<$!> or C<$/> in them.  (Non-routine code C<Block>s,
 declared with C<< -> >> or with bare curlies, are born only with C<$_>,
-which is aliased to its OUTER::<$_> unless bound as a parameter.  A C<Block>
-always uses whatever C<$!> and C<$/> are defined by the innermost enclosing
-routine, unless explicitly declared in the block.)
+which is aliased to its OUTER::<$_> unless bound as a parameter.
+A block generally uses the C<$!> and C<$/> defined by the innermost
+enclosing routine, unless C<$!> or C<$/> is explicitly declared in
+the block.  A conditional thunk follows the same rules, except that
+a thunk has no scope to declare a new variable.  Note however that
+any and all lazy constructs, whether block-based or thunk-based,
+such as gather or async or C<< ==> >> should declare their own C<$/>
+and C<$!> so that the user's values for those variables cannot be
+clobbered asyncronously.  And this parentheticl remark is starting to
+be seriously misplaced...)
 
 B<Subroutines> (keyword: C<sub>) are non-inheritable routines with
 parameter lists.
