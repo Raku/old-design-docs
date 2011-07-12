@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 6 Jun 2011
-    Version: 225
+    Last Modified: 11 Jul 2011
+    Version: 226
 
 =head1 Overview
 
@@ -3463,9 +3463,22 @@ is hereby deprecated.)
 A C<Range> may be iterated only if the type in question supports the C<.succ> method.
 If it does not, any attempt to iterate returns failure.
 
-Smart matching against a C<Range> object smartmatches the
-endpoints in the domain of the object being matched, so fractional
-numbers are I<not> truncated before comparison to integer ranges:
+Smart matching against a C<Range> object does comparisons
+(by coercion, if necessary) in the C<Real> domain
+if either endpoint does C<Real>.  Otherwise comparison is in
+the C<Stringy> domain if either argument does C<Stringy>.
+Otherwise the min's type is used if it defines ordering, or if not,
+the max's type.  If neither min nor max have an ordering, 
+dispatch to .ACCEPTS fails.  It may also fail if the ordering
+in question does not have any way to coerce the object
+being smartmatched into an appropropriate type implied by the
+chosen domain of ordering.
+
+In general, the domain of comparison should be a type that can
+represent all the values in question, if possible.  Hence, since Int
+is not such a type, it is promoted to a Real, so fractional numbers
+are I<not> truncated before comparison to integer ranges.  Instead the
+integers are assumed to represent points on the real number line:
 
     1.5 ~~ 1^..^2  # true, equivalent to 1 < 1.5 < 2
     2.1 ~~ 1..2    # false, equivalent to 1 <= 2.1 <= 2
@@ -3481,8 +3494,8 @@ inferred from the right operand.  (A star on both sides is not allowed.)
     'a'..*      # 'a' le $_
     *..0        # -Inf .. 0
     *..*        # Illegal
-    1.2.3..*    # Any version higher than 1.2.3.
-    May..*      # May through December
+    v1.2.3 .. * # Any version higher than 1.2.3.
+    May .. *    # May through December
 
 An empty range cannot be iterated; it returns a C<Nil> instead.  An empty
 range still has a defined C<.min> and C<.max>, but one of the following is
