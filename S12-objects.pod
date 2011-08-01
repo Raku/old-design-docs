@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 7 Jul 2011
-    Version: 119
+    Last Modified: 1 Aug 2011
+    Version: 120
 
 =head1 Overview
 
@@ -124,21 +124,31 @@ the presence of a C<::> within the name does not imply globalness
 (unlike in Perl 5).  So the outward search can look in children
 of the searched namespaces.
 
+=head2 Class traits
+
 Class traits are set using C<is>:
 
     class MyStruct is rw {...}
+
+=head3 Single inheritance
 
 An "isa" is just a trait that happens to be another class:
 
     class Dog is Mammal {...}
 
+=head3 Multiple inheritance
+
 Multiple inheritance is specified with multiple C<is> modifiers:
 
     class Dog is Mammal is Pet {...}
 
+=head3 Composition
+
 Roles use C<does> instead of C<is>:
 
     class Dog is Mammal does Pet {...}
+
+=head3 The C<also> declarator
 
 You may put these inside as well by use of the C<also> declarator:
 
@@ -153,6 +163,8 @@ in roles, to distinguish class traits that might not be properly
 understood as generic when placed in the role header, which tends to
 communicate the false impression that the trait in question is to be
 applied directly to the role rather than to the composed class.)
+
+=head2 Metaclasses
 
 Every object (including any class-based object) delegates to an instance
 of its metaclass.  You can get at the metaclass of any object via the
@@ -179,6 +191,8 @@ The notation C<^Dog> is syntactic sugar for C<Dog.HOW()>, so C<^> can be
 considered the "class" sigil when you want to talk about the current
 metaclass instance.
 
+=head2 Closed classes
+
 Classes are open and non-final by default, but may easily be closed
 or finalized not by themselves but by the entire application, provided
 nobody issued an explicit compile-time request that the class stay open
@@ -189,10 +203,14 @@ probably don't want to close or finalize classes wholesale, however.
 Roles take on some of the compile-time function of closed classes,
 so you should probably use those instead anyway.
 
+=head2 Private classes
+
 A private class can be declared using C<my>; most privacy issues are
 handled with lexical scoping in Perl 6.  The fact that importation
 is lexical by default also means that any names your class imports
 are also private by default.
+
+=head2 Class composition
 
 Class declarations (in particular, role composition) are strictly
 compile time statements.  In particular, if a class declaration appears
@@ -202,6 +220,8 @@ superclasses must be bound as non-rebindable readonly values; any
 parameters to traits will be evaluated only in a non-cloning context.
 Names bound by the class declaration are made non-rebindable and read
 only so they may be used as superclasses.
+
+=head2 Anonymous class declaration
 
 In an anonymous class declaration, C<::> by itself may represent the
 anonymous class name if desired:
@@ -219,6 +239,8 @@ Methods are routines declared in a class with the C<method> keyword:
     method doit ($self: $a, $b, $c) { ... }
     method doit (MyName $self: $a, $b, $c) { ... }
     method doit (::?CLASS $self: $a, $b, $c) { ... }
+
+=head2 Invocants
 
 Declaration of the invocant is optional.  You may always access the
 current invocant using the keyword C<self>.  You need not declare the
@@ -251,6 +273,8 @@ access the elements of the array somehow:
     any(@(self))  # okay
     any(@self)    # WRONG unless you declared @self yourself
 
+=head2 Private methods
+
 Private methods are declared using C<!>:
 
     method !think (Brain $self: $thought)
@@ -258,6 +282,8 @@ Private methods are declared using C<!>:
 (Such methods are completely invisible to ordinary method calls, and are
 in fact called with a different syntax that uses C<!> in place of the C<.>
 character.  See below.)
+
+=head2 Method scoping
 
 Unlike with most other declarations, C<method> declarations do not
 default to C<our> semantics, or even C<my> semantics, but rather
@@ -272,6 +298,8 @@ using C<my> or in the current package using C<our>.  These aliases
 are named with C<&foo> notation and return a C<Routine> object that
 may be called as a subroutine, in which case you must supply the
 expected invocant as the first argument.
+
+=head2 Method calls
 
 To call an ordinary method with ordinary method-dispatch semantics,
 use either the dot notation or indirect object notation:
@@ -299,6 +327,8 @@ are still translated into method calls.
 Dot notation can omit the invocant if it's in C<$_>:
 
     .doit(1,2,3)
+
+=head3 Fancy method calls
 
 Note that there is no corresponding notation for private methods.
 
@@ -528,6 +558,8 @@ on the left in one cascade of method calls:
 
     @list.grep:{ $_ % 2 }.map:{ $_ - 1 }.say
 
+=head2 Lvalue methods
+
 Methods (and subs) may be declared as lvalues with C<is rw>.  You can
 use an argumentless C<rw> method anywhere you can use a variable,
 including in C<temp> and C<let> statements.  (In fact, you can use an
@@ -536,6 +568,8 @@ used only to identify the actual value to change, and don't otherwise
 have strange side effects that differ between rvalue and lvalue usage.
 Setter methods that expect the new value as an argument do not fall
 into the well-behaved category, however.)
+
+=head2 Scalar container indirection
 
 Method calls on mutable scalars always go to the object contained in
 the scalar (autoboxing value types as necessary):
@@ -712,6 +746,8 @@ level of indirection after the method call:
     &.foo(1,2,3);       # calls self.foo under & context
     &.foo.(1,2,3);      # &.foo().(1,2,3), call .() on closure returned by .foo
 
+=head2 Attribute default values
+
 Pseudo-assignment to an attribute declaration specifies the default
 value.  The value on the right is treated as an implicit closure and
 evaluated at object build time, that is, when the object is being
@@ -740,6 +776,8 @@ with whatever attributes are constructed by that point in time (including
 all parent attributes).  The initializers are run in order of declaration
 within the class, so a given initializer may refer back to an attribute
 defined in a preceding C<has> declaration.
+
+=head2 Class attributes
 
 Class attributes are declared with either C<my> or C<our>.  The only
 difference from ordinary C<my> or C<our> variables is that an accessor
@@ -788,6 +826,8 @@ allows an object to be used for its class invocant.  (Your constructor
 need not allow this).  In any case, the object is not used as a prototype.
 Use C<.clone> instead of C<.bless> if that's what you mean.
 
+=head2 Semantics of C<bless>
+
 Any named arguments to C<bless> are automatically passed to the
 C<CREATE> and C<BUILD> routines.  If you wish to pass special options
 to the C<CREATE> routine (such as an alternate representation),
@@ -824,10 +864,6 @@ Here we are using an autovivifying C<Animal> type object to specify what
 the arguments to C<Animal>'s C<BUILD> routine should look like.  (It does
 not actually autovivify an C<Animal> apart from the one being created.)
 
-You can clone an object, changing some of the attributes:
-
-    $newdog = $olddog.clone(:trick<RollOver>);
-
 You can write your own C<BUILD> submethod to control initialization.
 If you name an attribute as a parameter, that attribute is initialized
 directly, so
@@ -847,6 +883,12 @@ that haven't otherwise been initialized.  Note that the default C<BUILD>
 will only initialize public attributes; you must write your own C<BUILD>
 (as above) in order to present private attributes as part of your
 initialization API.
+
+=head2 Cloning
+
+You can clone an object, changing some of the attributes:
+
+    $newdog = $olddog.clone(:trick<RollOver>);
 
 =head1 Mutating methods
 
@@ -1254,6 +1296,24 @@ A C<method> or C<submethod> doesn't ordinarily participate in any
 subroutine-dispatch process. However, they can be made to do so if
 prefixed with a C<my> or C<our> declarator.
 
+Multi submethods work just like multi methods except they are constrained
+to an exact type match on the invocant, just as ordinary submethods are.
+
+Perl 6.0.0 is not required to support multiple dispatch on named
+parameters, only on positional parameters.  Note however that any
+dispatcher derived from C<proto> will map named arguments to known
+declared positional parameters and call the C<multi> candidates with
+positionals for those arguments rather than named arguments.
+
+Within a multiple dispatch, C<nextsame> means to try the next best
+match, or next best default in case of tie.
+
+The C<sub> keyword is optional immediately after a C<proto>, C<multi>,
+or C<only> keyword, but the C<method> keyword is not.
+
+A C<proto> declaration may not occur after a C<multi> declaration in the
+same scope.
+
 =head2 Method call vs. Subroutine call
 
 The caller indicates whether to make a method call or subroutine
@@ -1303,21 +1363,9 @@ it does no good to overgeneralize the invocant if the routine itself
 cannot handle the broader type.  In such a situation you must write
 a wrapper to coerce to the narrower type.
 
-=head1 Multi dispatch
+=head1 Trusts
 
-Multi submethods work just like multi methods except they are constrained
-to an exact type match on the invocant, just as ordinary submethods are.
-
-Perl 6.0.0 is not required to support multiple dispatch on named
-parameters, only on positional parameters.  Note however that any
-dispatcher derived from C<proto> will map named arguments to known
-declared positional parameters and call the C<multi> candidates with
-positionals for those arguments rather than named arguments.
-
-Within a multiple dispatch, C<nextsame> means to try the next best
-match, or next best default in case of tie.
-
-Attributes are tied to a particular class definition, so a multi method
+Attributes are tied to a particular class definition, so a method
 can only directly access the attributes of a class it's defined within
 when the invocant is the "self" of that attribute.
 However, it may call the private attribute accessors from a different
@@ -1338,12 +1386,6 @@ never via a dispatcher, since there is never any question about which
 object is being referred to.  Hence, the private accessor notation
 may be aggressively inlined for simple attributes, and no simpler
 notation is needed for accessing another object's private attributes.
-
-The C<sub> keyword is optional immediately after a C<proto>, C<multi>,
-or C<only> keyword.
-
-A C<proto> declaration may not occur after a C<multi> declaration in the
-same scope.
 
 =head1 Delegation
 
@@ -1527,11 +1569,13 @@ For any named type, certain other subset types may automatically be derived
 from it by appending an appropriate adverbial to its name:
 
     Int:_       Allow either defined or undefined Int values
-    Int:U       Allow only undefined (abstract) Int values
+    Int:A       Allow only uninitialized abstract Int values
+    Int:U       Allow only undefined (abstract or failure) Int values
     Int:D       Allow only defined (concrete) Int values
 
 That is, these are equivalent:
 
+    Int:A       Int:_ where none(Failure)
     Int:U       Int:_ where !*.defined
     Int:D       Int:_ where *.defined
 
