@@ -1033,6 +1033,8 @@ want to do something with ordered side effects, such as I/O.
 The "long name" of a subroutine or method includes the type
 signature of its invocant arguments.  The "short name" doesn't.
 
+=head2 C<multi> Declarations
+
 If you put C<multi> in front of any sub declaration, it allows
 multiple long names to share a short name, provided all of them are
 declared C<multi>, or there is a single prior or outer C<proto> in
@@ -1050,6 +1052,8 @@ lexical scoping.  The other difference is that a proto method of a
 given short name forcing all unmarked method declarations to assume
 multi in all subclasses regardless of which file they are declared in,
 unless explicitly overridden via C<only method>.
+
+=head2 C<only> Declarations
 
 An C<only> sub (or method) doesn't share with anything outside of it
 or declared prior to it.  Only one such sub (or method) can inhabit a
@@ -1072,6 +1076,8 @@ post-declared, as soon as the compiler sees a non-listop operator it
 is free to apply the setting's C<proto> since any user-defined C<only>
 version of it must of necessity be declared or imported earlier in
 the user's file or not at all.)
+
+=head2 C<proto> Declarations
 
 A C<proto> always functions as a dispatcher around any C<multi>s
 declared after it in the same scope, More specifically, it is the
@@ -1101,6 +1107,8 @@ always refers to the innermost visible C<dispatch> or C<only> sub,
 never to a C<proto> or C<multi>.  Likewise, C<$obj.can('foo')> will
 return the most-derived C<dispatch> or C<only> method.
 
+=head2 C<proto> Signatures
+
 Within its scope, the signature of a C<proto> also nails down the presumed
 order and naming of positional parameters, so that any call to that
 short name with named arguments in that scope can presume to rearrange
@@ -1112,6 +1120,8 @@ out common traits.  This is particularly useful for establishing
 grammatical categories in a grammar by declaring a C<proto> C<token>
 or C<proto> C<rule>.  (Perl 6's grammar does this, for instance.)
 
+=head2 C<multi> Variables
+
 You can have multiple C<multi> variables of the same name in the
 same scope, and they all share the same storage location and type.
 These are declared by one C<proto> declaration at the top, in which case
@@ -1121,6 +1131,8 @@ declarations of the same variable name (such code might be produced by a
 macro or by a code generator, for instance) and you wish to suppress any
 possible warnings about redefinition.
 
+=head2 C<multi> Routines
+
 In contrast, C<multi> routines can have only one instance of the long
 name in any namespace, and that instance hides any outer (or less-derived)
 routines with the same long name.  It does not hide any routines with
@@ -1128,6 +1140,8 @@ the same short name but a different long name.  In other words, C<multi>s
 with the same short name can come from several different namespaces
 provided their long names differ and their short names aren't hidden
 by an C<only> or C<proto> declaration in some intermediate scope.
+
+=head2 Multisub Resolution
 
 When you call a routine with a particular short name, if there are
 multiple visible long names, they are all considered candidates.
@@ -1181,6 +1195,8 @@ all candidates in the circle are considered tied.  A warning will be
 issued at C<CHECK> time if this is detected and there is no suitable
 tiebreaker that could break the tie.
 
+=head3 Candidate Tiebreaking
+
 There are two tiebreaking modes, in increasing order of desperation:
 
     A) run-time constraint processing
@@ -1212,6 +1228,8 @@ tiebreaker B is used: only candidates marked with the C<default>
 trait are considered, and the best matching default routine is used.
 If there are no default routines, or if two or more of the defaults
 are tied for best, the dispatch fails.
+
+=head3 Parameter Constraint Exclusion
 
 Ordinarily all the parameters of a multi sub are considered for dispatch.
 Here's a declaration for an integer range operator with two parameters
@@ -1249,6 +1267,8 @@ The first three are dispatched under tiebreaker A as a constrained
 rank.  If none of them can match, the final one is dispatched as
 an unconstrained rank, since C<*%_> is not considered a required
 parameter.
+
+=head3 Constrained Type Candidates
 
 Likewise, constrained types sort before unconstrained:
 
@@ -1295,6 +1315,8 @@ form will be implemented in the standard language.]
 A C<method> or C<submethod> doesn't ordinarily participate in any
 subroutine-dispatch process. However, they can be made to do so if
 prefixed with a C<my> or C<our> declarator.
+
+=head3 Multi Submethods et Cetera
 
 Multi submethods work just like multi methods except they are constrained
 to an exact type match on the invocant, just as ordinary submethods are.
@@ -1556,8 +1578,7 @@ Subtype constraints are used as tiebreakers in multiple dispatch:
 
 For multi dispatch, a long name with a matching constraint is preferred over
 an equivalent one with no constraint.  So the first C<mesg> above is
-preferred if the constraint matches, and otherwise the second is
-preferred.
+preferred if the constraint matches; otherwise the second is preferred.
 
 To export a subset type, put the export trait just before the C<where>:
 
@@ -1760,6 +1781,8 @@ list, or an equivalent angle bracket list:
     my enum Day ('Sun','Mon','Tue','Wed','Thu','Fri','Sat');
     my enum Day <Sun Mon Tue Wed Thu Fri Sat>;
 
+=head2 Value Generation
+
 The values are generated implicitly by default, but may be also be
 specified explicitly.  If the first value is unspecified, it defaults
 to 0.  To specify the first value, use pair notation (see below).
@@ -1817,6 +1840,8 @@ out the enum type's C<EnumMap> and invert it:
     constant %dayname := Day.enums.invert;
     %dayname{3} # Wed
 
+=head2 The Enumeration Type
+
 The enumeration type itself is an undefined type object, but supplies
 convenient methods:
 
@@ -1846,6 +1871,8 @@ might have dups if the mapping is not one-to-one):
     Day(3)               # Wed constant, found as value
     Day.enums.invert{3}  # (same thing)
 
+=head2 Anonymous Enumerations
+
 An anonymous C<enum> just makes sure each string turns into a pair with
 sequentially increasing values, so:
 
@@ -1861,6 +1888,8 @@ is equivalent to:
 The return value of an anonymous enumeration is an C<EnumMap>.  The
 C<enum> keyword is still a declarator here, so the list is evaluated at
 compile time.  Use a coercion to C<EnumMap> to get a run-time map.
+
+=head2 Composition from Pairs
 
 The enumeration composer inspects list values for pairs, where the value
 of the pair sets the next value explicitly.  Non-pairs C<++> the
@@ -1897,6 +1926,8 @@ compilation error.  (All colliding values are hidden, not just the new one,
 or the old one.)  Any explicit sub or type definition hides all imported
 enum keys of the same name but will produce a warning unless
 C<is redefined> is included.
+
+=head2 Anonymous Mixin Roles using C<but> or C<does>
 
 Since non-native C<Enum> values know their enumeration type, they may be
 used to name a desired property on the right side of a C<but> or C<does>.
@@ -1984,19 +2015,27 @@ you can supply a C<WHENCE> closure:
     $x = "Today" but Day{ :Day(Tue) }
     $x = "Today" but Day{ Tue }  # conjecturally, for "simple" roles
 
+=head2 Adding Traits
+
 To add traits to an enumeration declaration, place them after the declared
 name but before the list:
 
     enum Size is silly <regular large jumbo>;
 
+=head2 Exporting
+
 To export an enumeration, place the export trait just before the list:
 
     enum Maybe is export <No Yes Dunno>;
+
+=head2 Implying a Role
 
 To declare that an enumeration implies a particular role,
 supply a C<does> in the same location
 
     enum Maybe does TristateLogic <No Yes Dunno>;
+
+=head2 Built-in Enumerations
 
 Two built-in enumerations are:
 
@@ -2032,6 +2071,8 @@ type such as C<Bit> that can be used as a boolean value later.
 Generally it makes no sense to autothread booleans, so we have a
 policy of collapsing them sooner rather than later.)
 
+=head2 Miscellaneous Rules
+
 Like other type names and constant names, enum keynames are parsed as
 standalone tokens representing scalar values, and don't look for any
 arguments.  Unlike type names but like constant names, enum keynames
@@ -2050,6 +2091,8 @@ called using parentheses, never in list operator form.  (If there is
 a collision on two enum values that cancels them both, the function
 still may only be called with parentheses, since the enum key
 is "poisoned".)
+
+=head2 The C<.pick> Method
 
 Enumeration types (and perhaps certain other finite, enumerable types such
 as finite ranges) define a C<.pick> method on the type object of
