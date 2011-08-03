@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 6 Jul 2011
-    Version: 235
+    Last Modified: 2 Aug 2011
+    Version: 236
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2237,16 +2237,17 @@ C<Nil.Numeric> returns 0 with a warning.  Any undefined method call
 on C<Nil> returns C<Nil>, so that C<Nil> propagates down method
 call chains.
 
-Assigning C<Nil> to any scalar container causes the
-container to throw out any contents and restore itself to an
-uninitialized state (after which it will contain a type object
-appropriate to the declared type of the container, where C<Any>
-is the default type).  Binding of C<Nil> has a similar result, except that binding
-C<Nil> to a parameter with a default causes that parameter to be set to its
-default value rather than an undefined value, as if the argument had not
-been supplied.
+Assigning C<Nil> to any scalar container causes the container to
+throw out any contents and restore itself to an uninitialized state
+(after which it will contain a type object appropriate to the declared
+type of the container, where C<Any> is the default type).  Binding of
+C<Nil> with C<:=> simply puts Nil in the container.  However, binding
+C<Nil> to a parameter (C<::=> semantics) works more like assignment;
+passing C<Nil> to a parameter with a default causes that parameter
+to be set to its default value rather than an undefined value, as if
+the argument had not been supplied.
 
-Assigning or binding C<Nil> to any composite container (such as an
+Assigning C<Nil> to any composite container (such as an
 C<Array> or C<Hash>) empties the container, resetting it back to an
 uninitialized state.  The container object itself then becomes undefined.
 (Asssignment of C<()> leaves it defined.)
