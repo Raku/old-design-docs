@@ -381,7 +381,7 @@ but never as
 
     foo.method
 
-Use some variant (here, an unspace) of
+Use some variant of
 
     foo\
     .method
@@ -399,22 +399,23 @@ to C<0.123> rather than C<$_.123>.)
 
 =head1 Built-In Data Types
 
-=over 4
+Perl 6 has an optional type system that helps you write safer
+code that performs better.  The compiler is free to infer what type
+information it can from the types you supply, but it will not complain
+about missing type information unless you ask it to.
 
-=item *
+Perl 6 is an OO engine, but you're not generally required to think
+in OO when that's inconvenient.  However, some built-in concepts such
+as filehandles are more object-oriented in a user-visible way
+than in Perl 5.
+
+=head2 The P6opaque Datatype
 
 In support of OO encapsulation, there is a new fundamental datatype:
 B<P6opaque>.  External access to opaque objects is always through method
 calls, even for attributes.
 
-=item *
-
-Perl 6 has an optional type system that helps you write safer
-code that performs better.  The compiler is free to infer what type
-information it can from the types you supply, but will not complain
-about missing type information unless you ask it to.
-
-=item *
+=head2 Name Equivalence of Types
 
 Types are officially compared using name equivalence rather than
 structural equivalence.  However, we're rather liberal in what we
@@ -435,7 +436,7 @@ immutable snapshot taken of them).  Two distinct classes are never
 considered equivalent even if they have the same attributes because
 classes are not considered immutable.
 
-=item *
+=head2 Properties on Objects
 
 Perl 6 supports the notion of B<properties> on various kinds of
 objects.  Properties are like object attributes, except that they're
@@ -446,21 +447,14 @@ kind of mixin mechanism, and such mixins are accomplished by the
 generation of an individual anonymous class for the object (unless
 an identical anonymous class already exists and can safely be shared).
 
-=item *
+=head3 Traits
 
 Properties applied to objects constructed at compile-time, such as
 variables and classes, are also called B<traits>.  Traits cannot be
 changed at run-time.  Changes to run-time properties are done via
 mixin instead, so that the compiler can optimize based on declared traits.
 
-=item *
-
-Perl 6 is an OO engine, but you're not generally required to think
-in OO when that's inconvenient.  However, some built-in concepts such
-as filehandles are more object-oriented in a user-visible way
-than in Perl 5.
-
-=item *
+=head2 Types as Constraints
 
 A variable's type is a constraint indicating what sorts of values the
 variable may contain.  More precisely, it's a promise that the object
@@ -469,6 +463,8 @@ methods of the indicated "role".  See S12 for more about roles.
 
     # $x can contain only Int objects
     my Int $x;
+
+=head2 Container Types
 
 A variable may itself be bound to a container type that specifies how
 the container works, without specifying what kinds of things it contains.
@@ -485,7 +481,7 @@ Constraints and container types can be used together:
 Note that C<$x> is also initialized to the C<Int> type object.  See below for
 more on this.
 
-=item *
+=head2 Type Objects
 
 C<my Dog $spot> by itself does not automatically call a C<Dog> constructor.
 It merely assigns an undefined C<Dog> prototype object to C<$spot>:
@@ -519,7 +515,7 @@ You can pass in arguments to the constructor as well:
     my Dog $cerberus .= new(heads => 3);
     my Dog $cerberus = $cerberus.new(heads => 3);   # same thing
 
-=item *
+=head2 Containers of Native Types
 
 If you say
 
@@ -530,7 +526,7 @@ but that the array itself is implemented by the C<MyArray> class.
 Untyped arrays and hashes are still perfectly acceptable, but have
 the same performance issues they have in Perl 5.
 
-=item *
+=head2 Methods on Arrays
 
 To get the number of elements in an array, use the C<.elems> method.  You can
 also ask for the total string length of an array's elements, in bytes,
@@ -544,7 +540,7 @@ to specify the meaning exactly if it cannot be known from context.)
 There is no C<.length> method for either arrays or strings, because C<length>
 does not specify a unit.
 
-=item *
+=head2 Built-in Type Conventions
 
 Built-in object types start with an uppercase letter. This includes
 immutable types (e.g. C<Int>, C<Num>, C<Complex>, C<Rat>, C<Str>,
@@ -562,12 +558,16 @@ look like their corresponding uppercase types if you treat them that way.
 repeated autoboxing can slow your program more than the native type
 can speed it up.)
 
+=head3 The C<.WHICH> Method for Value Types
+
 Some object types can behave as value types.  Every object can produce
 a "WHICH" value that uniquely identifies the
 object for hashing and other value-based comparisons.  Normal objects
 just use their location as their identity, but if a class wishes to behave as a
 value type, it can define a C<.WHICH> method that makes different objects
 look like the same object if they happen to have the same contents.
+
+=head3 The C<ObjAt> Type
 
 When we say that a normal object uses its location as its identity,
 we do I<not> mean that it returns its address as a number.  In the first
@@ -599,7 +599,7 @@ uniqueness, since the object is in this case is really being translated
 to a value type representation, and reconstituted on the other end
 as a different unique object.
 
-=item *
+=head2 Variables Containing Undefined Values
 
 Variables with non-native types can always contain I<undefined> values,
 such as C<Any>, C<Whatever> and C<Failure> objects.  See S04 for more
@@ -620,7 +620,7 @@ undefinedness, you can coerce an undefined value like this:
 Variables of non-native types start out containing an undefined value
 unless explicitly initialized to a defined value.
 
-=item *
+=head2 The C<HOW> Method
 
 Every object supports a C<HOW> function/method that returns the
 metaclass instance managing it, regardless of whether the object
@@ -636,7 +636,7 @@ is defined:
 (For a prototype system (a non-class-based object system), all objects
 are merely managed by the same meta object.)
 
-=item *
+=head2 Roles
 
 Perl supports generic types through what are called "roles"
 which represent capabilities or interfaces.  These roles
@@ -658,7 +658,7 @@ normal object types.  Common roles include:
     Buf
     Blob
 
-=item *
+=head2 The C<Num> and C<Rat> Types
 
 Perl 6 intrinsically supports big integers and rationals through its
 system of type declarations.  C<Int> automatically supports promotion
@@ -774,9 +774,9 @@ to see pure decimal notation.
     say <555555555555555555555555555555555555555555555/5>.perl
                 # 111111111111111111111111111111111111111111111/1
 
-=item *
+=head2 Infinity and C<NaN>
 
-Perl 6 should by default make standard IEEE floating point concepts
+Perl 6 by default makes standard IEEE floating point concepts
 visible, such as C<Inf> (infinity) and C<NaN> (not a number).  Within a
 lexical scope, pragmas may specify the nature of temporary values,
 and how floating point is to behave under various circumstances.
@@ -792,14 +792,18 @@ enough answer most of the time.  (Really good programmers may occasionally
 do even better.)  Mostly this just involves using enough bits that the
 stupidities of the algorithm don't matter much.
 
-=item *
+=head2 Strings, the C<Str> Type
 
 A C<Str> is a Unicode string object.  There is no corresponding native
 C<str> type.  However, since a C<Str> object may fill multiple roles,
 we say that a C<Str> keeps track of its minimum and maximum Unicode
 abstraction levels, and plays along nicely with the current lexical
 scope's idea of the ideal character, whether that is bytes, codepoints,
-graphemes, or characters in some language.  For all builtin operations,
+graphemes, or characters in some language. 
+
+=head3 The C<StrPos> Type
+
+For all builtin operations,
 all C<Str> positions are reported as position objects, not integers.
 These C<StrPos> objects point into a particular string at a particular
 location independent of abstraction level, either by tracking the
@@ -813,6 +817,8 @@ of matches done by a substitution, the answers are reported in terms of the
 original string (which may now be inaccessible!), not as positions within
 the modified string.
 
+=head3 The C<StrLen> Type
+
 The subtraction of two C<StrPos> objects gives a C<StrLen> object,
 which is also not an integer, because the string between two positions
 also has multiple integer interpretations depending on the units.
@@ -823,6 +829,8 @@ within the string that in turn may or may not just lazily point into
 the string.  (The lazy implementation of C<StrLen> is much like a
 C<Range> object in that respect.)
 
+=head3 Units of Position Arguments
+
 If you use integers as arguments where position objects are expected,
 it will be assumed that you mean the units of the current lexically
 scoped Unicode abstraction level.  (Which defaults to graphemes.)
@@ -832,6 +840,8 @@ Otherwise you'll need to coerce to the proper units:
 
 Of course, such a dimensional number will fail if used on a string
 that doesn't provide the appropriate abstraction level.
+
+=head3 Numeric Coercion of C<StrPos> or C<StrLen>
 
 If a C<StrPos> or C<StrLen> is forced into a numeric context, it will
 assume the units of the current Unicode abstraction level.  It is
@@ -873,7 +883,7 @@ should probably specify which normalization form it prefers to
 view strings under.  Such a declaration could be applied to input
 translation as well.)
 
-=item *
+=head2 The C<Buf> Type
 
 A C<Buf> is a stringish view of an array of
 integers, and has no Unicode or character properties without explicit
@@ -901,6 +911,8 @@ just an old-school byte string, and the positions are byte positions.
 Note, though, that if you remap a section of C<buf32> memory to be
 C<buf8>, you'll have to multiply all your positions by 4.
 
+=head3 Native C<buf> Types
+
 These native types are defined based on the C<Buf> role, parameterized
 by the native integer type it is composed of:
 
@@ -919,7 +931,7 @@ There are no signed buf types provided as built-ins, but you may say
     Buf[int32]
     Buf[int64]
 
-to get buffers of signed integers.  It is also possible to defined
+to get buffers of signed integers.  It is also possible to define
 a C<Buf> based on non-integers or on non-native types:
 
     Buf[complex64]
@@ -928,7 +940,7 @@ a C<Buf> based on non-integers or on non-native types:
 
 However, no guarantee of memory contiguity can be made for non-native types.
 
-=item *
+=head2 The C<utf8> Type
 
 The C<utf8> type is derived from C<buf8>, with the additional constraint
 that it may only contain validly encoded UTF-8.  Likewise, C<utf16> is
@@ -948,7 +960,7 @@ and never as
 
     utf8(op $x)
 
-=item *
+=head2 The C<Whatever> Object
 
 The C<*> character as a standalone term captures the notion of "Whatever",
 the meaning of which can be decided lazily by whatever it is an argument to.
@@ -984,6 +996,8 @@ least one of its candidates with an argument of type C<Whatever>, or
 by marking the proto sub with the trait, C<is like-Whatever-and-stuff>.
 [Conjecture: actually, this is negotiable--we might shorten it
 to C<is like(Whatever)> or some such.  C<:-)>]
+
+=head3 Currying of Unary and Binary Operators
 
 For any unary or binary operator (specifically, any prefix, postfix,
 and infix operator), if the operator has not specifically requested
@@ -1036,6 +1050,8 @@ curried methods are handy anywhere a smartmatcher is expected:
     subset Duck where *.^can('quack');
     when !*.defined {...}
 
+=head3 The C<WhateverCode> Types
+
 These returned closures are of type C<WhateverCode:($)> or C<WhateverCode:($,$)>
 rather than type C<Whatever>, so constructs that do want to handle C<*>
 or its derivative closures can distinguish them by type:
@@ -1057,6 +1073,8 @@ far as it makes sense, including outward through metaoperators.  Hence:
     (-*.abs)i   # { (-$^x.abs)i }
     @a «+» *    # { @a «+» $^x }
 
+=head3 The C<.assuming> Method
+
 This is only for operators that are not C<Whatever>-aware.  There is no requirement
 that a C<Whatever>-aware operator return a C<WhateverCode> when C<Whatever>
 is used as an argument; that's just the I<typical> behavior for functions
@@ -1076,6 +1094,8 @@ autocurry C<Whatever>, so we have:
 (If the last is used as a subscript, the subscripter notices there are two
 arguments and passes that dimension's size twice.)
 
+=head3 Non-closure-returning Operators with C<*>
+
 Operators that are known to return non-closure values with C<*> include:
 
     0 .. *      # means 0 .. Inf
@@ -1087,11 +1107,11 @@ Operators that are known to return non-closure values with C<*> include:
     $a ~~ *     # just matches Whatever
 
 Note that the last two also do not autocurry C<WhateverCode>, because
-assignment and smartmatching are not really normal binary operator, but
+assignment and smartmatching are not really normal binary operators, but
 syntactic sugar for underlying primitives.  (Such pseudo operators
 may also place restrictions on which meta-operators work on them.)
 
-Neither does the sequence operators C<< &infix:<...> >> and
+Neither do the sequence operators C<< &infix:<...> >> and
 C<< &infix:<...^> >> autocurry C<WhateverCode>, because we want to allow
 WhateverCode closures as the stopper:
 
@@ -1119,6 +1139,8 @@ which means that when the subscripting operation discovers a C<Code:($)>
 object for a subscript, it calls it and supplies an argument indicating
 the number of elements in (that dimension of) the array.  See S09.
 
+=head3 The C<HyperWhatever> Type
+
 A variant of C<*> is the C<**> term, which is of type C<HyperWhatever>.
 It is generally understood to be a multidimension form of C<*> when
 that makes sense.  When modified by an operator that would turn C<*>
@@ -1142,8 +1164,6 @@ over time.  These can be given meaning via the MMD system, if not
 the compiler.  In general a C<Whatever> should be interpreted as
 maximizing the degrees of freedom in a dwimmy way, not as a nihilistic
 "don't care anymore--just shoot me".
-
-=back
 
 =head2 Native types
 
