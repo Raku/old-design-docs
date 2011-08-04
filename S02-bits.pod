@@ -45,9 +45,7 @@ Recognize that a reduce operator is not really beginning a C<[...]> composer.
 
 =head1 Lexical Conventions
 
-=over 4
-
-=item *
+=head2 Unicode Semantics
 
 In the abstract, Perl is written in Unicode, and has consistent Unicode
 semantics regardless of the underlying text representations.  By default
@@ -55,13 +53,9 @@ Perl presents Unicode in "NFG" formation, where each grapheme counts as
 one character.  A grapheme is what the novice user would think of as a
 character in their normal everyday life, including any diacritics.
 
-=item *
-
 Perl can count Unicode line and paragraph separators as line markers,
 but that behavior had better be configurable so that Perl's idea of
 line numbers matches what your editor thinks about Unicode lines.
-
-=item *
 
 Unicode horizontal whitespace is counted as whitespace, but it's better
 not to use thin spaces where they will make adjoining tokens look like
@@ -69,7 +63,7 @@ a single token.  On the other hand, Perl doesn't use indentation as syntax,
 so you are free to use any amount of whitespace anywhere that whitespace
 makes sense. Comments always count as whitespace.
 
-=item *
+=head2 Bracketing Characters
 
 For some syntactic purposes, Perl distinguishes bracketing characters
 from non-bracketing.  Bracketing characters are defined as any Unicode
@@ -105,13 +99,7 @@ opener is special.  That is, if you open with one of the alternatives,
 all other alternatives are treated as non-bracketing characters within
 that construct.
 
-=back
-
-=head1 Whitespace and Comments
-
-=over 4
-
-=item *
+=head2 Multiline Comments
 
 Pod sections may be used reliably as multiline comments in Perl 6.
 Unlike in Perl 5, Pod syntax now lets you use C<=begin comment>
@@ -131,7 +119,7 @@ Since there is a newline before the first C<=>, the Pod form of comment
 counts as whitespace equivalent to a newline.  See S26 for more on
 embedded documentation.
 
-=item *
+=head2 Single-line Comments
 
 Except within a quote literal, a C<#> character always introduces a comment in
 Perl 6.  There are two forms of comment based on C<#>.  Embedded
@@ -144,11 +132,11 @@ ending at the subsequent newline.  They count as whitespace equivalent
 to newline for purposes of separation.  Unlike in Perl 5, C<#>
 may I<not> be used as the delimiter in quoting constructs.
 
-=item *
+=head2 Embedded Comments
 
 Embedded comments are supported as a variant on quoting syntax, introduced
 by C<#`> plus any user-selected bracket characters (as defined in
-L</Lexical Conventions> above):
+L</Bracketing Characters> above):
 
     say #`( embedded comment ) "hello, world!";
 
@@ -176,7 +164,7 @@ miscount single brackets:
 However, it's sometimes better to use Pod comments because they are
 implicitly line-oriented.
 
-=item *
+=head2 User-selected Brackets
 
 For all quoting constructs that use user-selected brackets, you can open
 with multiple identical bracket characters, which must be closed by the
@@ -193,7 +181,7 @@ not a user-selected bracket, but the ASCII variant of the C<< «...» >>
 interpolating word list.  Only C<#`> and the C<q>-style quoters (including
 C<m>, C<s>, C<tr>, and C<rx>) enable subsequent user-selected brackets.
 
-=item *
+=head2 Unspaces
 
 Some languages such as C allow you to escape newline characters
 to combine lines.  Other languages (such as regexes) allow you to
@@ -282,7 +270,7 @@ the newline transition, not all whitespace as in the case of postfix
 parsing.  (Note also that the example above is not meant to spec how
 the test suite works. )
 
-=item *
+=head2 Comments in Unspaces and vice versa
 
 An unspace may contain a comment, but a comment may not contain an unspace.
 In particular, end-of-line comments do not treat backslash as significant.
@@ -302,7 +290,7 @@ it is an end-of-line comment, not an embedded comment.  Write:
 
 to mean the other thing.
 
-=item *
+=head2 Optional Whitespace and Exclusions
 
 In general, whitespace is optional in Perl 6 except where it is needed
 to separate constructs that would be misconstrued as a single token or
@@ -364,6 +352,8 @@ be written in any of these forms:
     comment 3
     ].++
 
+=head3 Implicit Topical Method Calls
+
 A consequence of the postfix rule is that (except when delimiting a
 quote or terminating an unspace) a dot with whitespace in front
 of it is always considered a method call on C<$_> where a term is
@@ -391,7 +381,7 @@ but never as
 
     foo.method
 
-Use some variant of
+Use some variant (here, an unspace) of
 
     foo\
     .method
@@ -406,8 +396,6 @@ postfix dot will be taken to be the start of some kind of method call
 syntax.  (The C<.123> form with a leading
 dot is still allowed however when a term is expected, and is equivalent
 to C<0.123> rather than C<$_.123>.)
-
-=back
 
 =head1 Built-In Data Types
 
@@ -469,7 +457,7 @@ mixin instead, so that the compiler can optimize based on declared traits.
 
 Perl 6 is an OO engine, but you're not generally required to think
 in OO when that's inconvenient.  However, some built-in concepts such
-as filehandles will be more object-oriented in a user-visible way
+as filehandles are more object-oriented in a user-visible way
 than in Perl 5.
 
 =item *
