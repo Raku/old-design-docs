@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 31 Jul 2011
-    Version: 108
+    Last Modified: 5 Aug 2011
+    Version: 109
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1026,18 +1026,25 @@ you're really calling into a I<catch lambda> that works
 something like this:
 
     -> *@! {
-        my @*unhandled = ();
+        my @handled = ();
+        my @unhandled = ();
         my @*undead = ();
         SIMPLECATCH { push @*undead, $_ }
 
         for @! {
+            push @handled, $_;
+
             when Mumble {...}
             default {...}
+
+            pop @handled;
             push @*unhandled, $_ unless .handled;
         }
 
-        push @*unhandled, @*undead;
-        @*unhandled;
+        set_outer_caller's_bang(@handled);
+
+        push @unhandled, @*undead;
+        @unhandled;
     }
 
 Whenever an exception occurs during the execution of a handler,
