@@ -14,7 +14,7 @@ Synopsis 4: Blocks and Statements
     Created: 19 Aug 2004
 
     Last Modified: 5 Aug 2011
-    Version: 109
+    Version: 110
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1041,9 +1041,11 @@ something like this:
             push @*unhandled, $_ unless .handled;
         }
 
-        set_outer_caller's_bang(@handled);
-
         push @unhandled, @*undead;
+
+        # no point in setting their $! if we're gonna blow past
+        set_outer_caller's_bang(@handled) unless @unhandled;
+
         @unhandled;
     }
 
