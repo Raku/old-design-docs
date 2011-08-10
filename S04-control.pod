@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 5 Aug 2011
-    Version: 110
+    Last Modified: 10 Aug 2011
+    Version: 111
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -932,12 +932,12 @@ You can explicitly break out of a C<when> block (and its surrounding
 topicalizer block) early using the C<succeed> verb.  More precisely,
 it first scans outward (lexically) for the innermost containing
 C<when> block.  From there it continues to scan outward to find the
-innermost block outside the C<when> that uses C<$_> as one of its
-formal parameters, either explicitly or implicitly.  (Note that
+innermost block outside the C<when> that defines C<$_>,
+either explicitly or implicitly.  (Note that
 both of these scans are done at compile time; if the scans fail,
 it's a compile-time semantic error.)  Typically, such an outer
 block will be the block of a C<given> or a C<for> statement, but any block that
-sets the topic in its signature can be broken out of.  At run time,
+sets the topic can be broken out of.  At run time,
 C<succeed> uses a control exception to scan up the dynamic chain to
 find the call frame belonging to that same outer block, and
 when it has found that frame, it does a C<.leave> on it to unwind
@@ -957,7 +957,7 @@ To jump into the next C<when> block without testing its condition,
 you must use a C<goto>.  But generally that means you should refactor
 instead.)
 
-If you have a switch that is the main block of a C<for> loop, and
+If you have a switch that is the main block of a C<for> loop that uses C<$_> as its loop variable, and
 you break out of the switch either implicitly or explicitly (that is,
 the switch "succeeds"), control merely goes to the end of that block,
 and thence on to the next iteration of the loop.  You must use C<last>
