@@ -3194,9 +3194,7 @@ Adverbial syntax will be described more fully later.
 
 =head1 Literals
 
-=over 4
-
-=item *
+=head2 Underscores
 
 A single underscore is allowed only between any two digits in a
 literal number, where the definition of digit depends on the radix.
@@ -3206,7 +3204,7 @@ Underscores are not allowed anywhere else in any numeric literal,
 including next to the radix point or exponentiator, or at the beginning
 or end.
 
-=item *
+=head2 Radix markers
 
 Initial C<0> no longer indicates octal numbers by itself.  You must use
 an explicit radix marker for that.  Pre-defined radix prefixes include:
@@ -3223,7 +3221,7 @@ but before the first digit.  These all mean the same thing:
     0xbad_cafe
     0x_bad_cafe
 
-=item *
+=head2 General radices
 
 The general radix form of a number involves prefixing with the radix
 in adverbial form:
@@ -3250,7 +3248,7 @@ because you have to tell it where the number ends:
     :16<dead_beef.face> # fraction
     :16<dead_beef>.face # method call
 
-=item *
+=head2 Exponentials
 
 Only base 10 (in any form) allows an additional exponentiator starting
 with 'e' or 'E'.  All other radixes must either rely on the constant folding
@@ -3300,6 +3298,8 @@ colon notation.  You must rely on constructors and constant folding:
     (FatRat.new(1,1) * 2 ** -128)
     FatRat.new(1, 2 ** 128)     # same thing
 
+=head2 Conversion functions
+
 Any of the adverbial forms may be used as a function:
 
     :2($x)      # "bin2num"
@@ -3319,7 +3319,7 @@ textual representation of a number.  This is to catch errors such as
 a C<:8(777)> that should have been C<< :8<777> >>, or the attempt to use
 the function in reverse to produce a textual representation from a number.
 
-=item *
+=head2 Rational literals
 
 Rational literals are indicated by separating two integer literals
 (in any radix) with a slash, and enclosing the whole in angles:
@@ -3348,7 +3348,7 @@ Decimal fractions not using "e" notation are also treated as literal C<Rat> valu
     1.23456.WHAT     # Rat
     0.11 == 11/100   # True
 
-=item *
+=head2 Complex literals
 
 Complex literals are similarly indicated by writing an addition or subtraction of
 two real numbers (again, without spaces around the operators) inside angles:
@@ -3364,7 +3364,7 @@ surrounding precedence.
 rational and complex literal forms fall out naturally from the semantic
 rules of qw quotes described below.)
 
-=item *
+=head2 C<Blob> literals
 
 C<Blob> literals look similar to integer literals with radix markers, but use
 curlies instead of angles:
@@ -3376,7 +3376,7 @@ curlies instead of angles:
 
 Whitespace and underscores are allowed but ignored.
 
-=item *
+=head2 Radix interpolation
 
 Characters indexed by hex numbers can be interpolated into strings
 by introducing with C<"\x">, followed by either a bare hex number
@@ -3401,7 +3401,7 @@ the range C<'0'..'7'>.  Octal characters must use C<\o> notation.
 Note also that backreferences are no longer represented by C<\1>
 and the like--see S05.
 
-=item *
+=head2 Quoting forms
 
 The C<qw/foo bar/> quote operator now has a bracketed form: C<< <foo bar> >>.
 When used as a subscript it performs a slice equivalent to C<{'foo','bar'}>.
@@ -3451,6 +3451,8 @@ still act like a single value.  These are all the same:
     $a = < a >;
     $a = ('a');
     $a = 'a';
+
+=head3 Forcing item context
 
 That is, a parcel is actually constructed by the comma, not by
 the parens.  To force a single value to become a composite object in
@@ -3524,7 +3526,7 @@ ones without whitespace in front of them, but note that this comes
 more or less for free with a colon pair like C<< :char<#x263a> >>, since
 comments only work in double angles, not single.
 
-=item *
+=head3 Allomorphic coercion
 
 Generalizing the policy on literal numbers above, any literal number
 that would overflow a C<Rat64> in the numerator is also stored as
@@ -3546,7 +3548,7 @@ In this case it is not necessary to put angles around to get the allomorphism.
 Merely exceeding the precision of C<Rat64> is sufficient to trigger the
 behavior (but only for literals).
 
-=item *
+=head2 Adverbial Pair forms
 
 There is now a generalized adverbial form of Pair notation.  The
 following table shows the correspondence to the "fatarrow" notation:
@@ -3715,7 +3717,7 @@ the function in question--even if the function is an operator or macro.
 The function in question neither knows nor cares how weird the original
 syntax was.
 
-=item *
+=head2 C<Q> forms
 
 In addition to C<q> and C<qq>, there is now the base form C<Q> which does
 I<no> interpolation unless explicitly modified to do so.  So C<q> is really
@@ -3735,7 +3737,7 @@ of any subsequent adverbs as well as the quoted material itself.
     q:s//       Q :q :scalar //
     rx:s//      Q :regex :sigspace //
 
-=item *
+=head2 Adverbs on quotes
 
 Generalized quotes may now take adverbs:
 
@@ -3778,9 +3780,7 @@ If you want to abbreviate further, just define a macro:
 All the uppercase adverbs are reserved for user-defined quotes.
 All Unicode delimiters above Latin-1 are reserved for user-defined quotes.
 
-=item *
-
-A consequence of the previous item is that we can now say:
+A consequence of the above is that we can now say:
 
     %hash = qw:c/a b c d {@array} {%hash}/;
 
@@ -3794,7 +3794,7 @@ split on whitespace still works out.  (But the built-in C<«...»> quoter
 automatically does interpolation equivalent to C<qq:ww:v/.../>.  The
 built-in C<< <...> >> is equivalent to C<q:w:v/.../>.)
 
-=item *
+=head2 The C<:val> modifier
 
 The C<:v>/C<:val> modifier runs each word through the C<val()> function,
 which will attempt to recognize literals as defined by the current
@@ -3809,11 +3809,11 @@ any leading or trailing whitespace:
 Of course, words derived from C<:w> and C<:ww> will not have any whitespace,
 since that is what the words are split apart on.
 
-=item *
+=head2 Whitespace before adverbs
 
 Whitespace is allowed between the "q" and its adverb: C<q :w /.../>.
 
-=item *
+=head2 Delimiters of quoting forms
 
 For these "q" forms the choice of delimiters has no influence on the
 semantics.  That is, C<''>, C<"">, C<< <> >>, C<«»>, C<``>, C<()>,
@@ -3829,7 +3829,7 @@ Nor may a C<#> character be used as the delimiter since it is always
 taken as whitespace (specifically, as a comment).
 You may not use whitespace or alphanumerics for delimiters.
 
-=item *
+=head2 Quotes from Macros
 
 New quoting constructs may be declared as macros:
 
@@ -3841,14 +3841,14 @@ the parsing of the quoted text of the macro, then an explicit named
 parameter may be passed on as a parameter to the C<is parsed> subrule,
 or used to select which subrule to invoke.
 
-=item *
+=head2 Interpolating into a single-quoted string
 
 You may interpolate double-quotish text into a single-quoted string
 using the C<\qq[...]> construct.  Other "q" forms also work, including
 user-defined ones, as long as they start with "q".  Otherwise you'll
 just have to embed your construct inside a C<\qq[...]>.
 
-=item *
+=head2 Interpolation rules
 
 Bare scalar variables always interpolate in double-quotish
 strings.  Bare array, hash, and subroutine variables may I<never> be
@@ -3892,7 +3892,7 @@ to the normal backslashing rules of that quote context:
     "Val = $a\.[junk]";  # Val = 42.[junk]
 
 
-=item *
+=head3 Arrays
 
 In order to interpolate an entire array, it's necessary now to subscript
 with empty brackets:
@@ -3906,7 +3906,7 @@ As with Perl 5 array interpolation, the elements are separated by a space.
 of whitespace.  In particular, a list of pairs will interpolate with a
 tab between the key and value, and a newline after the pair.)
 
-=item *
+=head3 Hashes
 
 In order to interpolate an entire hash, it's necessary to subscript
 with empty braces or angles:
@@ -3920,7 +3920,7 @@ By default, keys and values are separated by tab characters, and pairs
 are terminated by newlines.  (This is almost never what you want, but
 if you want something polished, you can be more specific.)
 
-=item *
+=head3 Sub calls
 
 In order to interpolate the result of a sub call, it's necessary to include
 both the sigil and parentheses:
@@ -3930,7 +3930,7 @@ both the sigil and parentheses:
 The function is called in item context.  (If it returns a list anyway,
 that list is interpolated as if it were an array in string context.)
 
-=item *
+=head3 Method calls
 
 In order to interpolate the result of a method call without arguments,
 it's necessary to include parentheses or extend the call with something
@@ -3950,7 +3950,7 @@ the last one ends with parens:
 (The cascade is basically counted as a single method call for the
 end-bracket rule.)
 
-=item *
+=head3 Multiple dereferencers
 
 Multiple dereferencers may be stacked as long as each one ends in
 some kind of bracket or is a bare method:
@@ -3966,7 +3966,7 @@ In no case may any of the top-level components be separated by
 whitespace or unspace.  (These are allowed, though, inside any
 bracketing constructs, such as in the C<(1, 2, 3)> above.)
 
-=item *
+=head3 Closures
 
 A bare closure also interpolates in double-quotish context.  It may
 not be followed by any dereferencers, since you can always put them
@@ -3997,23 +3997,23 @@ it exactly what you I<do> want to interpolate:
 
     q:s 'Here are { $two uninterpolated } curlies';
 
-=item *
+=head3 Twigils
 
 Secondary sigils (twigils) have no influence over whether the primary sigil
 interpolates.  That is, if C<$a> interpolates, so do C<$^a>, C<$*a>,
 C<$=a>, C<$?a>, C<$.a>, etc.  It only depends on the C<$>.
 
-=item *
+=head3 Other expressions
 
 No other expressions interpolate.  Use curlies.
 
-=item *
+=head3 Class methods
 
 A class method may not be directly interpolated.  Use curlies:
 
     print "The dog bark is {Dog.bark}.\n"
 
-=item *
+=head3 Old disambiguation
 
 The old disambiguation syntax:
 
@@ -4027,19 +4027,15 @@ is dead.  Use closure curlies instead:
 
 (You may be detecting a trend here...)
 
-=item *
+=head3 Topical methods
 
 To interpolate a topical method, use curlies: C<"{.bark}">.
 
-=item *
+=head3 Function calls
 
 To interpolate a function call without a sigil, use curlies: C<"{abs $var}">.
 
-=item *
-
-And so on.
-
-=item *
+=head3 Backslash sequences
 
 Backslash sequences still interpolate, but there's no longer any C<\v>
 to mean I<vertical tab>, whatever that is...  (C<\v> now matches vertical
@@ -4053,12 +4049,12 @@ whitespace in a regex.)  Literal character representations are:
     \r          CARRIAGE RETURN
     \e          ESCAPE
 
-=item *
+=head3 Other functions
 
 There's also no longer any C<\L>, C<\U>, C<\l>, C<\u>, or C<\Q>.
 Use curlies with the appropriate function instead: C<"{ucfirst $word}">.
 
-=item *
+=head3 Unicode codepoints
 
 You may interpolate any Unicode codepoint by name using C<\c> and
 square brackets:
@@ -4105,7 +4101,7 @@ represented that way; it must be represented something like:
 
 Obviously C<\e> is preferred when brevity is needed.
 
-=item *
+=head3 Backslashing
 
 Any character that I<would> start an interpolation in the current
 quote context may be protected from such interpolation by prefixing with
@@ -4156,7 +4152,7 @@ As a consequence, these all produce the same literal string:
 highlighter a bit happier, along with any other naïve bracket
 counting algorithms...)
 
-=item *
+=head2 Bare identifiers
 
 There are no barewords in Perl 6.  An undeclared bare identifier will
 always be taken to mean a subroutine name.  (Class names
@@ -4280,7 +4276,7 @@ postfix colon is C<ever> parsed as an indirect object, but that form
 will C<always> be parsed as an indirect object regardless of whether
 the identifier is otherwise declared.
 
-=item *
+=head2 Dereferences
 
 There's also no "C<use strict 'refs'>" because symbolic dereferences
 are now syntactically distinguished from hard dereferences.
@@ -4290,7 +4286,7 @@ give fits to the P5-to-P6 translator, but I think it's worth it to
 separate the concepts.  Perhaps the symbolic ref form will admit real
 objects in a pinch.)
 
-=item *
+=head2 Hash subscripts and bare keys
 
 There is no hash subscript autoquoting in Perl 6.  Use C<< %x<foo> >>
 for constant hash subscripts, or the old standby C<< %x{'foo'} >>.  (It
@@ -4323,7 +4319,7 @@ These will be interpreted as
     :shortkey<string>
     :fookey{ $^a <=> $^b }
 
-=item *
+=head2 Double-underscore forms
 
 The double-underscore forms are going away:
 
@@ -4368,7 +4364,7 @@ would work just as well.  You can exit any labeled block early by saying
 
     MyLabel.leave(@results);
 
-=item *
+=head2 Heredocs
 
 Heredocs are no longer written with C<<< << >>>, but with an adverb on
 any other quote construct:
@@ -4386,7 +4382,7 @@ expression:
         Here is a $non-interpolated string
         END
 
-=item *
+=head3 Optional whitespace
 
 Heredocs allow optional whitespace both before and after terminating
 delimiter.  Leading whitespace equivalent to the indentation of the
@@ -4399,7 +4395,7 @@ the next line consisting only of whitespace, but such a terminator
 will be assumed to have no indentation.  (That is, it's assumed to
 match at the beginning of any whitespace.)
 
-=item *
+=head3 One-pass heredoc parsing
 
 There are two possible ways to parse heredocs.  One is to look ahead
 for the newline and grab the lines corresponding to the heredoc, and
@@ -4430,7 +4426,7 @@ You must instead put the entire heredoc into the C<BEGIN>:
         END
     }
 
-=item *
+=head2 Version literals
 
 A version literal is written with a 'v' followed by the version
 number in dotted form.  This always constructs a C<Version> object,
@@ -4499,8 +4495,6 @@ versions can still be used by Perl since by default Perl imports
 external modules by exact version number.  (See S11.)  Only range
 operations will be compromised by an unknown foreign collation order,
 such as a system that sorts "delta" after "gamma".
-
-=back
 
 =head1 Context
 
