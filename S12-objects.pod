@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 1 Aug 2011
-    Version: 120
+    Last Modified: 13 Aug 2011
+    Version: 121
 
 =head1 Overview
 
@@ -1590,33 +1590,42 @@ For any named type, certain other subset types may automatically be derived
 from it by appending an appropriate adverbial to its name:
 
     Int:_       Allow either defined or undefined Int values
-    Int:A       Allow only uninitialized abstract Int values
-    Int:U       Allow only undefined (abstract or failure) Int values
     Int:D       Allow only defined (concrete) Int values
+    Int:U       Allow only undefined (abstract or failure) Int values
+    Int:T       Allow Int only as a type object
 
-That is, these are equivalent:
+That is, these mean something like:
 
-    Int:A       Int:_ where none(Failure)
-    Int:U       Int:_ where !*.defined
-    Int:D       Int:_ where *.defined
+    Int:D       Int:_ where DEFINITE($_)
+    Int:U       Int:_ where not(DEFINITE($_))
+    Int:T       Int:U where none(Failure)
 
-In standard Perl 6, C<Int> is always assumed to mean C<Int:_>, but
-this default may be changed within a lexical scope by various pragmas.
+where C<DEFINITE> is a boolean macro that says whether the object
+in question has a valid concrete representation (see L</Introspection> below).
+
+In standard Perl 6, C<Int> is generally assumed to mean C<Int:_>, except
+for invocants, where the default is C<Int:D>.  (The default C<new> method
+has a prototype whose invocant is C<:T> instead, so all new methods all
+default to allowing type objects.)
+
+These defaults may be changed within a lexical scope by various pragmas.
 In particular,
 
     use parameters :D;
 
-will cause non-invocant parameters to default to C<:D>, while
-
-    use invocant :D;
-
-will do the same for the invocant parameter.  In such lexical
-scopes you may use the C<:_> form to get back to the standard behavior.
-Conjecturally,
+will cause non-invocant parameters to default to C<:D>.  Conjecturally,
 
     use variables :D;
 
 would do the same for types used in variable declarations.
+
+In such lexical
+scopes you may use the C<:_> form to get back to the standard behavior.
+In particular, since invocants default to defined,
+
+    use invocant :_;
+
+will make invocants allow any sort of defined or undefined invocant.
 
 =head2 Multiple constraints
 
@@ -2253,6 +2262,12 @@ variable form anyway:
     $obj.$somemeth
 
 which also bypasses the macros.
+
+There is one more macro:
+
+    DEFINITE    the object has a valid concrete representation
+
+The C<DEFINITE> macro serves as the default for the C<Mu.defined> method.
 
 For now Perl 6 reserves the right to change how all these macros
 and the corresponding C<^> forms are defined in terms of each other.
