@@ -4555,9 +4555,7 @@ the separate C<.defined> method is always there if you need it.
 
 =head1 Lists
 
-=over 4
-
-=item *
+=head2 Lazy flattening
 
 List context in Perl 6 is by default lazy.  This means a list can
 contain infinite generators without blowing up.  No flattening happens
@@ -4566,7 +4564,7 @@ method at call time (and maybe not even then).  We say that such
 an argument list is "lazily flattened", meaning that we promise to
 flatten the list on demand, but not before.
 
-=item *
+=head2 C<list>, C<flat>, C<item>, and C<.tree>
 
 There is a "C<list>" operator which imposes a list context on
 its arguments even if C<list> itself occurs in a item context.
@@ -4601,14 +4599,14 @@ mutable array, use explicit square brackets around the list.)
 
 To force a non-flattening item context, use the "C<item>" operator.
 
-=item *
+=head2 Forcing capture context
 
 The C<|> prefix operator may be used to force "capture" context on its
 argument and I<also> defeat any scalar argument checking imposed by
 subroutine signature declarations.  Any resulting list arguments are
 then evaluated lazily.
 
-=item *
+=head2 The C<eager> operator
 
 To force non-lazy list processing, use the C<eager> list operator.
 List assignment is also implicitly eager. (Actually, when we say
@@ -4629,7 +4627,7 @@ in the array will also force eager completion.)
 This operator is agnostic towards flattening or slicing.  In merely changes
 the work-ahead policy for the value generator.
 
-=item *
+=head2 The C<hyper> operator
 
 A variant of C<eager> is the C<hyper> list operator, which declares
 not only that you want all the values generated now, but that you want
@@ -4644,7 +4642,7 @@ the hyper is done.  Thinking about Map-Reduce algorithms here...)
 This operator is agnostic towards flattening or slicing.  It merely changes
 the work-ahead policy for the value generator.
 
-=item *
+=head2 Signature checking
 
 Signatures on non-multi subs can be checked at compile time, whereas
 multi sub and method call signatures can only be checked at run time
@@ -4660,12 +4658,12 @@ know which signature to check against.  Such return values are
 bundled up into a "parcel" for later delivery to a context that
 will determine its context lazily.
 
-=item *
+=head2 The C<< => >> operator
 
 The C<< => >> operator now constructs C<Pair> objects rather than merely
 functioning as a comma.  Both sides are in item context.
 
-=item *
+=head2 The C<< .. >> operator
 X<..>
 
 The C<< .. >> operator now constructs a C<Range> object rather than merely
@@ -4673,7 +4671,7 @@ functioning as an operator.  Both sides are in item context.  Semantically,
 the C<Range> acts like a list of its values to the extent possible, but
 does so lazily, unlike Perl 5's eager range operator.
 
-=item *
+=head2 Hash assignment
 
 There is no such thing as a hash list context.  Assignment to a hash
 produces an ordinary list context.  You may assign alternating keys
@@ -4685,7 +4683,7 @@ in which the key is the inner C<Pair>:
 
     %hash = (($keykey => $keyval) => $value);
 
-=item *
+=head2 The anonymous C<enum> function
 
 The anonymous C<enum> function takes a list of keys or pairs, and adds
 values to any keys that are not already part of a key.  The value added
@@ -4700,14 +4698,12 @@ are the same as:
     %hash = ();
     %hash<Mon Tue Wed Thu Fri Sat Sun> = 1..7;
 
-=item *
+=head2 Hash binding
 
 In contrast to assignment, binding to a hash requires a C<Hash> (or
 C<Pair>) object.  Binding to a "splat" hash requires a list of pairs
 or hashes, and stops processing the argument list when it runs out
 of pairs or hashes.  See S06 for much more about parameter binding.
-
-=back
 
 =head1 Files
 
