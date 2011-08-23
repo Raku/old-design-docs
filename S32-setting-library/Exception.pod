@@ -142,13 +142,13 @@ An unthrown exception, usually produce by C<fail()>.
 (Conjecture: S04 implies that all exceptions have a C<$.handled> attribute.
 Do we actually need that?)
 
-=head2 BackTrace
+=head2 Backtrace
 
-    class BackTrace does Positional[BackTraceLine] {
+    class Backtrace does Positional[Backtrace::Frame] {
         method Stringy() { ... }
         method full() { ... }
     }
-    class BackTraceLine {
+    class Backtrace::Frame {
         has $.file;
         has $.line;
         has $.code;
@@ -175,10 +175,10 @@ C<hidden_from_backtrace> trait:
 
     sub my-die(*@msg) is hidden_from_backtrace { }
 
-the C<is-hidden> method in C<BackTraceLine> returns C<Bool::True> for routines
+the C<is-hidden> method in C<Backtrace::Frame> returns C<Bool::True> for routines
 with that trait.
 
-The C<full> method in C<BackTrace> provides a string representation of the
+The C<full> method in C<Backtrace> provides a string representation of the
 backtrace that includes all available code objects, including hidden ones.
 
 If a code object does not have a name, C<< <anon> >> is used instead of the
