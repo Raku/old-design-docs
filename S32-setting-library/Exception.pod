@@ -18,8 +18,8 @@ Authors of previous versions of this document:
 
     Created: 26 Feb 2009
 
-    Last Modified: 29 April 2011
-    Version: 3
+    Last Modified: 23 August 2011
+    Version: 4
 
 The document is a draft.
 
@@ -144,8 +144,19 @@ Do we actually need that?)
 
 =head2 BackTrace
 
-    class X::BackTrace does Positional[CallFrame] {
-        method Str() { ... }
+    class BackTrace does Positional[BackTraceLine] {
+        method Stringy() { ... }
+        method full() { ... }
+    }
+    class BackTraceLine {
+        has $.file;
+        has $.line;
+        has $.code;
+        has $.subname;
+
+        method is-hidden () { ... }
+        method is-routine() { ... }
+        method is-setting() { ... }
     }
 
 Backtrace information, typically used (but not limited to) in exceptions.
@@ -157,5 +168,19 @@ Stringifies to
 
 with two leading spaces on each line.
 
-If a routine does not have a name, C<< <anon> >> is used instead of the
+The default stringification includes blocks and routines from user-space
+code, but from the setting only routines are shown [conjectural]. Routines
+can be hidden from the default backtrace stringification by apply the
+C<hidden_from_backtrace> trait:
+
+    sub my-die(*@msg) is hidden_from_backtrace { }
+
+the C<is-hidden> method in C<BackTraceLine> returns C<Bool::True> for routines
+with that trait.
+
+The C<full> method in C<BackTrace> provides a string representation of the
+backtrace that includes all available code objects, including hidden ones.
+
+If a code object does not have a name, C<< <anon> >> is used instead of the
 routine name.
+
