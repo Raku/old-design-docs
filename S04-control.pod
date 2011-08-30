@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 23 Aug 2011
-    Version: 112
+    Last Modified: 30 Aug 2011
+    Version: 113
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1029,16 +1029,19 @@ something like this:
         my @handled = ();
         my @unhandled = ();
         my @*undead = ();
-        SIMPLECATCH { push @*undead, $_ }
 
         for @! {
-            push @handled, $_;
+            # note, fails current iteration, continues with loop
+            SIMPLECATCH { push @*undead, $_; push @unhandled, OUTER::<$_>; }
 
+            .handled = True;
             when Mumble {...}
             default {...}
+            .handled = False;
 
-            pop @handled;
-            push @*unhandled, $_ unless .handled;
+            push @*unhandled, $_;
+
+            KEEP { push @handled, $_ if .handled }
         }
 
         push @unhandled, @*undead;
