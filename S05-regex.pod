@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 9 Jul 2011
-    Version: 145
+    Last Modified: 8 Sep 2011
+    Version: 146
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -2252,14 +2252,18 @@ defaults to greedy in Perl 5.)
 =item *
 
 To force the preceding atom to do no backtracking, use a single C<:>
-without a subsequent C<?> or C<!>.
-Backtracking over a single colon causes the regex engine not to retry
-the preceding atom:
+without a subsequent C<?> or C<!>.  Backtracking over a single colon
+causes the regex engine not to retry the preceding atom:
 
      ms/ \( <expr> [ , <expr> ]*: \) /
 
 (i.e. there's no point trying fewer C<< <expr> >> matches, if there's
 no closing parenthesis on the horizon)
+
+When modifying a quantifier, a C<+> may be used instead of a C<:>, in
+which case the quantifier is often known as a I<possessive> quantifier.
+
+     ms/ \( <expr> [ , <expr> ]*+ \) /  # same thing
 
 To force all the atoms in an expression not to backtrack by default,
 use C<:ratchet> or C<rule> or C<token>.
