@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 13 Aug 2011
-    Version: 121
+    Last Modified: 14 Sep 2011
+    Version: 122
 
 =head1 Overview
 
@@ -1185,7 +1185,7 @@ the longname as if the user had declared a capture parameter to bind
 the rest of the arguments, and that capture parameter has a constraint
 that it must bind successfully to the additional required parameters.
 All such signatures within a given rank are considered equivalent,
-and subject to tiebreaker A below.
+and subject to tiebreaker B below.
 
 This defines the partial ordering of all the candidates.  If the
 topological sort detects a circularity in the partial ordering,
@@ -1195,25 +1195,30 @@ tiebreaker that could break the tie.
 
 =head3 Candidate Tiebreaking
 
-There are two tiebreaking modes, in increasing order of desperation:
+There are three tiebreaking modes, in increasing order of desperation:
 
-    A) run-time constraint processing
-    B) use of a candidate marked with "is default"
+    A) inner or derived scope
+    B) run-time constraint processing
+    C) use of a candidate marked with "is default"
 
-In the absence of any constraints, ties in the nominal typing
-immediately failover to tiebreaker B; if not resolved by B,
+Tiebreaker A simply prefers candidates in an inner or more
+derived scope over candidates in an outer or less derived scope.
+For candidates in the same scope, we proceed to tiebreaker B.
+
+In the absence of any constraints, ties in tiebreaker A
+immediately failover to tiebreaker C; if not resolved by C,
 they warn at compile time about an ambiguous dispatch.
 
 If there are any tied candidates with constraints, it follows from our
 definitions above that all of them are considered to be constrained.
 In the presence of longname parameters with constraints, or the
-implied constraint of extra required arguments, tiebreaker A is
+implied constraint of extra required arguments, tiebreaker B is
 applied.  Candidates which are tied nominally but have constraints
 are considered to be a completely different situation, insofar as it
 is assumed the user knows exactly why each candidate has the extra
 constraints it has.  Thus, constrained signatures are considered to
 be much more like a switch defined by the user.  So for tiebreaker
-A the candidates are simply called in the order they were declared,
+B the candidates are simply called in the order they were declared,
 and the first one that successfully binds (and completes without
 calling nextsame or nextwith) is considered the winner, and all the
 other tied candidates are ignored.  If all the constrained
@@ -1221,8 +1226,8 @@ candidates fail, we throw out the rank of constrained variants and
 proceed to the next tighter rank, which may consist of the
 unconstrained variants without extra arguments.
 
-For ranks that are not decided by constraint (tiebreaker A),
-tiebreaker B is used: only candidates marked with the C<default>
+For ranks that are not decided by constraint (tiebreaker B),
+tiebreaker C is used: only candidates marked with the C<default>
 trait are considered, and the best matching default routine is used.
 If there are no default routines, or if two or more of the defaults
 are tied for best, the dispatch fails.
@@ -1249,8 +1254,8 @@ Note that a call to the routine must still be compatible with
 subsequent arguments.
 
 Note that the C<$by> is not a required parameter, so doesn't impose
-the kind of constraint that allows tiebreaker A.  If the default
-were omitted, it would be a required parameter, and subject to tiebreaker A.
+the kind of constraint that allows tiebreaker B.  If the default
+were omitted, it would be a required parameter, and subject to tiebreaker B.
 Likewise an ordinary named parameter does not participate as a tiebreaker,
 but you can mark named parameters as required to effectively make
 a switch based on named binding:
@@ -1261,7 +1266,7 @@ a switch based on named binding:
 
     multi foo (Int $a;; *%_) {...}      # unconstrained
 
-The first three are dispatched under tiebreaker A as a constrained
+The first three are dispatched under tiebreaker B as a constrained
 rank.  If none of them can match, the final one is dispatched as
 an unconstrained rank, since C<*%_> is not considered a required
 parameter.
