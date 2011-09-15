@@ -1825,15 +1825,13 @@ to C<Cool>.
 
 =head1 Names and Variables
 
-=over 4
-
-=item *
+=head2 Apostrophe separator
 
 The C<$Package'var> syntax is gone.  Use C<$Package::var> instead.
 (Note, however, that identifiers may now contain an apostrophe or
 hyphen if followed by a character matching C<< <.alpha> >>)
 
-=item *
+=head2 Sigils
 
 Perl 6 includes a system of B<sigils> to mark the fundamental
 structural type of a variable:
@@ -1863,7 +1861,7 @@ refer to the same type, since the inner declaration would rebind
 the type.  (Note that the signature of a pointy block counts as part
 of the inner block, not the outer block.)
 
-=item *
+=head3 Sigils indicate interface
 
 Sigils indicate overall interface, not the exact type of the bound
 object.  Different sigils imply different minimal abilities.
@@ -1916,12 +1914,12 @@ construct a list value that may then be bound to an array variable.
 Subscripting such a list does not imply subscripting back into the
 original object.
 
-=item *
+=head3 No intervening whitespace
 
 Unlike in Perl 5, you may no longer put whitespace between a sigil
 and its following name or construct.
 
-=item *
+=head2 Twigils
 
 Ordinary sigils indicate normally scoped variables, either lexical
 or package scoped.  Oddly scoped variables include a secondary sigil
@@ -1943,7 +1941,7 @@ Most variables with twigils are implicitly declared or assumed to
 be declared in some other scope, and don't need a "my" or "our".
 Attribute variables are declared with C<has>, though.
 
-=item *
+=head2 Scope declarators
 
 Normal names and variables are declared using a I<scope declarator>:
 
@@ -1965,7 +1963,7 @@ can be used in error messages, but that isn't put into any symbol table:
     my $secret = anon sub marine () {...}
     $secret(42)  # too many arguments to sub marine
 
-=item *
+=head2 Invariant sigils
 
 Sigils are now invariant.  C<$> always means a scalar variable, C<@>
 an array variable, and C<%> a hash variable, even when subscripting.
@@ -1975,7 +1973,7 @@ formerly known as scalar context, but we now reserve the "scalar"
 notion for talking about variables rather than contexts, much as
 arrays are disassociated from list context.)
 
-=item *
+=head2 Container stringification
 
 In string contexts, container objects automatically stringify to
 appropriate (white-space separated) string values.  In numeric
@@ -1983,7 +1981,7 @@ contexts, the number of elements in the container is returned.
 In boolean contexts, a true value is returned if and only if there
 are any elements in the container.
 
-=item *
+=head2 The C<.perl> method
 
 To get a Perlish representation of any object, use the C<.perl> method.
 Like the C<Data::Dumper> module in Perl 5, the C<.perl> method will put
@@ -2003,7 +2001,7 @@ C<MONKEY_TYPING>, or for specific classes unless special care is taken to
 maintain parsability) is unwise.  Code which does not depend on C<.perl>'s
 definition should use C<.pretty> instead to allow more control.
 
-=item *
+=head2 The C<.pretty> method
 
 C<.pretty>, by contrast with C<.perl>, returns a flexible form of an object
 intended for human interpretation.  Specific user classes are encouraged to
@@ -2028,7 +2026,7 @@ It may also be desirable to use a richer format for intermediate strings than
 simple C<Str>, for instance using an object format that can handle intelligent
 line breaking.  However, that's probably overkill.]
 
-=item *
+=head2 The C<.fmt> method
 
 To get a formatted representation of any scalar value, use the
 C<.fmt('%03d')> method to do an implicit C<sprintf> on the value.
@@ -2037,7 +2035,7 @@ To format an array value separated by commas, supply a second argument:
 C<.fmt('%03d', ', ')>.  To format a hash value or list of pairs, include
 formats for both key and value in the first string: C<< .fmt('%s: %s', "\n") >>.
 
-=item *
+=head2 Subscripts
 
 Subscripts now consistently dereference the container produced by
 whatever was to their left.  Whitespace is not allowed between a
@@ -2050,12 +2048,10 @@ in angles, so C<%bar.{'a'}> may also be written as C<< %bar<a> >>
 or C<< %bar.<a> >>.  Additionally, you may insert extra whitespace
 using the unspace.
 
-=item *
-
 Slicing is specified by the nature of the subscript, not by
 the sigil.
 
-=item *
+=head3 Subscripts have list context
 
 The context in which a subscript is evaluated is no longer controlled
 by the sigil either.  Subscripts are always evaluated in list context.
@@ -2093,7 +2089,7 @@ But note that these don't do the same thing:
     @x[$g()]           # call function in $g
     %x{$g()}           # call function in $g
 
-=item *
+=head2 List assignment and binding
 
 There is a need to distinguish list assignment from list binding.
 List assignment works much like it does in Perl 5, copying the
@@ -2102,7 +2098,7 @@ names to C<Array> and C<Hash> objects without copying, in the same way
 as subroutine arguments are bound to formal parameters.  See S06
 for more about binding.
 
-=item *
+=head2 Parcels
 
 A list of one or more comma-separated objects may be grouped together
 by parentheses into a "parenthesis cell", or C<Parcel>.  This kind of
@@ -2171,7 +2167,7 @@ wrapped up in a parcel are considered degenerate parcels in their
 own right when it comes to binding.  Note that a capture is not
 considered a kind of parcel, so does not flatten in flat context.
 
-=item *
+=head2 Parcels, parameters, and Captures
 
 When a C<Parcel> is bound to a parameter, the behavior depends on whether
 the parameter is "flattening" or "argumentative".  Positional parameters
@@ -2301,7 +2297,7 @@ returning an empty list:
 Given C<sink>, there's no need for an "else" clause on Perl 6's loops,
 and the C<sink> construct works in any list, not just C<for> loops.
 
-=item *
+=head2 CaptureCursors
 
 A C<CaptureCursor> object is a view into another capture with an associated
 start position.  Such a cursor is essentially a pattern-matching state.
@@ -2312,7 +2308,7 @@ mean either C<Capture> or C<CaptureCursor>.  C<CaptureCursors> are also
 immutable.  When pattern matching a signature against a cursor, you
 get a new cursor back which tells you the new position in the base capture.
 
-=item *
+=head2 Signature objects
 
 A signature object (C<Signature>) may be created with colon-prefixed parens:
 
@@ -2336,7 +2332,7 @@ in parentheses:
     sub foo (Num Dog|Squirrel $numdog, MySig $a ($i,$j,$k,$mousestatus)) {...}
     foo($mynumdog, \(1, 2.7182818, 1.0i, statmouse());
 
-=item *
+=head2 Ampersand and invocation
 
 Unlike in Perl 5, the notation C<&foo> merely stands for the C<foo>
 function as a C<Routine> object without calling it.  You may call any Code
@@ -2379,7 +2375,7 @@ If you I<do> use the dotty form on these special forms, it will
 assume you wanted to call the named form without arguments, and
 then dereference the result of that.
 
-=item *
+=head2 Specifying a dispatch candidate
 
 With multiple dispatch, C<&foo> is actually the name of a C<dispatch>
 routine (instantiated from a C<proto>) controlling a set of candidate
@@ -2400,7 +2396,7 @@ applied by using the C<.assuming> method:
 
     &foo.assuming(1,2,3,:mice<blind>)
 
-=item *
+=head2 Multidimensional slices and parcels
 
 Slicing syntax is covered in S09.  A multidimensional
 slice will be done with semicolons between individual slice sublists.
@@ -2417,7 +2413,7 @@ really means
 
 Each such slice sub-parcel is evaluated lazily.
 
-=item *
+=head2 Subscript adverbs
 
 To make a slice subscript return something other than values, append an
 appropriate adverb to the subscript.
@@ -2471,7 +2467,7 @@ an error -- preferably at compile time -- because it could be
 argued both ways whether C<:exists> on a bare list would have
 C<any> or C<all> semantics.
 
-=item *
+=head2 Numeric and boolean context of hashes
 
 In numeric context (i.e. when cast into C<Int> or C<Num>), a C<Hash> object
 becomes the number of pairs contained in the hash.  In a boolean context, a
@@ -2480,38 +2476,30 @@ any intrinsic iterator would be reset.  (If hashes do carry an intrinsic
 iterator (as they do in Perl 5), there will be a C<.reset> method on the
 hash object to reset the iterator explicitly.)
 
-=item *
+=head2 List sorting
 
 Sorting a list of pairs should sort on their keys by default, then
 on their values.  Sorting a list of lists should sort on the first
 elements, then the second elements, etc.  For more on C<sort> see S29.
 
-=item *
+=head2 Special variables
 
 Many of the special variables of Perl 5 are going away.  Those that
 apply to some object such as a filehandle will instead be attributes
 of the appropriate object.  Those that are truly global will have
 global alphabetic names, such as C<$*PID> or C<@*ARGS>.
 
-=item *
-
 Any remaining special variables will be lexically scoped.
 This includes C<$_> and C<@_>, as well as the new C<$/>, which
 is the return value of the last regex match.  C<$0>, C<$1>, C<$2>, etc.,
 are aliases into the C<$/> object.
 
-=item *
+=head2 Array end index
 
 The C<$#foo> notation is dead.  Use C<@foo.end> or C<@foo[*-1]> instead.
 (Or C<@foo.shape[$dimension]> for multidimensional arrays.)
 
-=back
-
 =head1 Names
-
-=over 4
-
-=item *
 
 An I<identifier> is composed of an alphabetic character followed by
 any sequence of alphanumeric characters.  The definitions of alphabetic
@@ -2566,9 +2554,9 @@ Attempts to say something like:
 will result in the message, "Anonymous variable requires declarator".
 
 
-=item *
+=head2 Package-qualified names
 
-Ordinary package-qualified names look like in Perl 5:
+Ordinary package-qualified names look like they do in Perl 5:
 
     $Foo::Bar::baz      # the $baz variable in package Foo::Bar
 
@@ -2579,7 +2567,7 @@ alternate way to write this is:
 
 This is resolved at compile time because the variable name is a constant.
 
-=item *
+=head2 Pseudo-packages
 
 The following pseudo-package names are reserved at the front of a name:
 
@@ -2720,7 +2708,7 @@ declared without the sigil:
 
     augment package GLOBAL { our %ENV; }
 
-=item *
+=head2 Interpolating into names
 
 You may interpolate a string into a package or variable name using
 C<::($expr)> where you'd ordinarily put a package or variable name.
@@ -2754,7 +2742,7 @@ at C<CORE>). The current package is searched last.
 Use the C<MY> pseudopackage to limit the lookup to the current lexical
 scope, and C<OUR> to limit the scopes to the current package scope.
 
-=item *
+=head2 Strict lookup 
 
 When "strict" is in effect (which is the default except for one-liners),
 non-qualified variables (such as C<$x> and C<@y>) are only looked up from
@@ -2767,7 +2755,7 @@ To bind global variables into a lexical scope, predeclare them with C<use>:
 
 Or just refer to them as C<$*IN> and C<$*OUT>.
 
-=item *
+=head2 Direct lookup
 
 To do direct lookup in a package's symbol table without scanning, treat
 the package name as a hash:
@@ -2804,7 +2792,7 @@ As a result of these rules, you can write any arbitrary variable name as either 
 
 You can also use the C<< ::<> >> form as long as there are no spaces in the name.
 
-=item *
+=head2 Symbol tables
 
 The current lexical symbol table is now accessible through the
 pseudo-package C<MY>.  The current package symbol table is visible as
@@ -2831,7 +2819,7 @@ You may not use any lexically scoped symbol table, either by name or
 by reference, to add symbols to a lexical scope that is done compiling.
 (We reserve the right to relax this if it turns out to be useful though.)
 
-=item *
+=head2 Dynamic lookup
 
 The C<CALLER> package refers to the lexical scope of the (dynamically
 scoped) caller.  The caller's lexical scope is allowed to hide any
@@ -2854,7 +2842,7 @@ dynamic variables as readonly is very helpful in terms of sharing
 the same value among competing threads, since a readonly variable
 need not be locked.)
 
-=item *
+=head2 C<DYNAMIC>
 
 The C<DYNAMIC> pseudo-package is just like C<CALLER> except that
 it starts in the current dynamic scope and from there scans outward
@@ -2894,7 +2882,7 @@ I<dynamic> scopes.  That is, the same search is done as with the bare
 C<$*foo>, but any "hits" are ignored until we've got to the C<OUTER>
 scope in our traversal.
 
-=item *
+=head2 Package lookup
 
 There is no longer any special package hash such as C<%Foo::>.  Just
 subscript the package object itself as a hash object, the key of which
@@ -2913,7 +2901,7 @@ hash representing each symbol table, but you have to include the
 sigil in the variable name now: C<MyPackage::{'$foo'}> or the
 equivalent C<< MyPackage::<$foo> >>.
 
-=item *
+=head2 Globals
 
 Interpreter globals live in the C<GLOBAL> package.  The user's program
 starts in the C<GLOBAL> package, so "our" declarations in the mainline
@@ -2921,7 +2909,7 @@ code go into that package by default.  Process-wide variables live in
 the C<PROCESS> package.  Most predefined globals such as C<$*UID>
 and C<%*PID> are actually process globals.
 
-=item *
+=head2 The C<PROCESS> package
 
 There is only ever a single C<PROCESS> package.
 For an ordinary Perl program running by itself, there is only one C<GLOBAL>
@@ -2941,7 +2929,7 @@ If the process wishes to grant subprocesses the ability to communicate
 via the C<PROCESS> namespace, it must supply a writeable dynamic variable
 to all the subprocesses granted that privilege.
 
-=item *
+=head2 Dynamic variable creation
 
 It is illegal to assign or bind a dynamic variable that does not already exist.
 It will not be created in C<GLOBAL> (or C<PROCESS>) automatically, nor is it
@@ -2950,20 +2938,20 @@ package name to get that to work:
 
     GLOBAL::<$mynewvar> = $val;
 
-=item *
+=head2 The magic input handle
 
 The magic command-line input handle is C<$*ARGFILES>.
 The arguments themselves come in C<@*ARGS>.  See also "Declaring a MAIN
 subroutine" in S06.
 
-=item *
+=head2 Magical file-scoped values
 
 Magical file-scoped values live in variables with a C<=> secondary
 sigil.  C<$=DATA> is the name of your C<DATA> filehandle, for instance.
 All Pod structures are available through C<%=POD> (or some such).
 As with C<*>, the C<=> may also be used as a package name: C<$=::DATA>.
 
-=item *
+=head2 Magical lexically scoped values
 
 Magical lexically scoped values live in variables with a C<?> secondary
 sigil.  These are all values that are known to the compiler, and may
@@ -3036,7 +3024,7 @@ Note that some of these things have parallels in the C<*> space at run time:
 You should not assume that these will have the same value as their
 compile-time cousins.
 
-=item *
+=head2 The C<COMPILING> pseudopackage
 
 While C<$?> variables are constant to the run time, the compiler
 has to have a way of changing these values at compile time without
@@ -3080,7 +3068,7 @@ set an initial value for other lexicals in the compiling scope.  The
 answer is yes.  In fact, this mechanism is probably used by the
 exporter to bind names into the importer's namespace.
 
-=item *
+=head2 Switching parsers
 
 The currently compiling Perl parser is switched by modifying
 one of the braided languages in
@@ -3098,7 +3086,7 @@ current compiling scope.  It may not be shared, at least not without
 explicit consent of all parties.  No magical syntax at a distance.
 Consent of the governed, and all that.
 
-=item *
+=head2 Slangs
 
 Individual sublanguages ("slangs") may be referred to using the C<~> twigil.  The following
 are useful:
@@ -3142,7 +3130,7 @@ you just want to disable that sublanguage in the current lexical scope:
 If you supersede C<MAIN> then you're replacing the Perl parser entirely.
 This might be done by, say, the "use COBOL" declaration. C<:-)>
 
-=item *
+=head2 Extended identifiers
 
 It is often convenient to have names that contain arbitrary characters
 or other data structures.  Typically these uses involve situations
@@ -3189,8 +3177,6 @@ These name the same module:
     use ThatModule:ver<2.7.18.28.18>:auth<Somebody>
 
 Adverbial syntax will be described more fully later.
-
-=back
 
 =head1 Literals
 
