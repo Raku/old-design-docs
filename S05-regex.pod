@@ -18,7 +18,7 @@ Synopsis 5: Regexes and Rules
     Created: 24 Jun 2002
 
     Last Modified: 20 Sep 2011
-    Version: 147
+    Version: 148
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -941,7 +941,7 @@ side of the complete quantifier.  This space is considered significant
 under C<:sigspace>, and will be distributed as a call to <.ws> between
 all the elements of the match but not on either end.
 
-The next token will determine what kind of repetition is desired:
+The next token constrains how many times the pattern on the left must match.
 
 If the next thing is an integer, then it is parsed as either as an exact
 count or a range:
@@ -965,80 +965,6 @@ It is illegal to return a list, so this easy mistake fails:
 The closure form is always considered procedural, so the item it is
 modifying is never considered part of the longest token.
 
-If you supply any other atom (which may be quantified), it is
-interpreted as a separator (such as an infix operator), and the
-initial item is quantified by the number of times the separator is
-seen between items:
-
-    <alt> ** '|'            # repetition controlled by presence of character
-    <addend> ** <addop>     # repetition controlled by presence of subrule
-    <item> ** [ \!?'==' ]   # repetition controlled by presence of operator
-    <file>**\h+             # repetition controlled by presence of whitespace
-
-A successful match of such a quantifier always ends "in the middle",
-that is, after the initial item but before the next separator.
-Therefore
-
-    / <ident> ** ',' /
-
-can match
-
-    foo
-    foo,bar
-    foo,bar,baz
-
-but never
-
-    foo,
-    foo,bar,
-
-It is legal for the separator to be zero-width as long as the pattern on
-the left progresses on each iteration:
-
-    . ** <?same>   # match sequence of identical characters
-
-The separator never matches independently of the next item; if the
-separator matches but the next item fails, it backtracks all the way
-back through the separator.  Likewise, this matching of the separator
-does not count as "progress" under C<:ratchet> semantics unless the
-next item succeeds.
-
-When significant space is used under C<:sigspace> with the separator
-form, it applies on both sides of the separator, so
-
-    ms/<element> ** ','/
-    ms/<element>** ','/
-    ms/<element> **','/
-
-all allow whitespace around the separator like this:
-
-    / <element>[<.ws>','<.ws><element>]* /
-
-while
-
-    ms/<element>**','/
-
-excludes all significant whitespace:
-
-    / <element>[','<element>]* /
-
-Of course, you can always match whitespace explicitly if necessary, so to
-allow whitespace after the comma but not before, you can say:
-
-    / <element>**[','\s*] /
-
-You may use both forms of C<**> at once by use of this special form:
-
-    / <expr> ** 0..* ** ',' /
-
-The default is a mininum of 1 time, so when you write
-
-    / <stuff> ** ',' /
-
-it really means
-
-    / <stuff> ** 1..* ** ',' /
-
 =item *
 
 Negative range values are allowed, but only when modifying a reversible
@@ -1053,6 +979,94 @@ Similarly, you can back up 50 characters with:
 
 [Conjecture: A negative quantifier forces the construct to be
 considered procedural rather than declarational.]
+
+=item *
+
+Any quantifier may be modified by an additional constraint that
+specifies the separator to look for between repeats of the left side.
+This is indicated by use of a C<%> between the quantifier and
+the separator.  The initial item is iterated only as long as the
+separator is seen between items:
+
+    <alt>+ % '|'            # repetition controlled by presence of character
+    <addend>+ % <addop>     # repetition controlled by presence of subrule
+    <item>+ % [ \!?'==' ]   # repetition controlled by presence of operator
+    <file>+%\h+             # repetition controlled by presence of whitespace
+
+Any quantifier may be so modified:
+
+    <a>* % ','              # 0 or more comma-separated elements
+    <a>+ % ','              # 1 or more 
+    <a>? % ','              # 0 or 1 (but ',' never used!?!)
+    <a> ** 2..* % ','       # 2 or more 
+
+The C<%> modifier may only be used on a quantifier; any attempt
+to use it on a bare term will result in a parse error (to minimize
+possible confusion with any hash notations we choose to support in
+Perl 6 regexes).
+
+A successful match of a C<%> construct generally ends "in the middle" at the C<%>,
+that is, after the initial item but before the next separator.
+Therefore
+
+    / <ident>+ % ',' /
+
+can match
+
+    foo
+    foo,bar
+    foo,bar,baz
+
+but never
+
+    foo,
+    foo,bar,
+
+The only time such a match doesn't end in the middle is if the left
+side can match 0 times (and does so), in which case the whole construct
+matches the null string.
+
+    '' ~~ / <ident>* % ',' /  # matches because of the *
+
+If you wish to quantify each match on the left without the modifier, you must place it in brackets:
+
+    [<a>*]+ % ','
+
+It is legal for the separator to be zero-width as long as the pattern on
+the left progresses on each iteration:
+
+    .+ % <?same>   # match sequence of identical characters
+
+The separator never matches independently of the next item; if the
+separator matches but the next item fails, it backtracks all the way
+back through the separator.  Likewise, this matching of the separator
+does not count as "progress" under C<:ratchet> semantics unless the
+next item succeeds.
+
+[Note: the following may be subject to change, now that this construct is
+a quant modifier.] When significant space is used under C<:sigspace>,
+it applies on both sides of the separator, so
+
+    ms/<element>+ % ','/
+    ms/<element>+% ','/
+    ms/<element>+ %','/
+
+all allow whitespace around the separator like this:
+
+    / <element>[<.ws>','<.ws><element>]* /
+
+while
+
+    ms/<element>+%','/
+
+excludes all significant whitespace like this:
+
+    / <element>[','<element>]* /
+
+Of course, you can always match whitespace explicitly if necessary, so to
+allow whitespace after the comma but not before, you can say:
+
+    / <element>+%[','\s*] /
 
 =item *
 
