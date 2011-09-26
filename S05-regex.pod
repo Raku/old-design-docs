@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 20 Sep 2011
-    Version: 148
+    Last Modified: 25 Sep 2011
+    Version: 149
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -982,7 +982,7 @@ considered procedural rather than declarational.]
 
 =item *
 
-Any quantifier may be modified by an additional constraint that
+Any quantified atom may be modified by an additional constraint that
 specifies the separator to look for between repeats of the left side.
 This is indicated by use of a C<%> between the quantifier and
 the separator.  The initial item is iterated only as long as the
@@ -1028,7 +1028,21 @@ matches the null string.
 
     '' ~~ / <ident>* % ',' /  # matches because of the *
 
-If you wish to quantify each match on the left without the modifier, you must place it in brackets:
+If you wish to allow the match to end after either side, use C<%%> instead.
+Therefore
+
+    / <ident>+ %% ',' /
+
+can match any of
+
+    foo
+    foo,
+    foo,bar
+    foo,bar,
+    foo,bar,baz
+    foo,bar,baz,
+
+If you wish to quantify each match on the left individually, you must place it in brackets:
 
     [<a>*]+ % ','
 
@@ -1043,8 +1057,7 @@ back through the separator.  Likewise, this matching of the separator
 does not count as "progress" under C<:ratchet> semantics unless the
 next item succeeds.
 
-[Note: the following may be subject to change, now that this construct is
-a quant modifier.] When significant space is used under C<:sigspace>,
+When significant space is used under C<:sigspace>,
 it applies on both sides of the separator, so
 
     ms/<element>+ % ','/
