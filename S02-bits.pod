@@ -984,7 +984,7 @@ and never as
 The C<*> character as a standalone term captures the notion of "Whatever",
 the meaning of which can be decided lazily by whatever it is an argument to.
 Alternately, for those unary and binary operators that don't care to handle
-C<*> themselves, it is automatically curried at compile time into a closure
+C<*> themselves, it is automatically primed at compile time into a closure
 that takes one or two arguments.  (See below.)
 
 Generally, when an operator handles C<*> itself, it can often
@@ -1016,19 +1016,20 @@ by marking the proto sub with the trait, C<is like-Whatever-and-stuff>.
 [Conjecture: actually, this is negotiable--we might shorten it
 to C<is like(Whatever)> or some such.  C<:-)>]
 
-=head3 Currying of Unary and Binary Operators
+=head3 Priming of Unary and Binary Operators with Whatever
 
 For any unary or binary operator (specifically, any prefix, postfix,
 and infix operator), if the operator has not specifically requested
 to handle C<*> itself, the compiler is required to translate directly
-to an appropriately curried closure at compile time.  Most of the
+to an appropriately primed closure at compile time.  (I<Priming> is our
+term for partial function application.)  Most of the
 built-in numeric operators fall into this category, so:
 
     * - 1
     '.' x *
     * + *
 
-are internally curried into closures of one or two arguments:
+are internally primed into closures of one or two arguments:
 
     { $^x - 1 }
     { '.' x $^y }
@@ -1040,7 +1041,7 @@ with the result that
 
     * + (state $s = 0)
 
-is effectively curried into:
+is effectively primed into:
 
     -> $x { $x + (state $OUTER::s = 0) }
 
@@ -1048,13 +1049,13 @@ rather than:
 
     -> $x { $x + (state $s = 0) }
 
-In other words, C<*> currying does not create a useful lexical scope.
+In other words, C<*> priming does not create a useful lexical scope.
 (Though it does have a dynamic scope when it runs.) This prevents the
 semantics from changing drastically if the operator in question
 suddenly decides to handle C<Whatever> itself.
 
 As a postfix operator, a method call is one of those operators that is
-automatically curried.  Something like:
+automatically primed.  Something like:
 
     *.meth(1,2,3)
 
@@ -1062,8 +1063,8 @@ is rewritten as:
 
     { $^x.meth(1,2,3) }
 
-In addition to currying a method call without an invocant, such
-curried methods are handy anywhere a smartmatcher is expected:
+In addition to priming a method call without an invocant, such
+primed methods are handy anywhere a smartmatcher is expected:
 
     @primes = grep *.prime, 2..*;
     subset Duck where *.^can('quack');
@@ -1081,9 +1082,9 @@ or its derivative closures can distinguish them by type:
     0, 1, *+1 ... *  # counting
     0, 1, *+* ... *  # fibonacci
 
-For any prefix, postfix, or infix operator that would be curried by a
-C<Whatever>, a C<WhateverCode> also autocurries it, such that any noun
-phrase based on C<*> as a head noun autocurries transitively outward as
+For any prefix, postfix, or infix operator that would be primed by a
+C<Whatever>, a C<WhateverCode> also autoprimes it, such that any noun
+phrase based on C<*> as a head noun autoprimes transitively outward as
 far as it makes sense, including outward through metaoperators.  Hence:
 
     * + 2 + 3   # { $^x + 2 + 3 }
@@ -1097,12 +1098,12 @@ far as it makes sense, including outward through metaoperators.  Hence:
 This is only for operators that are not C<Whatever>-aware.  There is no requirement
 that a C<Whatever>-aware operator return a C<WhateverCode> when C<Whatever>
 is used as an argument; that's just the I<typical> behavior for functions
-that have no intrinsic "globbish" meaning for C<*>.  If you want to curry
+that have no intrinsic "globbish" meaning for C<*>.  If you want to prime
 one of these globbish operators, you'll need to write an explicit closure or do
-an explicit curry on the operator with C<.assuming()>.  Operators in
+an explicit prime on the operator with C<.assuming()>.  Operators in
 this class, such as C<< infix:<..> >> and C<< infix:<xx> >>, typically I<do>
-autocurry arguments of type C<WhateverCode> even though they do not
-autocurry C<Whatever>, so we have:
+autoprime arguments of type C<WhateverCode> even though they do not
+autoprime C<Whatever>, so we have:
 
     "foo" xx *          # infinite supply of "foo"
     "foo" xx *-1        # { "foo" xx $^a - 1 }
@@ -1125,13 +1126,13 @@ Operators that are known to return non-closure values with C<*> include:
     $a = *      # just assigns Whatever
     $a ~~ *     # just matches Whatever
 
-Note that the last two also do not autocurry C<WhateverCode>, because
+Note that the last two also do not autoprime C<WhateverCode>, because
 assignment and smartmatching are not really normal binary operators, but
 syntactic sugar for underlying primitives.  (Such pseudo operators
 may also place restrictions on which meta-operators work on them.)
 
 Neither do the sequence operators C<< &infix:<...> >> and
-C<< &infix:<...^> >> autocurry C<WhateverCode>, because we want to allow
+C<< &infix:<...^> >> autoprime C<WhateverCode>, because we want to allow
 WhateverCode closures as the stopper:
 
     0 ...^ *>5  # means 0, 1, 2, 3, 4, 5
