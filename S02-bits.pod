@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 6 Oct 2011
-    Version: 239
+    Last Modified: 7 Oct 2011
+    Version: 240
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1016,21 +1016,28 @@ by marking the proto sub with the trait, C<is like-Whatever-and-stuff>.
 [Conjecture: actually, this is negotiable--we might shorten it
 to C<is like(Whatever)> or some such.  C<:-)>]
 
-=head3 Priming of Unary and Binary Operators with Whatever
+=head3 Autopriming of Unary and Binary Operators with Whatever
+
+Perl 6 has several ways of performing partial function application.
+Since this is an unwieldy term, we've settled on calling it I<priming>.
+(Many folks call this "currying", but that's not really a correct
+technical usage of the term.)  Most generally, priming is performed
+on a C<Callable> object by calling its C<.assuming> method, described elsewhere.
+This section is about a convenient syntactic sugar for that.
 
 For any unary or binary operator (specifically, any prefix, postfix,
 and infix operator), if the operator has not specifically requested
+(via signature matching)
 to handle C<*> itself, the compiler is required to translate directly
-to an appropriately primed closure at compile time.  (I<Priming> is our
-term for partial function application.  Many folks call this "currying", but
-that's not really a correct technical usage of the term.)  Most of the
-built-in numeric operators fall into this category, so:
+to an appropriately primed closure at compile time.  We call this
+I<autopriming>.  Most of the built-in numeric operators fall into
+this category.  So:
 
     * - 1
     '.' x *
     * + *
 
-are internally primed into closures of one or two arguments:
+are autoprimed into closures of one or two arguments:
 
     { $^x - 1 }
     { '.' x $^y }
@@ -1094,14 +1101,14 @@ far as it makes sense, including outward through metaoperators.  Hence:
     (-*.abs)i   # { (-$^x.abs)i }
     @a «+» *    # { @a «+» $^x }
 
-=head3 The C<.assuming> Method
+=head3 Operators with idiosyncratic Whatever
 
-This is only for operators that are not C<Whatever>-aware.  There is no requirement
+The above is only for operators that are not C<Whatever>-aware.  There is no requirement
 that a C<Whatever>-aware operator return a C<WhateverCode> when C<Whatever>
 is used as an argument; that's just the I<typical> behavior for functions
 that have no intrinsic "globbish" meaning for C<*>.  If you want to prime
 one of these globbish operators, you'll need to write an explicit closure or do
-an explicit prime on the operator with C<.assuming()>.  Operators in
+an explicit priming on the operator with C<.assuming()>.  Operators in
 this class, such as C<< infix:<..> >> and C<< infix:<xx> >>, typically I<do>
 autoprime arguments of type C<WhateverCode> even though they do not
 autoprime C<Whatever>, so we have:
@@ -2394,7 +2401,7 @@ Use of a signature that does not unambiguously select a single multi results in
 failure.
 
 It still just returns a C<Routine> object.  A call may also be partially
-applied by using the C<.assuming> method:
+applied (primed) by using the C<.assuming> method:
 
     &foo.assuming(1,2,3,:mice<blind>)
 

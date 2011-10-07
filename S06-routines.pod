@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 9 Jul 2011
-    Version: 151
+    Last Modified: 7 Oct 2011
+    Version: 152
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -2957,7 +2957,8 @@ block is being compiled, use the C<< COMPILING:: >> pseudopackage.]
 
 =head2 Priming
 
-Every C<Callable> object has a C<.assuming> method. This method does a partial
+Every C<Callable> object has a C<.assuming> method, which does partial function application,
+aka I<priming>.  This method does a partial
 binding of a set of arguments to a signature and returns a new function
 that takes only the remaining arguments.
 
@@ -2969,7 +2970,7 @@ or equivalently:
 
 or even:
 
-    &textfrom := &substr.assuming:str($text):len(Inf);
+    &textfrom := &substr.assuming :str($text):len(Inf);
 
 It returns a C<Callable> object that implements the same behaviour
 as the original subroutine, but has the values passed to C<.assuming>
@@ -2978,6 +2979,13 @@ already bound to the corresponding parameters:
     $all  = textfrom(0);   # same as: $all  = substr($text,0,Inf);
     $some = textfrom(50);  # same as: $some = substr($text,50,Inf);
     $last = textfrom(-1);  # same as: $last = substr($text,-1,Inf);
+
+Position parameters may also be primed.  To skip a position argument,
+pass a C<*>, which is handled specially by C<.assuming>.  Passing a
+C<Nil> causes priming with the default argument supplied with the
+parameter at that position in the signature, or an undefined value if
+the parameter in question has no default.  C<Nil> may also be passed
+to a named argument to force priming to the default.
 
 The result of a C<use> statement is a (compile-time) object that also has
 a C<.assuming> method, allowing the user to bind parameters in all the
