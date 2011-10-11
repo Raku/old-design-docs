@@ -16,7 +16,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 11 Oct 2011
-    Version: 230
+    Version: 231
 
 =head1 Overview
 
@@ -4268,9 +4268,10 @@ In particular, tree node types with C<Iterable> semantics enable visitation:
 
     $node.».foo;
 
-which means:
+which means something like:
 
-    $node.foo // $node.map: { .».foo }
+    my $type = $node.WHAT;
+    $node.?foo // $type($node.map: { .».foo })
 
 When processing recursive structures, there is an ambiguity when a node
 could be processed either directly by the operator or recursively
@@ -4308,9 +4309,10 @@ you need to use the C<.deepmap> method instead:
 
     $node.deepmap: *.foo;
     
-which means:
+which means something like:
     
-    $node ~~ Iterable ?? $node.map({ .deepmap: *.foo }) !! $node.foo
+    my $type = $node.WHAT;
+    $node ~~ Iterable ?? $type($node.map({ .deepmap: *.foo })) !! $node.?foo
 
 [Conjecture: we could allow C<««> and C<»»> hypers which did deep mapping.]
 
