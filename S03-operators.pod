@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 7 Oct 2011
-    Version: 228
+    Last Modified: 10 Oct 2011
+    Version: 229
 
 =head1 Overview
 
@@ -4128,11 +4128,17 @@ lists for most operators.  For example:
      -« (1,2,3);                   # (-1, -2, -3)
      (1,1,2,3,5) »+« (1,2,3,5,8);  # (2,3,5,8,13)
 
+(If you find yourself doing this, ask yourself whether you are really
+working with objects or lists; in the latter case, there may be other
+metaoperators such as Z or X that are more appropriate, and will not
+require parens.)
+
 A unary hyper operator (either prefix or postfix) has only one
 hyper marker, located on its argument side, while an infix operator
 always has one on each side to indicate there are two arguments.
 Unary operators always produce a list or array of exactly the same
-shape as their single argument.  When infix operators are presented with
+shape as their single argument (at least down to the level that the operator
+may be applied).  When infix operators are presented with
 two lists or arrays of identical shape, a result of that same shape is
 produced.  Otherwise the result depends on how you write the hyper
 markers.
@@ -4224,7 +4230,7 @@ to the corresponding scalar operation when all its arguments are
 non-list arguments.
 
 When using a unary operator, you always aim the blunt end at the
-single operand, because no dwimmery ever happens:
+single operand, because no replicative dwimmery ever happens:
 
      @negatives = -« @positives;
 
@@ -4260,13 +4266,53 @@ the operator in question:
 
 In particular, tree node types with C<Iterable> semantics enable visitation:
 
-    $tree.».foo;        # short for $tree.foo, $tree.list: { .».foo }
+    $node.».foo;
 
-If not all nodes support the operation, you need a form of it that
-specifies the call is optional:
+which means:
 
-    $tree.».?foo;       # short for $tree.?foo, $tree.list: { .».?foo }
-    $tree.».*foo;       # short for $tree.*foo, $tree.list: { .».*foo }
+    $node.foo // $node.list: { .».foo }
+
+When processing recursive structures, there is an ambiguity when a node
+could be processed either directly by the operator or recursively
+by iterating a contained structure.  For unary hypers, we use a
+policy called "duck mapping", which says that when a node responds
+directly to the operator supplied, it is considered a leaf node,
+and any Iterable components of the node are ignored.  If and only if
+a node does not respond to the operator, it is examined to see if is
+Iterable, and recursion occurs.  (For this meaning of "responds to",
+we ignore any multi candidates defined in Cool, or the negation
+above would not work, since Array responds to negation via Cool.
+[Conjecture: there's a C<use strict :multi> pragma that can enable
+these dispatch semantics in a lexical scope.])
+
+A declaratively shaped array or hash with multiple dimensions is
+considered a single level of tree node for this purpose.  You must
+use subscripting if you wish to isolate a 1-dimensional slice of such
+a shaped object.
+
+The main upshot of this duck mapping policy is that it is possible
+to use array or hash operators that make sense on a node of the tree,
+and the requested operator will take precedence over recursion.  For
+example, if you have an array of hashes, you can subscript into
+each of the hashes in parallel without caring whether the value
+produced is iterable:
+
+    @AoHoA».<foo>;  # a list of all the 'foo' Arrays
+
+This would not be possible if recursion took precedence over subscripting.
+Since duck mapping stops recursing whenever the operator is applicable,
+duck mapping can be considered to have a shallow bias.  If you wish to have
+a deep mapping where the recursion takes precedence over the operator,
+so that all the leaves are found first, and then the operator applied,
+you need to use the C<.deepmap> method instead:
+
+    $node.deepmap: *.foo;
+    
+which means:
+    
+    $node ~~ Iterable ?? $node.map({ .deepmap: *.foo }) !! $node.foo
+
+[Conjecture: we could allow C<««> and C<»»> hypers which did deep mapping.]
 
 You are not allowed to define your own hyper operators, because they
 are supposed to have consistent semantics derivable entirely from
