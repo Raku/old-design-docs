@@ -40,11 +40,11 @@ of comments in Perl 6.
 
 Every directive starts either with an equals sign (C<=>) followed
 immediately by an identifier N<as specified in Synopsis 2>, or with
-C<#=> followed immediately by whitespace or an opening bracket.
+a C<#=> or C<#|> followed immediately by whitespace or an opening bracket.
 
 Directives that start with C<=> can be indented like the code they
 interleave, but their initial C<=> must still be the first non-whitespace
-character on their line. Directives that start with C<#=> can be placed
+character on their line. Directives that start with C<#=> or C<#|> can be placed
 anywhere that a Perl 6 comment can appear, though they are meaningful
 only in a subset of those places; see L<#Declarator blocks>.
 
@@ -253,16 +253,23 @@ does not specify an explicit typename. Instead, it obtains its identity
 and purpose from the Perl 6 source code to which it is attached;
 specifically, from some nearby declarator.
 
-Declarator blocks are introduced by a special Perl comment: C<#=>, which
-must be immediately followed by either by a space or an opening bracket.
-If followed by a space, the block is terminated by the end of line; if
-followed by one or more opening brackets, the block is terminated by
-the matching sequence of closing brackets.
+Declarator blocks are introduced by a special Perl comment: either C<#=>
+or C<#|>, which must be immediately followed by either by a space or an
+opening bracket. If followed by a space, the block is terminated by the
+end of line; if followed by one or more opening brackets, the block is
+terminated by the matching sequence of closing brackets.
 
 That is, declarator Pod blocks are syntactically like ordinary Perl 6
 single-line comments and embedded comments. The general syntax is:
 
 =begin code :allow< R >
+
+     #| R<BLOCK DATA TO END OF LINE>
+
+     #|{ R<BLOCK DATA>
+         R<MORE BLOCK DATA>
+       }
+
      #= R<BLOCK DATA TO END OF LINE>
 
      #={ R<BLOCK DATA>
@@ -271,23 +278,33 @@ single-line comments and embedded comments. The general syntax is:
 
 =end code
 
-except that the second form may use I<any> valid Perl 6 bracket delimiter
+except that the bracketed forms may use I<any> valid Perl 6 bracket delimiter
 (including repeated opening brackets), as described in Synopsis 2.
 
 Declarator Pod blocks must either precede or immediately follow a valid
 Perl 6 declarator, and are then said to be "attached" to it. They are
 primarily intended to simplify the documentation of code interfaces.
+
+Declarator blocks that start with C<#|> attach to the declarator at the
+start of the line immediately after them (separated only by whitespace).
+Declarator blocks that start with C<#=> attach to the declarator
+declared at the start of the line immediately before them. In all other
+respects they act just like comments (i.e. they are themselves whitespace
+as far as ambient source code is concerned). This means multiple declarator
+blocks can be specified in a row and will all attach to the same declarator.
+
 For example:
 
 =begin code
 
-    #= Base class for comms necromancy hierarchy
+    #| Base class for comms necromancy hierarchy
     class Magic::Necrotelecomnicon {
         has $.elemental;  #= Source of all power
         has $!true_name;  #  Source of all self-protection (not documented)
 
         method cast(Spell $s)
         #= Initiate a specified spell normally
+        #= (do not use for class 7 spells)
         {
             do_raw_magic($s);
         }
@@ -299,33 +316,16 @@ For example:
             do_raw_magic($s, :alternative);
         }
 
-        #= This subroutine does the real work
+        #| This subroutine does the real work
         sub do_raw_magic (
             Spell $s,         #= Which spell to invoke
             *%options         #= How to invoke it
         ) {...}
     }
-=end code
 
-Each declarator block is appended to the C<.WHY> attribute of the
-declared entity (object or type) whose declarator appeared at the
-I<start> of the nearest preceding line, provided that declarator is
-"attached" to the Pod comment (i.e. it must not be separated from it
-by an entirely blank line). That is:
-
-=begin code
-    my $chainsaw;        #= This text stored in C<$chainsaw.WHY>
-
-    sub fu (             #= This text stored in C<&fu.WHY>
-        Any     $bar,    #= This text stored in C<$bar.WHY>
-        Mode    :$baz,   #= This text stored in C<$baz.WHY>
-        Context :$the_context_in_which_we_fu?
-                         #= This stored in C<$the_context_in_which_we_fu.WHY>
-    ) { ... }
-
-    sub fu2 (Any $bar)
-    #=[ This text stored in C<&fu2.WHY>, not in C<$bar.WHY>,
-        (because C<sub fu2> is the declarator
+    sub fu (Any $bar)
+    #=[ This text stored in C<&fu.WHY>, not in C<$bar.WHY>,
+        (because C<sub fu> is the declarator
          at the I<start> of the preceding line)
       ]
 
@@ -335,44 +335,22 @@ by an entirely blank line). That is:
           ]
 =end code
 
-If a declarator block is I<not> immediately preceded by an attached line
-that begins with a declarator, then the declarator block is instead
-appended to the C<.WHY> attribute of the I<next> declarator encountered,
-which must also begin at the next non-whitespace token. For example:
-
-=begin code
-    #= This text stored in C<$chainsaw.WHY>
-    my $chainsaw;
-
-    #=[ This text stored in C<&fu.WHY>
-        (because its delarator is the next non-ws token)
-      ]
-
-    sub fu (Any $bar) {...}
-=end code
-
-Note that the second Pod comment in this example documents the C<&fu>
-that comes after it, not the C<$chainsaw> preceding it, because it is
-not "attached" to C<$chainsaw>, being separated from it by a blank line.
-
-In other words, Declarator blocks are assumed to document the
-declarator they immediately follow (i.e. without intervening blank
-lines), or if they don't immediately follow a declarator, to
-document the declarator they precede (regardless of intervening
-whitespace). This is intended to support and DWIM with most
-standard layout approaches for commenting and inline documention.
-
 A declarator can have both a leading and a trailing Pod comment, in
-which case they are concatenated with an intermediate newline:
+which case they are concatenated with an intermediate newline when
+their object's C<.WHY> return value is stringified:
 
-=begin code
-   #= This is a special chainsaw
+   #| This is a special chainsaw
    my SwissArmy $chainsaw    #= (It has a rocket launcher)
 
    say $chainsaw.WHY;    # prints: This is a special chainsaw
                          #         (It has a rocket launcher)
 
-=end code
+The individual leading and trailing Pod comments can be retrieved
+via the returned Pod object's C<.leading> and C<.trailing> methods:
+
+   say $chainsaw.WHY.leading;    # prints: This is a special chainsaw
+
+   say $chainsaw.WHY.trailing;   # prints: (It has a rocket launcher)
 
 The Pod object representing each Declarator block is still appended to
 the current surrounding Pod object (e.g. to C<$=POD> at the top level).
