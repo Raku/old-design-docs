@@ -353,7 +353,7 @@ via the returned Pod object's C<.leading> and C<.trailing> methods:
    say $chainsaw.WHY.trailing;   # prints: (It has a rocket launcher)
 
 The Pod object representing each Declarator block is still appended to
-the current surrounding Pod object (e.g. to C<$=POD> at the top level).
+the current surrounding Pod object (e.g. to C<$=pod> at the top level).
 Each such block representation is an object of class
 C<Pod6::Block::Declarator>, and has a C<.WHEREFORE> method that returns
 the code object or metaobject created by the declarator to which the
@@ -412,7 +412,7 @@ or:
     DOC INIT {
         use Pod6::Eiffelish::Long;
 
-        say eiffelish_long($=POD);
+        say eiffelish_long($=pod);
 
         exit;
     }
@@ -818,7 +818,7 @@ directive. For example:
         previous directive
 =end code
 
-Within a C<=pod>, C<=item>, C<=defn>, C<=nested>, C<=END>, or
+Within a C<=pod>, C<=item>, C<=defn>, C<=nested>, C<=finish>, or
 L<semantic|#Semantic blocks> block, ordinary paragraphs do not require
 an explicit marker or delimiters, but there is also an explicit C<para>
 marker (which may be used anywhere):
@@ -871,7 +871,7 @@ For example:
 =end code
 
 Implicit code blocks may only be used within C<=pod>, C<=item>, C<=defn>,
-C<=nested>, C<=END>, or L<semantic|#Semantic blocks> blocks.
+C<=nested>, C<=finish>, or L<semantic|#Semantic blocks> blocks.
 
 There is also an explicit C<=code> block (which can be specified within
 I<any> other block type, not just C<=pod>, C<=item>, etc.):
@@ -1515,7 +1515,7 @@ D<Pod comments|Pod comment> are comments that Pod renderers ignore too.
 That is, they are Pod blocks that are never to be rendered by any
 renderer. They are, of course, still included in any internal Pod
 representation, and are accessible via the Pod API...and via the
-C<$=POD> variable within a Perl 6 program.
+C<$=pod> variable within a Perl 6 program.
 
 Comments are useful for meta-documentation (documenting the documentation):
 
@@ -1549,50 +1549,82 @@ nestable block comments in Perl 6:
     =end comment
 =end code
 
+=head3 The C<=finish> block
 
-=head3 The C<=END> block
-
-The C<=END> block is special in that all three of its forms
+The C<=finish> block is special in that all three of its forms
 (L<delimited|#Delimited blocks>, L<paragraph|#Paragraph blocks>, and
 L<abbreviated|#Abbreviated blocks>) are terminated only by the end of the
-current file. That is, neither C<=END> nor C<=for END> are terminated by the
-next blank line, and C<=end END> has no effect within a C<=begin END> block.
-A warning is issued if an explicit C<=end END> appears within a document.
+current file. That is, neither C<=finish> nor C<=for finish> are terminated by the
+next blank line, and C<=end finish> has no effect within a C<=begin finish> block.
+A warning is issued if an explicit C<=end finish> appears within a document.
 
-An C<=END> block indicates the end-point of any ambient material within
+An C<=finish> block indicates the end-point of any ambient material within
 the document. This means that the parser will treat all the remaining
 text in the file as Pod, even if it is not inside an explicit block. In
 other words, apart from its special end-of-file termination behaviour,
-an C<=END> block is in all other respects identical to a C<=pod> block.
+an C<=finish> block is in all other respects identical to a C<=pod> block.
 
 
 =head3 Data blocks
 
-Named Pod blocks whose typename is C<DATA> are the Perl 6 equivalent of
-the Perl 5 C<__DATA__> section. The difference is that C<=DATA> blocks are
+Named Pod blocks whose typename is C<data> are the Perl 6 equivalent of
+the Perl 5 C<__DATA__> section. The difference is that C<=data> blocks are
 just regular Pod blocks and may appear anywhere within a source file, and as
-many times as required. Synopsis 2 describes the new Perl 6 interface
-for accessing inline data of this type.
+many times as required.
 
-=comment
-...and S02 needs to be updated to reflect C<$=POD> is just the
-object (of some subclass of class C<Pod>) at the root of the
-program's Pod tree.
+There is a corresponding variable, C<$=data>, from which each C<=data> block
+can be retreived. C<$=data> holds an object that does both the Associative
+and Positional roles.
 
-=comment
-...and we need to decide whether %=POD still even exists (or does $=POD
-just have a C<&postcircumfix:<{ }>> that inorder walks the Pod tree and
-retrieves every nested Pod object of the requested type?)
+Each C<=data> block can be given a C<:key> option, to name it. The contents
+of any C<=data> block with a key are accessible (as a single string) via
+the Associative aspect of C<$=data> object. For example:
 
-C<=DATA> blocks are never rendered by the standard Pod renderers.
+=begin code :allow<B>
+
+    =begin data :key<Virtues>
+    Laziness
+    Impatience
+    Hubris
+    =end data
+
+    say 'The three virtues are:';
+    say $=data<Virtues>;
+
+=end code
+
+The contents of any C<=data> block that does not have a C<:key> are
+accessible (as a single string) via the Positional aspect of
+C<$=data>. Un-keyed C<=data> blocks are stored in the same order
+they appear in the file. For example:
+
+=begin code :allow<B>
+
+    say 'The second anti_Virtue is: ', $=data[1];
+
+    =data Industry
+    =data Patience
+    =data Humility
+
+=end code
+
+Note that, as the preceding example illustrates, because Pod is a
+compile-time phenomonenon, it is possible to specify C<=data> blocks
+I<after> the point in the source where their contents will be used
+(provided they're not being used in a C<BEGIN>, of course).
+
+When C<$=data> itself is stringified, it returns the concatenation of all
+the un-keyed C<=data> blocks the parser has seen.
+
+C<=data> blocks are never rendered by the standard Pod renderers.
 
 
 =head3 Semantic blocks
 
-All uppercase block typenames except C<=END> and C<=DATA> are reserved
-for specifying standard documentation, publishing, or source components.
-In particular, all the standard components found in Perl and manpage
-documentation have reserved uppercase typenames.
+All uppercase block typenames are reserved for specifying standard
+documentation, publishing, or source components. In particular, all the
+standard components found in Perl and manpage documentation have
+reserved uppercase typenames.
 
 Standard semantic blocks include:
 
@@ -2757,7 +2789,7 @@ statements that are preceded by the C<DOC> prefix are not executed at all.
 By default, once the C<DOC INIT> phase is complete, the interpreter then
 calls a special default C<DOC INIT> block that walks the AST and
 generates the documentation, guided by the content of the C<$?DOC> hint,
-the C<$=POD> tree, and any C<DOC> blocks that have loaded Pod-related
+the C<$=pod> tree, and any C<DOC> blocks that have loaded Pod-related
 handler code.
 
 Because the conversion of documentation is just a variation on the
@@ -2794,7 +2826,7 @@ long as you remember to exit before the default C<DOC INIT> can run:
     DOC INIT {
         use My::Pod::To::Text;
 
-        pod_to_text( $=POD );
+        pod_to_text( $=pod );
 
         exit(0);
     }
@@ -2802,7 +2834,7 @@ long as you remember to exit before the default C<DOC INIT> can run:
 The idea is that developers will be able to add their own documentation
 mechanisms simply by loading a module (via a C<DOC use>) to augment or
 override the default documentation behaviour. Such mechanisms can then
-be built using code written in standard Perl 6 that accesses C<$=POD>,
+be built using code written in standard Perl 6 that accesses C<$=pod>,
 as well as using the C<.WHY> and C<.WHEREFORE> introspection methods of
 any constructs that have attached Pod blocks.
 
@@ -2861,8 +2893,8 @@ create a self-converting documentation file like so:
     C<=para>            Ordinary paragraph
     C<=pod>             No "ambient" blocks inside
     C<=table>           Simple rectangular table
-    C<=DATA>            Perl 6 data section
-    C<=END>             No ambient blocks after this point
+    C<=data>            Perl 6 data section
+    C<=finish>          No ambient blocks after this point
     C<=>R<RESERVED>     Semantic blocks (C<=SYNOPIS>, C<=BUGS>, etc.)
     C<=>R<Typename>     User-defined block
 
