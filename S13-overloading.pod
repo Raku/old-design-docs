@@ -13,8 +13,8 @@ Synopsis 13: Overloading
 
     Created: 2 Nov 2004
 
-    Last Modified: 25 Oct 2010
-    Version: 15
+    Last Modified: 3 Nov 2011
+    Version: 16
 
 =head1 Overview
 
@@ -75,38 +75,9 @@ routine.  This can easily be handled with Perl 6's aliasing:
     &infix:<*> ::= &unimpl;
     &infix:</> ::= &unimpl;
 
-That's one solution, but often your alternatives all have the same
-name, and vary instead in their signature.  Some operators are
-commutative, or can otherwise take their arguments in more than
-one order.  Perl allows you to declare multiple signatures for a
-given body, and these will be pattern matched as if you had declared
-separate multi entries.  If you say:
-
-    multi sub infix:<+> (Us $us, Them $them) |
-                        (Them $them, Us $us) { myadd($us,$them) }
-
-that's equivalent to:
-
-    multi sub infix:<+> (Us $us, Them $them) { myadd($us,$them) }
-    multi sub infix:<+> (Them $them, Us $us) { myadd($us,$them) }
-
-except that there really is only one body.  If you declared a C<state>
-variable within the body, for instance, there would only be one
-of them.
-
 A C<multi> is in effect only within the scope in which it is defined or
 imported.  Generally you want to put your C<multi> subs into a package
 that will be imported wherever they are needed.
-
-When you use the multiple signature syntax, the alternate signatures
-are not required to all bind the same set of formal variable names,
-nor are all parameters of a given name required to bind with the
-same type.  Unbound parameters will be born with an undefined value
-(even if they have a default).  For any parameter that occurs in
-multiple signatures with non-identical nominal types, the actual
-lexical variable will declared with a nominal type of C<Mu>, and
-if unbound, will contain C<Mu>.  To catch parameter name typos,
-the compiler may warn about unused parameters.
 
 Conjectural: If the first parameter to a C<multi> signature is followed
 by an invocant colon, that signature represents two signatures, one
