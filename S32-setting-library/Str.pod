@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Str
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 8 Jun 2009
-    Version: 4
+    Last Modified: 7 Nov 2011
+    Version: 5
 
 The document is a draft.
 
@@ -81,31 +81,29 @@ Note: Most users should just let their I/O handles autochomp instead.
 
  our Str multi method lc ( Str $string: ) is export
 
-Returns the input string after converting each character to its lowercase
-form, if uppercase.
-
-
-=item lcfirst
-
- our Str multi method lcfirst ( Str $string: ) is export
-
-Like C<lc>, but only affects the first character.
-
+Returns the input string after forcing each character to its lowercase
+form.  Note that one-to-one mapping is not in general guaranteed;
+different forms may be chosen according to context.
 
 =item uc
 
  our Str multi method uc ( Str $string: ) is export
 
-Returns the input string after converting each character to its uppercase
-form, if lowercase. This is not a Unicode "titlecase" operation, but a
-full "uppercase".
+Returns the input string after forcing each character to its uppercase
+(not titlecase) form.  Note that one-to-one mapping is not in general guaranteed;
+different forms may be chosen according to context.
 
+=item titlecase
 
-=item ucfirst
+ our Str multi method titlecase ( Str $string: :&filter = &lc, :%exceptions = set() ) is export
 
- our Str multi method ucfirst ( Str $string: ) is export
-
-Performs a Unicode "titlecase" operation on the first character of the string.
+Performs a Unicode titlecase operation on the first character of
+each word of the string (as defined by a regex C<«> boundary),
+and forces the rest of the letters through a filter that defaults
+to C<lc>.  After this operation, if any exceptions are supplied and
+if the word is found in the set of exceptions, the first character is also
+forced through the filter.  Note that the exceptions must be spelled with
+an initial titlecase, such as "By" or "And", to produce "by" or "and".
 
 =item normalize
 
