@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 7 Oct 2011
-    Version: 152
+    Last Modified: 8 Nov 2011
+    Version: 153
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -1139,53 +1139,77 @@ last if you want to force it to come in as the last argument.
 
 =head2 Argument list binding
 
-The underlying C<Capture> object may be bound to a single scalar
-parameter marked with a C<|>.
+The underlying C<Capture> object may be bound to a single
+name marked with a C<|>.
 
     sub bar ($a,$b,$c,:$mice) { say $mice }
-    sub foo (|$args) { say $args.perl; &bar.callwith(|$args); }
+    sub foo (|args) { say args.perl; &bar.callwith(|args); }
 
 This prints:
 
     foo 1,2,3,:mice<blind>;     # says "\(1,2,3,:mice<blind>)" then "blind"
 
 As demonstrated above, the capture may be interpolated into another
-call's arguments.  (The C<|> prefix is described in the next section.)
+call's arguments.  (The C<|> prefix is described below.)
 Use of C<callwith> allows the routine to be called without introducing
 an official C<CALLER> frame.  For more see "Wrapping" below.
 
-It is allowed to rebind the parameters within the signature, but
-only as a subsignature of the capture argument:
+The C<|> parameter takes a snapshot of the current binding state, but
+does not consume any arguments from it.
+It is allowed to have more parameters within the signature:
 
-    sub compare (|$args (Num $x, Num $y --> Bool)) { ... }
+    sub compare (|args, Num $x, Num $y --> Bool) { ... }
 
 For all normal declarative purposes (invocants and multiple dispatch
-types, for instance), the inner signature is treated as the entire
-signature:
+types, for instance), capture parameters are ignored.
 
-    method addto (|$args ($self: @x)) { trace($args); $self += [+] @x }
+    method addto (|args, $self: @x) { trace(args); $self += [+] @x }
 
-The inner signature is not required for non-C<multi>s since there can
-only be one candidate, but for multiple dispatch the inner signature
+The extra signature is not required for non-C<multi>s since there can
+only be one candidate, but for multiple dispatch the extra signature
 is required at least for its types, or the declaration would not know
 what signature to match against.
 
-    multi foo (|$args (Int, Bool?, *@, *%)) { reallyintfoo($args) }
-    multi foo (|$args (Str, Bool?, *@, *%)) { reallystrfoo($args) }
+    multi foo (|args, Int, Bool?, *@, *%)) { reallyintfoo(args) }
+    multi foo (|args, Str, Bool?, *@, *%)) { reallystrfoo(args) }
 
 =head2 Parcel binding
 
-It is possible to bind the argument list in an even more raw form
-as a C<Parcel> object.  A signature to capture the parcel must be
-declared as:
+When you bind an argument to a sigiled variable, it enforces the contract
+of that sigil, but sometimes you don't want that.
+It is possible to bind an argument to a simple name instead, which represents
+that argument in its rawest form, which is what we call a parcel.  (It might
+actually be a C<Parcel> object, or any item that can function as a parcel.)
+In any case, it's a raw reference to whatever was passed, with no commitment
+to structure or mutability.
 
-    sub foo (\|$parcel) { ... }
+    sub foo (\x, \y) { x = y; }    # might or might not succeed
 
-This single parcel parameter is the only thing allowed in such a signature
-(apart from a return type).  An implementation must either be able to
-reconstruct the original parcel object from a capture, or the compiler
-must be smart enough to know when to save the original parcel object
-based on proto declarations and/or call indirection.
+A C<\> parameter effectively declares a new term in the language for
+the rest of the current scope, so when you use that term, it is not
+parsed as a list operator, so it will not look for any subsequent
+arguments.
+
+    sub foo (\x) { x 42; }    # syntax error; two terms in a row
+
+Parcel parameters make it relatively easy to program in a "sigilless" style,
+if you desire:
+
+    sub say-sins (\angles) {
+        for angles -> \𝜃 { say sin 𝜃 }
+    }
+
+or
+
+    my \𝑖 = some-integer; say 𝑖 + 2;
+
+Note how C<𝑖> would be misinterpreted if it treated C<+ 2> as an argument, but
+since it's a simple term, it doesn't.
+
+The term does act like a function call in one way, however.  Since it returns a
+parcel, the value will flatten in a list context, but itemize in an item context.
+You can use C<< prefix:<|> >> to force flattening into an outer argument list, if
+needed.
 
 =head2 Flattening argument lists
 
