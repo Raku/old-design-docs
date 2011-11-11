@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 4 Nov 2011
-    Version: 150
+    Last Modified: 11 Nov 2011
+    Version: 151
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -317,17 +317,19 @@ is roughly equivalent to
 
 The new C<:s> (C<:sigspace>) modifier causes whitespace sequences
 to be considered "significant"; they are replaced by a whitespace
-matching rule, C<< <.ws> >>.  That is,
+matching rule, C<< <.ws> >>.  Initial whitespace is ignored at the front of
+any regex, to make it easy to write rules that can participate in longest-token-matching
+alternations.  That is,
 
      m:s/ next cmd '='   <condition>/
 
 is the same as:
 
-     m/ <.ws> next <.ws> cmd <.ws> '=' <.ws> <condition>/
+     m/ next <.ws> cmd <.ws> '=' <.ws> <condition>/
 
 which is effectively the same as:
 
-     m/ \s* next \s+ cmd \s* '=' \s* <condition>/
+     m/ next \s+ cmd \s* '=' \s* <condition>/
 
 But in the case of
 
@@ -340,6 +342,12 @@ or equivalently,
 C<< <.ws> >> can't decide what to do until it sees the data.
 It still does the right thing.  If not, define your own C<< ws >>
 and C<:sigspace> will use that.
+
+Whitespace is ignored not just at the front of any rule that might
+participate in longest-token matching, but in the front of any
+alternative within an explicit alternation as well, for the same
+reason.  If you want to match sigspace before a set of alternatives,
+pace your whitespace outside of the brackets containing the alternation.
 
 In general you don't need to use C<:sigspace> within grammars because
 the parser rules automatically handle whitespace policy for you.
@@ -2670,7 +2678,7 @@ Oddly enough, the C<token> keyword specifically does not determine
 the scope of a token, except insofar as a token pattern usually
 doesn't do much matching of whitespace.  In contrast, the C<rule>
 keyword (which assumes C<:sigspace>) defines a pattern that tends
-to disqualify itself on the first whitespace.  So most of the token
+to disqualify itself on the first whitespace following the first recognized item.  So most of the token
 patterns will end up coming from C<token> declarations.  For instance,
 a token declaration such as
 
@@ -2680,11 +2688,15 @@ considers its "longest token" to be just the left square bracket, because
 the first thing the C<expr> rule will do is traverse optional whitespace.
 As an exception to this, and in order to promote readability, a special
 exception is made for alternations inside rules.  If an alternation in a
-rule, or any other context where C<:sigspace> is active, has whitespace
-before a group of alternations, then any leading whitespace on the
-alternatives is ignored.  That is, C<rule { [ a | b ] }> is treated as
+rule, or any other context where C<:sigspace> is active,
+has any leading whitespace on any of the alternatives, it is ignored.  That is, C<rule { [ a | b ] }> is treated as
 if it were C<rule { [a |b ] }>, and the L<LTM|/"Longest-token matching">
-match begins with the first non-sigspace atom.
+match begins with the first non-sigspace atom.  This exception applies to
+the rule itself as well, since any rule might participate in an alternation
+higher in the grammar.  And just to keep things simple, we say that the initial
+whitespace in any regex before the first actual match is not subject to significance.
+This includes any whitespace after a C<:sigspace>, if that declararation is the first
+thing in the regex.
 
 The initial token matcher must take into account case sensitivity
 (or any other canonicalization primitives) and do the right thing even
