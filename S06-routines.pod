@@ -38,7 +38,7 @@ a thunk has no scope to declare a new variable.  Note however that
 any and all lazy constructs, whether block-based or thunk-based,
 such as gather or async or C<< ==> >> should declare their own C<$/>
 and C<$!> so that the user's values for those variables cannot be
-clobbered asyncronously.  And this parentheticl remark is starting to
+clobbered asynchronously.  And this parenthetical remark is starting to
 be seriously misplaced...)
 
 B<Subroutines> (keyword: C<sub>) are non-inheritable routines with
@@ -82,7 +82,7 @@ name within its scope, unless they have an explicit modifier.
 (This is particularly useful when adding to rule sets or when attempting
 to compose conflicting methods from roles.)  Abstractly, the C<proto>
 is a generic wrapper around the dispatch to the C<multi>s.  Each C<proto>
-is instantianted into an actual dispatcher for each scope that
+is instantiated into an actual dispatcher for each scope that
 needs a different candidate list.
 
 B<Only> (keyword: C<only>) routines do not share their short names
@@ -1027,7 +1027,7 @@ calling its internal multi dispatcher (the one represented by C<{*}>).
 In the case of a C<proto> sub, this mapping can be done at the point
 of the call, since there can only be one possible set of positional
 names, and the proto to be called can be known at compile time (in
-the absense of CANDO declarations in the outer scopes).  So after
+the absence of CANDO declarations in the outer scopes).  So after
 
     proto foo ($x, $y, :$bar, :$baz) {*}
     multi foo ($a, $b, :$bar, :$baz) {...}
@@ -1047,7 +1047,7 @@ The C<$x> and C<$y> names above are part of the public API only
 because they are named in the C<proto>.  Positional parameter names
 are never part of the advertised API unless explicitly enabled.
 An explicit C<proto> may easily refrain from advertising names by
-declararing positionals with bare sigils:
+declaring positionals with bare sigils:
 
     proto foo ($, $, :$bar, :$baz) {*}
     multi foo ($x, $y, :$bar, :$baz) {...}
@@ -1060,7 +1060,7 @@ if finer control is desired.)
 
 It follows from all this that an intuited proto never has to worry
 about supplying the API names of positional parameters.  And no proto
-ever has to worry about conficting names in the positionals of the
+ever has to worry about conflicting names in the positionals of the
 multis they dispatch to, since any remapping is handled before that.
 
 =head2 List parameters
@@ -1286,7 +1286,7 @@ so C<self> is not present in the C<**@slice> below:
 
 The C<**> marker is just a variant of the C<*> marker that ends up
 requesting parcels when binding (underlyingly calling C<.getarg>) rather
-than requesting individual elements as the flatening C<*> does (underlyingly
+than requesting individual elements as the flattening C<*> does (underlyingly
 calling C<.get>).
 
 =head2 Zero-dimensional argument list
@@ -1532,7 +1532,7 @@ have "list" semantics.  If you say
     (0..2; 'a'..'c') ==> my @tmp;
     for @tmp { .say }
 
-then you get 0,1,2,'a','b','c'.  If you have a multidim array, you
+then you get 0,1,2,'a','b','c'.  If you have a multidimensional array, you
 can ask for flattening semantics explicitly with C<flat>:
 
     (0..2; 'a'..'c') ==> my $tmp;
@@ -1897,7 +1897,7 @@ so C<$_> ends up being bound to the outer C<$_> anyway.)
 
 A block may also refer to either C<@_> or C<%_> or both, each of
 which will be added to generated signature as a normal readonly
-slurpy pararmeter:
+slurpy parameter:
 
     { say $:what; warn "bad option: $_\n" for keys %_; }
 
@@ -2061,7 +2061,7 @@ significant number of pathological cases that are unacceptably slow
 
 This trait is a suggestion to the compiler that caching is okay.  The
 compiler is free to choose any kind of caching algorithm (including
-non-expiring, random, lru, pseudo-lru, or adaptive algoritms, or
+non-expiring, random, lru, pseudo-lru, or adaptive algorithms, or
 even no caching algorithm at all).  The run-time system is free to
 choose any kind of maximum cache size depending on the availability
 of memory and trends in usage patterns.  You may suggest a particular
@@ -2086,7 +2086,7 @@ around your subroutine.
 
 Specifies the precedence of an operator relative to an existing
 operator.  C<tighter> and C<looser> precedence levels default to
-being left associative.  They define a new precedence level slighty
+being left associative.  They define a new precedence level slightly
 tighter or looser than the precedence level on which they're based.
 Both C<tighter> and C<looser> may be specified, in which case the new
 precedence level is generated midway between the specified levels.
@@ -2293,7 +2293,7 @@ to a readonly parameter never triggers autovivification.
 Specifies that the parameter can be modified (assigned to, incremented,
 etc). Requires that the corresponding argument is an lvalue or can be
 converted to one.  Since this option forces an argument to be required,
-it cannot co-exist with the C<?> mark to make an argument optional.
+it cannot coexist with the C<?> mark to make an argument optional.
 (It may, however, be used with C<=> indicating a default, but only
 if the default expression represents something that is nameable at
 compile time and that can bind as an lvalue, such as
@@ -2326,7 +2326,7 @@ happens, it happens at the point of use, not at the point of binding.
 
 For better visual distinction, such a parameter is declared by
 prefixing with a backslash rather than by using C<is parcel> directly.
-The backslash is also more succint; the trait is there primarily
+The backslash is also more succinct; the trait is there primarily
 for introspection.
 
 =item C<is copy>
@@ -2524,13 +2524,13 @@ in order, left to right.  Note that C<Any> and C<0> are no-ops:
     $ctx = callframe(1);       # my frame's caller
     $ctx = callframe(2);       # my frame's caller's caller
     $ctx = callframe(3);       # my frame's caller's caller's caller
-    $ctx = callframe(1,0,1,1); # my frames's caller's caller's caller
+    $ctx = callframe(1,0,1,1); # my frame's caller's caller's caller
     $ctx = callframe($i);      # $i'th caller
 
 Note also that negative numbers are allowed as long as you stay within
 the existing call stack:
 
-    $ctx = callframe(4,-1);    # my frames's caller's caller's caller
+    $ctx = callframe(4,-1);    # my frame's caller's caller's caller
 
 Repeating any smartmatch just matches the same frame again unless you
 intersperse a 1 to skip the current level:
@@ -3319,7 +3319,7 @@ or the slurpy array:
 
 Each incoming argument is automatically passed through
 the C<val()> function, which will attempt to intuit the types of the
-texual arguments such that they may be used in multimethod dispatch.
+textual arguments such that they may be used in multimethod dispatch.
 If C<MAIN> is declared as a set of C<multi> subs, multi dispatch
 is performed, and the type information intuited by C<val()> may
 be used to distinguish the different signatures:
@@ -3501,7 +3501,7 @@ the time compared to the cost of failing to bind, that tends to argue
 for failing over every time.  This is also more conducive to inlining,
 since it's difficult to rewrite inlined calls.  In any case, nowadays
 a C<proto> declaration is considered to be a kind of C<only> sub, 
-and needs to handle autothreading similaraly if the signature of
+and needs to handle autothreading similarly if the signature of
 the C<proto> excludes junctions.
 
 =head2 Introspection
