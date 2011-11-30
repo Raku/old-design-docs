@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 18 November 2011
-    Version: 242
+    Last Modified: 30 November 2011
+    Version: 243
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -566,7 +566,7 @@ immutable types (e.g. C<Int>, C<Num>, C<Complex>, C<Rat>, C<Str>,
 C<Bit>, C<Regex>, C<Set>, C<Block>, C<Iterator>,
 C<Seq>), as well as mutable (container) types, such as C<Scalar>,
 C<Array>, C<Hash>, C<Buf>, C<Routine>, C<Module>, and non-instantiable Roles
-such as C<Callable>, C<Failure>, and C<Integral>.
+such as C<Callable> and C<Integral>.
 
 Non-object (native) types are lowercase: C<int>, C<num>, C<complex>,
 C<rat>, C<buf>, C<bit>.  Native types are primarily intended for
@@ -620,11 +620,11 @@ as a different unique object.
 
 =head2 Variables Containing Undefined Values
 
-Variables with non-native types can always contain I<undefined> values,
-such as C<Any>, C<Whatever> and C<Failure> objects.  See S04 for more
-about failures (i.e. unthrown exceptions):
+A variable with a non-native type constraint may contain an I<undefined> value
+such as a type object, provided the undefined value meets the type constraint.
 
-    my Int $x = Int;    # works
+    my Int $x = Int;  # works
+    my Buf $x = Buf8; # works
 
 Variables with native types do not support undefinedness: it is an error
 to assign an undefined value to them:
@@ -636,8 +636,8 @@ undefinedness, you can coerce an undefined value like this:
 
     my num $n = computation() // NaN;
 
-Variables of non-native types start out containing an undefined value
-unless explicitly initialized to a defined value.
+Variables of non-native types start out containing a type object of
+the appropriate type unless explicitly initialized to a defined value.
 
 =head2 The C<HOW> Method
 
@@ -1271,7 +1271,7 @@ defined is determined by whether C<.defined> returns true or not.
 These typed objects typically represent uninitialized values.  Failure
 objects are also officially undefined despite carrying exception
 information; these may be created using the C<fail> function, or by
-direct construction of an exception object of some sort.  (See S04
+direct construction of a C<Failure> object of some sort.  (See S04
 for how failures are handled.)
 
     Mu          Most Undefined
@@ -1282,27 +1282,78 @@ automatically declaring a undefined prototype value with the same name, known
 as the I<type object>.  The name itself returns that type object:
 
     Mu          Perl 6 object (default block parameter type, Any, Junction, or Each)
-    Any         Perl 6 object (default routine parameter type, excludes junction)
+    Any         Perl 6 object (default routine parameter type, excludes Junction, Failure)
     Cool        Perl 6 Convenient OO Loopbacks
     Whatever    Wildcard (like Any, but subject to do-what-I-mean via MMD)
     Int         Any Int object
     Widget      Any Widget object
 
-Type objects stringify to their name with empty parens concatenated.
+All user-defined classes derive from the C<Any> class by default.
+The C<Whatever> type is derived from C<Any> but nothing else
+is derived from it.
+
+Type objects stringify to their name with empty parens concatenated,
+which can be read as a coercion from C<Nil> to a value of that type.
 Note that type objects are not classes, but may be used to name
-classes:
+classes when the type's associated meta-object allows it:
 
     Widget.new()        # create a new Widget
 
-Whenever a C<Failure> value is put into a typed container, it takes
-on the type specified by the container but continues to carry the
-C<Failure> role.  Use C<fail> to return specific failures.  Use C<Mu>
-for the most generic non-failure undefined value.  The C<Any> type,
-derived from C<Mu>, is also undefined, but excludes C<Junction> and C<Each> types so
-that autothreading may be dispatched using normal multiple dispatch
-rules.  All user-defined classes derive from the C<Any> class by default.
-The C<Whatever> type is derived from C<Any> but nothing else
-is derived from it.
+The C<Any> type encompasses all normal value and object types.  It is
+the unit type, but includes units that are containers of multiple values.
+It is not the most general type, however.  C<Any> derives from C<Mu>,
+which is the top type in Perl 6, and encompasses certain conceptual
+types that fall outside the realm of ordinary C<Any> values.
+These conceptual types include:
+
+    Junction    unordered superposition of data with and/or/one/none
+    Each        ordered superposition (conjectural)
+    Failure     a lazy exception
+
+Conceptual types rely on the failure to match an C<Any> type in
+order to trigger various extraordinary behaviors.  The C<Junction>
+and C<Each> types trigger an inside-out linguistic distribution of
+various list behaviors from inside a scalar expression that pretends
+a bunch of values are really a single value.  (These are modelled on
+similar linguistic behaviors in English.)  The distrubutional behavior
+triggered for these types is known as I<autothreading>.
+
+The C<Failure> type is considered conceptual so that dynamic context
+can determine the treatment of failures that in other languages
+would always throw exceptions.  This gives Perl 6 programs the
+flexibility to handle exceptions either in-band or out-of-band.  It is
+particularly important to be able to handle exceptions in-band when
+you are trying to perform parallel operations, so that the failure
+of one computation does not result in fratricide of all its fellow
+computations.  (You can think of this as analogous to the way C<NaN>
+propagates through floating-point calculations.)
+
+Single dispatch of a C<Failure> invocant to any method not in C<Failure>
+returns the same C<Failure>, so that cascaded method calls can be
+checked with a single check:
+
+    $object.fee.fie.[$foe].{$foo}.sic // die "Oops: $!";
+
+Failures may only be passed into functions via parameters that allow
+C<Mu> or C<Failure>.  As a special case, a C<Failure> may be returned
+from a function even if that function declares a return type constraint
+that does not include the C<Failure> type.  (In fact, the attempt to
+return a value that doesn't match the return constraint will internally
+call C<fail>, and that failure will be returned according to standard
+C<fail> policy, which is dependent on the preferences of the caller.)
+After the failure is returned, any subsequent attempt to use the
+failure in an C<Any> context will be subject to further failure
+analysis, and will likely throw an exception immediately.  Likewise,
+discarding the failure in sink context produces an immediate exception.
+It is assumed that this downstream failure processing is robust enough
+that the optimizer is allowed to assume that a function returns what
+it declares as its return type, and most of the time omit the check for
+failure on the return value.  Nearly all the failure checks are already
+enforced downstream by the smartmatcher, usually through the binder.
+
+Note that a C<Failure> object is undefined, but may contain one or
+more defined C<Exception> objects, which are considered a normal
+objects that just happen to be used in exception throwing and handling.
 
 =head2 Immutable types
 
@@ -1443,7 +1494,6 @@ These types do (at least) the following roles:
     FatRat      Numeric Real Rational
     Complex     Numeric
     Bool        Boolean
-    Exception   Failure
     Block       Callable
     Seq         Iterable
     Range       Iterable
@@ -1538,7 +1588,7 @@ use the C<Hash> interface and increment an element of a C<KeyBag>
 its value is increased by one (creating the element if it doesn't exist
 already).  If you decrement the element the value is decreased by one;
 if the value goes to 0 the element is automatically deleted.  An attempt
-to decrement a non-existing value results in a C<Failure> value.  When not
+to decrement a non-existing value returns a C<Failure> value.  When not
 used as a C<Hash> (that is, when used as an C<Array> or list or C<Bag>
 object) a C<KeyBag> behaves as a C<Bag> of its keys, with each key
 replicated the number of times specified by its corresponding value.
