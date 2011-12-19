@@ -18,8 +18,8 @@ Authors of previous versions of this document:
 
     Created: 26 Feb 2009
 
-    Last Modified: 23 August 2011
-    Version: 4
+    Last Modified: 19 December 2011
+    Version: 5
 
 The document is a draft.
 
@@ -28,7 +28,7 @@ repository under
 L<https://github.com/perl6/specs/blob/master/S32-setting-library/Exception.pod>
 so edit it there in the git repository if you would like to make changes.
 
-=head1 Roles
+=head1 Roles and Classes
 
 All built-in exceptions live in the C<X::> namespace.
 
@@ -184,3 +184,11 @@ backtrace that includes all available code objects, including hidden ones.
 If a code object does not have a name, C<< <anon> >> is used instead of the
 routine name.
 
+=head1 The Default Exception Printer
+
+In case an exception does not get caught by any C<CATCH> or C<CONTROL> block,
+it is caught by a default handler in the setting.
+
+This handler calls the C<.gist> method on the exception, prints the result,
+and termintates the program. The exit code is determined as
+C<$exception.?exit-code // 1>.
