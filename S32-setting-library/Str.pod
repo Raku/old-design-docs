@@ -417,7 +417,7 @@ format token. Format tokens have the following grammar:
   token precision_count { [ <[1..9]>\d* | '*' ]? [ '.' [ \d* | '*' ] ]? }
   token vector { '*'? v }
   token modifier { < ll l h m V q L > }
-  token directive { < % c s d u o x e f g X E G b C p n i D U O F > }
+  token directive { < % c s d u o x e f g X E G b p n i D U O F > }
  }
 
 Directives guide the use (if any) of the arguments. When a directive
@@ -440,7 +440,6 @@ The directives are:
  E   like e, but using an uppercase "E"
  G   like g, but with an uppercase "E" (if applicable)
  b   an unsigned integer, in binary
- C   special: invokes the arg as code, see below
 
 Compatibility:
 
@@ -452,23 +451,8 @@ Compatibility:
 
 Perl 5 (non-)compatibility:
 
- n   produces a runtime exception (see below)
+ n   produces a runtime exception
  p   produces a runtime exception
-
-The special format directive, C<%C> invokes the target argument as
-code, passing it the result string that has been generated thus
-far and the argument array.
-
-Here's an example of its use:
-
- sprintf "%d%C is %d digits long",
-    $num,
-    sub ($s, @args is rw) { @args[2] = $s.elems },
-    0;
-
-The special directive, C<%n> does not work in Perl 6 because of the
-difference in parameter passing conventions, but the example above
-simulates its effect using C<%C>.
 
 Modifiers change the meaning of format directives. The most important being
 support for complex numbers (a basic type in Perl). Here are all of the
