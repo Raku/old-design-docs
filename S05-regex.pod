@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 11 Nov 2011
-    Version: 151
+    Last Modified: 29 Dec 2011
+    Version: 152
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -316,9 +316,11 @@ is roughly equivalent to
 
 =item *
 
-The new C<:s> (C<:sigspace>) modifier causes whitespace sequences
+The new C<:s> (C<:sigspace>) modifier causes certain whitespace sequences
 to be considered "significant"; they are replaced by a whitespace
-matching rule, C<< <.ws> >>.  Initial whitespace is ignored at the front of
+matching rule, C<< <.ws> >>.  Only whitespace sequences immediately following a
+matching construct (atom, quantified atom, or assertion) are eligible.
+Hence, initial whitespace is ignored at the front of
 any regex, to make it easy to write rules that can participate in longest-token-matching
 alternations.  That is,
 
@@ -349,6 +351,37 @@ participate in longest-token matching, but in the front of any
 alternative within an explicit alternation as well, for the same
 reason.  If you want to match sigspace before a set of alternatives,
 place your whitespace outside of the brackets containing the alternation.
+
+When you write
+
+    rule TOP { ^ <stuff> $ }
+
+this is the same as
+
+    token TOP { ^ <.ws> <stuff> <.ws> $ <.ws> }
+
+but note that the final C<< <.ws> >> always matches the null string, since C<$> asserts end of string.
+Also, if your C<TOP> rule does not anchor with C<^>, it might not match initial whitespace.
+
+Specifically, the following constructs turn following whitespace into sigspace:
+
+    any atom or quantified atom
+    $foo @bar
+    'a' "$b"
+    ^ $ ^^ $$
+    (...) [...] <...> as a whole atoms
+    (...)* [...]* <...>* as quantified atoms
+    <( and )>
+    « and » (but don't use « that way!)
+
+and these do not:
+
+    opening ( or [
+    | or ||
+    & or &&
+    ** % or %%
+    :foo declarations, including :my and :sigspace itself
+    {...}
 
 In general you don't need to use C<:sigspace> within grammars because
 the parser rules automatically handle whitespace policy for you.
@@ -946,9 +979,10 @@ of a longest-token pattern.)
 The general repetition specifier is now C<**> for maximal matching,
 with a corresponding C<**?> for minimal matching.  (All such quantifier
 modifiers now go directly after the C<**>.)  Space is allowed on either
-side of the complete quantifier.  This space is considered significant
-under C<:sigspace>, and will be distributed as a call to <.ws> between
-all the elements of the match but not on either end.
+side of the complete quantifier, but only the space before the C<**> will
+be considered significant under C<:sigspace> and match between repetitions.
+(Sigspace after the entire construct matches once after the all repetitions
+are found.)
 
 The next token constrains how many times the pattern on the left must match.
 
@@ -1067,15 +1101,13 @@ does not count as "progress" under C<:ratchet> semantics unless the
 next item succeeds.
 
 When significant space is used under C<:sigspace>,
-it applies on both sides of the separator, so
+only the matching atoms pay attention to whether whitespace follows.
 
-    ms/<element>+ % ','/
-    ms/<element>+% ','/
-    ms/<element>+ %','/
+    ms/<element> + % ',' /
 
-all allow whitespace around the separator like this:
+allows whitespace around the separator like this:
 
-    / <element>[<.ws>','<.ws><element>]* /
+    / <element>[<.ws>','<.ws><element>]*<.ws> /
 
 while
 
@@ -1085,10 +1117,11 @@ excludes all significant whitespace like this:
 
     / <element>[','<element>]* /
 
-Of course, you can always match whitespace explicitly if necessary, so to
-allow whitespace after the comma but not before, you can say:
+And
 
-    / <element>+%[','\s*] /
+    ms/<element>+ % ',' /
+
+allows whitespace after each comma but nowhere else.
 
 =item *
 
@@ -2819,7 +2852,7 @@ This construct does not set the C<.ast> attribute.
 When used as an array, a C<Match> object pretends to be an array of all
 its positional captures.  Hence
 
-     ($key, $val) = ms/ (\S+) => (\S+)/;
+     ($key, $val) = ms/ (\S+) '=>' (\S+)/;
 
 can also be written:
 
