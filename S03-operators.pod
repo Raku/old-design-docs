@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 7 Dec 2011
-    Version: 233
+    Last Modified: 1 Jan 2012
+    Version: 234
 
 =head1 Overview
 
@@ -3412,12 +3412,17 @@ use a C<Range> as an endpoint:
     0 .. ^10  # ERROR
 
 For ranges with other non-numeric types on the right, the right
-argument is coerced to the type of the left argument and treated as
-numeric.  Hence, C<Array> types in the second argument are assumed
+argument is coerced to numeric and then used above.
+Hence, C<Array> types in the second argument are assumed
 to be intended as numeric if the left argument is numeric:
 
     0 ..^ @x    # okay
     0 ..^ +@x   # same thing
+
+Likewise for strings:
+
+    0 .. '1.5'  # okay
+    0 .. +'1.5' # same thing
 
 C<Whatever> types are also supported to represent -Inf/+Inf.  If
 either endpoint is a C<WhateverCode>, the range is primed into
