@@ -20,8 +20,8 @@ DRAFT: Synopsis 32: Setting Library - Numeric
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 28 June 2011
-    Version: 11
+    Last Modified: 6 Jan 2012
+    Version: 12
 
 The document is a draft.
 
@@ -340,7 +340,7 @@ C<Num> is a machine-precision numeric real value.
 C<Complex> is an immutable type. Each C<Complex> object stores two numbers,
 the real and imaginary part. For all practical purposes a C<Complex> with
 a C<NaN> in real or imaginary part may be considered a C<NaN> itself (and
-C<(NaN + 1i) ~~ NaN> is C<True>).
+C<(NaN+1i) ~~ NaN> is C<True>).
 
 Coercion of a C<Complex> to any C<Real> returns the real part (coerced, if
 necessary) if the imaginary part is 0, and fails otherwise. Comparison
@@ -354,7 +354,8 @@ the C<Complex> to a real number blindly.
     our Complex multi method new(Real $re, Real $im)
 
 Constructs a C<Complex> number from real and imaginary part. This is the
-method form of C<$re + ($im)i>.
+method form of C<$re+$im\i>.  (But use the C<< <1+2i> >> form for literals,
+so that you don't have to worry about precedence or rely on constant folding.)
 
 =item polar
 
@@ -374,6 +375,22 @@ Returns the real part of the complex number.
     our Real multi method im()
 
 Returns the imaginary part of a complex number.
+
+=item gist
+
+    our Str multi method gist()
+
+Returns a string representation of the form "C<1+2i>", without
+internal spaces.  (C<Str> coercion also returns this.)
+
+=item perl
+
+    our Str multi method perl()
+
+Returns a string representation corresponding to the unambiguous
+C<val()>-based representation of complex literals, of the form "C<< <1+2i> >>",
+without internal spaces, and including the angles that keep the C<+>
+from being treated as a normal addition operator.
 
 =back
 
@@ -464,6 +481,11 @@ denominator were stored in a normal form: both numerator and denominator are
 minimal in their magnitude, and the denominator is positive. So
 C<Rat.new(2, -4).denominator> return C<2>, because the normal form is C<-1/2>.
 
+(An implementation is allowed to be lazy about this internally when it
+determines that normalizing repeatedly is detrimental to performance,
+such as when adding a column of numbers that all have an internal
+denominator of 100.)
+
 =over
 
 =item new
@@ -471,25 +493,46 @@ C<Rat.new(2, -4).denominator> return C<2>, because the normal form is C<-1/2>.
     multi method new(Int $num, Int $denom)
 
 Constructs a C<Rat> object from the numerator and denominator.
-Fails if C<$denom == 0>.
+Fails if C<$denom == 0>.  You can use division to produce a C<Rat>
+through constant folding, but generally if you know the values in
+advance, you should use one of literal forms so that you don't have to
+rely on precedence.  You may use the C<val()>-based C<< <3/5> >> form,
+or you can simply write decimal numbers with a decimal point, since
+C<12.34> is essentially identical to C<< <1234/100> >> as a literal.
 
 =item nude
 
     our Seq[Int] multi method nude()
 
-Returns a C<Seq> of numerator and denominator
+Returns a C<Seq> of numerator and denominator.
 
 =item denominator
 
     our Int multi method denominator()
 
-Returns the denominator
+Returns the denominator.
 
 =item numerator
 
     our Int multi method numerator()
 
-Returns the numerator
+Returns the numerator.
+
+=item gist
+
+    our Str multi method gist()
+
+Returns a string representation by first converting to C<Num> and then using the normal decimal
+output of that type.  (C<Str> coercion also does this.)
+
+=item perl
+
+    our Str multi method perl()
+
+Returns a string representation corresponding to the unambiguous
+C<val()>-based representation of complex literals, of the form "C<< <3/5> >>",
+without internal spaces, and including the angles that keep the C</>
+from being treated as a normal division operator.
 
 =back
 
