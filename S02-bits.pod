@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 29 December 2011
-    Version: 245
+    Last Modified: 11 Jan 2012
+    Version: 246
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2015,10 +2015,18 @@ equivalent to a C<my> declaration inside the block of the function,
 except that such parameters default to readonly.
 
 The C<anon> declarator allows a declaration to provide a name that
-can be used in error messages, but that isn't put into any symbol table:
+can be used in error messages, but that isn't put into any external symbol table:
 
     my $secret = anon sub marine () {...}
     $secret(42)  # too many arguments to sub marine
+
+However, the name is introduced into the scope of the declaration itself, so it
+may be used to call itself recursively:
+
+    my $secret = 
+        anon sub tract($n) { say $n; say tract($n-1) if $n }
+        
+    $secret(5); # 5 4 3 2 1
 
 =head2 Invariant sigils
 
