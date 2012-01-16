@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 11 Jan 2012
-    Version: 246
+    Last Modified: 16 Jan 2012
+    Version: 247
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -3251,6 +3251,21 @@ Adverbial syntax will be described more fully later.
 
 =head1 Literals
 
+Perl 6 has a rich set of literal forms, many of which can be used
+for textual input as well.  For those forms simple enough to be allowed, the C<val()> function treats
+such a string value as if it were a literal in the program.  In some cases
+the C<val()> function will be applied on your behalf, and in other cases
+you must do so explicitly.  The rationale for this function is that there
+are many cases where the programmer or user is forced to use a string type to
+represent a value that is intended to become a numeric type internally.  Committing
+pre-emptively to either a string type or a numeric type is likely to be
+wrongish, so Perl 6 instead provides the concept of I<allomorphic> literals.
+How these work is described below in L<Allomorphic value semantics>.
+
+When used as literals in a program, most of these forms produce an
+exact type, and are not subject to C<val()> processing.  The exceptions
+will be noted as we go.
+
 =head2 Underscores
 
 A single underscore is allowed only between any two digits in a
@@ -3405,6 +3420,10 @@ Decimal fractions not using "e" notation are also treated as literal C<Rat> valu
     1.23456.WHAT     # Rat
     0.11 == 11/100   # True
 
+Literals specified in angle brackets are always subject to C<val()> processing,
+so C<< <1/2> >> produces a value that is both a C<Rat> and a C<Str>.
+See L<Allomorphic value semantics> below.
+
 =head2 Complex literals
 
 Complex literals are similarly indicated by writing an addition or subtraction of
@@ -3420,6 +3439,10 @@ surrounding precedence.
 (Note that these are not actually special syntactic forms: both
 rational and complex literal forms fall out naturally from the semantic
 rules of qw quotes described below.)
+
+Literals specified in angle brackets are always subject to C<val()> processing,
+so C<< <1+2i> >> produces a value that is both a C<Complex> and a C<Str>.
+See L<Allomorphic value semantics> below.
 
 =head2 C<Blob> literals
 
@@ -3458,7 +3481,7 @@ the range C<'0'..'7'>.  Octal characters must use C<\o> notation.
 Note also that backreferences are no longer represented by C<\1>
 and the like--see S05.
 
-=head2 Quoting forms
+=head2 Angle quotes (quote words)
 
 The C<qw/foo bar/> quote operator now has a bracketed form: C<< <foo bar> >>.
 When used as a subscript it performs a slice equivalent to C<{'foo','bar'}>.
@@ -3484,8 +3507,8 @@ is equivalent to:
 
     $a = ('a', 'b');
 
-which, because the parcel is assigned to a scalar, is mostly-eagerly evaluated as a flat list and
-turned into a C<Seq> object.  On the other hand, if you backslash the parcel:
+which assigns a C<Parcel> to the variable.
+On the other hand, if you backslash the parcel:
 
     $a = \<a b>;
 
@@ -3493,7 +3516,9 @@ it is like:
 
     $a = \('a', 'b');
 
-and ends up as a non-flattening capture object).
+and ends up storing a C<Capture> object (which weeds out any named
+arguments into a separate structure, in contrast to a C<Parcel>, which keeps
+everything in its original list).
 
 Binding is different from assignment.  If bound to a signature, the
 C<< <a b> >> parcel will be promoted to a C<Capture> object, but if
@@ -3509,9 +3534,14 @@ still act like a single value.  These are all the same:
     $a = ('a');
     $a = 'a';
 
-=head3 Forcing item context
+Strings within angle brackets are subject to C<val()> processing, and any
+component that parses successfully as a numeric literal will become
+both a string and a number.  See L<Allomorphic value semantics> below.
 
-That is, a parcel is actually constructed by the comma, not by
+=head3 Explicit Parcel construction
+
+As the previous section show, a parcel is not automatically constructed
+by parens; the parcel is actually constructed by the comma, not by
 the parens.  To force a single value to become a composite object in
 item context, either add a comma inside parens, or use an appropriate
 constructor or composer for clarity as well as correctness:
@@ -3521,49 +3551,18 @@ constructor or composer for clarity as well as correctness:
     $a = Seq.new('a');
     $a = ['a'];
 
-For any item in the list that appears to be numeric, the literal is
-stored as an object with both a string and a numeric nature, where
-the string nature always returns the original string.  It is as if
-the item is converted to an appropriate numeric type that is mixed into
-the original string value.  Hence:
-
-    < 1 1/2 6.02e23 1+2i >
-
-produces objects like:
-
-    '1' but 1              # Int < Str
-    '1/2' but 1/2          # Rat < Str
-    '6.02e23' but 6.02e23  # Num < Str
-    '1+2i' but 1+2i        # Complex < Str
-
-The purpose of this would be to facilitate compile-time analysis of
-multi-method dispatch, when the user prefers angle notation as the most
-readable way to represent a list of numbers, which it often is.  Due to
-the mixin semantics, the derived numeric type is taken in preference to
-the string type, but the string type is always available for matching
-if no numeric type matches.  (The string value need not be retained
-if treating the number as a string would produce an identical value.)
-This behavior is not a special case; it's actually an example of
-a more general process of figuring out type information by parsing
-text that comes from any situation where a user is forced to enter
-text when they really mean other kinds of values.
-
-The form with a single value serves as the literal form of numbers
-such as C<Rat> and C<Complex> that would otherwise have to be constructed.
-It also gives us a reasonable way of visually isolating any known
-literal format as a single syntactic unit:
-
-    <-1+2i>.polar
-    (-1+2i).polar       # same, but only by constant folding
+=head3 Disallowed forms
 
 The degenerate case C<< <> >> is disallowed as a probable attempt to
-do IO in the style of Perl 5; that is now written C<lines()>.  (C<<
-<STDIN> >> is also disallowed.)  Empty lists are better written with
+do IO in the style of Perl 5; that is now written C<lines()>.  (C<< <STDIN> >>
+is also disallowed.)  Empty lists are better written with
 C<()> or C<Nil> in any case because C<< <> >> will often be misread
 as meaning C<('')>.  (Likewise the subscript form C<< %foo<> >>
 should be written C<%foo{}> to avoid misreading as C<@foo{''}>.)
 If you really want the angle form for stylistic reasons, you can
 suppress the error by putting a space inside: C<< < > >>.
+
+=head3 Relationship between <> and «»
 
 Much like the relationship between single quotes and double quotes, single
 angles do not interpolate while double angles do.  The double angles may
@@ -3582,28 +3581,6 @@ Unlike in the shells, any literal C<#> must be quoted, even
 ones without whitespace in front of them, but note that this comes
 more or less for free with a colon pair like C<< :char<#x263a> >>, since
 comments only work in double angles, not single.
-
-=head3 Allomorphic coercion
-
-Generalizing the policy on literal numbers above, any literal number
-that would overflow a C<Rat64> in the numerator is also stored as
-a string.  If a coercion to a wider type, such as C<FatRat>, is
-requested, the literal reconverts from the entire original
-string, rather than just the value that would fit into a C<Rat64>.
-(It may then cache that converted value for next time, of course.)
-So if you declare a constant with excess precision, it does not
-automatically become a C<FatRat>, which would force all calculations
-into the pessimal C<FatRat> type.
-
-    constant pi is export = 3.14159_26535_89793_23846_26433_83279_50288;
-    say pi.perl;   # 3141592653589793238/1000000000000000000 (Rat64)
-    say pi.Num     # 3.14159265358979
-    say pi.Str;    # 3.14159_26535_89793_23846_26433_83279_50288
-    say pi.FatRat; # 3.14159265358979323846264338327950288
-
-In this case it is not necessary to put angles around to get the allomorphism.
-Merely exceeding the precision of C<Rat64> is sufficient to trigger the
-behavior (but only for literals).
 
 =head2 Adverbial Pair forms
 
@@ -3853,12 +3830,13 @@ built-in C<< <...> >> is equivalent to C<q:w:v/.../>.)
 
 =head2 The C<:val> modifier
 
-The C<:v>/C<:val> modifier runs each word through the C<val()> function,
-which will attempt to recognize literals as defined by the current
-slang.  Only pure literals such as numbers and enums are so recognized;
-all other words are left as strings.  In any case, use of such an
-intuited value as a string will reproduce the original string including
-any leading or trailing whitespace:
+The C<:v>/C<:val> modifier runs each word through the C<val()>
+function, which will attempt to recognize literals as defined by the
+current slang.  (See L<Allomorphic value semantics> below.)  Only pure
+literals such as numbers, versions, and enums are so recognized; all
+other words are left as strings.  In any case, use of such an intuited
+value as a string will reproduce the original string including any
+leading or trailing whitespace:
 
     say +val(' +2/4 ')   # '0.5'
     say ~val(' +2/4 ')   # ' +2/4 '
@@ -4549,6 +4527,80 @@ versions can still be used by Perl since by default Perl imports
 external modules by exact version number.  (See S11.)  Only range
 operations will be compromised by an unknown foreign collation order,
 such as a system that sorts "delta" after "gamma".
+
+=head2 Allomorphic value semantics
+
+When C<val()> processing is attempted on any list of strings (typically on
+the individual words within angle brackets), the function
+attempts to determine if the intent of the programmer or user
+might have been to provide a numeric value.
+
+For any item in the list that appears to be numeric, the literal is
+stored as an object with both a string and a numeric nature, where
+the string nature always returns the original string.  This is implemented
+via multiple inheritance, to truly represent the allomorphic nature of
+a literal value that has not committed to which type the user intends.
+The numeric type chosen depends on the appearance of the literal.
+Hence:
+
+    < 1 1/2 6.02e23 1+2i >
+
+produces objects of classes defined as:
+
+    class IntStr is Int is Str {...}; IntStr('1')
+    class RatStr is Rat is Str {...}; RatStr('1/2')
+    class NumStr is Num is Str {...}; NumStr('6.02e23')
+    class ComplexStr is Complex is Str {...}; ComplexStr('1+2i')
+
+One purpose of this is to facilitate compile-time analysis of
+multi-method dispatch, when the user prefers angle notation as the most
+readable way to represent a list of numbers, which it often is.  Due to
+the MI semantics, the new object is equally a string and a number, and
+can be bound as-is to either a string or a numeric parameter.
+
+In case multiple dispatch determines that it could dispatch as either
+string or number, a tie results, while may result in an ambiguous
+dispatch error.  You'll need to use prefix C<+> or C<~> on the argument
+to resolve the ambiguity in that case.
+
+[Conjecture: we may someday find a way to make strings bind a little
+looser than the numeric types, but for now we conservatively outlaw the
+dispatch as ambiguous, and watch how this plays out in use.]
+
+The allomorphic behavior of angle brackets is not a special case;
+it's actually an example of a more general process of figuring out
+type information by parsing text that comes from any situation where
+the user is forced to enter text when they really mean other kinds
+of values.  A function prompting the user for a single value might
+usefully pass the result through C<val()> to intuit the proper type.
+
+The angle form with a single value serves as the literal form of
+numbers such as C<Rat> and C<Complex> that would otherwise have to be
+constructed via constant folding.  It also gives us a reasonable way of
+visually isolating any known literal format as a single syntactic unit:
+
+    <-1+2i>.polar
+    (-1+2i).polar       # same, but only by constant folding
+
+=head3 Allomorphic Rats
+
+Any rational literal
+that would overflow a C<Rat64> in the numerator is also stored as
+a string.  (That is, angle brackets will be assumed in this case,
+producing a C<RatStr>.)
+If a coercion to a wider type, such as C<FatRat>, is
+requested, the literal reconverts from the entire original
+string, rather than just the value that would fit into a C<Rat64>.
+(It may then cache that converted value for next time, of course.)
+So if you declare a constant with excess precision, it does not
+automatically become a C<FatRat>, which would force all calculations
+into the pessimal C<FatRat> type.
+
+    constant pi is export = 3.14159_26535_89793_23846_26433_83279_50288;
+    say pi.perl;   # 3141592653589793238/1000000000000000000 or so (Rat64)
+    say pi.Num     # 3.14159265358979
+    say pi.Str;    # 3.14159_26535_89793_23846_26433_83279_50288
+    say pi.FatRat; # 3.14159265358979323846264338327950288
 
 =head1 Context
 
