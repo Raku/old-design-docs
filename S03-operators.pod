@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 14 Jan 2012
-    Version: 235
+    Last Modified: 23 Jan 2012
+    Version: 236
 
 =head1 Overview
 
@@ -4425,8 +4425,8 @@ create a list operator that reduces using that operation:
 
 As with all the metaoperators, space is not allowed inside a metatoken.
 
-A reduction operator has the same precedence as a list operator.  In fact,
-a reduction operator really is a list operator, and is invoked as one.
+A reduction operator has the same precedence as a list prefix.  In fact,
+a reduction operator really is a list prefix, and is invoked as one.
 Hence, you can implement a reduction operator in one of two ways.  Either
 you can write an explicit list operator:
 
@@ -4449,6 +4449,13 @@ it must associate the same way as the operator used:
 
     [-] 4, 3, 2;      # 4-3-2 = (4-3)-2 = -1
     [**] 4, 3, 2;     # 4**3**2 = 4**(3**2) = 262144
+
+For list-associative operator (the ones with X in the precedence table), the
+implementation must take into account the listiness of the arguments; that is,
+if repeatedly applying a binary version of the operator would produce the
+wrong results, then it cannot be implemented that way.  For instance:
+
+    [^^] $a, $b, $c;  # means ($a ^^ $b ^^ $c), NOT (($a ^^ $b) ^^ $c)
 
 For chain-associative operators (like C<< < >>), all arguments are taken
 together, just as if you had written it out explicitly:
@@ -4601,7 +4608,10 @@ You can say
     [||] a(), b(), c(), d()
 
 to return the first true result, but the evaluation of the list is controlled
-by the semantics of the list, not the semantics of C<||>.
+by the semantics of the list, not the semantics of C<||>.  The operator still
+short-circuits, but only in the sense that it does not need to examine all
+the values returned by the list.  This is still quite useful for performance,
+especially if the list could be infinite.
 
 Most reduce operators return a simple scalar value, and hence do not care
 whether they are evaluated in item or list context.  However, as with
