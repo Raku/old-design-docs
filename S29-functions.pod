@@ -255,7 +255,7 @@ an embedded interpreter, all memory must also be reclaimed.
 
 =item sleep
 
- our Num multi sleep ( Num $for = Inf )
+ multi sleep ( Num $for = Inf --> Num )
 
 Attempt to sleep for up to C<$for> seconds. Implementations are obligated
 to support sub-second resolutions if that is at all possible.
@@ -287,7 +287,7 @@ the exception.
 
 =item bless
 
- our Object method bless(Object::RepCandidate $candidate, *@protos, *%init_args)
+ method bless(Object::RepCandidate $candidate, *@protos, *%init_args --> Object )
 
 Calling C<bless> on any invocant (but typically a type object) to create a new
 object with the same class as the invocant.
@@ -347,27 +347,27 @@ but only the first character will be translated.
 
 =item item
 
- our Item multi item ( $item )
+ multi item ( $item --> Item )
 
 Forces generic Item context on its argument, and returns it.
 
 =item list
 
- our List multi list ( Iterable $item ) { $item.iterator.list }
- our List multi list ( List \$iter ) { $iter }
+ multi list ( Iterable $item --> List ) { $item.iterator.list }
+ multi list ( List \$iter --> List ) { $iter }
 
 Almost a no-op; just makes sure that $item can be iterated.
 
 =item flat
 
- our List multi flat ( *@list )
+ multi flat ( *@list --> List )
 
 Forces flat context on its arguments, and returns them.
 The heavy work is done by the C<*@> binding.
 
 =item lol
 
- our List multi lol ( **@list )
+ multi lol ( **@list --> List )
 
 Forces the argument list to be evaluated in lol ("list of lists") context.
 (Subscripts treat such a list of lists as a multidimensional slice.)
@@ -379,7 +379,7 @@ See also the more general C<.tree> method, which defaults to C<lol> semantics.
 
 The C<hash> contextualizer
 
- our Hash multi hash ( *@list )
+ multi hash ( *@list --> Hash )
 
 Forces the argument list to be evaluated in hash context.
 The expression is evaluated in list context (flattening any C<Capture>s),
@@ -391,8 +391,8 @@ empty C<hash()> means an empty hash).
 
 =item gist
 
- our Str multi gist( |$item )
- our Str multi method gist( Mu $item: )
+ multi gist( |$item --> Str )
+ multi method gist( Mu $item: --> Str )
 
 Produces an informal string coercion, something a human might want
 to see if debugging, for instance.  Each type may decide its own
@@ -410,10 +410,10 @@ to a printer. C<:-)>
 
 =item :16, :8, :2, :10
 
- our Num multi prefix:<:16> ( Str $hexstr )
- our Num multi prefix:<:8> ( Str $octstr )
- our Num multi prefix:<:2> ( Str $binstr )
- our Num multi prefix:<:10> ( Str $decstr )
+ multi prefix:<:16> ( Str $hexstr --> Num )
+ multi prefix:<:8> ( Str $octstr --> Num )
+ multi prefix:<:2> ( Str $binstr --> Num )
+ multi prefix:<:10> ( Str $decstr --> Num )
  etc.
 
 Interprets string as a number, with a default
@@ -442,10 +442,10 @@ Replaces Perl 5 C<hex> and C<oct>.
 
 =item gethost
 
- our OS::Name multi gethost()
- our OS::Name multi gethost( Str $name, OS::Addfamily :$type )
- our OS::Name multi method gethost( OS::Addr $addr: ) is export
- our OS::Name multi method gethost( URI $uri: ) is export
+ multi gethost( --> OS::Name )
+ multi gethost( Str $name, OS::Addfamily :$type --> OS::Name )
+ multi method gethost( OS::Addr $addr: --> OS::Name ) is export
+ multi method gethost( URI $uri: --> OS::Name ) is export
 
 The C<gethost> function operates on host naming or address information
 and returns an C<OS::Name>. An C<OS::Name> is, minimally:
@@ -479,7 +479,7 @@ Examples:
 
 =item chroot
 
- our Bool multi chroot ( Str $path = CALLER::<$_> )
+ multi chroot ( Str $path = CALLER::<$_> --> Bool )
 
 On POSIX systems, changes the process context of the current process such
 that the "root" directory becomes C<$path> and all rooted paths
@@ -490,15 +490,15 @@ true on success.
 
 =item getlogin
 
- our Str multi getlogin ()
+ multi getlogin ( --> Str )
 
 Returns the username of the account running the program. This may
 not be as secure as using C<getpwuid> on some platforms.
 
 =item kill
 
- our Bool multi kill ( OS::Signal $signal, Bool :$group, *@pids )
- our Bool multi method kill ( Proc::PID $pid: OS::Signal $signal?, Bool :$group )
+ multi kill ( OS::Signal $signal, Bool :$group, *@pids --> Bool )
+ multi method kill ( Proc::PID $pid: OS::Signal $signal?, Bool :$group --> Bool )
 
 Sends the given C<$signal> to the process(es) given and returns a boolean
 value indicating success (true) if all of the processes existed and were
@@ -534,8 +534,8 @@ signal at all, and is used to determine if processes are still running:
 =item shell
 
 
- our Proc::Status multi shell ( $expression,   :$bg,  :%env = %*ENV )
- our Proc::Status multi run   ( *$cmd, *@args, :$bg,  :%env = %*ENV )
+ multi shell ( $expression,   :$bg,  :%env = %*ENV --> Proc::Status )
+ multi run   ( *$cmd, *@args, :$bg,  :%env = %*ENV --> Proc::Status )
 
 C<shell> and C<run> execute an external program, and return control to
 the caller once the program has exited.
@@ -594,7 +594,7 @@ tools
 
 =item fork
 
- our Proc sub Processes::fork()
+ sub Processes::fork( --> Proc )
 
 Creates a copy of the current process. Both processes return from
 C<fork>. The original process returns
@@ -618,9 +618,9 @@ Typical usage would be:
 
 =item wait
 
- our Proc::Status multi method wait( Proc $process: *%options )
+ multi method wait( Proc $process: *%options --> Proc::Status )
 
- our Proc::Status multi wait ( Proc $process = -1, *%options )
+ multi wait ( Proc $process = -1, *%options --> Proc::Status )
 
 Waits for a child process to terminate and returns the status
 object for the child.  This status object will numify to the process

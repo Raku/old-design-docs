@@ -36,10 +36,10 @@ so edit it there in the git repository if you would like to make changes.
 The following are defined in the C<Mu> role:
 
  role Mu {
-     our Bool multi method defined ($self:) is export {...}
-     our Bool multi method defined ($self: ::role ) is export {...}
+     multi method defined ($self: --> Bool ) is export {...}
+     multi method defined ($self: ::role --> Bool ) is export {...}
 
-     our multi method undefine( $self: ) is export {...}
+     multi method undefine( $self: --> Any ) is export {...}
 
      method not() {...}
      method so() {...}
@@ -49,8 +49,8 @@ The following are defined in the C<Mu> role:
 
 =item defined
 
-  our Bool multi method defined ( $self: ) is export
-  our Bool multi method defined ( $self: ::role ) is export
+  multi method defined ( $self: --> Bool ) is export
+  multi method defined ( $self: ::role --> Bool ) is export
 
 C<defined> returns true if the parameter has a value and that value is
 considered defined by its type, otherwise false is returned.
@@ -66,8 +66,8 @@ the type of the object.
 
 =item undefine
 
-  our multi undefine( Any $thing )
-  our multi method undefine( Any $self )
+  multi undefine( Any $thing --> Any )
+  multi method undefine( Any $self --> Any )
 
 Takes any variable as a parameter and attempts to "remove" its
 definition. For simple scalar variables this means assigning
@@ -106,21 +106,21 @@ instantiate a C<Mu> it would be considered defined, and thus true.
 The following are defined in the C<Any> role:
 
  role Any does Mu does Pattern {
-     our multi method clone (::T $self --> T) {...}
-     our multi method clone (::T $self, *%attributes --> T) {...}
+     multi method clone (::T $self --> T --> Any ) {...}
+     multi method clone (::T $self, *%attributes --> T --> Any ) {...}
 
-     our Callable multi method can ($self:, Str $method) {...}
-     our Bool     multi method does ($self:, $type) {...}
-     our Bool     multi method isa  ($self:, $type) {...}
-     our Str      multi method perl ( Mu $o: ) is export {...}
-     our          multi method warn ( Mu $o: ) is export {...}
+     multi method can ($self:, Str $method --> Callable ) {...}
+     multi method does ($self:, $type --> Bool     ) {...}
+     multi method isa  ($self:, $type --> Bool     ) {...}
+     multi method perl ( Mu $o: --> Str      ) is export {...}
+     multi method warn ( Mu $o: --> Any ) is export {...}
  }
 
 =over
 
 =item can
 
- our Callable multi method can ($self:, Str $method)
+ multi method can ($self:, Str $method --> Callable )
 
 If there is a multi method of name C<$method> that can be called on
 C<$self>, then a closure is return which has C<$self> bound to the position
@@ -130,8 +130,8 @@ Otherwise an undefined value is returned.
 
 =item clone
 
- our multi method clone (::T $self --> T)
- our multi method clone (::T $self, *%attributes --> T)
+ multi method clone (::T $self --> T --> Any )
+ multi method clone (::T $self, *%attributes --> T --> Any )
 
 The first variant returns  an independent copy of C<$o> that is equivalent
 to C<$o>.
@@ -141,27 +141,27 @@ attribute during the cloning process.
 
 =item does
 
- our Bool multi method does ($self:, $type)
+ multi method does ($self:, $type --> Bool )
 
 Returns C<True> if and only if C<$self> conforms to type C<$type>.
 
 =item isa
 
- our Bool multi method isa ($self:, $type)
+ multi method isa ($self:, $type --> Bool )
 
 Returns C<True> if a the invocant an instance of class C<$type>, or
 of a subset type or a derived class (through inheritance) of C<$type>.
 
 =item perl
 
- our Str multi method perl ( Mu $o: ) is export
+ multi method perl ( Mu $o: --> Str ) is export
 
 Returns a perlish representation of the object, so that calling C<eval>
 on the returned string reproduces the object as accurately as possible.
 
 =item warn
 
- our multi method warn ( Mu $o: ) is export
+ multi method warn ( Mu $o: --> Any ) is export
 
 Throws a resumable warning exception, which is considered a control
 exception, and hence is invisible to most normal exception handlers.

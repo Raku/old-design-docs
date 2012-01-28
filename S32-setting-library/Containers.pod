@@ -51,7 +51,7 @@ The C<Associative> role implies the ability to support C<< postcircumfix:<{ }> >
 
 =item cat
 
- our Cat multi cat( **@list )
+ multi cat( **@list --> Cat )
 
 C<cat> reads arrays serially rather than in parallel as C<zip> does. It
 returns all of the elements of the containers that were passed to it
@@ -71,7 +71,7 @@ to other operators.]
 
 =item roundrobin
 
- our Parcel multi roundrobin( **@list )
+ multi roundrobin( **@list --> Parcel )
 
 C<roundrobin> is very similar to C<zip>.  The difference is that
 C<roundrobin> will not stop on lists that run out of elements but
@@ -86,8 +86,8 @@ will get the following values for C<$x>: C<1, 1, 1, 2, 2, 3>
 
 =item zip
 
- our Parcel of Parcel multi zip ( **@list )
- our Parcel of Parcel multi infix:<Z> ( **@list )
+ multi zip ( **@list --> Parcel of Parcel )
+ multi infix:<Z> ( **@list --> Parcel of Parcel )
 
 zip takes any number of arrays and returns one tuple for every index.
 This is easier to read in an example:
@@ -126,19 +126,19 @@ The following are defined in the C<List> role/class:
 
 =item new
 
- our List multi method new(*@args)
+ multi method new(*@args --> List )
 
 Constructs an C<List> that can visit all iterable elements of the all the arguments.
 
 =item list
 
- our List sub list(*@args)
+ sub list(*@args --> List )
 
 Constructs an C<List> that can visit all iterable elements of the all the arguments.
 
 =item cat
 
- our Cat multi cat ( @values )
+ multi cat ( @values --> Cat )
 
 Returns a C<Cat> object, a concatenated version of the list that does the C<Str>
 interface, but generates the string lazily to the extent permitted
@@ -161,12 +161,12 @@ cache hits.
 
 =item classify
 
- our Hash multi method classify ( @values: &mapper )
- our Hash multi method classify ( @values: %mapper )
- our Hash multi method classify ( @values: @mapper )
- our Hash multi classify ( &mapper, *@values )
- our Hash multi classify ( %mapper, *@values )
- our Hash multi classify ( @mapper, *@values )
+ multi method classify ( @values: &mapper --> Hash )
+ multi method classify ( @values: %mapper --> Hash )
+ multi method classify ( @values: @mapper --> Hash )
+ multi classify ( &mapper, *@values --> Hash )
+ multi classify ( %mapper, *@values --> Hash )
+ multi classify ( @mapper, *@values --> Hash )
 
 C<classify> transforms a list or array of values into a hash
 representing the classification of those values according to a mapper;
@@ -196,12 +196,12 @@ To categorize values into multiple categories, see C<categorize>.
 
 =item categorize
 
- our Hash multi method categorize ( @values: &mapper )
- our Hash multi method categorize ( @values: %mapper )
- our Hash multi method categorize ( @values: @mapper )
- our Hash multi categorize ( &mapper, *@values )
- our Hash multi categorize ( %mapper, *@values )
- our Hash multi categorize ( @mapper, *@values )
+ multi method categorize ( @values: &mapper --> Hash )
+ multi method categorize ( @values: %mapper --> Hash )
+ multi method categorize ( @values: @mapper --> Hash )
+ multi categorize ( &mapper, *@values --> Hash )
+ multi categorize ( %mapper, *@values --> Hash )
+ multi categorize ( @mapper, *@values --> Hash )
 
 Like C<classify>, C<categorize> transforms a list or array of values
 into a hash representing the categorizations of those
@@ -220,8 +220,8 @@ would merely make a key out of the list returned from the mapper).
 
 =item grep
 
- our List multi method grep ( @values: Matcher $test )
- our List multi grep ( Matcher $test, *@values )
+ multi method grep ( @values: Matcher $test --> List )
+ multi grep ( Matcher $test, *@values --> List )
 
 C<grep> takes a list or array of values and returns a lazily evaluated
 list comprised of all of the values from the original list for which
@@ -245,17 +245,17 @@ if you mean the other thing.
 
 =item first
 
- our Parcel multi method first ( @values: Matcher $test )
- our Parcel multi first ( Matcher $test, *@values )
+ multi method first ( @values: Matcher $test --> Parcel )
+ multi first ( Matcher $test, *@values --> Parcel )
 
 C<first> searches exactly like C<grep> but returns only the first matching value.
 
 =item pick
 
- our multi method pick ( @values: Int $num = 1 )
- our multi method pick ( @values: Whatever )
- our multi pick ( Int $num, *@values )
- our multi pick ( Whatever, *@values )
+ multi method pick ( @values: Int $num = 1 --> Any )
+ multi method pick ( @values: Whatever --> Any )
+ multi pick ( Int $num, *@values --> Any )
+ multi pick ( Whatever, *@values --> Any )
 
 C<pick> takes a list or array of values and returns a random
 selection of elements from the list (without replacement;
@@ -272,10 +272,10 @@ single element may be used as an item without requiring C<.[0]>.
 
 =item roll
 
- our multi method roll ( @values: Int $num = 1 )
- our multi method roll ( @values: Whatever )
- our multi roll ( Int $num, *@values )
- our multi roll ( Whatever, *@values )
+ multi method roll ( @values: Int $num = 1 --> Any )
+ multi method roll ( @values: Whatever --> Any )
+ multi roll ( Int $num, *@values --> Any )
+ multi roll ( Whatever, *@values --> Any )
 
 C<roll> takes a list or array of values and returns a random selection
 of elements from the list, like rolling N independent dice, where
@@ -296,8 +296,8 @@ C<6> as a degenerate one-sided die.  Use C<roll 1, 1..6> to simulate a six-sided
 
 =item join
 
- our Str multi method join ( @values: Str $separator = '' )
- our Str multi join ( Str $separator = '', *@values )
+ multi method join ( @values: Str $separator = '' --> Str )
+ multi join ( Str $separator = '', *@values --> Str )
 
 C<join> returns a single string comprised of all of the elements
 of C<@values>, separated by C<$separator>.
@@ -309,8 +309,8 @@ just coerce to C<Str>.
 
 =item map
 
- our List of Parcel multi method map ( @values: Code *&expression )
- our List of Parcel multi map ( Code $expression, *@values )
+ multi method map ( @values: Code *&expression --> List of Parcel )
+ multi map ( Code $expression, *@values --> List of Parcel )
 
 C<map> returns a lazily evaluated list which is comprised of
 the return value of the expression, evaluated once for every
@@ -331,8 +331,8 @@ if you mean the other thing.
 
 =item reduce
 
- our Item multi method reduce ( @values: Code *&expression )
- our Item multi reduce ( Code $expression ;; *@values ) {
+ multi method reduce ( @values: Code *&expression --> Item )
+ multi reduce ( Code $expression ;; *@values --> Item ) {
    my $res;
    for @values -> $cur {
      FIRST {$res = $cur; next;}
@@ -349,8 +349,8 @@ if you mean the other thing.
 
 =item reverse
 
- our List multi method reverse ( @values: ) is export
- our List multi reverse ( *@values ) {
+ multi method reverse ( @values: --> List ) is export
+ multi reverse ( *@values --> List ) {
     gather {
         1 while take pop @values;
     }
@@ -360,7 +360,7 @@ Note that strings are now reversed with C<flip>.
 
 =item rotate
 
- our List multi method rotate ( @values is copy: Int $n = 1) is export
+ multi method rotate ( @values is copy: Int $n = 1 --> List ) is export
 
 Produces a new list with the same elements as the old list,
 rotated by the specified amount.  See Array::rotate for more
@@ -368,12 +368,12 @@ info.
 
 =item sort
 
- our Array multi method sort( @values: *&by )
- our Array multi method sort( @values: Ordering @by )
- our Array multi method sort( @values: Ordering $by = &infix:<cmp> )
+ multi method sort( @values: *&by --> Array )
+ multi method sort( @values: Ordering @by --> Array )
+ multi method sort( @values: Ordering $by = &infix:<cmp> --> Array )
 
- our List multi sort( Ordering @by,  *@values )
- our List multi sort( Ordering $by, *@values )
+ multi sort( Ordering @by,  *@values --> List )
+ multi sort( Ordering $by, *@values --> List )
 
 Returns C<@values> sorted, using criteria C<$by> or C<@by> for
 comparisons. C<@by> differs from C<$by> in that each criterion is
@@ -402,12 +402,12 @@ C<is canonicalized(&lc)>.)
 
 =item min
 
- our multi method min( @values: *&by )
- our multi method min( @values: Ordering @by )
- our multi method min( @values: Ordering $by = &infix:<cmp> )
+ multi method min( @values: *&by --> Any )
+ multi method min( @values: Ordering @by --> Any )
+ multi method min( @values: Ordering $by = &infix:<cmp> --> Any )
 
- our multi min( *@values, Ordering :@by )
- our multi min( *@values, Ordering :$by )
+ multi min( *@values, Ordering :@by --> Any )
+ multi min( *@values, Ordering :$by --> Any )
 
 Returns the earliest (i.e., lowest index) minimum element
 of C<@values> , using criteria C<$by> or C<@by> for
@@ -426,12 +426,12 @@ C<[min]> reduction operator.
 
 =item max
 
- our multi method max( @values: *&by )
- our multi method max( @values: Ordering @by )
- our multi method max( @values: Ordering $by = &infix:<cmp> )
+ multi method max( @values: *&by --> Any )
+ multi method max( @values: Ordering @by --> Any )
+ multi method max( @values: Ordering $by = &infix:<cmp> --> Any )
 
- our multi max(*@values, Ordering :@by,)
- our multi max(*@values, Ordering :$by,)
+ multi max(*@values, Ordering :@by, --> Any )
+ multi max(*@values, Ordering :$by, --> Any )
 
 Returns the earliest (i.e., lowest index) maximum element
 of C<@values> , using criteria C<$by> or C<@by> for
@@ -450,12 +450,12 @@ C<[max]> reduction operator.
 
 =item minmax
 
- our multi method minmax( @values: *&by )
- our multi method minmax( @values: Ordering @by )
- our multi method minmax( @values: Ordering $by = &infix:<cmp> )
+ multi method minmax( @values: *&by --> Any )
+ multi method minmax( @values: Ordering @by --> Any )
+ multi method minmax( @values: Ordering $by = &infix:<cmp> --> Any )
 
- our multi minmax( *@values, Ordering :@by )
- our multi minmax( *@values, Ordering :$by )
+ multi minmax( *@values, Ordering :@by --> Any )
+ multi minmax( *@values, Ordering :$by --> Any )
 
 Returns a C<Range> from the minimum element of C<@values> to the maximum
 element, using criteria C<$by> or C<@by> for comparisons. C<@by> differs from
@@ -477,8 +477,8 @@ C<[minmax]> reduction operator.
 
 =item any
 
- our Junction multi method any( @values: )
- our Junction multi any( *@values ) is export
+ multi method any( @values: --> Junction )
+ multi any( *@values --> Junction ) is export
 
 Returns a junction with all the values of the list C<|>-ed together. The
 junction will only match against another value if at least one of the
@@ -486,8 +486,8 @@ values in the list matches.
 
 =item all
 
- our Junction multi method all( @values: )
- our Junction multi all( *@values ) is export
+ multi method all( @values: --> Junction )
+ multi all( *@values --> Junction ) is export
 
 Returns a junction with all the values of the list C<&>-ed together. The
 junction will only match against another value if all of the values in the
@@ -495,8 +495,8 @@ list match.
 
 =item one
 
- our Junction multi method one( @values: )
- our Junction multi one( *@values ) is export
+ multi method one( @values: --> Junction )
+ multi one( *@values --> Junction ) is export
 
 Returns a junction with all the values of the list C<^>-ed together. The
 junction will only match against another value if exactly one of the values
@@ -504,8 +504,8 @@ in the list matches.
 
 =item none
 
- our Junction multi method none( @values: )
- our Junction multi none( *@values ) is export
+ multi method none( @values: --> Junction )
+ multi none( *@values --> Junction ) is export
 
 Returns a junction which will only match against another value if none of
 the values in the list matches.
@@ -529,19 +529,19 @@ All these methods are defined in the C<Array> role/class.
 
 =item new 
 
- our Array multi method new(*@args)
+ multi method new(*@args --> Array )
 
 Constructs a new C<Array> containing the arguments passed to C<new>.
 
 =item shape
 
- our Parcel method shape (@array: ) is export
+ method shape (@array: --> Parcel ) is export
 
 Returns the declared shape of the array, as described in S09.
 
 =item end
 
- our Any method end (@array: ) is export
+ method end (@array: --> Any ) is export
 
 Returns the final subscript of the first dimension; for a one-dimensional
 array this simply the index of the final element.  For fixed dimensions
@@ -553,13 +553,13 @@ failure.)
 
 =item elems
 
- our Int method elems (@array: ) is export
+ method elems (@array: --> Int ) is export
 
 Returns the length of the array counted in elements.
 
 =item delete
 
- our List method delete (@array : *@indices ) is export
+ method delete (@array : *@indices --> List ) is export
 
 Sets elements specified by C<@indices> in the invocant to a
 non-existent state, as if they never had a value. Deleted elements at
@@ -579,7 +579,7 @@ returns the elements normally, but reads them out destructively.
 
 =item exists
 
- our Bool method exists (@array: Int $index)
+ method exists (@array: Int $index --> Bool )
 
 True if the specified Array element has been assigned to. This
 is not the same as being defined.
@@ -600,21 +600,21 @@ which can be processed using junctions.
 
 =item pop
 
- our Scalar multi method pop ( @array: ) is export
+ multi method pop ( @array: --> Scalar ) is export
 
 Remove the last element of C<@array> and return it.
 If C<@array> is empty returns a failure.
 
 =item push
 
- our Array multi method push ( @array: *@values ) is export
+ multi method push ( @array: *@values --> Array ) is export
 
 Adds all the values to the end of C<@array> eagerly.
 Returns the modified array.
 
 =item plan
 
- our Array multi method plan ( @array: *@list ) is export
+ multi method plan ( @array: *@list --> Array ) is export
 
 Adds the list to the end of C<@array> lazily as a kind of "lazy push".
 (That is, the reified part of the array is not modified, but the list
@@ -646,7 +646,7 @@ by using C<splice> without the risk of memory exhaustion.)
 
 =item rotate
 
- our Array multi method rotate ( @array is copy: Int $n = 1, Int *@n) is export
+ multi method rotate ( @array is copy: Int $n = 1, Int *@n --> Array ) is export
 
 Produces a new array with the same elements as the old array,
 rotated by the specified amount.  A positive rotation of 1 is defined as:
@@ -677,14 +677,14 @@ and rotating that instead.)
 
 =item shift
 
- our Scalar multi method shift ( @array:  ) is export
+ multi method shift ( @array: --> Scalar ) is export
 
 Remove the first element from C<@array> and return it.
 If C<@array> is empty returns a failure.
 
 =item splice
 
- our multi method splice( @array is rw: $offset = 0, $size = Inf, *@values ) is export
+ multi method splice( @array is rw: $offset = 0, $size = Inf, *@values --> Any ) is export
 
 C<splice> fills many niches in array-management, but its fundamental behavior
 is to remove zero or more elements from an array and replace them with a
@@ -728,7 +728,7 @@ in this case the entire rest of the array is spliced, whatever is available.
 
 =item unshift
 
- our Array multi method unshift ( @array: *@values ) is export
+ multi method unshift ( @array: *@values --> Array ) is export
 
 C<unshift> adds the values onto the start of the C<@array> and
 returns the modified array.
@@ -817,7 +817,7 @@ property instead.
 
 =item any
 
- our Junction multi method any( %hash: ) is export
+ multi method any( %hash: --> Junction ) is export
 
 Returns a junction with all the keys of the hash C<|>-ed together. The
 junction will only match against another value if at least one of the
@@ -825,7 +825,7 @@ keys in the hash matches.
 
 =item all
 
- our Junction multi method all( %hash: ) is export
+ multi method all( %hash: --> Junction ) is export
 
 Returns a junction with all the keys of the hash C<&>-ed together. The
 junction will only match against another value if all of the keys in the hash
@@ -833,7 +833,7 @@ match.
 
 =item one
 
- our Junction multi method one( %hash: ) is export
+ multi method one( %hash: --> Junction ) is export
 
 Returns a junction with all the keys of the hash C<^>-ed together. The
 junction will only match against another value if exactly one of the keys
@@ -841,14 +841,14 @@ in the hash matches.
 
 =item none
 
- our Junction multi method none( %hash: ) is export
+ multi method none( %hash: --> Junction ) is export
 
 Returns a junction which will only match against another value if none of
 the keys in the hash matches.
 
 =item invert
 
- our List multi method invert ( %hash: ) is export {
+ multi method invert ( %hash: --> List ) is export {
      map -> $k, $v { $v X=> $k }, %hash.kv;
  }
 
@@ -858,7 +858,7 @@ into multiple pairs.  (The C<< X=> >> expands C<$v> if it is a list.)
 
 =item push
 
- our Hash multi method push ( %hash: *@values ) is export
+ multi method push ( %hash: *@values --> Hash ) is export
 
 Like hash assignment insofar as it accepts either C<Pair> objects or
 alternating keys and values; also like in that it returns the new hash.
@@ -936,7 +936,7 @@ for arrays of many elements.
 
 =item decode
 
-    our Str method decode($encoding = $?ENC, $nf = $?NF)
+    method decode($encoding = $?ENC, $nf = $?NF --> Str )
 
 Decode the C<Buf> into a C<Str>. For subtypes that know their encoding (like
 C<utf8>, C<utf16>) the C<$encoding> parameter defaults to their intrinsic
@@ -977,7 +977,7 @@ to C<Pair> unless you try to modify it.)
 
 =item invert
 
-    our List multi method invert ( $pair: ) is export {
+    multi method invert ( $pair: --> List ) is export {
      $pair.value X=> $pair.key
     }
 
@@ -1020,15 +1020,15 @@ if it were a C<Hash of True>.
 
 =item pick
 
- our multi method pick ( $set: Int $num = 1 )
- our multi method pick ( $set: Whatever )
+ multi method pick ( $set: Int $num = 1 --> Any )
+ multi method pick ( $set: Whatever --> Any )
 
 Works like an ordinary list C<pick>.
 
 =item roll
 
- our multi method roll ( $set: Int $num = 1 )
- our multi method roll ( $set: Whatever )
+ multi method roll ( $set: Int $num = 1 --> Any )
+ multi method roll ( $set: Whatever --> Any )
 
 Works like an ordinary list C<roll>.
 
@@ -1050,10 +1050,10 @@ The C<.elems> method returns the sum of all replication values.
 
 =item pick
 
- our multi method pick ( $bag: Int $num = 1 )
- our multi method pick ( $bag: Whatever )
- our multi method pickpairs ( $bag: Int $num = 1 )
- our multi method pickpairs ( $bag: Whatever )
+ multi method pick ( $bag: Int $num = 1 --> Any )
+ multi method pick ( $bag: Whatever --> Any )
+ multi method pickpairs ( $bag: Int $num = 1 --> Any )
+ multi method pickpairs ( $bag: Whatever --> Any )
 
 Like an ordinary list C<pick>, but returns keys of the bag weighted by
 values, as if the keys were replicated the number of times indicated
@@ -1072,8 +1072,8 @@ effect on subsequent C<.pick> invocations.
 
 =item roll
 
- our multi method roll ( $bag: Int $num = 1 )
- our multi method roll ( $bag: Whatever )
+ multi method roll ( $bag: Int $num = 1 --> Any )
+ multi method roll ( $bag: Whatever --> Any )
 
 Like an ordinary list C<roll>, but returns keys of the bag weighted
 by values, as if the keys were replicated the number of times
@@ -1116,10 +1116,10 @@ to false.
 
 =item grab
 
- our multi method grab ( $bag: Int $num = 1 )
- our multi method grab ( $bag: Whatever )
- our multi method grabpairs ( $bag: Int $num = 1 )
- our multi method grabpairs ( $bag: Whatever )
+ multi method grab ( $bag: Int $num = 1 --> Any )
+ multi method grab ( $bag: Whatever --> Any )
+ multi method grabpairs ( $bag: Int $num = 1 --> Any )
+ multi method grabpairs ( $bag: Whatever --> Any )
 
 Like C<pick>, a C<grab> returns a random selection of elements, weighted
 by the values corresponding to each key.
