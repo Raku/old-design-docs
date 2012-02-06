@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 31 Jan 2012
-    Version: 237
+    Last Modified: 6 Feb 2012
+    Version: 238
 
 =head1 Overview
 
@@ -4428,7 +4428,7 @@ a reduction operator really is a list prefix, and is invoked as one.
 Hence, you can implement a reduction operator in one of two ways.  Either
 you can write an explicit list operator:
 
-    proto prefix:<[+]> (*@args) {
+    multi prefix:<[+]> (*@args) is default {
         my $accum = 0;
         while (@args) {
             $accum += @args.shift();
@@ -4462,8 +4462,8 @@ together, just as if you had written it out explicitly:
 
 If fewer than two arguments are given, a dispatch is still attempted
 with whatever arguments are given, and it is up to the receiver of that
-dispatch to deal with fewer than two arguments.  Note that the proto
-list operator definition is the most general, so you are allowed to define
+dispatch to deal with fewer than two arguments.  Note that the default
+list operator signature is the most general, so you are allowed to define
 different ways to handle the one argument case depending on type:
 
     multi prefix:<[foo]> (Int $x) { 42 }
