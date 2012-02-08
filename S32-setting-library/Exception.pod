@@ -3,7 +3,7 @@
 
 =head1 TITLE
 
-DRAFT: Synopsis 32: Setting Library - Exception
+DRAFT: Synopsis 32: Setting Library - Exceptions
 
 =head1 AUTHORS
 
@@ -18,8 +18,8 @@ Authors of previous versions of this document:
 
     Created: 26 Feb 2009
 
-    Last Modified: 19 December 2011
-    Version: 5
+    Last Modified: 08 January 2012
+    Version: 6
 
 The document is a draft.
 
@@ -30,27 +30,25 @@ so edit it there in the git repository if you would like to make changes.
 
 =head1 Roles and Classes
 
-All built-in exceptions live in the C<X::> namespace.
+All built-in exceptions exception the base class C<Exception> live in the
+C<X::> namespace.
 
-=head2 X::Base
+=head2 Exception
 
-All built-in exceptions inherit from C<X::Base>, which provides some basic
-behavior: storing  a backtrace and providing stringification.
+All built-in exceptions inherit from C<Exception>, which provides some basic
+behavior: storing a backtrace and providing an interface for the backtrace
+printer.
 
-    class X::Base {
+    class Exception {
         has $.backtrace;
-        has $.message;
-        method Str {
-            # munge $.message
-        }
-        method ID { ... } # an actual stub that should be
-                          # supplied by derived classes or
-                          # mixed-in roles
+        method message() { ... } # an actual stub
+        method gist { "$.message\n$.backtrace" }
+        method throw() { }
     }
 
-If C<$.message> contains substrings of the form C<< $<attrib> >>, the
-C<Str> method of the error message looks those attributes up in C<self>
-and interpolates them.
+All subclasses are supposed to override method C<message>.
+
+=head2
 
 =head2 X::OS
 
@@ -117,16 +115,20 @@ $<bad> instead >>.
 =head2 X::AdHoc
 
     class X::AdHoc is X::Base {
-        has %.payload;
-        method ID() { %.payload<ID> }
+        has $.message;
     }
 
-L<X::AdHoc> is meant for those too lazy to write their own exception
-classes, but who still want to benefit from structured exceptions.
+If you call C<&die> with non-C<Exception> arguments, what the user finds
+in his C<$!> variables is an object of type C<X::AdHoc>.
 
-The C<Str> method in C<X::AdHoc> lets attribute lookup fall back to items
-in C<%.payload>, ie if there's no C<$.foo> accessor for a name
-C<< $<foo> >>, C<< %.payload<foo> >> is used instead.
+So C<&die> could be written as
+
+    multi sub die(Exception $e) is hidden_from_backtrace {
+        $e.throw
+    }
+    multi sub die($message) is hidden_from_backtrace {
+        X::AdHoc.new(:$message).throw;
+    }
 
 =head1 Related types
 
