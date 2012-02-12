@@ -20,8 +20,8 @@ DRAFT: Synopsis 32: Setting Library - Numeric
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 6 Jan 2012
-    Version: 12
+    Last Modified: 27 Jan 2012
+    Version: 13
 
 The document is a draft.
 
@@ -42,13 +42,13 @@ XXX So where are Bit, Int, and Rat
 
 =item succ
 
- our Bool multi method succ ( Bool $b: ) is export
+ multi method succ ( Bool $b: --> Bool ) is export
 
 Returns C<Bool::True>.
 
 =item pred
 
- our Bool multi method pred ( Bool $b: ) is export
+ multi method pred ( Bool $b: --> Bool ) is export
 
 Returns C<Bool::False>.
 
@@ -61,7 +61,7 @@ C<Rat>, C<Complex> and other numeric types do that role. However it is an
 abstract interface, so C<$number.WHAT> will never return C<Numeric>. 
 
 Users who provide their own scalar numeric types are encouraged to implement the
-C<Numeric> role.  It is intended that such types such support the basic arithmetic
+C<Numeric> role.  It is intended that such types support the basic arithmetic
 operators to the extent possible, as well as C<==>.  In addition, it is hoped that
 comparison operators will at least return consistent results, even if there is no
 sensible mathematical ordering of your type.  That allows functions like sort to
@@ -81,7 +81,7 @@ mathematical functions.
 
 =item Real
 
- our Real multi method Real ()
+ multi method Real ( --> Real )
 
 If this C<Numeric> is equivalent to a C<Real>, return that C<Real>.  
 (For instance, if this number is a C<Complex> with a zero imaginary part.)  
@@ -89,76 +89,76 @@ Fail otherwise.
 
 =item Int
 
- our Int multi method Int ()
+ multi method Int ( --> Int )
 
 If this C<Numeric> is equivalent to a C<Real>, return the equivalent of
 calling C<truncate> on that C<Real> to get an C<Int>. 
 
 =item Rat
 
- our Rat multi method Rat ( Real $epsilon = 1.0e-6 )
+ multi method Rat ( Real $epsilon = 1.0e-6 --> Rat )
 
 If this C<Numeric> is equivalent to a C<Real>, return a C<Rat> which is
 within C<$epsilon> of that C<Real>'s value.
 
 =item Num
 
- our Num multi method Num ()
+ multi method Num ( --> Num )
 
 If this C<Numeric> is equivalent to a C<Real>, return that C<Real> as a C<Num>
 as accurately as is possible.
 
 =item succ
 
- our Numeric multi method succ ( Numeric $x: ) is export
- our Int     multi method succ ( Int $x: )     is export
+ multi method succ ( Numeric $x: --> Numeric ) is export
+ multi method succ ( Int $x: --> Int     )     is export
 
 Returns the successor of C<$x>. This method is used by C<< prefix:<++> >> and
 C<< postfix:<++> >> to increment the value in a container.
 
 =item pred
 
- our Numeric multi method pred ( Numeric $x: ) is export
- our Int     multi method pred ( Int $x:     ) is export
+ multi method pred ( Numeric $x: --> Numeric ) is export
+ multi method pred ( Int $x: --> Int     ) is export
 
 Returns the predecessor of C<$x>. This method is used by C<< prefix:<--> >>
 and C<< postfix:<--> >> to decrement the value in a container.
 
 =item abs
 
- our Numeric multi method abs ( Numeric $x: ) is export
+ multi method abs ( Numeric $x: --> Numeric ) is export
 
 Absolute Value.
 
 =item conjugate
 
- our Numeric multi method conjugate ( Numeric $x: ) is export
+ multi method conjugate ( Numeric $x: --> Numeric ) is export
 
 The complex conjugate of the value. For non-complex types, returns self.
 
 =item exp
 
- our Numeric multi method exp ( Numeric $exponent: Numeric :$base = Num::e ) is export
+ multi method exp ( Numeric $exponent: Numeric :$base = Num::e --> Numeric ) is export
 
 Performs similar to C<$base ** $exponent>. C<$base> defaults to the
 constant I<e>.
 
 =item log
 
- our Numeric multi method log ( Numeric $x: Numeric $base = Num::e ) is export
+ multi method log ( Numeric $x: Numeric $base = Num::e --> Numeric ) is export
 
 Logarithm of base C<$base>, default Natural. Calling with C<$x == 0> is an
 error.
 
 =item log10
 
- our Numeric multi method log10 (Numeric $x:) is export
+ multi method log10 (Numeric $x: --> Numeric ) is export
 
 A base C<10> logarithm, otherwise identical to C<log>.
 
 =item rand
 
- our Num term:<rand>
+ sub term:<rand> ( --> Num )
 
 Pseudo random number in range C<< 0 ..^ 1 >>.  That is, C<0> is
 theoretically possible, while C<1> is not.  Note that there is no
@@ -168,7 +168,7 @@ to use something like C<(1..6).pick> instead.
 
 =item sqrt
 
- our Numeric multi method sqrt ( Numeric $x: ) is export
+ multi method sqrt ( Numeric $x: --> Numeric ) is export
 
 Returns the principal square root of the parameter.
 
@@ -183,7 +183,7 @@ components is.
 
 =item i
 
- our Complex multi postfix:<i> ( Numeric $x )
+ multi postfix:<i> ( Numeric $x --> Complex )
 
 Returns a complex number representing the parameter multiplied by the imaginary
 unit C<i>.  Note that there is no C<.i> method.  To follow a variable name
@@ -194,13 +194,13 @@ with the postfix, it's necessary to use a backslash or parentheses:
 
 =item to-radians
 
- our Numeric multi method to-radians ( Numeric $x: TrigBase $base ) is export
+ multi method to-radians ( Numeric $x: TrigBase $base --> Numeric ) is export
 
 Convert from C<$base> to radians.
 
 =item from-radians
 
- our Numeric multi method from-radians ( Numeric $x: TrigBase $base ) is export
+ multi method from-radians ( Numeric $x: TrigBase $base --> Numeric ) is export
 
 Convert from radians to C<$base>.
 
@@ -229,13 +229,13 @@ it is hoped that something like this will remain in the spec.
 
 =item Complex
 
- our Complex multi method Complex ()
+ multi method Complex ( --> Complex )
 
 Returns a C<Complex> whose real part is this C<Real> and whose imaginary part is 0.
 
 =item Str
 
- our Str multi method Str ()
+ multi method Str ( --> Str )
 
 Returns the C<Real> as a C<Str>.  All built-in C<Real> types format it as a decimal 
 number, so for example, the C<Rat> C<5/4> is returned as C<"1.2">.
@@ -252,19 +252,19 @@ characters starting from C<A>.
 
 =item floor
 
- our Int multi method floor ( Real $x: ) is export
+ multi method floor ( Real $x: --> Int ) is export
 
 Returns the highest integer not greater than C<$x>.
 
 =item ceiling
 
- our Int multi method ceiling ( Real $x: ) is export
+ multi method ceiling ( Real $x: --> Int ) is export
 
 Returns the lowest integer not less than C<$x>.
 
 =item round
 
- our Int multi method round ( Real $x: $scale = 1) is export
+ multi method round ( Real $x: $scale = 1 --> Int ) is export
 
 Returns the nearest integer to C<$x>.  The algorithm is:
 
@@ -279,7 +279,7 @@ priming:
 
 =item truncate
 
- our Int multi method truncate ( Real $x: ) is export
+ multi method truncate ( Real $x: --> Int ) is export
 
 Returns the closest integer to C<$x> whose absolute value is not greater
 than the absolute value of C<$x>.  (In other words, just chuck any
@@ -291,7 +291,7 @@ an arbitrarily large integers, or C<int()> for native integers.
 
 =item sign
 
- our Int multi method sign ( Real $x: ) is export
+ multi method sign ( Real $x: --> Int ) is export
 
 Returns 1 when C<$x> is greater than 0, -1 when it is less than 0, 0 when it
 is equal to 0, or undefined when the value passed is undefined.
@@ -308,7 +308,7 @@ you I<must> call C<srand()> yourself if you wish to specify a deterministic seed
 
 =item rand
 
- our Num multi method rand (Real $x:) is export
+ multi method rand (Real $x: --> Num ) is export
 
 Pseudo random number in range C<< 0 ..^ $x >>.  That is, C<0> is
 theoretically possible, while C<$x> is not.  For picking a random integer
@@ -316,13 +316,13 @@ you probably want to use something like C<(1..6).pick> instead.
 
 =item cis
 
-    our Complex multi method cis (Real $angle:) is export
+    multi method cis (Real $angle: --> Complex ) is export
 
 Returns 1.unpolar($angle)
 
 =item unpolar
 
-    our Complex multi method unpolar (Real $mag: Real $angle) is export
+    multi method unpolar (Real $mag: Real $angle --> Complex ) is export
 
 Returns a complex number specified in polar coordinates.  Angle is in radians.
 
@@ -351,7 +351,7 @@ the C<Complex> to a real number blindly.
 
 =item new
 
-    our Complex multi method new(Real $re, Real $im)
+    multi method new(Real $re, Real $im --> Complex )
 
 Constructs a C<Complex> number from real and imaginary part. This is the
 method form of C<$re+$im\i>.  (But use the C<< <1+2i> >> form for literals,
@@ -359,33 +359,39 @@ so that you don't have to worry about precedence or rely on constant folding.)
 
 =item polar
 
-    our Seq multi method polar (Complex $nim:) is export
+    multi method polar (Complex $nim: --> Seq ) is export
 
 Returns (magnitude, angle) corresponding to the complex number.
 The magnitude is non-negative, and the angle in the range C<-π ..^ π>.
 
 =item re
 
-    our Real multi method re()
+    multi method re( --> Real )
 
 Returns the real part of the complex number.
 
 =item im
 
-    our Real multi method im()
+    multi method im( --> Real )
 
 Returns the imaginary part of a complex number.
 
+=item conj
+
+    multi method conj(Complex $c --> Complex )
+
+Returns C<< ($c.re - $c.im\i) >>, the complex conjugate.
+
 =item gist
 
-    our Str multi method gist()
+    multi method gist( --> Str )
 
 Returns a string representation of the form "C<1+2i>", without
 internal spaces.  (C<Str> coercion also returns this.)
 
 =item perl
 
-    our Str multi method perl()
+    multi method perl( --> Str )
 
 Returns a string representation corresponding to the unambiguous
 C<val()>-based representation of complex literals, of the form "C<< <1+2i> >>",
@@ -459,8 +465,8 @@ exists only to allow modules to be C<trigbase> aware.
 
 =item atan2
 
- our Real multi method atan2 ( Real $y: Real $x = 1, TrigBase $base = CALLER::<$?TRIGBASE> )
- our Real multi atan2 ( Real $y, Real $x = 1, TrigBase $base = CALLER::<$?TRIGBASE> )
+ multi method atan2 ( Real $y: Real $x = 1, TrigBase $base = CALLER::<$?TRIGBASE> --> Real )
+ multi atan2 ( Real $y, Real $x = 1, TrigBase $base = CALLER::<$?TRIGBASE> --> Real )
 
 This second form of C<atan> computes the arctangent of C<$y/$x>, and takes
 the quadrant into account. Otherwise behaves as other trigonometric functions.
@@ -502,32 +508,32 @@ C<12.34> is essentially identical to C<< <1234/100> >> as a literal.
 
 =item nude
 
-    our Seq[Int] multi method nude()
+    multi method nude( --> Seq[Int] )
 
 Returns a C<Seq> of numerator and denominator.
 
 =item denominator
 
-    our Int multi method denominator()
+    multi method denominator( --> Int )
 
 Returns the denominator.
 
 =item numerator
 
-    our Int multi method numerator()
+    multi method numerator( --> Int )
 
 Returns the numerator.
 
 =item gist
 
-    our Str multi method gist()
+    multi method gist( --> Str )
 
 Returns a string representation by first converting to C<Num> and then using the normal decimal
 output of that type.  (C<Str> coercion also does this.)
 
 =item perl
 
-    our Str multi method perl()
+    multi method perl( --> Str )
 
 Returns a string representation corresponding to the unambiguous
 C<val()>-based representation of rational literals, of the form "C<< <3/5> >>",

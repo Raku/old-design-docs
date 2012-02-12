@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 23 Jan 2012
-    Version: 236
+    Last Modified: 6 Feb 2012
+    Version: 238
 
 =head1 Overview
 
@@ -3625,6 +3625,7 @@ as a default because the more specific types listed above it didn't match.
     Any       Callable:($)  item sub truth          X($_)
     Any       Callable:()   simple closure truth    X() (ignoring $_)
     Any       Bool      simple truth            X
+    Any       Match     match success           X
     Any       Numeric   numeric equality        +$_ == X
     Any       Stringy   string equality         ~$_ eq X
     Any       Whatever  always matches          True
@@ -3652,8 +3653,6 @@ as a default because the more specific types listed above it didn't match.
     Hash      Regex     hash key "boolean grep" .any.match(X)
     Array     Regex     array "boolean grep"    .any.match(X)
     Any       Regex     pattern match           .match(X)
-
-    Any       Match     identity                $_
 
     Num       Range     in numeric range        X.min <= $_ <= X.max (mod ^'s)
     Str       Range     in string range         X.min le $_ le X.max (mod ^'s)
@@ -3707,7 +3706,6 @@ the table assumes the following types will behave similarly:
       or generic type binding   Type
     Char Cat                    Str
     Int UInt etc.               Num
-    Match                       Capture
     Byte                        Str or Int
     Buf                         Str or Array of Int
 
@@ -4430,7 +4428,7 @@ a reduction operator really is a list prefix, and is invoked as one.
 Hence, you can implement a reduction operator in one of two ways.  Either
 you can write an explicit list operator:
 
-    proto prefix:<[+]> (*@args) {
+    multi prefix:<[+]> (*@args) is default {
         my $accum = 0;
         while (@args) {
             $accum += @args.shift();
@@ -4464,8 +4462,8 @@ together, just as if you had written it out explicitly:
 
 If fewer than two arguments are given, a dispatch is still attempted
 with whatever arguments are given, and it is up to the receiver of that
-dispatch to deal with fewer than two arguments.  Note that the proto
-list operator definition is the most general, so you are allowed to define
+dispatch to deal with fewer than two arguments.  Note that the default
+list operator signature is the most general, so you are allowed to define
 different ways to handle the one argument case depending on type:
 
     multi prefix:<[foo]> (Int $x) { 42 }

@@ -61,13 +61,13 @@ The following are all provided by the C<Str> role:
 
 =item chop
 
- our Str multi method chop ( Str  $string: ) is export
+ multi method chop ( Str  $string: --> Str ) is export
 
 Returns string with one Char removed from the end.
 
 =item chomp
 
- our Str multi method chomp ( Str $string: ) is export
+ multi method chomp ( Str $string: --> Str ) is export
 
 Returns string with one newline removed from the end.  An arbitrary
 terminator can be removed if the input filehandle has marked the
@@ -79,7 +79,7 @@ Note: Most users should just let their I/O handles autochomp instead.
 
 =item lc
 
- our Str multi method lc ( Str $string: ) is export
+ multi method lc ( Str $string: --> Str ) is export
 
 Returns the input string after forcing each character to its lowercase
 form.  Note that one-to-one mapping is not in general guaranteed;
@@ -87,7 +87,7 @@ different forms may be chosen according to context.
 
 =item uc
 
- our Str multi method uc ( Str $string: ) is export
+ multi method uc ( Str $string: --> Str ) is export
 
 Returns the input string after forcing each character to its uppercase
 (not titlecase) form.  Note that one-to-one mapping is not in general guaranteed;
@@ -95,7 +95,7 @@ different forms may be chosen according to context.
 
 =item titlecase
 
- our Str multi method titlecase ( Str $string: :&filter = &lc, :%exceptions = set() ) is export
+ multi method titlecase ( Str $string: :&filter = &lc, :%exceptions = set() --> Str ) is export
 
 Performs a Unicode titlecase operation on the first character of
 each word of the string (as defined by a regex C<«> boundary),
@@ -107,7 +107,7 @@ an initial titlecase, such as "By" or "And", to produce "by" or "and".
 
 =item normalize
 
- our Str multi method normalize ( Str $string: Bool :$canonical = Bool::True, Bool :$recompose = Bool::False ) is export
+ multi method normalize ( Str $string: Bool :$canonical = Bool::True, Bool :$recompose = Bool::False --> Str ) is export
 
 Performs a Unicode "normalization" operation on the string. This involves
 decomposing the string into its most basic combining elements, and potentially
@@ -121,16 +121,16 @@ For everyday use there are aliases that map to the
 I<Unicode Standard Annex #15: Unicode Normalization Forms> document's
 names for the various modes of normalization:
 
- our Str multi method nfd ( Str $string: ) is export {
+ multi method nfd ( Str $string: --> Str ) is export {
    $string.normalize(:canonical, :!recompose);
  }
- our Str multi method nfc ( Str $string: ) is export {
+ multi method nfc ( Str $string: --> Str ) is export {
    $string.normalize(:canonical, :recompose);
  }
- our Str multi method nfkd ( Str $string: ) is export {
+ multi method nfkd ( Str $string: --> Str ) is export {
    $string.normalize(:!canonical, :!recompose);
  }
- our Str multi method nfkc ( Str $string: ) is export {
+ multi method nfkc ( Str $string: --> Str ) is export {
    $string.normalize(:!canonical, :recompose);
  }
 
@@ -163,21 +163,21 @@ desired normalization when transferred to lexical scopes or handles that care.
 
 =item samecase
 
- our Str multi method samecase ( Str $string: Str $pattern ) is export
+ multi method samecase ( Str $string: Str $pattern --> Str ) is export
 
 Has the effect of making the case of the string match the case pattern in C<$pattern>.
 (Used by s:ii/// internally, see L<S05>.)
 
 =item samemark
 
- our Str multi method samemark ( Str $string: Str $pattern ) is export
+ multi method samemark ( Str $string: Str $pattern --> Str ) is export
 
 Has the effect of making the case of the string match the marking pattern in C<$pattern>.
 (Used by s:mm/// internally, see L<S05>.)
 
 =item capitalize
 
- our Str multi method capitalize ( Str $string: ) is export
+ multi method capitalize ( Str $string: --> Str ) is export
 
 Has the effect of first doing an C<lc> on the entire string, then performing a
 C<s:g/(\w+)/{ucfirst $0}/> on it.
@@ -189,20 +189,20 @@ This word is banned in Perl 6.  You must specify units.
 
 =item chars
 
- our Int multi method chars ( Str $string: ) is export
+ multi method chars ( Str $string: --> Int ) is export
 
 Returns the number of characters in the string in the current
 (lexically scoped) idea of what a normal character is, usually graphemes.
 
 =item graphs
 
- our Int multi method codes ( Str $string: ) is export
+ multi method codes ( Str $string: --> Int ) is export
 
 Returns the number of graphemes in the string in a language-independent way.
 
 =item codes
 
- our Int multi method codes ( Str $string: $nf = $?NF) is export
+ multi method codes ( Str $string: $nf = $?NF --> Int ) is export
 
 Returns the number of codepoints in the string if it were canonicalized the
 specified way.  Do not confuse codepoints with UTF-16 encoding.  Characters
@@ -210,7 +210,7 @@ above U+FFFF count as a single codepoint.
 
 =item bytes
 
- our Int multi method bytes ( Str $string: $enc = $?ENC, :$nf = $?NF) is export
+ multi method bytes ( Str $string: $enc = $?ENC, :$nf = $?NF --> Int ) is export
 
 Returns the number of bytes in the string if it were encoded in the
 specified way.  Note the inequality:
@@ -224,7 +224,7 @@ codepoint.  However, this problem does not arise for UTF-32:
 
 =item encode
 
-    our Buf multi method encode($encoding = $?ENC, $nf = $?NF)
+    multi method encode($encoding = $?ENC, $nf = $?NF --> Buf )
 
 Returns a C<Buf> which represents the original string in the given encoding
 and normal form. The actual return type is as specific as possible, so
@@ -233,8 +233,8 @@ C<$str.encode('ISO-8859-1')> a C<buf8>.
 
 =item index
 
- our StrPos multi method index( Str $string: Str $substring, StrPos $pos = StrPos(0) ) is export
- our StrPos multi method index( Str $string: Str $substring, Int $pos ) is export
+ multi method index( Str $string: Str $substring, StrPos $pos = StrPos(0) --> StrPos ) is export
+ multi method index( Str $string: Str $substring, Int $pos --> StrPos ) is export
 
 C<index> searches for the first occurrence of C<$substring> in C<$string>,
 starting at C<$pos>. If $pos is an C<Int>, it is taken to be in the units
@@ -251,8 +251,8 @@ a warning.
 
 =item pack
 
- our buf8 multi pack( *@items where { all(@items) ~~ Pair } )
- our buf8 multi pack( Str $template, *@items )
+ multi pack( *@items where { all(@items) ~~ Pair } --> buf8 )
+ multi pack( Str $template, *@items --> buf8 )
 
 C<pack> takes a list of pairs and formats the values according to
 the specification of the keys. Alternately, it takes a string
@@ -287,7 +287,7 @@ asked for it with .packformat or some such.  -law]
 
 =item quotemeta
 
- our Str multi method quotemeta ( Str $string: ) is export
+ multi method quotemeta ( Str $string: --> Str ) is export
 
 Returns the input string with all non-"word" characters back-slashed.
 That is, all characters not matching "/<[A..Za..z_0..9]>/" will be preceded
@@ -300,8 +300,8 @@ Do we even want this method at all?]
 =item rindex
 X<rindex>
 
- our StrPos multi method rindex( Str $string: Str $substring, StrPos $pos? ) is export
- our StrPos multi method rindex( Str $string: Str $substring, Int $pos ) is export
+ multi method rindex( Str $string: Str $substring, StrPos $pos? --> StrPos ) is export
+ multi method rindex( Str $string: Str $substring, Int $pos --> StrPos ) is export
 
 Returns the position of the last C<$substring> in C<$string>. If C<$pos>
 is specified, then the search starts at that location in C<$string>, and
@@ -310,10 +310,10 @@ works backwards. See C<index> for more detail.
 =item split
 X<split>
 
- our List multi split ( Str $delimiter, Str $input, Int $limit = Inf )
- our List multi split ( Regex $delimiter, Str $input, Int $limit = Inf )
- our List multi method split ( Str $input: Str $delimiter, Int $limit = Inf )
- our List multi method split ( Str $input: Regex $delimiter, Int $limit = Inf, Bool :$all = False)
+ multi split ( Str $delimiter, Str $input, Int $limit = Inf --> List )
+ multi split ( Regex $delimiter, Str $input, Int $limit = Inf --> List )
+ multi method split ( Str $input: Str $delimiter, Int $limit = Inf --> List )
+ multi method split ( Str $input: Regex $delimiter, Int $limit = Inf, Bool :$all = False --> List )
 
 Splits a string up into pieces based on delimiters found in the string.
 
@@ -342,10 +342,10 @@ a C<Cat> is undefined.
 
 =item comb
 
- our List multi comb ( Str $matcher, Str $input, Int $limit = Inf, Bool :$match )
- our List multi comb ( Regex $matcher, Str $input, Int $limit = Inf, Bool :$match )
- our List multi method comb ( Str $input: Str $matcher, Int $limit = Inf, Bool :$match )
- our List multi method comb ( Str $input: Regex $matcher = /./, Int $limit = Inf, Bool :$match )
+ multi comb ( Str $matcher, Str $input, Int $limit = Inf, Bool :$match --> List )
+ multi comb ( Regex $matcher, Str $input, Int $limit = Inf, Bool :$match --> List )
+ multi method comb ( Str $input: Str $matcher, Int $limit = Inf, Bool :$match --> List )
+ multi method comb ( Str $input: Regex $matcher = /./, Int $limit = Inf, Bool :$match --> List )
 
 The C<comb> function looks through a string for the interesting bits,
 ignoring the parts that don't match.  In other words, it's a version
@@ -377,14 +377,14 @@ lazy.  (Strings are not lazy, however.)
 
 =item lines
 
- our List multi method lines ( Str $input: Int $limit = Inf ) is export
+ multi method lines ( Str $input: Int $limit = Inf --> List ) is export
 
 Returns a list of lines, i.e. the same as a call to
 C<$input.comb( / ^^ \N* /, $limit )> would.
 
 =item words
 
- our List multi method words ( Str $input: Int $limit = Inf ) is export
+ multi method words ( Str $input: Int $limit = Inf --> List ) is export
 
 Returns a list of non-whitespace bits, i.e. the same as a call to
 C<$input.comb( / \S+ /, $limit )> would.
@@ -393,7 +393,7 @@ C<$input.comb( / \S+ /, $limit )> would.
 
 The C<flip> function reverses a string character by character.
 
-     our Str multi method flip ( $str: ) is export {
+     multi method flip ( $str: --> Str ) is export {
         $str.comb.reverse.join;
      }
 
@@ -402,7 +402,7 @@ level less than graphemes.
 
 =item sprintf
 
- our Str multi method sprintf ( Str $format: *@args ) is export
+ multi method sprintf ( Str $format: *@args --> Str ) is export
 
 This function is mostly identical to the C library sprintf function.
 
@@ -476,12 +476,16 @@ Examples:
 
 =item fmt
 
-  our Str multi method fmt( Scalar $scalar: Str $format = '%s' )
-  our Str multi method fmt( List $list: Str $format = '%s',
-                                        Str $separator = ' ' )
-  our Str multi method fmt( Hash $hash: Str $format = "%s\t%s",
-                                        Str $separator = "\n" )
-  our Str multi method fmt( Pair $pair: Str $format = "%s\t%s" )
+  multi method fmt( Scalar $scalar: Str $format = '%s' --> Str )
+  multi method fmt( List $list:
+                    Str $format = '%s',
+		    Str $separator = ' '
+		--> Str )
+  multi method fmt( Hash $hash:
+                    Str $format = "%s\t%s",
+                    Str $separator = "\n"
+		--> Str )
+  multi method fmt( Pair $pair: Str $format = "%s\t%s" --> Str )
 
 A set of wrappers around C<sprintf>. A call to the scalar version
 C<$o.fmt($format)> returns the result of C<sprintf($format, $o)>. A call to
@@ -494,12 +498,12 @@ C<sprintf($format, $p.key, $p.value)>.
 
 =item substr
 
- our Str multi method substr (Str $string: StrPos $start, StrLen $length?) is rw is export
- our Str multi method substr (Str $string: StrPos $start, StrPos $end) is rw is export
- our Str multi method substr (Str $string: StrPos $start, Int $length) is rw is export
- our Str multi method substr (Str $string: Int $start, StrLen $length?) is rw is export
- our Str multi method substr (Str $string: Int $start, StrPos $end) is rw is export
- our Str multi method substr (Str $string: Int $start, Int $length) is rw is export
+ multi method substr (Str $string: StrPos $start, StrLen $length? --> Str ) is rw is export
+ multi method substr (Str $string: StrPos $start, StrPos $end --> Str ) is rw is export
+ multi method substr (Str $string: StrPos $start, Int $length --> Str ) is rw is export
+ multi method substr (Str $string: Int $start, StrLen $length? --> Str ) is rw is export
+ multi method substr (Str $string: Int $start, StrPos $end --> Str ) is rw is export
+ multi method substr (Str $string: Int $start, Int $length --> Str ) is rw is export
 
 C<substr> returns part of an existing string. You control what part by
 passing a starting position and optionally either an end position or length.
@@ -553,11 +557,11 @@ See L<S05/Substitution>
 
  method trans(Str $self: Str $key, Str $val);
 
- our multi trans(List of Pair %data);
+ multi trans(List of Pair %data --> Any );
 
 =item indent
 
-     our Str multi method indent ($str: $steps) is export;
+     multi method indent ($str: $steps --> Str ) is export;
 
 Returns a re-indented string wherein C<$steps> number of spaces have been added
 to each line. If a line already begins with horizontal whitespace, the new
