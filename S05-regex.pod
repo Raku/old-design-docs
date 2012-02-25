@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 29 Dec 2011
-    Version: 152
+    Last Modified: 25 Feb 2012
+    Version: 153
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1204,17 +1204,12 @@ the lexical scope; if the match succeeds they are remembered in the
 C<Match> object's hash, with a key corresponding to the variable name's
 identifier.  Likewise bound numeric variables persist as C<$0>, etc.
 
-The capture performed by C<=> creates a new lexical variable if it does
-not already exist in the current lexical scope.  To capture to an outer
-lexical variable you must supply an C<OUTER::> as part of the name,
-or perform the assignment from within a closure.
+You may capture to existing lexical variables; such variables may
+already be visible from an outer scope, or may be declared within
+the regex via a C<:my> declaration.
 
-    $x = [...]                       # capture to our own lexical $x
-    $OUTER::x = [...]                # capture to existing lexical $x
-    [...] -> $tmp { let $x = $tmp }  # capture to existing lexical $x
-
-Note however that C<let> (and C<temp>) are not guaranteed to be thread
-safe on shared variables, so don't do that.
+    my $x; / $x = [...] /            # capture to outer lexical $x
+    / :my $x; $x = [...] /           # capture to our own lexical $x
 
 =item *
 
