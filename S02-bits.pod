@@ -542,6 +542,10 @@ from the wide type to the narrow type to actually perform the coercion.
 
     my Num(Cool) $x = prompt "Gimme a number";
 
+Coercions may also be specified on the return type:
+
+    sub bar ($x, $y --> Int()) { return 3.5 }  # returns 3
+
 =head2 Containers of Native Types
 
 If you say
@@ -1799,77 +1803,6 @@ the same signature must unify compatibly if they have the same name:
     sub compare (Any ::T $x, T $y) {
         return $x eqv $y;
     }
-
-=head2 Return types
-
-On a scoped subroutine, a return type can be specified before or after
-the name.  We call all return types "return types", but distinguish
-two kinds of return types, the C<as> type and the C<of> type,
-because the C<of> type is normally an "official" named type and
-declares the official interface to the routine, while the C<as>
-type is merely a constraint on what may be returned by the routine
-from the routine's point of view.
-
-    our sub lay as Egg {...}            # as type
-    our Egg sub lay {...}               # of type
-    our sub lay of Egg {...}            # of type
-    our sub lay (--> Egg) {...}         # of type
-
-    my sub hat as Rabbit {...}          # as type
-    my Rabbit sub hat {...}             # of type
-    my sub hat of Rabbit {...}          # of type
-    my sub hat (--> Rabbit) {...}       # of type
-
-If a subroutine is not explicitly scoped, it defaults to C<my> scoping.
-Any return type must go after the name:
-
-    sub lay as Egg {...}                # as type
-    sub lay of Egg {...}                # of type
-    sub lay (--> Egg) {...}             # of type
-
-On an anonymous subroutine, any return type can only go after the C<sub>
-keyword:
-
-    $lay = sub as Egg {...};            # as type
-    $lay = sub of Egg {...};            # of type
-    $lay = sub (--> Egg) {...};         # of type
-
-but you can use the C<anon> scope declarator to introduce an C<of> prefix type:
-
-    $lay = anon Egg sub {...};            # of type
-    $hat = anon Rabbit sub {...};         # of type
-
-The return type may also be specified after a C<< --> >> token within
-the signature.  This doesn't mean exactly the same thing as C<as>.
-The C<of> type is the "official" return type, and may therefore be
-used to do type inferencing outside the sub.  The C<as> type only
-makes the return type available to the internals of the sub so that
-the C<return> statement can know its context, but outside the sub we
-don't know anything about the return value, as if no return type had
-been declared.  The prefix form specifies the C<of> type rather than
-the C<as> type, so the return type of
-
-    my Fish sub wanda ($x) { ... }
-
-is known to return an object of type Fish, as if you'd said:
-
-    my sub wanda ($x --> Fish) { ... }
-
-I<not> as if you'd said
-
-    my sub wanda ($x) as Fish { ... }
-
-It is possible for the C<of> type to disagree with the C<as> type:
-
-    my Squid sub wanda ($x) as Fish { ... }
-
-or equivalently,
-
-    my sub wanda ($x --> Squid) as Fish { ... }
-
-This is not lying to yourself--it's lying to the world.  Having a
-different inner type is useful if you wish to hold your routine to
-a stricter standard than you let on to the outside world, for instance.
 
 =head1 The Cool class (and package)
 
