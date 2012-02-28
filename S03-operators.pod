@@ -15,8 +15,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 27 Feb 2012
-    Version: 239
+    Last Modified: 28 Feb 2012
+    Version: 240
 
 =head1 Overview
 
@@ -2141,8 +2141,7 @@ eager' list, any sequence that terminates with an exact value (or
 that starts another sequence with exact values) is considered finite,
 as is any sequence that has an explicit ending closure.
 However, any sequence that ends C<*> is considered to be of unknowable
-length (even if generated with a closure that has internal logic to
-terminate).  However, by the definition of "mostly eager" in L<S07>,
+length.  However, by the definition of "mostly eager" in L<S07>,
 the implementation may be able to determine that such a sequence is
 finite by conjectural evaluation; such workahead cannot, of course,
 prove that a sequence is infinite without running a Very Long Time.
@@ -2160,6 +2159,12 @@ the list with a C<*>, which indicates that it is to be treated as an
 infinite list in contexts which care.  Similarly, any list ending
 with an operator that interprets C<*> as infinity may be taken the
 same way, such as C<$n xx *>, or C<1..*>.
+
+On the other hand, it's possible to write a sequence that appears to be
+infinite, but is terminated by a C<last> from the iterator closure.  An
+implementation is required to trap such a loop termination and change the
+status of the list from 'infinite' to 'finite, such that C<.elems> reports
+the actual produced length, not C<Inf>.
 
 =item *
 
