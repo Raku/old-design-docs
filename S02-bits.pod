@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 25 Feb 2012
-    Version: 250
+    Last Modified: 29 Feb 2012
+    Version: 251
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -4692,6 +4692,25 @@ the hyper is done.  Thinking about Map-Reduce algorithms here...)
 
 This operator is agnostic towards flattening or slicing.  It merely changes
 the work-ahead policy for the value generator.
+
+=head2 The C<race> operator
+
+A further variant of C<hyper> is the C<race> list operator, which
+declares that you want the results so badly that you don't care what
+order they come back in.  Within its arguments, the C<race> operator
+forces parallel evaluation of any iterator, hyper, or junction, such
+that if any single thread dies or hangs its computation, it does not
+block any other thread from returning its results to the race list.
+When the demand for the race list drops, hung threads may be killed.
+You can think of it as a C<gather> with a 'C<try take async {...}>'
+on parallel computation.  Note that exceptions are trapped by
+default; if your car crashes, you simply do not finish the race.
+If you want notifications of some sort back to the pit crew, you'll
+have to arrange them yourself.
+
+This operator is agnostic towards flattening or slicing.  It merely changes
+the work-ahead policy for the value generator.  It is a transitive contextualizer
+insofar as iterators will have to pass on the policy to subiterators.
 
 =head2 Signature checking
 
