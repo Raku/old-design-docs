@@ -13,8 +13,8 @@ Synopsis 9: Data Structures
 
     Created: 13 Sep 2004
 
-    Last Modified: 4 Jan 2011
-    Version: 50
+    Last Modified: 5 Mar 2012
+    Version: 51
 
 =head1 Overview
 
@@ -250,11 +250,12 @@ because they all end up meaning the same thing.
 There is no autotruncation on the left end.  It's not that
 hard to write C<0>, and standard indexes always start there.
 
-As a special form, subscript declarations may add a C<:map> modifier
+Subscript size declarations may add a named C<:map> argument
 supplying a closure, indicating that all index values are to be mapped
 through that closure.  For example, a subscript may be declared as cyclical:
 
-    my @seasons[4:map(*%4)];
+    my @seasons[4, :map( * % 4 )];
+    my @seasons[4, :map{ $_ % 4 }];  # same thing
 
 In this case, all numeric values are taken modulo 4, and no range truncation can
 ever happen.  If you say
