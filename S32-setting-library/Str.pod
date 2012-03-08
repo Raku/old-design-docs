@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Str
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 7 Nov 2011
-    Version: 5
+    Last Modified: 2012-03-08
+    Version: 6
 
 The document is a draft.
 
@@ -93,6 +93,14 @@ Returns the input string after forcing each character to its uppercase
 (not titlecase) form.  Note that one-to-one mapping is not in general guaranteed;
 different forms may be chosen according to context.
 
+=item fc
+
+ multi method fc ( Str $string: --> Str ) is export
+
+Does a Unicode "fold case" operation suitable for doing caseless
+string comparisons.  (In general, the returned string is unlikely to
+be useful for any purpose other than comparison.)
+
 =item titlecase
 
  multi method titlecase ( Str $string: :&filter = &lc, :%exceptions = set() --> Str ) is export
@@ -104,6 +112,8 @@ to C<lc>.  After this operation, if any exceptions are supplied and
 if the word is found in the set of exceptions, the first character is also
 forced through the filter.  Note that the exceptions must be spelled with
 an initial titlecase, such as "By" or "And", to produce "by" or "and".
+
+Note, there is no longer any C<ucfirst> function because its semantics are not useful under Unicode.
 
 =item normalize
 
@@ -174,14 +184,6 @@ Has the effect of making the case of the string match the case pattern in C<$pat
 
 Has the effect of making the case of the string match the marking pattern in C<$pattern>.
 (Used by s:mm/// internally, see L<S05>.)
-
-=item capitalize
-
- multi method capitalize ( Str $string: --> Str ) is export
-
-Has the effect of first doing an C<lc> on the entire string, then performing a
-C<s:g/(\w+)/{ucfirst $0}/> on it.
-
 
 =item length
 
