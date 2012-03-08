@@ -1039,7 +1039,7 @@ something like this:
             default {...}
             .handled = False;
 
-            push @*unhandled, $_;
+            push @unhandled, $_;
 
             KEEP { push @handled, $_ if .handled }
         }
@@ -1056,12 +1056,13 @@ Whenever an exception occurs during the execution of a handler,
 it is pushed onto the end of the C<@*undead> array for later processing
 by an outer handler.  If there are any unhandled C<@!> exceptions,
 or if any exceptions were caught by the inner SIMPLECATCH (which does
-nothing but runs its push code, which should not produce any exceptions).
+nothing but runs its push code, which should not produce any exceptions),
+then the CATCH block returns them to the exception thrower.
 
 The exception thrower looks up the call stack for a catch lambda
 that returns () to indicate all exceptions are handled, and then it is happy,
 and unwinds the stack to that point.  If any exceptions are returned
-as not handled. the exception thrower keeps looking for a higher
+as not handled, the exception thrower keeps looking for a higher
 dynamic scope for a spot to unwind to.  Note that any C<die> in the
 catch lambda eventually rethrows outside the lambda as a new exception, but
 not until the current exception handler has a chance to handle all
