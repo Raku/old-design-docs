@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 30 Aug 2011
-    Version: 113
+    Last Modified: 11 Mar 2012
+    Version: 114
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1437,12 +1437,8 @@ undefined value.)
 
 Note: Apocalypse 4 confused the notions of C<PRE>/C<POST> with C<ENTER>/C<LEAVE>.
 These are now separate notions.  C<ENTER> and C<LEAVE> are used only for
-their side effects.  C<PRE> and C<POST> must return boolean values that are
-evaluated according to the usual Design by Contract (DBC) rules.  (Plus,
-if you use C<ENTER>/C<LEAVE> in a class block, they only execute when the
-class block is executed, but you may declare C<PRE>/C<POST> submethods
-in a class block that will be evaluated
-around every method in the class.)  C<KEEP> and C<UNDO> are just variants
+their side effects.  C<PRE> and C<POST> return boolean values which, if
+false, trigger a runtime exception.  C<KEEP> and C<UNDO> are just variants
 of C<LEAVE>, and for execution order are treated as part of the queue of
 C<LEAVE> phasers.
 
@@ -1472,35 +1468,19 @@ is unwound and the phasers are called only if an exception is not resumed.
 So C<LEAVE> phasers for a given block are necessarily evaluated after
 any C<CATCH> and C<CONTROL> phasers.  This includes
 the C<LEAVE> variants, C<KEEP> and C<UNDO>.  C<POST> phasers are evaluated after
-everything else, to guarantee that even C<LEAVE> phasers can't violate DBC.
+everything else, to guarantee that even C<LEAVE> phasers can't violate postconditions.
 Likewise C<PRE> phasers fire off before any C<ENTER> or C<FIRST> (though not
 before C<BEGIN>, C<CHECK>, or C<INIT>, since those are done at compile or
-process initialization time).  Much like C<BUILD> and C<DESTROY> are implicitly
-called in the correct order by C<BUILDALL> and C<DESTROYALL>, the C<PRE>/C<POST>
-calls are via an implicit C<CALL-VIA-DBC> method that runs
-outside the actual call to the method in question.  Class-level C<PRE>/C<POST>
-submethods are notionally outside of the method-level C<PRE>/C<POST> blocks.
-In the normal course of things, C<CALL-VIA-DBC> follows these steps:
+process initialization time).  Class-level C<PRE>/C<POST>
+submethods run notionally outside of the method-level C<PRE>/C<POST> blocks.
 
-    1. create an empty stack for scheduling postcalls.
-    2. call all the appropriate per-class C<PRE> submethods,
-        pushing any corresponding C<POST> onto the postcall stack.
-    3. call all the appropriate per-method C<PRE> phasers,
-        pushing any corresponding C<POST> onto the postcall stack.
-    4. enforce DBC logic of C<PRE> calls
-    5. call the method call itself, capturing return/unwind status.
-    6. pop and call every C<POST> on the postcall stack.
-    7. enforce DBC logic of C<POST> calls
-    8. continue with the return or unwind.
-
-Note that in steps 2 and 3, the C<POST> block can be defined in
-one of two ways.  Either the corresponding C<POST> is defined as a
-separate declaration (submethod for 2, phaser for 3), in which case
-C<PRE> and C<POST> share no lexical scope.  Alternately, any C<PRE>
+The C<POST> block can be defined in one of two ways.  Either the
+corresponding C<POST> is defined as a separate submethod or phaser,
+in which case C<PRE> and C<POST> share no lexical scope.
+Alternately, any C<PRE>
 (either submethod or phaser) may define its corresponding C<POST>
 as an embedded phaser block that closes over the lexical scope of
-the C<PRE>.  In either case, the code is pushed onto the postphaser
-stack to be run at the appropriate moment.
+the C<PRE>.
 
 If exit phasers are running as a result of a stack unwind initiated by
 an exception, this information needs to be made available.  In any
