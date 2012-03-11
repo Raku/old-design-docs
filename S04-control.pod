@@ -14,7 +14,7 @@ Synopsis 4: Blocks and Statements
     Created: 19 Aug 2004
 
     Last Modified: 11 Mar 2012
-    Version: 114
+    Version: 115
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1442,6 +1442,11 @@ false, trigger a runtime exception.  C<KEEP> and C<UNDO> are just variants
 of C<LEAVE>, and for execution order are treated as part of the queue of
 C<LEAVE> phasers.
 
+It is conjectured that C<PRE> and C<POST> submethods in a class could be
+made to run as if they were phasers in any public method of the class.
+This feature is awaiting further exploration by means of a C<ClassHOW>
+extension.
+
 C<FIRST>, C<NEXT>, and C<LAST> are meaningful only within the
 lexical scope of a loop, and may occur only at the top level of such
 a loop block.  A C<NEXT> executes only if the end of the loop block is
@@ -1471,14 +1476,13 @@ the C<LEAVE> variants, C<KEEP> and C<UNDO>.  C<POST> phasers are evaluated after
 everything else, to guarantee that even C<LEAVE> phasers can't violate postconditions.
 Likewise C<PRE> phasers fire off before any C<ENTER> or C<FIRST> (though not
 before C<BEGIN>, C<CHECK>, or C<INIT>, since those are done at compile or
-process initialization time).  Class-level C<PRE>/C<POST>
-submethods run notionally outside of the method-level C<PRE>/C<POST> blocks.
+process initialization time).
 
 The C<POST> block can be defined in one of two ways.  Either the
-corresponding C<POST> is defined as a separate submethod or phaser,
+corresponding C<POST> is defined as a separate phaser,
 in which case C<PRE> and C<POST> share no lexical scope.
 Alternately, any C<PRE>
-(either submethod or phaser) may define its corresponding C<POST>
+phaser may define its corresponding C<POST>
 as an embedded phaser block that closes over the lexical scope of
 the C<PRE>.
 
@@ -1512,12 +1516,6 @@ The topic of the block outside a phaser is still available as C<< OUTER::<$_> >>
 Whether the return value is modifiable may be a policy of the phaser
 in question.  In particular, the return value should not be modified
 within a C<POST> phaser, but a C<LEAVE> phaser could be more liberal.
-
-Class-level C<PRE> and C<POST> submethods are not in the lexical scope
-of a method (and are not run in the dynamic scope of the method),
-so they cannot see the method's C<$_> at all.  As methods, they
-do have access to the current C<self>, of course.  And the C<POST>
-submethod gets the return value as the topic, just as exit phasers do.
 
 Any phaser defined in the lexical scope of a method is a closure that
 closes over C<self> as well as normal lexicals.  (Or equivalently,
