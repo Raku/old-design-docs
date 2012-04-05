@@ -2946,12 +2946,13 @@ The magic command-line input handle is C<$*ARGFILES>.
 The arguments themselves come in C<@*ARGS>.  See also "Declaring a MAIN
 subroutine" in S06.
 
-=head2 Magical file-scoped values
+=head2 Magical access to documentation
 
-Magical file-scoped values live in variables with a C<=> secondary
-sigil.  C<$=DATA> is the name of your C<DATA> filehandle, for instance.
-All Pod structures are available through C<%=POD> (or some such).
-As with C<*>, the C<=> may also be used as a package name: C<$=::DATA>.
+The Pod documentation in a file is accessible from code in the same file
+via variables with a C<=> secondary sigil. C<$=data> is the accessor for
+your C<=data> section(s), for instance. All Pod structures are available
+as a hierarchical data structure, through C<$=pod>. As with C<*>, the
+C<=> may also be used as a package name: C<$=::data>.
 
 =head2 Magical lexically scoped values
 
@@ -4294,18 +4295,28 @@ The double-underscore forms are going away:
     __END__             =begin END
     __DATA__            =begin DATA
 
-[Note: this paragraph is speculative and subject to drastic change
-as S26 evolves.]
-The C<=begin END> Pod stream is special in that it assumes there's
-no corresponding C<=end END> before end of file.  The C<DATA>
-stream is no longer special--any Pod stream in the current file
-can be accessed via a filehandle, named as C<< %=POD{'DATA'} >> and such.
-Alternately, you can treat a Pod stream as a scalar via C<$=DATA>
-or as an array via C<@=DATA>.  Presumably a module could read all
-its COMMENT blocks from C<@=COMMENT>, for instance.  Each chunk of
-Pod comes as a separate array element.  You have to split it into lines
-yourself.  Each chunk has a C<.range> property that indicates its
-line number range within the source file.
+The C<=begin finish> Pod stream (usually written as just C<=finish>) is
+special in that it assumes there's no corresponding C<=end finish>
+before end of file. Anything in a source file after a C<=finish> is
+always treated as Pod.
+
+There is no longer any special C<DATA> stream--any Pod block in the
+current file can be accessed via a Pod object, such as C<< $=data >> or
+C<< $=SYNOPSIS >> or C<< $=UserBlock> etc. That is: a variable with 
+the same name of the desired block, and a C<=> twigil.
+
+These Pod objects can be used as Positionals (indexed by their block
+sequence). They can also be treated as Associatives (indexed by C<:key>
+options specified with the block). Either way, each Positional or
+Associative element represents the entire contents of the corresponding
+Pod block. You have to split those contents into lines yourself. Each
+chunk has a C<.range> property that indicates its line number range
+within the source file.
+
+[Speculative]
+It may also be possible to treat a Pod object as an IO, to read the Pod
+information line-by-line (like the C<DATA> filehandle in Perl 5, but
+for I<any> Pod block).
 
 The lexical routine itself is C<&?ROUTINE>; you can get its name with
 C<&?ROUTINE.name>.  The current block is C<&?BLOCK>.  If the block has any
