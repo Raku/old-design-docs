@@ -15,7 +15,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 6 Apr 2012
-    Version: 242
+    Version: 243
 
 =head1 Overview
 
@@ -3529,10 +3529,29 @@ range still has a defined C<.min> and C<.max>, but one of the following is
 true:  1. The C<.min> is greater than the C<.max>.  2. The C<.min> is equal
 to the C<.max> I<and> at least one of C<.excludes_min> or C<.excludes_max> is true.
 3. Both C<.excludes_min> and C<.excludes_max> are true I<and> C<.min> and C<.max>
-are consecutive values.
+are consecutive values in a discrete type that cannot create new
+values between those two consecutive values.  For this purpose,
+interval representations in C<Real> (including integers) are
+considered infinitely divisible even though there is a practical
+limit depending on the actual representation, so #3 does not apply.
+(Nor does it apply to strings, versions, instants, or durations.
+#3 does apply to enums, however, so C<< Tue ^..^ Wed >> is considered
+empty because the enum in question does not define "Tuesday and a half".)
 
-Ranges that are iterated transmute into the corresponding sequence operator,
-and hence use smartmatch semantics to determine an end to the sequence.
+An empty range evaluates to C<False> in boolean context; all other
+ranges evaluate to C<True>.
+
+Ranges that are iterated transmute into the corresponding sequence
+operator, using C<.succ> semantics to find the next value, and the
+appropriate inequality semantics to determine an end to the sequence.
+For a non-discrete type with a discrete C<.succ> (such as C<Real>),
+it is possible to write a range that, when iterated, produces no
+values, but evaluates to true, because the C<.succ> function skips
+over divisible intervals:
+
+    say +( 0 ^..^ 1 )   # 0 elements
+    say ?( 0 ^..^ 1 )   # True
+    say 0.5 ~~ 0 ^..^ 1 # True; range contains non-integer values
 
 =head2 Unary ranges
 
