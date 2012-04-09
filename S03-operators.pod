@@ -15,7 +15,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 9 Apr 2012
-    Version: 246
+    Version: 247
 
 =head1 Overview
 
@@ -3059,30 +3059,12 @@ all the function's arguments must be passed inside the parentheses
 (except for postfix adverbs, which may follow the parentheses provided they
 would not attach to some other operator by the rules of precedence).
 
-Other than parentheses, all other postfixes are
-disallowed immediately after a list operator, even if there are no
-arguments.  To add a postfix to an argumentless list operator you
-must write it as a function call with empty parentheses:
+A postfix operator other  following a listop is parsed as working on
+the return value of the listop.
 
-    foo.[]      # ILLEGAL
-    foo.()      # ILLEGAL
-    foo++       # ILLEGAL
-    foo().[]    # legal
-    foo()++     # legal (if foo() is rw)
-
-After the parentheses any postfix operators are allowed, and apply
-to the result of the function call.  (Also note that the postfix
-restriction applies only to list operators; it doesn't apply to
-methods.  It is legal to say
-
-    $foo.bar<a b c>
-
-to mean
-
-    $foo.bar().{'a','b','c'}
-
-because methods never assume there are arguments unless followed by
-parentheses or a colon.)
+    foo.[]      # same as foo()[]
+    foo.()      # same as foo()()
+    foo++       # legal (if foo() is rw)
 
 If the next item after the list operator is either an infix operator
 or a term, a syntax error is reported.  [Conjecture: this may be relaxed in
