@@ -15,7 +15,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 9 Apr 2012
-    Version: 244
+    Version: 245
 
 =head1 Overview
 
@@ -772,11 +772,15 @@ general, other operators that might fail should also consider their
 use in hyperops and junctions, and whether they can profitably benefit
 from a lazy exception model.)
 
-In general, C<div> should give the same result as 
+In general, C<div> should give the same result as
 
-    $x div $y == floor($x/$y);
+    $x div $y == floor($x/$y)
 
 but the return value should be the same type as $x.
+
+This identity stops to hold when C<$x/$y> degrades to a C<Num> and runs
+into precision limits.  A C<div> operation on two C<Int> objects must always
+be done precisely.
 
 =item *
 
