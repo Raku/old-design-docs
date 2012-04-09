@@ -14,7 +14,7 @@ Synopsis 2: Bits and Pieces
     Created: 10 Aug 2004
 
     Last Modified: 09 Apr 2012
-    Version: 258
+    Version: 259
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -4116,7 +4116,8 @@ counting algorithms...)
 =head2 Bare identifiers
 
 There are no barewords in Perl 6.  An undeclared bare identifier will
-always be taken to mean a subroutine name.  (Class names
+always be taken to mean a subroutine name, and be parsed as a list operator.
+(Class names
 (and other type names) are predeclared, or prefixed with the C<::>
 type sigil when you're declaring a new one.)  A consequence of this
 is that there's no longer any "C<use strict 'subs'>".  Since the syntax
@@ -4145,17 +4146,6 @@ call.
 
 This fixup is done only for provisional calls.  If there
 is I<any> real predeclaration visible, it always takes precedence.
-In case of multiple ambiguous postdeclarations, either they must all
-be multis, or a compile-time error is declared and you must predeclare,
-even if one postdeclaration is obviously "closer".  A single
-C<proto> predeclaration may make all postdeclared C<multi> work fine,
-since that's a run-time dispatch, and all multis are effectively
-visible by the time a C<dispatch>'s candidate list is generated.
-
-Parsing of a bareword function as a provisional call is always done
-the same way list operators are treated.  If a postdeclaration
-bends the syntax to be inconsistent with that, it is an error of
-the inconsistent signature variety.
 
 If the unrecognized subroutine name is followed by C<< postcircumfix:<( )> >>,
 it is compiled as a provisional function call of the parenthesized form.
@@ -4166,40 +4156,12 @@ any list operator, an immediate postfix operator is illegal unless it is a
 form of parentheses, whereas anything following whitespace will be interpreted
 as an argument list if possible.
 
-Based on the signature of the subroutine declaration, there are only
-four ways that an argument list can be parsed:
+Some examples of how listops, methods and labels interact syntactically:
 
-    Signature           # of expected args
-    ()                  0
-    ($x)                1
-    ($x?)               0..1
-    (anything else)     0..Inf
-
-That is, a standard subroutine call may be parsed only as a 0-arg term
-(or function call), a 1-mandatory-arg prefix operator (or function
-call), a 1-optional-arg term or prefix operator (or function call), or
-an "infinite-arg" list operator (or function call).  A given signature
-might only accept 2 arguments, but the only number distinctions the
-parser is allowed to make is between void, singular and plural;
-checking that number of arguments supplied matches some number
-larger than one must be done as a separate semantic constraint, not
-as a syntactic constraint.  Perl functions never take N arguments
-off of a list and leave the rest for someone else, except for small
-values of N, where small is defined as not more than 1.  You can get
-fancier using macros, but macros I<always> require predeclaration.
-Since the non-infinite-list forms are essentially behaving as macros,
-those forms also require predeclaration.  Only the infinite-list form
-may be postdeclared (and hence used provisionally).
-
-It is illegal for a provisional subroutine call to be followed by a
-colon postfix, since such a colon is allowed only on an indirect object,
-or a method call in dot form.  (It is also allowed on a label when a
-statement is expected.) So for any undeclared identifier "C<foo>":
-
-    foo.bar             # ILLEGAL       -- postfix must use foo().bar
+    foo.bar             # foo().bar
     foo .bar            # foo($_.bar)   -- no postfix starts with whitespace
-    foo\ .bar           # ILLEGAL       -- must use foo()\ .bar
-    foo++               # ILLEGAL       -- postfix must use foo()++
+    foo\ .bar           # foo().bar
+    foo++               # foo()++
     foo 1,2,3           # foo(1,2,3)    -- args always expected after listop
     foo + 1             # foo(+1)       -- term always expected after listop
     foo;                # foo();        -- no postfix, but no args either
