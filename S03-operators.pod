@@ -15,7 +15,7 @@ Synopsis 3: Perl 6 Operators
     Created: 8 Mar 2004
 
     Last Modified: 9 Apr 2012
-    Version: 247
+    Version: 248
 
 =head1 Overview
 
@@ -3066,9 +3066,8 @@ the return value of the listop.
     foo.()      # same as foo()()
     foo++       # legal (if foo() is rw)
 
-If the next item after the list operator is either an infix operator
-or a term, a syntax error is reported.  [Conjecture: this may be relaxed in
-non-strict mode.]
+If the next item after the list operator is either an infix operator,
+a syntax error is reported.
 
 Examples:
 
@@ -3076,25 +3075,24 @@ Examples:
     say foo $x;                         say(foo($x));
     say foo$x;                          ILLEGAL, need space or parens
     say foo+1;                          ILLEGAL, need space or parens
-    say foo++;                          ILLEGAL, need parens
 
     say foo($bar+1),$baz                say(foo($bar+1), $baz);
-    say foo.($bar+1),$baz               ILLEGAL, need space or parens
+    say foo.($bar+1),$baz               say(foo().($bar+1), $baz);
     say foo ($bar+1),$baz               say(foo($bar+1, $baz));
     say foo .($bar+1),$baz              say(foo($_.($bar+1), $baz));
 
-    say foo[$bar+1],$baz                ILLEGAL, need foo()[]
-    say foo.[$bar+1],$baz               ILLEGAL, need foo().[]
+    say foo[$bar+1],$baz                say((foo()[$bar+1]), $baz);
+    say foo.[$bar+1],$baz               say((foo()[$bar+1]), $baz);
     say foo [$bar+1],$baz               say(foo([$bar+1], $baz));
     say foo .[$bar+1],$baz              say(foo($_.[$bar+1], $baz));
 
-    say foo{$bar+1},$baz                ILLEGAL, need foo(){}
-    say foo.{$bar+1},$baz               ILLEGAL, need foo().{}
+    say foo{$bar+1},$baz                say((foo(){$bar+1}), $baz);
+    say foo.{$bar+1},$baz               say((foo(){$bar+1}), $baz);
     say foo {$bar+1},$baz               say(foo({$bar+1}, $baz));
     say foo .{$bar+1},$baz              say(foo($_.{$bar+1}, $baz));
 
-    say foo<$bar+1>,$baz                ILLEGAL, need foo()<>
-    say foo.<$bar+1>,$baz               ILLEGAL, need foo().<>
+    say foo<$bar+1>,$baz                say(foo()<$bar+1>, $baz);
+    say foo.<$bar+1>,$baz               say(foo()<$bar+1>, $baz);
     say foo <$bar+1>,$baz               say(foo(<$bar+1>, $baz));
     say foo .<$bar+1>,$baz              say(foo($_.<$bar+1>, $baz));
 
