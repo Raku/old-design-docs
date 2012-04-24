@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 9 Apr 2012
-    Version: 250
+    Last Modified: 24 Apr 2012
+    Version: 251
 
 =head1 Overview
 
@@ -1769,7 +1769,8 @@ produces
 On the other hand, if any of the lists is empty, you will end up with
 a null list.
 
-Only the leftmost list may usefully be an infinite list.  For instance
+While either side's list may be infinite, use of an infinite list on
+the right may produce unexpected results.  For instance
 
     <a b> X 0..*
 
@@ -1777,7 +1778,9 @@ would produce
 
     ('a',0), ('a',1), ('a',2), ('a',3), ('a',4), ('a',5), ...
 
-and you'd never get to 'b'.
+and you'd never get to 'b'.  If your left list consists of only
+a single element, though, this may useful, especially if C<X> is used as
+a metaoperator.  See below.
 
 =item *
 
@@ -1788,7 +1791,15 @@ Cross metaoperators
     @x Xeqv @y
     etc.
 
+A common idiom is to have a list with a single element on one side or the other:
+
+    @vector X* 2;               # multiply each element by 2
+    $prefix X~ @infinitelist;   # prefix each element of an infinite list
+
+In this last case it's okay to have an infinite list on the right.
+
 See L</Cross operators>.
+
 
 =item *
 
