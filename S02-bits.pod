@@ -575,19 +575,19 @@ does not specify a unit.
 
 Built-in object types start with an uppercase letter. This includes
 immutable types (e.g. C<Int>, C<Num>, C<Complex>, C<Rat>, C<Str>,
-C<Bit>, C<Regex>, C<Set>, C<Block>, C<Iterator>,
-C<Seq>), as well as mutable (container) types, such as C<Scalar>,
+C<Bit>, C<Regex>, C<Set>, C<Block>, C<Iterator>),
+as well as mutable (container) types, such as C<Scalar>,
 C<Array>, C<Hash>, C<Buf>, C<Routine>, C<Module>, and non-instantiable Roles
 such as C<Callable> and C<Integral>.
 
 Non-object (native) types are lowercase: C<int>, C<num>, C<complex>,
 C<rat>, C<buf>, C<bit>.  Native types are primarily intended for
-declaring compact array storage, that is, a sequence of storage locations of the specified type
-laid out in memory contiguously without pointer indirection.  However, Perl will try to make those
-look like their corresponding uppercase types if you treat them that way.
-(In other words, it does autoboxing.  Note, however, that sometimes
-repeated autoboxing can slow your program more than the native type
-can speed it up.)
+declaring compact array storage, that is, a sequence of storage locations of
+the specified type laid out in memory contiguously without pointer indirection.
+However, Perl will try to make those look like their corresponding uppercase
+types if you treat them that way. (In other words, it does autoboxing.
+Note, however, that sometimes repeated autoboxing can slow your program
+more than the native type can speed it up.)
 
 =head3 The C<.WHICH> Method for Value Types
 
@@ -1383,7 +1383,6 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Bool        Perl boolean
     Exception   Perl exception
     Block       Executable objects that have lexical scopes
-    Seq         A list of values (can be generated lazily)
     Range       A pair of Ordered endpoints
     Set         Unordered collection of values that allows no duplicates
     Bag         Unordered collection of values that allows duplicates
@@ -1507,7 +1506,6 @@ These types do (at least) the following roles:
     Complex     Numeric
     Bool        Boolean
     Block       Callable
-    Seq         Iterable
     Range       Iterable
     Set         Associative[Bool] Iterable
     Bag         Associative[UInt] Iterable
@@ -1558,7 +1556,6 @@ because they can be wrapped in place.)
     KeySet      KeyHash of Bool (does Set in list/array context)
     KeyBag      KeyHash of UInt (does Bag in list/array context)
     Pair        A single key-to-value association
-    PairSeq     A Seq of Pairs
     Buf         Perl buffer (array of integers with some stringy features)
     IO          Perl filehandle
     Routine     Base class for all wrappable executable objects
@@ -1875,7 +1872,7 @@ object containing multiple items.
 
 C<@x> may be bound to an object of the C<Array> class, but it may also
 be bound to any object that does the C<Positional> role, such as a
-C<Seq>, C<Range>, C<Buf>, C<Parcel>, or C<Capture>.  The C<Positional>
+C<Range>, C<Buf>, C<Parcel>, or C<Capture>.  The C<Positional>
 role implies the ability to support C<< postcircumfix:<[ ]> >>.
 
 Likewise, C<%x> may be bound to any object that does the C<Associative>
@@ -2184,8 +2181,7 @@ The fact that a parameter is being bound implies that there is an outer
 capture being bound to a signature.  The capture's iterator provides
 a C<.get> and a C<.getarg> method to tell the iterator what context to
 bind in.  For positional/slice parameters, the C<.getarg> method returns
-the entire next argument from the iterator, but transmutes
-any outer C<Parcel> to a C<Seq> object; it returns other objects unchanged.
+the entire next argument from the iterator. It returns other objects unchanged.
 In contrast, flat parameters call C<.get> on the capture's iterator, which
 flattens any subparcels before pulling out the next item.  In either case,
 no bare parcel object is seen as a normal bound argument.  (There is a way to
@@ -2250,8 +2246,8 @@ is no value here".  It is the undefined equivalent of the empty
 C<()> list, except that the latter is defined and means "there are
 0 arguments here".  The C<Nil> value returns itself if you iterate
 it or try to get a positional value from it via subscripting, but
-interpolates as a null list into flat context, and an empty C<Seq>
-into a tree context.  In either case, a warning is issued.
+interpolates as a null list into flat context.
+In either case, a warning is issued.
 
 Since method calls are performed directly on any object, C<Nil>
 can respond to certain method calls.  C<Nil.defined> returns
