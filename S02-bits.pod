@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 09 Apr 2012
-    Version: 263
+    Last Modified: 30 Apr 2012
+    Version: 264
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -651,6 +651,12 @@ undefinedness, you can coerce an undefined value like this:
 Variables of non-native types start out containing a type object of
 the appropriate type unless explicitly initialized to a defined value.
 
+Any container's default may be overridden by the C<is default(VALUE)>
+trait.  If the container's contents are deleted, the value is
+notionally set to provided default value; this value may or may not
+be physically represented in memory, depending on the implemention
+of the container.  You should officially not care about that (much).
+
 =head2 The C<HOW> Method
 
 Every object supports a C<HOW> function/method that returns the
@@ -1230,9 +1236,18 @@ Since native types cannot represent Perl's concept of undefined values,
 in the absence of explicit initialization, native floating-point types
 default to NaN, while integer types (including C<bit>) default to 0.
 The complex type defaults to NaN + NaN\i.  A buf type of known size
-defaults to a sequence of 0 values.  If any native type is explicitly
-initialized to C<*> (the C<Whatever> type), no initialization is attempted
-and you'll get whatever was already there when the memory was allocated.
+defaults to a sequence of 0 values.
+
+You can set a different default on any container type by use of a trait
+such as C<is default(42)>.  Deleting or undefining such a container
+sets the contents back to the default value (or optionally removes
+it in cases where the default value can be autovivified on demand).
+
+If you wish for a native declaration to attempt no initialization, but leave
+whatever garbage was in memory, you may use the C<is default(*)> trait.
+There are several use cases for this, if you know you're going to
+initialize the memory otherwise, or you're doing some form of memory
+mapping.
 
 If a buf type is initialized with a Unicode string value, the string
 is decomposed into Unicode codepoints, and each codepoint shoved into
