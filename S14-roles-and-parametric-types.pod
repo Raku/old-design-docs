@@ -363,7 +363,7 @@ more multisubs into a property role like this:
 
     role xxx {
         has Int $.xxx;
-        multi trait_mod:<is>(::?CLASS $declarand where {!.defined}, :$xxx!) {...}
+        multi trait_mod:<is>(::?CLASS:U $declarand, :$xxx!) {...}
         multi trait_mod:<is>(Any $declarand, :$xxx!) {...}
     }
 
@@ -376,7 +376,7 @@ Since a class can function as a role when it comes to parameter type
 matching, you can also say:
 
     class MyBase {
-        multi trait_mod:<is>(MyBase $declarand where {!.defined}, MyBase $base) {...}
+        multi trait_mod:<is>(MyBase:U $declarand, MyBase $base) {...}
         multi trait_mod:<is>(Any $declarand, MyBase $tied) {...}
     }
 
@@ -384,7 +384,7 @@ These capture control if C<MyBase> wants to capture control of how it gets
 used by any class or container.  But usually you can just let it call
 the generic defaults:
 
-    multi trait_mod:<is>($declarand where {!.defined}, $base) {...}
+    multi trait_mod:<is>(Any:U $declarand, $base) {...}
 
 which adds C<$base> to the "isa" list of class C<$declarand>, or
 
