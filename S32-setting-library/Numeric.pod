@@ -20,8 +20,8 @@ DRAFT: Synopsis 32: Setting Library - Numeric
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 27 Jan 2012
-    Version: 13
+    Last Modified: 9 May 2012
+    Version: 14
 
 The document is a draft.
 
@@ -528,8 +528,15 @@ Returns the numerator.
 
     multi method gist( --> Str )
 
-Returns a string representation by first converting to C<Num> and then using the normal decimal
-output of that type.  (C<Str> coercion also does this.)
+Returns a string representation of the number in decimal.  If the
+number can be represented exactly in decimal, it will be.  In any case,
+the portion before the decimal point (the "integer" part) is guaranteed
+to be exact.  The precision of the fractional part is defined to be
+one more digit than the size of the denominator after the integer part
+has been removed, but at least 6 digits for repeating fractions.
+The final digit of the fractional part is rounded.
+
+C<Str> coercion is identical to C<gist>.
 
 =item perl
 
