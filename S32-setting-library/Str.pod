@@ -528,14 +528,15 @@ it is illegal for the start position to be outside of the string, it
 is allowed for the final position to be off the end of the string; in
 this case the entire rest of the string is returned, whatever is available.
 
-Optionally, you can use substr on the left hand side of an assignment
-like so:
+=item substr-rw
+
+ multi sub substr-rw($s is rw, $from = 0; $chars = $s.chars - $from)
+
+A version of C<substr> that returns a writable reference to a part of a
+string variable:
 
  $string ~~ /(barney)/;
- substr($string, $0.from, $0.to) = "fred";
-
-If the replacement string is longer or shorter than the matched sub-string,
-then the original string will be dynamically resized.
+ substr-rw($string, $0.from, $0.to) = "fred";
 
 =item trim
 
