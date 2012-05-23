@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 27 Feb 2012
-    Version: 154
+    Last Modified: 23 May 2012
+    Version: 155
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -978,7 +978,7 @@ of a longest-token pattern.)
 =item *
 
 The general repetition specifier is now C<**> for maximal matching,
-with a corresponding C<**?> for minimal matching.  (All such quantifier
+with a corresponding C<**?> for frugal matching.  (All such quantifier
 modifiers now go directly after the C<**>.)  Space is allowed on either
 side of the complete quantifier, but only the space before the C<**> will
 be considered significant under C<:sigspace> and match between repetitions.
@@ -2269,7 +2269,7 @@ never backtrack in a C<token>.
 In normal regexes, use
 C<*:>, C<+:>, or C<?:> to prevent any backtracking into the quantifier.
 If you want to explicitly backtrack, append either a C<?> or a C<!>
-to the quantifier.   The C<?> forces minimal matching as usual,
+to the quantifier.   The C<?> forces frugal matching as usual,
 while the C<!> forces greedy matching.  The C<token> declarator is
 really just short for
 
@@ -2313,7 +2313,8 @@ and C<token> declarations, backtracking must be explicit.
 
 =item *
 
-To force the preceding atom to do eager backtracking,
+To force the preceding atom to do frugal backtracking (also sometimes
+known as "eager matching" or "minimal matching"),
 append a C<:?> or C<?> to the atom.  If the preceding token is
 a quantifier, the C<:> may be omitted, so C<*?> works just as
 in Perl 5.
@@ -2659,7 +2660,7 @@ Any :: or ::: backtracking control (but not the : possessive modifier).
 
 =item *
 
-Any atom that is quantified with a minimal match (using the C<?> modifier).
+Any atom that is quantified with a frugal match (using the C<?> modifier).
 
 =item *
 
