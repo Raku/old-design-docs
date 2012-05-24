@@ -628,7 +628,7 @@ denominator overflows an C<int64>).  Exponential notation
 and radix notations are recognized.
 
 Only leading and trailing whitespace are allowed as extra characters;
-any other unrecognized character result the return of a failure.
+any other unrecognized character results in the return of a failure.
 
 =item *
 
@@ -681,7 +681,7 @@ C<< prefix:<+^> >>, numeric bitwise negation
     +^$x
 
 Coerces to C<Int> and then does bitwise negation on the number, returning an C<Int>.
-(In order not to have to represent an infinitude of 1's, represents
+(In order not to have to represent an infinitude of 1's, it represents
 that value as some negative in 2's complement form.)
 
 =item *
@@ -727,7 +727,7 @@ C<< infix:<*> >>
 
     $x*$y
 
-Multiplication, resulting in wider type of the two.
+Multiplication, resulting in the wider type of the two.
 
 =item *
 
@@ -781,7 +781,7 @@ In general, C<div> should give the same result as
 
 but the return value should be the same type as $x.
 
-This identity stops to hold when C<$x/$y> degrades to a C<Num> and runs
+This identity stops holding when C<$x/$y> degrades to a C<Num> and runs
 into precision limits.  A C<div> operation on two C<Int> objects must always
 be done precisely.
 
@@ -792,7 +792,7 @@ C<< infix:<%> >>, modulo
     $x % $y
 
 If necessary, coerces non-numeric arguments to an appropriate C<Numeric> type,
-then calculates the remainder, which is defines as:
+then calculates the remainder, which is defined as:
 
     $x % $y == $x - floor($x / $y) * $y
 
@@ -923,7 +923,7 @@ C<< infix:<+> >>, numeric addition
 Microeditorial: As with most of these operators, any coercion or type
 mismatch is actually handled by multiple dispatch.  The intent is that
 all such variants preserve the notion of numeric addition to produce a
-numeric result, presumably stored in suitably "large" numeric type to
+numeric result, presumably stored in a numeric type suitably "large" to
 hold the result.  Do not overload the C<+> operator for other purposes,
 such as concatenation.  (And please do not overload the bitshift
 operators to do I/O.)  In general we feel it is much better for you
@@ -962,7 +962,7 @@ C<< infix:<~|> >>, buffer bitwise inclusive or
 
 Coerces NFG strings to non-variable-encoding string buffer type (such as buf8,
 buf16, or buf32) and then does numeric bitwise OR on corresponding integers
-of the two buffers, logically padding the shorter buffer with 0 values.
+of the two buffers, logically padding the shorter buffer with 0 values, and
 returning a buffer sufficiently large to contain all non-zero integer results
 (which for OR is at most the size of the longer of the two buffers).
 
@@ -1017,7 +1017,7 @@ C<< infix:<x> >>, string/buffer replication
     $string x $count
 
 Evaluates the left argument in string context, replicates the resulting
-string value the number of times specified by the right argument and
+string value the number of times specified by the right argument, and
 returns the result as a single concatenated string regardless of context.
 
 If the count is less than 1, returns the null string.
@@ -1261,7 +1261,7 @@ Perl 5's C<=~> becomes the "smart match" operator C<~~>, with an
 extended set of semantics.  See L</Smart matching> for details.
 
 To catch "brainos", the Perl 6 parser defines an C<< infix:<=~> >>
-operator which always fails at compile time with a message directing
+operator, which always fails at compile time with a message directing
 the user to use C<~~> or C<~=> (string append) instead if they meant
 it as a single operator, or to put a space between if they really
 wanted to assign a stringified value as two separate operators.
@@ -1543,7 +1543,7 @@ would be applied last.  For instance, in
 
     +%hash{$key} :foo
 
-The subscript happens first and the C<+> operator happens last,
+the subscript happens first and the C<+> operator happens last,
 so C<:foo> would apply to that.  Use
 
     +(%hash{$key} :foo)
@@ -1585,7 +1585,7 @@ arguments to functions.  It provides item context to both sides.
 It does not actually do an assignment except in a notional sense;
 however its precedence is now equivalent to assignment, and it is
 also right associative.  Note that, unlike in Perl 5, C<< => >>
-binds tighter than comma.
+binds more tightly than comma.
 
 =item *
 
@@ -1700,7 +1700,7 @@ to be taken as a label.)
     foo $obj.infix:<+>      # extended identifier, foo( $obj.'infix:<+>' )
     foo: 1,2,3              # label at statement start, else infix
 
-The moral of the story is, if you don't know how the colon is
+The moral of the story is: if you don't know how the colon is
 going to bind, use whitespace or parentheses to make it clear.
 
 =back
@@ -1782,7 +1782,7 @@ would produce
     ('a',0), ('a',1), ('a',2), ('a',3), ('a',4), ('a',5), ...
 
 and you'd never get to 'b'.  If your left list consists of only
-a single element, though, this may useful, especially if C<X> is used as
+a single element, though, this may be useful, especially if C<X> is used as
 a metaoperator.  See below.
 
 =item *
@@ -1815,7 +1815,7 @@ all list infix operators, this operator is looser in precedence than
 comma, so you do not need to parenthesize comma lists on either side
 of it.
 
-The operator starts by getting the first value of righthand list.
+The operator starts by getting the first value of the righthand list.
 This is the only value of the right list that the C<...> operator is
 actually interested in; any additional list elements are treasured
 up lazily to be returned after the C<...> is done.
@@ -1948,8 +1948,8 @@ function of C<{$_ * $bc}> is deduced.
 
 If there are only two values in the list so far, C<$a> and C<$b>, and the difference C<$ab>
 is non-zero, we assume an arithmetic progression of C<*+$ab>.  If C<$ab>
-is zero, then again it depends on whether the two values look like
-numbers whether we use C<*+0> or C<*.succ>/C<*.pred>.
+is zero, then again whether we use C<*+0> or C<*.succ>/C<*.pred> depends on
+whether the two values look like numbers.
 
 If there is only one value, we always assume incrementation via
 C<.succ>.  (This may be forced to C<.pred> by examination of a limit,
@@ -2098,7 +2098,7 @@ and
 
 both do exactly what the forward sequences do above, only in reverse.
 
-As an extra special rule, that works in either direction, if the bottom
+As an extra special rule, that works in either direction: if the bottom
 character is a '0' and the top character is alphanumeric, it is assumed
 to be representing a number in some base up to base 36, where digits above ten 
 are represented by letters.  Hence the same sequences of 16-bit numbers, only in
@@ -2116,7 +2116,7 @@ And as a limiting case, this applies to single characters also:
 Note that case is intuited from the top character of the range.
 
 There are many different possible semantics for string increment.
-If these isn't the semantics you want, you can always write your own
+If this isn't the semantics you want, you can always write your own
 successor function.  Sometimes the stupid codepoint counting is what you want.
 For instance, you can get away with ranges of capital Greek letters:
 
@@ -2161,20 +2161,20 @@ as is any sequence that has an explicit ending closure.
 However, any sequence that ends C<*> is considered to be of unknowable
 length.  However, by the definition of "mostly eager" in L<S07>,
 the implementation may be able to determine that such a sequence is
-finite by conjectural evaluation; such workahead cannot, of course,
+finite by conjectural evaluation; such workahead cannot, of course, always
 prove that a sequence is infinite without running a Very Long Time.
 Note also that, by using the form that specifies both a closure and
-a final value, it is possible to write sequence that appears to be
+a final value, it is possible to write a sequence that appears to be
 finite but that never actually reaches its final value before resources
 are exhausted; such a sequence will be treated as finite, but eventually
-come to grief:
+will come to grief:
 
     @a = 1, *+0.00000000000000000000000000000000000001 ... 2;  # heat death
 
 For any such sequence or list that the user knows to be infinite, but
 the computer can't easily know it, it is allowed to mark the end of
 the list with a C<*>, which indicates that it is to be treated as an
-infinite list in contexts which care.  Similarly, any list ending
+infinite list in contexts that care.  Similarly, any list ending
 with an operator that interprets C<*> as infinity may be taken the
 same way, such as C<$n xx *>, or C<1..*>.
 
@@ -2211,7 +2211,7 @@ prefix listop, much as if you'd said:
 
 However, the tokener classifies it as infix because it sees it when
 it's expecting an infix operator.  Assignments in general are treated
-more like retroactive macros, since their meaning depends greatly on
+more like retroactive macros, since their meanings depend greatly on
 what is on the left, especially if what is on the left is a declarator
 of some sort.  We even call some of them pseudo-assignments, but they're
 all a bit pseudo insofar as we have to figure out whether the left side
@@ -2718,7 +2718,7 @@ is the same as
     if not $filename.IO.e { say "doesn't exist" }
 
 The 1st form actually translates to the latter form, so the object's
-class decides how to dispatch methods.  It just happens that the
+class decides how to dispatch methods.  It just so happens that the
 C<IO> role defaults to the expected filetest semantics, but C<$regex.i> might
 tell you whether the regex is case insensitive, for instance.  Likewise,
 you can test anything for definedness or undefinedness:
@@ -2758,7 +2758,7 @@ However, these still work:
     }
 
 One advantage of the method form is that it can be used in places that
-require tighter precedence than C<~~> provides
+require tighter precedence than C<~~> provides:
 
     sort { $^a.M <=> $^b.M }, @files».IO
 
@@ -2798,7 +2798,7 @@ So C<x().!> is always the postfix operator, but C<x().'!'> will always
 call C<!x()>.  In particular, you can say things like C<$array.'@'>.
 This also includes any operator that would look like something
 with a special meaning if used after the method-calling dot.  For example,
-If you defined a C<< prefix:<=> >>, and you wanted to write it using
+if you defined a C<< prefix:<=> >>, and you wanted to write it using
 the method-call syntax instead of C<=$object>, the parser would take
 C<$object.=> as the mutation syntax (see S12, "Mutating methods").
 Writing C<$object.'='> will call your prefix operator.
@@ -2905,7 +2905,7 @@ You may say
 to indicate a flipflop that never flops once flipped.
 
 The state of a flipflop is kept in an anonymous state variable, so separate
-closure clones get their own state.
+closure clones get their own states.
 
 =item *
 
