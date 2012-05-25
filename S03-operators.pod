@@ -113,7 +113,7 @@ descriptions are here; special topics are covered afterwards.
 =head2 Term precedence
 
 This isn't really a precedence level, but it's in here because no operator
-can have tighter precedence than a term.  See S02 for longer descriptions of
+can have tighter precedence than a term.  See L<S02> for longer descriptions of
 various terms.  Here are some examples.
 
 =over
@@ -314,7 +314,7 @@ for subscripts.  Since these are the tightest standard operator,
 you can often think of a series of method calls as a single term that
 merely expresses a complicated name.
 
-See S12 for more discussion of single dispatch method calls.
+See L<S12> for more discussion of single dispatch method calls.
 
 =over
 
@@ -409,7 +409,7 @@ behavior unless some explicit sequencing operator is interposed.
 See L</Sequence points>.
 
 As with all postfix operators in Perl 6, no space is allowed between
-a term and its postfix.  See S02 for why, and for how to work around the
+a term and its postfix.  See L<S02> for why, and for how to work around the
 restriction with an "unspace".
 
 As mutating methods, all these operators dispatch to the type of
@@ -2800,7 +2800,7 @@ This also includes any operator that would look like something
 with a special meaning if used after the method-calling dot.  For example,
 if you defined a C<< prefix:<=> >>, and you wanted to write it using
 the method-call syntax instead of C<=$object>, the parser would take
-C<$object.=> as the mutation syntax (see S12, "Mutating methods").
+C<$object.=> as the mutation syntax (see L<S12>, "Mutating methods").
 Writing C<$object.'='> will call your prefix operator.
 
 =item *
@@ -2885,9 +2885,9 @@ The unary backslash operator is not really an operator, but a special noun form.
 It "captures" its argument or arguments, and returns an
 object representing those arguments.  You can I<dereference> this object
 in several ways to retrieve different parts of the arguments; see the
-definition of C<Capture> in S02 for details.  (No whitespace is allowed
+definition of C<Capture> in L<S02> for details.  (No whitespace is allowed
 after the backslash because that would instead start an "unspace", that is,
-an escaped sequence of whitespace or comments.  See S02 for details.
+an escaped sequence of whitespace or comments.  See L<S02> for details.
 However, oddly enough, because of that unspace rule, saying C<\\ $foo>
 turns out to be equivalent to C<\$foo>.)
 
@@ -3481,7 +3481,7 @@ integers are assumed to represent points on the real number line:
     1.5 ~~ 1^..^2  # true, equivalent to 1 < 1.5 < 2
     2.1 ~~ 1..2    # false, equivalent to 1 <= 2.1 <= 2
 
-If a C<*> (see the "Whatever" type in S02) occurs on the right side
+If a C<*> (see the "Whatever" type in L<S02>) occurs on the right side
 of a range, it is taken to mean "positive infinity" in whatever
 typespace the range is operating, as inferred from the left operand.
 A C<*> on the left means "negative infinity" for types that support
@@ -3721,7 +3721,7 @@ C<Buf> role may be a parametric type that allows you to instantiate
 buffers with various known encodings.  In the absence of such typing
 information, you may still do pattern matching against the buffer, but
 (apart from assuming the lowest 7 bits represent ASCII) any attempt
-to treat the buffer as other than a sequence integers is erroneous,
+to treat the buffer as other than a sequence of integers is erroneous,
 and warnings may be generously issued.
 
 Matching against a C<Grammar> treats the grammar as a typename,
@@ -3752,8 +3752,8 @@ cannot be specified that way.)
 
 There is no pattern matching defined for the C<Any> pattern, so if you
 find yourself in the situation of wanting a reversed smartmatch test
-with an C<Any> on the right, you can almost always get it by explicit
-call to the underlying C<ACCEPTS> method using $_ as the pattern.
+with an C<Any> on the right, you can almost always get it by an explicit
+call to the underlying C<ACCEPTS> method using C<$_> as the pattern.
 For example:
 
     $_      X    Type of Match Wanted   What to use on the right
@@ -3765,7 +3765,7 @@ For example:
     etc.
 
 Similar tricks will allow you to bend the default matching rules for
-composite objects as long as you start with a dotted method on $_:
+composite objects as long as you start with a dotted method on C<$_>:
 
     given $somethingordered {
         when .values.'[<=]'     { say "increasing" }
@@ -3817,7 +3817,7 @@ Various proposed-but-deprecated smartmatch behaviors may be easily
 (Note that the C<.cat> method and the C<Cat> type coercion both take a
 single object, unlike the C<cat> function which, as a list operator,
 takes a syntactic list (or multilist) and flattens it.  All of these
-return a Cat object, however.)
+return a C<Cat> object, however.)
 
 Boolean expressions are those known to return a boolean value, such
 as comparisons, or the unary C<?> operator.  They may reference C<$_>
@@ -3977,7 +3977,7 @@ or with leftward feeds as:
              <== grep { /^ \d+ $/ }
              <== @data;
 
-Either form more clearly indicates the flow of data.  See S06 for
+Either form more clearly indicates the flow of data.  See L<S06> for
 more of the (less-than-obvious) details on these two operators.
 
 =head1 Meta operators
@@ -4384,12 +4384,12 @@ for instance, if you say:
 
     %outer »+» %inner;
 
-only the %inner keys that already exist in %outer will occur in the result.
+only the C<%inner> keys that already exist in C<%outer> will occur in the result.
 Note, however, that you want
 
     %outer »+=« %inner;
 
-in order to pass accumulated statistics up a tree, assuming you want %outer
+in order to pass accumulated statistics up a tree, assuming you want C<%outer>
 to have the union of keys.
 
 Unary hash hypers and binary hypers that have only one hash operand
@@ -4406,8 +4406,8 @@ is short for something like:
 
     @array[0..^@array], @array[*-1] xx *
 
-Note that hypers promise that you don't care what order the processing
-happens in, only that the resulting structure ends up in a form consistent
+Note that hypers promise that you don't care in what order the processing
+happens, only that the resulting structure ends up in a form consistent
 with the inputs.  There is no promise from the system that the operation
 I<will> be parallelized.  Effective parallelization requires some means
 of partitioning the work without doing more extra work than you save.
@@ -4896,7 +4896,7 @@ to include:
     state $foo          # persistent lexical (cloned with closures)
 
 Variable declarators such as C<my> now take a I<signature> as their
-argument.  (The syntax of function signatures is described more fully in S06.)
+argument.  (The syntax of function signatures is described more fully in L<S06>.)
 
 The parentheses around the signature may be omitted for a
 simple declaration that declares a single variable, along with its
@@ -4973,7 +4973,7 @@ each variable:
     my Dog ($b, $c);
     my (Dog $b, Dog $c);    # same thing
 
-[XXX the following probably belongs in S06.]
+[XXX the following probably belongs in L<S06>.]
 The syntax for constructing a C<Signature> object when the parser isn't already
 expecting one is:
 
@@ -5015,7 +5015,7 @@ are bound C<rw> by default rather than C<readonly>.  See Binding above.
 
 Note that C<temp> and C<let> are I<not> variable declarators, because
 their effects only take place at runtime.  Therefore, they take an ordinary
-lvalue object as their argument.  See S04 for more details.
+lvalue object as their argument.  See L<S04> for more details.
 
 There are a number of other declarators that are not variable
 declarators.  These include both type declarators:
@@ -5217,7 +5217,7 @@ constructs:
     while $i < 10 { $i++ }
 
 It is, however, still possible to align subscripts and other postfix
-operators by explicitly using the I<unspace> syntax (see S02):
+operators by explicitly using the I<unspace> syntax (see L<S02>):
 
      %squirrels{'fluffy'} = Squirrel.new;
      %monsters.{'cookie'} = Monster.new;
