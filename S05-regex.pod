@@ -1009,6 +1009,16 @@ It is illegal to return a list, so this easy mistake fails:
 The closure form is always considered procedural, so the item it is
 modifying is never considered part of the longest token.
 
+For backwards compatibility with previous versions of Perl 6, if the token
+following ** is not a closure or literal integer, it is interpreted as +%
+with a warning:
+
+   / x ** y /                # same as / x+ % y /
+   / x ** $y /               # same as / x [$y x]* /
+
+No check is made to see if $y contains an integer or range value.  This
+compatibility feature is not guaranteed to exist forever.
+
 =item *
 
 Negative range values are allowed, but only when modifying a reversible
