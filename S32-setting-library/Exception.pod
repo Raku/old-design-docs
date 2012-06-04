@@ -1177,7 +1177,17 @@ C<Set> does not know how to handle an object of such type.
         }
     }
 
+=head2 X::Temporal
+
+A common exception type for all errors related to C<DateTime> or C<Date>.
+
     my class X::Temporal is Exception { }
+
+=head2 X::Temporal::InvalidFormat
+
+Thrown when the C<Date> or C<DateTime> constructors get a string in a format
+which is not a valid date format.
+
     my class X::Temporal::InvalidFormat is X::Temporal {
         has $.invalid-str;
         has $.target = 'Date';
@@ -1186,6 +1196,12 @@ C<Set> does not know how to handle an object of such type.
             "Ivalid $.target string '$.invalid-str'; use $.format instead";
         }
     }
+
+=head2 X::Temporal::Truncation
+
+Thrown when C<DateTime.truncated-to> or C<Date.truncated-to> are called in a
+way that doesn't make sense.
+
     my class X::Temporal::Truncation is X::Temporal {
         has $.class = 'DateTime';
         has $.error;
