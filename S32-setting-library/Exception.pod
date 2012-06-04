@@ -676,9 +676,17 @@ exactly one public attribute.
         method message() { 'Can only supply an initialization value for a role if it has a single public attribute' }
     }
 
+=head2 X::Syntax::Comment::Embedded
+
+Thrown when C<#`> is encountered and it is not followed by an opening bracket.
+
     my class X::Syntax::Comment::Embedded does X::Syntax {
         method message() { "Opening bracket required for #` comment" }
     }
+
+=head2 X::Syntax::Pod::BeginWithoutIdentifier
+
+Thrown when C<=begin> is encountered and no identifier comes after it.
 
     my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax does X::Pod {
         method message() {
@@ -686,43 +694,91 @@ exactly one public attribute.
         }
     }
 
+=head2 X::Syntax::Pod::BeginWithoutEnd
+
+Thrown when C<=begin identifier> is parsed without the matching C<=end identifier>.
+
     my class X::Syntax::Pod::BeginWithoutEnd does X::Syntax does X::Pod {
         method message() { '=begin without matching =end' }
     }
+
+=head2 X::Syntax::Confused
+
+The most general syntax error, if no more specific error message can be given.
 
     my class X::Syntax::Confused does X::Syntax {
         method message() { 'Confused' }
     }
 
+=head2 X::Syntax::Malformed
+
+Thrown when a parsed construct is malformed.
+
     my class X::Syntax::Malformed does X::Syntax {
         has $.what;
         method message() { "Malformed $.what" }
     }
+
+=head2 X::Syntax::Missing
+
+Thrown when the previous piece of syntax requires the existence of another
+piece of syntax, and that second piece is missing.
+
     my class X::Syntax::Missing does X::Syntax {
         has $.what;
         method message() { "Missing $.what" }
     }
 
+=head2 X::Syntax::SigilWithoutName
+
+Thrown when a sigil without a following name is encountered in a place where
+this is not allowed.
+
     my class X::Syntax::SigilWithoutName does X::Syntax {
         method message() { 'Non-declarative sigil is missing its name' }
     }
 
+=head2 X::Syntax::Self::WithoutObject
+
+Thrown when C<self> is referenced in a place where no invocant is available.
+
     my class X::Syntax::Self::WithoutObject does X::Syntax {
         method message() { "'self' used where no object is available" }
     }
+
+=head2 X::Syntax::VirtualCall
+
+Thrown when a C<$.foo> style virtual call appears before an object is fully
+constructed, for example C<has $.a = $.b;>.
+
     my class X::Syntax::VirtualCall does X::Syntax {
         has $.call;
         method message() { "Virtual call $.call may not be used on partially constructed objects" }
     }
+
+=head2 X::Syntax::NoSelf
+
+Thrown when C<$.foo> style calls are used where no invocant is available.
+
     my class X::Syntax::NoSelf does X::Syntax {
         has $.variable;
         method message() { "Variable $.variable used where no 'self' is available" }
     }
 
+=head2 X::Syntax::Number::RadixOutOfRange
+
+Thrown when the radix of a radix number is larger not allowed, like C<< :1<1> >>
+or C<< :42<ouch> >>.
+
     my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
         has $.radix;
         method message() { "Radix $.radix out of range (allowed: 2..36)" }
     }
+
+=head2 X::Syntax::Reegx::Adverb
+
+Thrown when an unrecognized or illegal regex adverb is encountered (for
+example C<rx:g/a/>).
 
     my class X::Syntax::Regex::Adverb does X::Syntax {
         has $.adverb;
@@ -730,11 +786,21 @@ exactly one public attribute.
         method message() { "Adverb $.adverb not allowed on $.construct" }
     }
 
+=head2 X::Syntax::Signature::InvocantMarker
+
+Thrown when the invocant in a signature is anywhere else than after the
+first parameter.
+
     my class X::Syntax::Signature::InvocantMarker does X::Syntax {
         method message() {
             "Can only use : as invocant marker in a signature after the first parameter"
         }
     }
+
+=head2 X::Syntax::Extension::Category
+
+Thrown when a subroutine of name C<< category:<symbol>() >> is encountered,
+and the category is not known.
 
     my class X::Syntax::Extension::Category does X::Syntax {
         has $.category;
@@ -743,6 +809,10 @@ exactly one public attribute.
         }
     }
 
+=head2 X::Syntax::InfixInTermPosition
+
+Thrown when the parser expects a term, but finds an infix operator.
+
     my class X::Syntax::InfixInTermPosition does X::Syntax {
         has $.infix;
         method message() {
@@ -750,18 +820,40 @@ exactly one public attribute.
         }
     }
 
+=head2 X::Attribute::Package
+
+Thrown when trying to declare an attribute inside a package which doesn't
+support attributes.
+
     my class X::Attribute::Package does X::Comp {
         has $.package-type;
         method message() { "A $.package-type cannot have attributes" }
     }
+
+=head2 X::Attribute::NoPackage
+
+Thrown when an attribute is declared where it does not make sense (for example
+in the mainline)
+
     my class X::Attribute::NoPackage does X::Comp {
         method message() { "You cannot declare an attribute here; maybe you'd like a class or a role?" }
     }
+
+=head2 X::Declaration::Scope
+
+Thrown when a declaration does not harmonize with the declared scope (for
+example C<has sub foo() { }>.
+
     my class X::Declaration::Scope does X::Comp {
         has $.scope;
         has $.declaration;
         method message() { "Cannot use '$.scope' with $.declaration declaration" }
     }
+
+=head2 X::Declaration::Scope::Multi
+
+Thrown when a multi is declared with an incompatible scope, for example C<our
+multi sub>.
 
     my class X::Declaration::Scope::Multi is X::Declaration::Scope {
         method message() {
@@ -769,20 +861,39 @@ exactly one public attribute.
         }
     }
 
+=head2 X::Anon::Multi
+
+Thrown when an anonymous multi is being declared.
+
     my class X::Anon::Multi does X::Comp {
         has $.multiness;
         has $.routine-type = 'routine';
         method message() { "Cannot put $.multiness on anonymous $.routine-type" }
     }
+
+=head2 X::Anon::Augment
+
+Thrown when trying to augment an anonymous package.
+
     my class X::Anon::Augment does X::Comp {
         has $.package-type;
         method message() { "Cannot augment anonymous $.package-type" }
     }
+
+=head2 X::Augment::NoSuchType
+
+Thrown when trying to agument a type which doesn't exist.
+
     my class X::Augment::NoSuchType does X::Comp {
         has $.package-type;
         has $.package;
         method message() { "You tried to agument $.package-type $.package, but it does not exist" }
     }
+
+=head2 X::Routine::Unwrap
+
+Thrown when C<&routine.unwrap> is called with an argument that is not a wrap
+handle.
 
     my class X::Routine::Unwrap is Exception {
         method message() { "Cannot unwrap routine: invalid wrap handle" }
