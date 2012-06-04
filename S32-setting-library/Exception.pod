@@ -899,13 +899,25 @@ handle.
         method message() { "Cannot unwrap routine: invalid wrap handle" }
     }
 
+=head2 X::Constructor::Positional
+
+Thrown from C<Mu.new> when positional arguments are passed to it.
+
     my class X::Constructor::Positional is Exception {
         method message() { "Default constructor only takes named arguments" }
     }
 
+=head2 X::Hash::Store::OddNumber
+
+Thrown when hash assignment finds a trailing hash key with a value.
+
     my class X::Hash::Store::OddNumber is Exception {
         method message() { "Odd number of elements found where hash expected" }
     }
+
+=head2 X::Package::Stubbed
+
+Thrown at C<CHECK> time when there are packages stubbed but not later defined.
 
     my class X::Package::Stubbed does X::Comp {
         has @.packages;
@@ -915,6 +927,11 @@ handle.
             ~ @.packages.join("\n    ");
         }
     }
+
+=head2 X::Phaser::PrePos
+
+Thrown when the condition inside a C<PRE> or C<POST> phaser evaluate to a
+false value.
 
     my class X::Phaser::PrePost is Exception {
         has $.phaser = 'PRE';
@@ -926,6 +943,11 @@ handle.
                 !! "$what failed";
         }
     }
+
+=head2 X::Str::Numeric
+
+Thrown (or wrapped in a C<Failure>) when a a conversion from string to number
+fails.
 
     my class X::Str::Numeric is Exception {
         has $.source;
@@ -947,6 +969,11 @@ handle.
         }
     }
 
+=head2 X::Str::Match::x
+
+Thrown when C<Str.match(:$x)> or C<m:x($x)//> is called with an type of C<$x>
+that is now allowed.
+
     my class X::Str::Match::x is Exception {
         has $.got;
         method message() {
@@ -954,12 +981,22 @@ handle.
         }
     }
 
+=head2 X::Str::Trans::IllegalKey
+
+Thrown when a Pair passed to C<Str.trans> is of a type that the trans method
+cannot work with (regexes and types derived from C<Cool> are fine).
+
     my class X::Str::Trans::IllegalKey is Exception {
         has $.key;
         method message {
             "in Str.trans, got illegal substitution key of type {$.key.^name} (should be a Regex or Str)"
         }
     }
+
+=head2 X::Str::Trans::InvalidArg
+
+Thrown when an argument to C<Str.trans> is not a C<Pair>.
+
     my class X::Str::Trans::InvalidArg is Exception {
         has $.got;
         method message() {
@@ -967,9 +1004,20 @@ handle.
         }
     }
 
+=head2 X::Sequence::Deduction
+
+Exception type when the C<...> sequence operator is being called without an
+explicit closure, and the sequence cannot be deduced.
+
     my class X::Sequence::Deduction is Exception {
         method message() { 'Unable to deduce sequence' }
     }
+
+=head2 X::ControlFlow
+
+Thrown when a control flow construct (such as C<next> or C<redo>) is called
+outside the dyanmic scope of an enclosing construct that is supposed to catch
+them.
 
     my class X::ControlFlow is Exception {
         has $.illegal;   # something like 'next'
@@ -977,11 +1025,21 @@ handle.
 
         method message() { "$.illegal without $.enclosing" }
     }
+
+=head2 X::ControlFlow::Return
+
+Thrown when a C<return> is called from outside a routine.
+
     my class X::ControlFlow::Return is X::ControlFlow {
         method illegal()   { 'return'  }
         method enclosing() { 'Routine' }
         method message()   { 'Attempt to return outside of any Routine' }
     }
+
+=head2 X::Composition::NotComposable
+
+Thrown when trying to compose a type into a target type, but the composer type
+cannot be used for composition (roles and enums are generally OK).
 
     my class X::Composition::NotComposable is Exception {
         has $.target-name;
@@ -990,6 +1048,10 @@ handle.
             "$.target-name cannot compose {$.composer.^name} because it is not composable";
         }
     }
+
+=head2 X::TypeCheck 
+
+Thrown when a type check fails.
 
     my class X::TypeCheck is Exception {
         has $.operation;
@@ -1001,15 +1063,33 @@ handle.
         }
     }
 
+=head2 X::TypeCheck::Binding
+
+Thrown when the type check of a binding operation fails.
+
+TODO: figure out if we actually need that type
+
     my class X::TypeCheck::Binding is X::TypeCheck {
         method operation { 'binding' }
     }
+
+=head2 X::TypeCheck::Return
+
+Thrown when a return type check fails.
+
+TODO: figure out if we actually need that type
+
     my class X::TypeCheck::Return is X::TypeCheck {
         method operation { 'returning' }
         method message() {
             "Type check failed for return value; expected '{$.expected.^name}' but got '{$.got.^name}'";
         }
     }
+
+=head2 X::NoDispatcher
+
+Thrown when a redispatcher like C<nextsame> is called without being in the
+dynamic scope of a call that could possible redispatch.
 
     my class X::NoDispatcher is Exception {
         has $.redispatcher;
@@ -1018,12 +1098,22 @@ handle.
         }
     }
 
+=head2 X::Localizer::NoContainer
+
+Thrown when C<let> or C<temp> or a similar localizer are used on a
+non-container, like C<temp 1 = 2>.
+
     my class X::Localizer::NoContainer is Exception {
         has $.localizer;
         method message() {
             "Can only use '$.localizer' on a container";
         }
     }
+
+=head2 X::Mixin::NonComposable
+
+Thrown when a mixin with infix C<does> or C<but> is done with a composer that
+cannot be used for mixin.
 
     my class X::Mixin::NonComposable is Exception {
         has $.target;
@@ -1033,6 +1123,10 @@ handle.
         }
     }
 
+=head2 X::Inheritance::Unsupported
+
+Thrown when trying to inherit from a type that does not support inheritance
+(like a package or an enum).
 
     my class X::Inheritance::Unsupported does X::Comp {
         # note that this exception is thrown before the child type object
@@ -1046,12 +1140,20 @@ handle.
         }
     }
 
+=head2 X::Export::NameClash
+
+Thrown when a symbol is exported twice.
+
     my class X::Export::NameClash is Exception {
         has $.symbol;
         method message() {
             "A symbol '$.symbol' has already been exported";
         }
     }
+
+=head2 X::HyperOp::NonDWIM
+
+Thrown when a non-DWIMy hyperop has lists of lengths that do not match.
 
     my class X::HyperOp::NonDWIM is Exception {
         has &.operator;
@@ -1063,13 +1165,17 @@ handle.
         }
     }
 
+=head2 X::Set::Coerce
+
+Thrown when C<Set($obj)> is called to coerce an object to a C<Set>, and
+C<Set> does not know how to handle an object of such type.
+
     my class X::Set::Coerce is Exception {
         has $.thing;
         method message {
             "Cannot coerce object of type {$.thing.^name} to Set. To create a one-element set, pass it to the 'set' function";
         }
     }
-
 
     my class X::Temporal is Exception { }
     my class X::Temporal::InvalidFormat is X::Temporal {
