@@ -18,7 +18,7 @@ Authors of previous versions of this document:
     Created: 26 Feb 2009
 
     Last Modified: 4 June 2012
-    Version: 11
+    Version: 12
 
 The document is a draft.
 
@@ -526,22 +526,17 @@ Common role for all syntax errors.
 
 =head3 X::Syntax::Obsolete
 
+Thrown when obsolete (mostly Perl 5) syntax is detected.
+
     role X::Syntax::Obsolete does X::Syntax {
         has $.old;
         has $.replacement; # cannot call it 'new',
                            # would collide with constructor
-        has $.when = 'in Perl 6'
+        has $.when = 'in Perl 6';
+        method message() {
+            "Unsupported use of $.old; $.when please use $.replacement";
+        }
     }
-
-Message defaults to C<< Unsupported use of $.old; $.when please use $.replacement >>.
-
-=head3 X::Syntax::BadInfix
-
-    role X::Syntax::BadInfix does X::Syntax {
-        has $.bad;
-    }
-
-Message defaults to C<< Preceding context expects a term, but found infix $.bad instead >>.
 
 
 =head3 X::Syntax::Name::Null
