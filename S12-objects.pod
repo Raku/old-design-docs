@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 14 Jan 2012
-    Version: 124
+    Last Modified: 22 Jun 2012
+    Version: 125
 
 =head1 Overview
 
@@ -2473,6 +2473,65 @@ Note that when we say "C<Cool> and C<Any>" above, we really mean
 those types as well as any types outside of them, such as C<Mu> or
 C<Junction>.  But users should not generally be deriving from those
 types anyway.
+
+=head1 Custom Meta-objects
+
+[Note: This section is still subject to some changes, but does at least
+reflect current implementation reality fairly well.]
+
+When the parser encounters a package declarator, it uses the name of
+the declarator (such as C<class> or C<grammar>) to look up the type of
+meta-object to use. The default meta-objects support the standard Perl 6
+OO semantics. However, it is possible for a module to export different
+meta-objects with different semantics. This is done by making entries in
+an EXPORTHOW package, which in turn must be located in UNIT of the module.
+The name it is installed under maps to a package or type declarator name.
+
+Thus, a module can provide a replacement implementation of the meta-object
+type used for grammars like this:
+
+    my module EXPORTHOW { }
+    EXPORTHOW::<grammar> = TracedGrammarHOW;
+
+The easiest way to define a new meta-object is to inherit from an existing
+meta-object.
+
+    my class TracedGrammarHOW is Metamodel::GrammarHOW {
+    }
+
+Here is a list of the various meta-objects that you may safely subclass and
+the name they are installed under by default.
+
+    Metamodel::ClassHOW                 class
+    Metamodel::EnumHOW                  enum
+    Metamodel::GrammarHOW               grammar
+    Metamodel::ModuleHOW                module
+    Metamodel::PackageHOW               package
+    Metamodel::ParametricRoleHOW        role
+    Metamodel::ParametricRoleGroupHOW   role-group
+    Metamodel::SubsetHOW                subset
+
+All of these meta-objects inherit from C<Any>. However, they will in turn
+be implemented by other meta-objects that may or may not do so. This is
+considered implementation specific, and implementations may re-arrange these
+details freely between versions. Thus, relying on them is erroneous.
+
+    SomeP6Class.HOW         # Promises to (ultimately) inherit from Any
+    SomeP6Class.HOW.HOW     # Implementation specific
+
+Roles are a little interesting, since they involve multiple meta-objects.
+When you write:
+
+    role Foo {
+    }
+
+Then a C<ParametricRoleHOW> is created to represent the role declaration.
+It is in turn wrapped up inside a C<ParametricRoleGroupHOW>, which is then
+installed under the name C<Foo>. This is because one short name may have
+many long names due to signatured roles.
+
+    role Foo[::T] {
+    }
 
 =head1 Autovivifying objects
 
