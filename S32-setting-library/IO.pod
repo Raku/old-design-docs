@@ -948,6 +948,45 @@ Slurps the entire file into a C<Str> (or C<Buf> if C<:bin>) regardless of contex
 
 In the case of a directory, it uses "\n" to separate entries.  
 
+=item spurt
+
+    multi method spurt ($handle:
+        Str   $contents,
+        Str  :$enc = "Unicode",
+        Bool :append = False,
+    )
+    multi method spurt ($handle:
+        Buf   $contents,
+        Bool :append = False,
+    )
+    multi spurt (IO $fh,
+        Str   $contents,
+        Str  :$enc = "Unicode",
+        Bool :append = False,
+    )
+    multi spurt (IO $fh,
+        Buf   $contents,
+        Bool :append = False,
+    )
+    multi spurt (Str $filename,
+        Str   $contents,
+        Str  :$enc = "Unicode",
+        Bool :append = False,
+    )
+    multi spurt (Str $filename,
+        Buf   $contents,
+        Bool :append = False,
+    )
+
+Opens the file for writing, dumps the contents, and closes the file.
+
+This routine will C<fail> if the file exists, unless the C<:append> flag is
+set, in which case it will instead add the given contents at the end of the
+file.
+
+The routine will also C<fail> with the corresponding exception if there was any
+other error in opening, writing, or closing.
+
 =back
 
 =head3 Other things
