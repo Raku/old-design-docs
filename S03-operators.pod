@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 16 June 2012
-    Version: 253
+    Last Modified: 27 June 2012
+    Version: 254
 
 =head1 Overview
 
@@ -4864,6 +4864,8 @@ reader, even if not to the compiler:
     @a >>>>> $b        # huh?
     @a >>[>]>> $b      # oh yeah
 
+=head2 Turning an infix operator into a noun
+
 Any infix function may be referred to as a noun either by the normal long
 form or a short form using square brackets directly after the C<&> sigil:
 
@@ -4882,6 +4884,28 @@ There is no corresponding form for unary operators, but those may
 usually be constructed by applying an operator to C<*>:
 
     sort -*, @list        # sort reversed numerically
+
+=head2 Turning a binary function into an infix
+
+By using the noun form of a binary function inside square brackets,
+it is possible to turn any function that accepts at least two arguments
+into an infix operator.  For instance:
+
+    $y [&atan2] $x        # same as atan2($y, $x)
+
+By itself this may seem relatively useless, but note that it allows
+composition of normal 2-arg functions with all the infix metaoperators.
+Since it is primarily intended for composition with metaoperators,
+this form always assumes a binary function, even if the function could
+accept more arguments; functions that accept more than 2 arguments do
+not thereby accept multiple arguments on the right side.  You must use
+the normal functional form to pass three or more positional arguments.
+
+This form of operator is parsed with a precedence of addition.
+A C<$> is acceptable in place of C<&>, but in either case the
+next character must be either alphabetic or a left parenthesis.
+Otherwise a normal infix operator starting with that character will
+be assumed.  Hence C<[&&]> parses as a form of the C<&&> operator.
 
 =head1 Declarators
 
