@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Basics
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 17 Dec 2009
-    Version: 4
+    Last Modified: 29 June 2012
+    Version: 5
 
 The document is a draft.
 
@@ -33,16 +33,15 @@ so edit it there in the git repository if you would like to make changes.
 
 =head2 Mu
 
-The following are defined in the C<Mu> role:
+The following are defined in the C<Mu> class:
 
- role Mu {
-     multi method defined ($self: --> Bool ) is export {...}
-     multi method defined ($self: ::role --> Bool ) is export {...}
-
-     multi method undefine( $self: --> Any ) is export {...}
+ class Mu {
+     multi method defined ($self: --> Bool:D ) is export {...}
+     multi method new(*%opts) { ... }
 
      method not() {...}
      method so() {...}
+     
  }
 
 =over
@@ -64,10 +63,17 @@ A value may be defined according to one role and undefined according to another.
 Without the extra argument, defaults to the definition of defined supplied by
 the type of the object.
 
+=item new
+
+  multi method new(*%attrs) { }
+
+Creates a new object of the same type as the object is called on,
+setting attributes with public accessors to the values provided
+by the named arguments to C<new>.
+
 =item undefine
 
-  multi undefine( Any $thing --> Any )
-  multi method undefine( Any $self --> Any )
+  multi undefine( Any $thing is rw --> Any )
 
 Takes any variable as a parameter and attempts to "remove" its
 definition. For simple scalar variables this means assigning
