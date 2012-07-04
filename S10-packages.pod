@@ -156,7 +156,7 @@ However, Perl 5's C<AUTOLOAD> is being superseded by MMD autoloaders
 that distinguish declaration from definition, but are not restricted
 to declaring subs.  A run-time declarator multisub is declared as:
 
-    multi CANDO ( MyPackage, $type, $name, *%args --> Container)
+    multi CANDO ( MyPackage, $type, $name, *%args)
 
 which stands in for the declaration of a container object within
 another container object; it is called when anyone is searching for
@@ -168,10 +168,10 @@ of object is expected in context, or this may be intuited from the
 name requested.  In any case, there may be multiple C<CANDO> routines
 that are dispatched via MMD:
 
-    multi CANDO ( MyPackage, Item, $name, *%args --> Container)
-    multi CANDO ( MyPackage, Array, $name, *%args --> Container)
-    multi CANDO ( MyPackage, Hash, $name, *%args --> Container)
-    multi CANDO ( MyPackage, Code, $name, *%args --> Container)
+    multi CANDO ( MyPackage, Item, $name, *%args)
+    multi CANDO ( MyPackage, Array, $name, *%args)
+    multi CANDO ( MyPackage, Hash, $name, *%args)
+    multi CANDO ( MyPackage, Code, $name, *%args)
 
 The package itself is just passed as the first argument, since it's
 the container object.  Subsequent arguments identify the desired type
@@ -182,8 +182,8 @@ Nor does it include the type information of a Code object's "long
 name"; this information comes in via the type parameter, and may be
 matched against using ordinary subsignature matching:
 
-    multi CANDO ( MyPackage, &:($), $name, *%args --> Container)     # 1 arg
-    multi CANDO ( MyPackage, &:($,$), $name, *%args --> Container)   # 2 args
+    multi CANDO ( MyPackage, &:($), $name, *%args)     # 1 arg
+    multi CANDO ( MyPackage, &:($,$), $name, *%args)   # 2 args
 
 The slurpy C<%args> hash is likely to be empty in standard Perl 6
 usage, but it's possible that some dialects of Perl will desire
@@ -209,9 +209,9 @@ of a proxy object can supply either readonly or rw semantics later.
 When the package in question is a class, it is also possible to declare
 real methods or submethods:
 
-    multi method CANDO ($self: Code, $name, *%args --> Container)
+    multi method CANDO ($self: Code, $name, *%args)
 
-    multi submethod CANDO ($self: Item, $name, *%args --> Container)
+    multi submethod CANDO ($self: Item, $name, *%args)
 
 The method form is inherited by subclasses.  Submethods are never
 inherited but may still do MMD within the class.   (Ordinary multisubs
