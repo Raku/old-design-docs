@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Str
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 2012-03-26
-    Version: 7
+    Last Modified: 2012-07-05
+    Version: 8
 
 The document is a draft.
 
@@ -402,13 +402,12 @@ The C<$format> is scanned for C<%> characters. Any C<%> introduces a
 format token. Format tokens have the following grammar:
 
  grammar Str::SprintfFormat {
-  regex format_token { '%': <index>? <precision>? <modifier>? <directive> }
+  regex format_token { '%': <index>? <precision>? <directive> }
   token index { \d+ '$' }
   token precision { <flags>? <vector>? <precision_count> }
   token flags { <[ \x20 + 0 \# \- ]>+ }
   token precision_count { [ <[1..9]>\d* | '*' ]? [ '.' [ \d* | '*' ] ]? }
   token vector { '*'? v }
-  token modifier { < ll l h m V q L > }
   token directive { < % c s d u o x e f g X E G b p n i D U O F > }
  }
 
@@ -421,46 +420,30 @@ The directives are:
  %   a literal percent sign
  c   a character with the given codepoint
  s   a string
- d   a signed integer, in decimal
- u   an unsigned integer, in decimal
- o   an unsigned integer, in octal
- x   an unsigned integer, in hexadecimal
+ d   an integer, in decimal
+ b   an integer, in binary
+ o   an integer, in octal
+ x   an integer, in hexadecimal
+ X   like x, but using uppercase letters
  e   a floating-point number, in scientific notation
  f   a floating-point number, in fixed decimal notation
  g   a floating-point number, in %e or %f notation
- X   like x, but using uppercase letters
  E   like e, but using an uppercase "E"
  G   like g, but with an uppercase "E" (if applicable)
- b   an unsigned integer, in binary
 
 Compatibility:
 
  i   a synonym for %d
- D   a synonym for %ld
- U   a synonym for %lu
- O   a synonym for %lo
+ u   a synonum for %d
+ D   a synonym for %d
+ U   a synonym for %u
+ O   a synonym for %o
  F   a synonym for %f
 
 Perl 5 (non-)compatibility:
 
  n   produces a runtime exception
  p   produces a runtime exception
-
-Modifiers change the meaning of format directives.  At the moment 
-these are recognized primarily for compatibility with C<printf>
-from other languages (notably C and Perl 5), but their exact semantics
-are still conjectural.
-
- h interpret integer as native "short" (typically int16)
- l interpret integer as native "long" (typically int32 or int64)
- ll interpret integer as native "long long" (typically int64)
- L interpret integer as native "long long" (typically uint64)
- q interpret integer as native "quads" (typically int64 or larger)
-
-Examples:
-
- sprintf "%ld a big number, %lld a bigger number\n",
-    4294967295, 4294967296;
 
 =item fmt
 
