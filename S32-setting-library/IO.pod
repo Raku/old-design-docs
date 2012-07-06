@@ -22,8 +22,8 @@ DRAFT: Synopsis 32: Setting Library - IO
 
     Created: 19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
 
-    Last Modified: 24 June 2012
-    Version: 14
+    Last Modified: 06 July 2012
+    Version: 15
 
 The document is a draft.
 
@@ -31,6 +31,32 @@ If you read the HTML version, it is generated from the Pod in the specs
 repository under
 L<https://github.com/perl6/specs/blob/master/S32-setting-library/IO.pod>
 so edit it there in the git repository if you would like to make changes.
+
+=head1 Overview
+
+The most common IO operations are C<print> and C<say> for writing and
+C<lines> and C<get> for reading. All four are available as subroutines
+(defaulting to the C<$*OUT> and C<$*ARGFILES> file handles) and as
+methods on file handles.
+
+File handles are of type C<IO::Handle>, and can be created with C<&open>.
+Paths are generally passed as strings or C<IO::Path> objects.
+
+C<&dir> returns C<IO::File> and C<IO::Dir> objects, which are
+subclasses of C<IO::Path>.
+
+                      
+              default handle
+    routine   for sub form    purpose
+    =======   ===========     =======
+    print     $*OUT           string-based writng
+    say       $*OUT           string-based witing
+    get       $*ARGFILES      read a line (Str)
+    lines     $*ARGFILES      read all lines (Str)
+    read                      binary reading (Buf)
+    write                     binary writing (Buf)
+
+File tests are performed through C<IO::Path> objects.
 
 =head2 IO
 
@@ -582,7 +608,7 @@ Implements the IO::Writeable interface by doing  a I<send(2)>.
 
 =back
 
-=head2 IO::FileDescriptor
+=head2 IO::Handle
 
 This role indicates that this object actually represents an open file
 descriptor in the os level.
@@ -1365,7 +1391,7 @@ Gone, see eoi C<IO::Seekable>.
 
 =item IO.fileno
 
-See C<IO::FileDescriptor>.
+See C<IO::Handle>.
 
 =item /(get|set)(host|net|proto|serv|sock).*/
 
