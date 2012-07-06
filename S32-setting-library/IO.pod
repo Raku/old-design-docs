@@ -58,11 +58,7 @@ subclasses of C<IO::Path>.
 
 File tests are performed through C<IO::Path> objects.
 
-=head2 IO
-
-[Note: if a method declaration indicates a method name qualified by
-type, it should be taken as shorthand to say which role or class the
-method is actually declared in.]
+=head2 Functions
 
 =over 4
 
@@ -77,9 +73,9 @@ X<open>
         Bool :$chomp = True,
         ...
         --> IO
-    ) is export
+    ) is export returns IO::Handle
 
-A convenience method/function that hides most of the OO complexity.
+A convenience function that hides most of the OO complexity.
 It will only open normal files.  Text is the default.  Note that
 the "Unicode" encoding implies figuring out which actual UTF is
 in use, either from a BOM or other heuristics.  If heuristics are
@@ -100,39 +96,49 @@ and the parent directory are excluded, which can be controlled with the
 C<$test> named parameter. Only items that smart-match against this test are
 returned.
 
+The return value is a list of C<IO::File> and C<IO::Dir> objects.
+
+=item note
+
+    multi multi note (*@LIST --> Bool)
+
+Does a "say" to C<$*ERR>, more or less.  Like C<warn>, it adds a
+newline only if the message does not already end in newline.  Unlike
+C<warn>, it is not trappable as a resumable exception because it
+outputs directly to C<$*ERR>.  You can suppress notes in a lexical
+scope by declaring:
+
+    only note(*@) {}
+
+=back
+
+=head2 IO::Handle
+
+A handle of a file, pipe or anything else that supports reading or
+writing like a file.
+
+=over 4
+
 =item getc
 X<getc>
 
-    method getc (Int $chars = 1 --> Char)
+    method getc (IO::Handle:D: Int $chars = 1 --> Str)
 
 See below for details.
 
 =item print
 X<print>
 
-    method print (*@LIST --> Bool)
+    method print (IO::Handle:D: *@LIST --> Bool)
     multi print (*@LIST --> Bool)
-    method Str::print (IO $io --> Bool)
-    method Array::print (IO $io --> Bool)
-    method Hash::print (IO $io --> Bool)
 
 See below for details.
 
 =item say
 X<say>
 
-    method say (*@LIST --> Bool)
+    method say (IO::Handle:D: *@LIST --> Bool)
     multi say (*@LIST --> Bool)
-    method Str::say (IO $io --> Bool)
-    method Array::say (IO $io --> Bool)
-    method Hash::say (IO $io --> Bool)
-
-See below for details.
-
-=item note
-X<note>
-
-    multi note (*@LIST --> Bool)
 
 See below for details.
 
@@ -140,31 +146,19 @@ See below for details.
 X<printf>
 
     method printf (Str $fmt, *@LIST --> Bool)
-    multi printf (Str $fmt, *@LIST --> Bool)
+    multi printf (IO::Handle:D: Str $fmt, *@LIST --> Bool)
 
 See below for details.
 
-=item uri
-X<uri>X<ftp>X<http>
+=item method write(IO::Handle:D: Buf $buf --> Int)
 
-    method uri(Str $uri --> IO::Streamable);
-    sub uri(Str $uri --> IO::Streamable);
+Tries to write C<$buf>. The actual number of bytes
+written is returned. It might return unthrown failures, to be
+specified by each C<IO> implementation.
 
-Returns an appropriate C<IO::Streamable> descendant, with the type depending on the uri
-passed in.  Here are some example mappings:
-
-    URI type IO type
-    ======== =======
-    file:    IO::File or IO::Directory
-    ftp:     IO::Socket::INET (data channel)
-    http:    IO::Socket::INET
-
-These can naturally be overridden or added to by other modules.
-
-=item %*PROTOCOLS dynamic variable
-
-For each protocol, stores a type name that should be instantiated by calling the C<uri>
-constructor on that type, and passing in the appropriate uri.
+This is "raw" write. C<$buf> contains plain octets. If you want to C<write>
+a C<Str>, you should C<.encode> it first, or use "print" or other
+C<IO::Writeable::Encoded> methods.
 
 =back
 
@@ -220,17 +214,6 @@ writeability by calling shutdown(), for example.
 
 =over
 
-=item method write(Buf $buf --> Int)
-
-Tries to write C<$buf>. The actual number of bytes
-written is returned. It might return unthrown failures, to be
-specified by each C<IO> implementation.
-
-This is "raw" write. C<$buf> contains plain octets. If you want to C<write>
-a C<Str>, you should C<.encode> it first, or use "print" or other
-C<IO::Writeable::Encoded> methods.
-
-=back
 
 =head2 IO::Seekable
 
@@ -485,16 +468,6 @@ argument.
 
 As with C<print>, the compiler will warn you if you use a bare C<say> without
 arguments.
-
-=item multi note (*@LIST --> Bool)
-
-Does a "say" to C<$*ERR>, more or less.  Like C<warn>, it adds a
-newline only if the message does not already end in newline.  Unlike
-C<warn>, it is not trappable as a resumable exception because it
-outputs directly to C<$*ERR>.  You can suppress notes in a lexical
-scope by declaring:
-
-    only note(*@) {}
 
 =item method printf ($self: Str $fmt, *@LIST --> Bool)
 
@@ -1443,5 +1416,36 @@ Gone, see C<Path.times>.
 
 Please post errors and feedback to perl6-language.  If you are making
 a general laundry list, please separate messages by topic.
+
+=head1 Conjectural stuff
+
+Old methods are moved here if it's not clear how they fit into the current
+picture. If nobody comes up with a good solution, they are removed.
+
+=over 4
+
+=item uri
+X<uri>X<ftp>X<http>
+
+    method uri(Str $uri --> IO::Streamable);
+    sub uri(Str $uri --> IO::Streamable);
+
+Returns an appropriate C<IO::Streamable> descendant, with the type depending on the uri
+passed in.  Here are some example mappings:
+
+    URI type IO type
+    ======== =======
+    file:    IO::File or IO::Directory
+    ftp:     IO::Socket::INET (data channel)
+    http:    IO::Socket::INET
+
+These can naturally be overridden or added to by other modules.
+
+=item %*PROTOCOLS dynamic variable
+
+For each protocol, stores a type name that should be instantiated by calling the C<uri>
+constructor on that type, and passing in the appropriate uri.
+
+=back
 
 =for vim:set expandtab sw=4:
