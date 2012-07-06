@@ -110,6 +110,54 @@ scope by declaring:
 
     only note(*@) {}
 
+=item slurp
+
+    multi slurp (IO $fh = $*ARGFILES,
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+        --> Str|Buf
+    )
+    multi slurp (Str $filename,
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+        --> Str|Buf
+    )
+
+Slurps the entire file into a C<Str> (or C<Buf> if C<:bin>) regardless of context.
+(See also C<lines>.)
+
+The routine will C<fail> if the file does not exist, or is a directory.
+
+=item spurt
+
+    multi spurt (IO $fh,
+        Str   $contents,
+        Str  :$enc = $?ENC,
+        Bool :append = False,
+    )
+    multi spurt (IO $fh,
+        Buf   $contents,
+        Bool :append = False,
+    )
+    multi spurt (Str $filename,
+        Str   $contents,
+        Str  :$enc = $?ENC,
+        Bool :append = False,
+    )
+    multi spurt (Str $filename,
+        Buf   $contents,
+        Bool :append = False,
+    )
+
+Opens the file for writing, dumps the contents, and closes the file.
+
+This routine will C<fail> if the file exists, unless the C<:append> flag is
+set, in which case it will instead add the given contents at the end of the
+file.
+
+The routine will also C<fail> with the corresponding exception if there was any
+other error in opening, writing, or closing.
+
 =back
 
 =head2 IO::Handle
@@ -150,7 +198,9 @@ X<printf>
 
 See below for details.
 
-=item method write(IO::Handle:D: Buf $buf --> Int)
+=item  write
+
+    method write(IO::Handle:D: Buf $buf --> Int)
 
 Tries to write C<$buf>. The actual number of bytes
 written is returned. It might return unthrown failures, to be
@@ -160,7 +210,67 @@ This is "raw" write. C<$buf> contains plain octets. If you want to C<write>
 a C<Str>, you should C<.encode> it first, or use "print" or other
 C<IO::Writeable::Encoded> methods.
 
+=item slurp
+
+    method slurp()
+
+Reads all the remaining contents of the handle into a C<Str> (or a C<Buf>
+if  the handle was opened with C<:bin>).
+
+=item t
+
+    method t() returns Bool:D
+
+Returns C<True> if the handle is opened to a tty.
+
+=item p
+
+    method p() returns Bool:D
+
+Returns C<True> if the handle is opened to a pipe.
+
 =back
+
+=head1 IO::FileTests
+
+    role IO::FileTests { ... }
+
+Provides ways to inspect a file or path without opening it.
+
+If you apply that role to a class, that class must provide a C<path>
+method which C<IO::FileTests>' method will call to obtain the path to
+test. This C<path> method must return a C<Str:D>.
+
+The methods are typically only one letter long (for now; perl 5 tradition
+strikes) and are summarized in the following table:
+
+    M  Test performed
+    =  ==============
+    r  $.path is readable by effective uid/gid.
+    w  $.path is writable by effective uid/gid.
+    x  $.path is executable by effective uid/gid.
+    o  $.path is owned by effective uid.
+
+    R  $.path is readable by real uid/gid.
+    W  $.path is writable by real uid/gid.
+    X  $.path is executable by real uid/gid.
+    O  $.path is owned by real uid.
+
+    e  $.path exists.
+    s  $.path has a size > 0 bytes
+
+    f  $.path is a plain file.
+    d  $.path is a directory.
+    l  $.path is a symbolic link.
+    p  $.path is a named pipe (FIFO)
+    S  $.path is a socket.
+    b  $.path is a block special file.
+    c  $.path is a character special file.
+
+    u  $.path has setuid bit set.
+    g  $.path has setgid bit set.
+    k  $.path has sticky bit set.
+
 
 =head1 Roles
 
@@ -924,138 +1034,12 @@ is equivalent to
 If fewer lines are available than the limit, it is not an error;
 you just get the number of lines available.
 
-=item slurp
-
-    method slurp ($handle:
-        Bool :$bin = False,
-        Str  :$enc = "Unicode",
-        --> Str|Buf
-    )
-    multi slurp (IO $fh = $*ARGFILES,
-        Bool :$bin = False,
-        Str  :$enc = "Unicode",
-        --> Str|Buf
-    )
-    multi slurp (Str $filename,
-        Bool :$bin = False,
-        Str  :$enc = "Unicode",
-        --> Str|Buf
-    )
-
-Slurps the entire file into a C<Str> (or C<Buf> if C<:bin>) regardless of context.
-(See also C<lines>.)
-
-The routine will C<fail> if the file does not exist, or is a directory.
-
-=item spurt
-
-    multi method spurt ($handle:
-        Str   $contents,
-        Str  :$enc = $?ENC,
-        Bool :append = False,
-    )
-    multi method spurt ($handle:
-        Buf   $contents,
-        Bool :append = False,
-    )
-    multi spurt (IO $fh,
-        Str   $contents,
-        Str  :$enc = $?ENC,
-        Bool :append = False,
-    )
-    multi spurt (IO $fh,
-        Buf   $contents,
-        Bool :append = False,
-    )
-    multi spurt (Str $filename,
-        Str   $contents,
-        Str  :$enc = $?ENC,
-        Bool :append = False,
-    )
-    multi spurt (Str $filename,
-        Buf   $contents,
-        Bool :append = False,
-    )
-
-Opens the file for writing, dumps the contents, and closes the file.
-
-This routine will C<fail> if the file exists, unless the C<:append> flag is
-set, in which case it will instead add the given contents at the end of the
-file.
-
-The routine will also C<fail> with the corresponding exception if there was any
-other error in opening, writing, or closing.
 
 =back
 
 =head3 Other things
 
 =over 4
-
-=item IO ~~ :X
-X<:r>X<:w>X<:x>X<:o>X<:R>X<:W>X<:X>X<:O>X<:e>X<:z>X<:f>X<:d>X<:l>X<:p>
-X<:S>X<:b>X<:c>X<:t>X<:u>X<:g>X<:k>X<:T>X<:B>X<:M>X<:A>X<:C>
-
-=item EXPR ~~ :X
-
-  $file.:X
-  $file ~~ :X
-
-A file test, where X is one of the letters listed below.  This unary
-operator takes one argument, either a filename or a filehandle, and
-tests the associated file to see if something is true about it.
-
-A C<Pair> used as a pattern is treated as a file test.
-
-    :r  File is readable by effective uid/gid.
-    :w  File is writable by effective uid/gid.
-    :x  File is executable by effective uid/gid.
-    :o  File is owned by effective uid.
-
-    :R  File is readable by real uid/gid.
-    :W  File is writable by real uid/gid.
-    :X  File is executable by real uid/gid.
-    :O  File is owned by real uid.
-
-    :e  File exists.
-    :s  File has a size > 0 bytes
-
-    :f  File is a plain file.
-    :d  File is a directory.
-    :l  File is a symbolic link.
-    :p  File is a named pipe (FIFO), or Filehandle is a pipe.
-    :S  File is a socket.
-    :b  File is a block special file.
-    :c  File is a character special file.
-    :t  Filehandle is opened to a tty.
-
-    :u  File has setuid bit set.
-    :g  File has setgid bit set.
-    :k  File has sticky bit set.
-
-Each of these is redirected (by C<Pair.ACCEPTS>) to the
-corresponding method name on an IO object.  (These methods are not
-defined on bare strings).  Each test returns a boolean, and may be
-negated with a C<!> after the colon.  They maybe ANDed and ORed using
-junctional logic.  In fact, this is the primary reason for writing
-them as a pattern match; if you only want one test, you could just call
-the individual IO method directly and more efficiently.  In any case,
-you must call the C<.s> method to return the file's size in bytes.
-
-There is no <.z> method, so just write C<:!s> to test a file for zero size.
-Likewise, just call C<.s> directly if you actually want to know the file's
-size, since C<~~ :s> only returns a boolean.
-
-The C<.T> and C<.B> methods will be replaced by some filetype guessing
-methods more appropriate to the age of Unicode.  There are likely methods
-to return the various ages of the file corresponding to Perl 5's C<-M>,
-C<-A>, and C<-C> times, but they make no sense as booleans, so also call
-those methods directly (whatever they end up being named).
-
-The interpretation of the file permission operators C<:r>, C<:R>,
-C<:w>, C<:W>, C<:x>, and C<:X> is by default based on:
-
-=over
 
 =item * The mode of the file and the uids and gids of the user
 
