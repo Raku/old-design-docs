@@ -558,34 +558,6 @@ Everything below this point should be considered as mere ideas for
 future evolution, not as things that a compiler write should implement
 unquestioningly.
 
-=head1 Other things
-
-=over 4
-
-=item * The mode of the file and the uids and gids of the user
-
-=item * ACLs (access control lists)
-
-=item * read-only filesystems
-
-=back
-
-There may be other reasons you can't actually read, write, or execute
-the file.  Such reasons may be for example network filesystem access
-controls and unrecognized executable formats.
-
-Also note that, for the superuser on the local filesystems, the C<:r>,
-C<:R>, C<:w>, and C<:W> tests always return 1, and C<:x> and C<:X> return 1
-if any execute bit is set in the mode.  Scripts run by the superuser
-may thus need to do a C<stat> to determine the actual mode of the file,
-or temporarily set their effective uid to something else.
-
-You can test multiple features using junctions:
-
-  if $filename.IO ~~ :r & :w & :x  {...}
-
-=back
-
 =head2 IO::ACL
 
 This is a basic abstraction; for better control, use the operating-system specific
@@ -681,11 +653,11 @@ reader and writer ends of the pipe.
 
 =back
 
-=head1 OS-specific classes
+=head2 OS-specific classes
 
-=head2 Unix
+=head3 Unix
 
-=head2 Path::Unix
+=head3 Path::Unix
 
 =over
 
@@ -756,7 +728,7 @@ to false.
 
 =back
 
-=head2 IO::Socket::Unix
+=head3 IO::Socket::Unix
 
     role IO::Socket::Unix does IO::Socket {
         has Str $.RemoteAddr, # Remote Address
@@ -793,7 +765,7 @@ reader and writer ends of the socket.
 =back
 
 
-=head2 IO::POSIX
+=head3 IO::POSIX
 
 Indicates that this object can perform standard posix C<IO>
 operations. It implies C<IO::Readable> and C<IO::Writeable>.
