@@ -134,19 +134,23 @@ The routine will C<fail> if the file does not exist, or is a directory.
         Str   $contents,
         Str  :$enc = $?ENC,
         Bool :append = False,
+        Bool :$createonly = False,
     )
     multi spurt (IO $fh,
         Buf   $contents,
         Bool :append = False,
+        Bool :$createonly = False,
     )
     multi spurt (Str $filename,
         Str   $contents,
         Str  :$enc = $?ENC,
         Bool :append = False,
+        Bool :$createonly = False,
     )
     multi spurt (Str $filename,
         Buf   $contents,
         Bool :append = False,
+        Bool :$createonly = False,
     )
 
 Opens the file for writing, dumps the contents, and closes the file.
@@ -157,6 +161,9 @@ file.
 
 The routine will also C<fail> with the corresponding exception if there was any
 other error in opening, writing, or closing.
+
+If the C<:createonly> flag was passed, C<slurp> fails if the file already
+exists, and refuses to overwrite it.
 
 =item chdir
 
