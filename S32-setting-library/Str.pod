@@ -144,9 +144,15 @@ and to any intermediate word that the C<where> parameter smartmatches.
 Assuming suitable definitions of word lists, standard English
 capitalization might be handled with something like this:
 
-    .wordcase(where => none @conjunctions, @prepositions);
+    my $where = none map *.fc, @conjunctions, @prepositions;
+    .wordcase(:$where);
 
-(Note, "standard" authorities disagree on the prepositions!)
+(Note that the "standard" authorities disagree on the prepositions!)
+
+The smartmatching is done case insensitively, so you should store
+your exceptions in C<fc> form.  If the C<where> smartmatch does not
+match, then the word will be forced to lowercase unless the filter
+is C<&tcuc>, in which case the exception will be forced to uppercase.
 
 There is no provision for an alternate regex; if you need a custom
 word recognizer, you can write your own C<.subst> as above.
