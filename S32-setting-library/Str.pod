@@ -128,7 +128,7 @@ the characters to uppercase, then returns the modified string.
 
 =item wordcase
 
- multi method wordcase ( Str $string: &filter = &tclc --> Str ) is export
+ multi method wordcase ( Str $string: :&filter = &tclc, :$where = True --> Str ) is export
 
 Performs a substitutional mapping of each word in the string,
 defaulting to the C<tclc> mapping.  Words are defined as Perl 6
@@ -139,11 +139,17 @@ casemapping.)  The following should have the same result:
     .wordcase;
     .subst(:g, / <ident>+ % <[ \- ' ]> /, *.Str.tclc)
 
-You can easily make exceptions in your capitalization policy by
-supplying your own filter function that recognizes exceptions before
-handing the rest off to one of the standard filters.  There is
-no provistion for an alternate regex; if you need a custom word
-recognizer, you can write your own C<.subst> as above.
+The C<filter> function is applied to the first and last word always,
+and to any intermediate word that the C<where> parameter smartmatches.
+Assuming suitable definitions of word lists, standard English
+capitalization might be handled with something like this:
+
+    .wordcase(where => none @conjunctions, @prepositions);
+
+(Note, "standard" authorities disagree on the prepositions!)
+
+There is no provision for an alternate regex; if you need a custom
+word recognizer, you can write your own C<.subst> as above.
 
 =item normalize
 
