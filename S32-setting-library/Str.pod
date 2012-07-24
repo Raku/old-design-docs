@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Str
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 2012-07-05
-    Version: 8
+    Last Modified: 2012-07-24
+    Version: 9
 
 The document is a draft.
 
@@ -101,19 +101,49 @@ Does a Unicode "fold case" operation suitable for doing caseless
 string comparisons.  (In general, the returned string is unlikely to
 be useful for any purpose other than comparison.)
 
-=item titlecase
+=item tc
 
- multi method titlecase ( Str $string: :&filter = &lc, :%exceptions = set() --> Str ) is export
+ multi method tc ( Str $string: --> Str ) is export
 
-Performs a Unicode titlecase operation on the first character of
-each word of the string (as defined by a regex C<«> boundary),
-and forces the rest of the letters through a filter that defaults
-to C<lc>.  After this operation, if any exceptions are supplied and
-if the word is found in the set of exceptions, the first character is also
-forced through the filter.  Note that the exceptions must be spelled with
-an initial titlecase, such as "By" or "And", to produce "by" or "and".
+Converts the first character of a string to titlecase form,
+leaving the rest of the characters unchanged, then returns the
+modified string.  If there is no titlecase mapping for the first
+character, the entire string is returned unchanged.  In any case,
+this function never changes any character after the first.  (It
+is like the old C<ucfirst> function in that respect.)
 
-Note, there is no longer any C<ucfirst> function because its semantics are not useful under Unicode.
+=item tclc
+
+ multi method tclc ( Str $string: --> Str ) is export
+
+Forces the first character of a string to titlecase and the rest of
+the characters to lowercase, then returns the modified string.
+
+=item tcuc
+
+ multi method tcuc ( Str $string: --> Str ) is export
+
+Forces the first character of a string to titlecase and the rest of
+the characters to uppercase, then returns the modified string.
+
+=item wordcase
+
+ multi method wordcase ( Str $string: &filter = &tclc --> Str ) is export
+
+Performs a substitutional mapping of each word in the string,
+defaulting to the C<tclc> mapping.  Words are defined as Perl 6
+identifiers, hence admit hyphens and apostrophes when followed
+by a letter.  (Note that trailing apostrophes don't matter when
+casemapping.)  The following should have the same result:
+
+    .wordcase;
+    .subst(:g, / <ident>+ % <[ \- ' ]> /, *.Str.tclc)
+
+You can easily make exceptions in your capitalization policy by
+supplying your own filter function that recognizes exceptions before
+handing the rest off to one of the standard filters.  There is
+no provistion for an alternate regex; if you need a custom word
+recognizer, you can write your own C<.subst> as above.
 
 =item normalize
 
