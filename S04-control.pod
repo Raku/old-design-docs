@@ -14,7 +14,7 @@ Synopsis 4: Blocks and Statements
     Created: 19 Aug 2004
 
     Last Modified: 28 Jul 2012
-    Version: 117
+    Version: 118
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1215,6 +1215,15 @@ ways to return from catch lambdas.  The control lambda is logically
 separate from the catch lambda, though an implementation is allowed
 to combine them if it is careful to retain separate semantics for
 catch and control exceptions.
+
+One additional level of control is the notion of I<lazy warnings>.
+If, instead of throwing a warning directly, the program calls C<fail()>
+with a resumable exception, the throwing of the warning is delayed
+until first use (or the caller's policy) requires it to be thrown.
+If the warning exception supports the C<.resume_value> method, that
+will be the value of the failure after it has resumed.  Otherwise the
+value will be the null string.  The C<+>, C<~>, and C<?> coercions
+use these lazy warnings to allow (but not require) failsoft semantics.
 
 =head1 The goto statement
 X<goto>
