@@ -13,8 +13,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 11 Mar 2012
-    Version: 116
+    Last Modified: 28 Jul 2012
+    Version: 117
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1246,7 +1246,8 @@ lexical scope of the C<goto>) must enclose the label in quotes.
 
 As in Perl 5, many built-in functions simply return an undefined value
 when you ask for a value out of range, or the function fails somehow.
-Perl 6 has C<Failure> objects, known as "unthrown exceptions", which
+Perl 6 has C<Failure> objects, known as "unthrown exceptions" (though
+really a C<Failure> merely contains an unthrown exception), which
 know whether they have been handled or not.  C<$!> is a convenient
 link to the last failure, and only ever contains one exception, the
 most recent.
@@ -1307,6 +1308,14 @@ outward until it is handled.  If no explicit handler handles it,
 the implicit outermost exception handler will
 eventually decide to abort and print all unhandled exceptions passed
 in as its current C<@!> list.
+
+It is possible to fail with a resumable exception, such as a warning.
+If the failure throws its exception and the exception resumes,
+the thrower by default returns the null string (C<''>) to whatever
+caused the failure to throw its exception.  This may be overridden by
+attaching a C<.resume_value> to the warning.  Hence numeric coercions
+such as C<+"42foo"> can be forced to return C<42> after issuing
+a warning.
 
 =head1 Phasers
 
