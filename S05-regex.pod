@@ -1135,7 +1135,8 @@ it ignores whitespace #1 and #4, and rewrites the rest to:
     / [ <element> <.ws> ]+ % [ ',' <.ws> ] <.ws> /
                     #2               #5      #3
 
-Since #3 is redundant with #2, it suffices to supply either #2 or #3:
+Since #3 is redundant with #2 (because C<+> requires an element),
+it suffices to supply either #2 or #3:
 
     ms/ <element>+ % ',' /    # ws after comma and at end
     ms/ <element> +% ',' /    # ws after comma and any element
@@ -1163,6 +1164,13 @@ and
 excludes all significant whitespace like this:
 
     / <element>[','<element>]* /
+
+Note that with a C<*> instead of a C<+>, space #3 would not be
+redundant with #2, since if 0 elements are matched, the space
+associated with it (#2) is not matched.  In that case it makes sense
+to put space on both sides of the C<*>:
+
+    ms/ <element> * % ',' /
 
 =item *
 
