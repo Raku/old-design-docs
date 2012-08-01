@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 28 Jul 2012
-    Version: 157
+    Last Modified: 31 Jul 2012
+    Version: 158
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -386,6 +386,14 @@ and these do not:
     ** % or %%
     :foo declarations, including :my and :sigspace itself
     {...}
+
+When we say sigspace can follow either an atom or a quantified atom, we
+mean that it can come between an atom and its quantifier:
+
+    ms/ <atom> * /      # means / [<atom><.ws>]* /
+
+(If each atom matches whitespace, then it doesn't need to match after the
+quantifier.)
 
 In general you don't need to use C<:sigspace> within grammars because
 the parser rules automatically handle whitespace policy for you.
@@ -1116,27 +1124,45 @@ does not count as "progress" under C<:ratchet> semantics unless the
 next item succeeds.
 
 When significant space is used under C<:sigspace>,
-only the matching atoms pay attention to whether whitespace follows.
+each matching element enables the immediately following whitespace
+to be considered signicant.  Space after the C<%> does nothing.  If you write:
 
-    ms/<element> + % ',' /
+    ms/ <element> +  %  ',' /
+      #1        #2 #3 #4  #5
 
-allows whitespace around the separator like this:
+it ignores whitespace #1 and #4, and rewrites the rest to:
+                   
+    / [ <element> <.ws> ]+ % [ ',' <.ws> ] <.ws> /
+                    #2               #5      #3
 
-    / <element>[<.ws>','<.ws><element>]*<.ws> /
+Since #3 is redundant with #2, it suffices to supply either #2 or #3:
 
-while
+    ms/ <element>+ % ',' /    # ws after comma and at end
+    ms/ <element> +% ',' /    # ws after comma and any element
 
-    ms/<element>+%','/
+So the first
+
+    ms/ <element>+ % ',' /    # ws after comma and at end
+
+is like
+
+    / <element>[','<.ws><element>]*<.ws> /
+
+while the second
+
+    ms/ <element> +% ',' /    # ws after comma and any element
+
+is like
+
+    / <element><.ws>[','<.ws><element><.ws>]* /
+
+and
+
+    ms/ <element>+% ','/
 
 excludes all significant whitespace like this:
 
     / <element>[','<element>]* /
-
-And
-
-    ms/<element>+ % ',' /
-
-allows whitespace after each comma but nowhere else.
 
 =item *
 
