@@ -18,7 +18,7 @@ Authors of previous versions of this document:
     Created: 26 Feb 2009
 
     Last Modified: 17 August 2012
-    Version: 16
+    Version: 17
 
 The document is a draft.
 
@@ -249,20 +249,6 @@ explicit block.
         }
     }
 
-=head3 X::Attribute::Undeclared
-
-Thrown when an undeclared attribute is being referenced.
-TODO: include the actual package, not the package name.
-
-    my class X::Attribute::Undeclared does X::Comp {
-        has $.name;
-        has $.package-kind;
-        has $.package-name;
-        method message() {
-            "Attribute $.name not declared in $.package-kind $.package-name";
-        }
-    }
-
 =head3 X::Redeclaration
 
 Thrown when a symbol is redeclared
@@ -285,6 +271,18 @@ Occurs when a symbol is being referenced that needs to be declared, but isn't.
         has $.symbol;
         method message() {
             "$.what $.symbol is not declared";
+        }
+    }
+
+=head3 X::Attribute::Undeclared
+
+Thrown when an undeclared attribute is being referenced.
+
+    my class X::Attribute::Undeclared is X::Undeclared {
+        has $.package-kind;
+        has $.package-name;
+        method message() {
+            "Attribute $.name not declared in $.package-kind $.package-name";
         }
     }
 
