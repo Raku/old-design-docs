@@ -18,7 +18,7 @@ Authors of previous versions of this document:
     Created: 26 Feb 2009
 
     Last Modified: 17 August 2012
-    Version: 17
+    Version: 18
 
 The document is a draft.
 
@@ -303,8 +303,14 @@ example on mandatory parameters.
 
     my class X::Parameter::Default does X::Comp {
         has $.how;
-        method message() { "Cannot put default on $.how parameter" };
+        has $.parameter;
+        method message() {
+            $.parameter
+                ?? "Cannot put default on $.how parameter $.parameter"
+                !! "Cannot put default on anonymous $.how parameter";
+        }
     }
+
 
 =head3 X::Parameter::Placeholder
 
