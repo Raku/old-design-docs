@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 28 Jul 2012
-    Version: 268
+    Last Modified: 04 Sep 2012
+    Version: 269
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -4665,13 +4665,12 @@ the work-ahead policy for the value generator.
 
 A variant of C<eager> is the C<hyper> list operator, which declares
 not only that you want all the values generated now, but that you want
-them badly enough that you don't care what order they're generated in.
+them badly enough that you don't care what order they're generated in, as
+long as the results come back in the right order.
 That is, C<eager> requires sequential evaluation of the list, while
 C<hyper> requests (but does not require) parallel evaluation.  In any
-case, it declares that you don't care about the evaluation order.
-(Conjecture: populating a hash from a hyper list of pairs could be done
-as the results come in, such that some keys can be seen even before
-the hyper is done.  Thinking about Map-Reduce algorithms here...)
+case, it declares that you don't care about the evaluation order, only
+the result order.
 
 This operator is agnostic towards flattening or slicing.  It merely changes
 the work-ahead policy for the value generator.
@@ -4679,7 +4678,7 @@ the work-ahead policy for the value generator.
 =head2 The C<race> operator
 
 A further variant of C<hyper> is the C<race> list operator, which
-declares that you want the results so badly that you don't care what
+declares that you want the results so badly that you don't even care what
 order they come back in.  Within its arguments, the C<race> operator
 forces parallel evaluation of any iterator, hyper, or junction, such
 that if any single thread dies or hangs its computation, it does not
