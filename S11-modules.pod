@@ -13,8 +13,8 @@ Synopsis 11: Modules
 
     Created: 27 Oct 2004
 
-    Last Modified: 15 Jun 2011
-    Version: 36
+    Last Modified: 04 Sep 2012
+    Version: 37
 
 =head1 Overview
 
@@ -311,6 +311,21 @@ to the package scope instead:
     Sense.EXPORTALL;   # goes to the OUR scope by default, not MY
 
 (Such a routine I<may> rebind existing lexicals, however.)
+
+When you pass a string, C<require> always assumes the string contains a filename.
+To specify both a module name and a filename, use a colonpair modifier:
+
+    require Sense:file("/home/non/Sense.pm") <common @horse>;
+
+At mininum, this will create the C<Sense> package at compile time,
+even if the C<require> never puts anything into it at run time.
+
+It is also possible to specify both module name and filename by
+strings, though in this case the compiler will have no idea what your
+module is actually going to be called.
+
+    my $sense = "Sense";
+    require ::($sense):file("/home/non/Sense.pm") <common @horse>;
 
 =head1 Importing from a pseudo-package
 
