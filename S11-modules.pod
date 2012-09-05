@@ -319,13 +319,18 @@ To specify both a module name and a filename, use a colonpair modifier:
 
 At mininum, this will create the C<Sense> package at compile time,
 even if the C<require> never puts anything into it at run time.
+(Sound practice would keep it consistent with whatever the C<require>
+is going to do later, however.)  By default the package is created
+as an C<our> package unless it has already been declared C<my> earlier.
 
-It is also possible to specify both module name and filename by
-strings, though in this case the compiler will have no idea what your
-module is actually going to be called.
+It is also possible to specify the module name indirectly by string:
 
     my $sense = "Sense";
-    require ::($sense):file("/home/non/Sense.pm") <common @horse>;
+    require ::($sense) <common @horse>;
+
+The parser will have no idea what your module is actually going
+to be called, so it installs no package name known at compile time.
+Other than that, the semantics are identical to the direct form:
 
 =head1 Importing from a pseudo-package
 
