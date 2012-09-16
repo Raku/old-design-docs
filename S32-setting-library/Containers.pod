@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 27 Aug 2012
-    Version: 31
+    Last Modified: 15 Sept 2012
+    Version: 32
 
 The document is a draft.
 
@@ -324,6 +324,39 @@ Note that C<map> is an implicit loop, so C<next> and C<last> without
 an argument will iterate or terminate the C<map> itself, not some
 loop surrounding the statement containing the C<map>.  Use a label
 if you mean the other thing.
+
+=item duckmap
+
+ multi method duckmap ( @values: Code *&expression --> List of Parcel )
+ multi duckmap ( Code $expression, *@values --> List of Parcel )
+
+Like C<map>, C<duckmap> evaluates the expression for each of the
+values that is passed in.  Unlike C<map>, if the evaluation produces
+an undefined value, a failover looks to see if this element actually
+contains subelements, and if so, reapplies the duckmap recursively,
+returning the structured result for that element, so that the
+structure of the original is (largely) retained in the result.
+Unlike C<deepmap>, it does not guarantee the same structure, since
+the mapping expression takes precedence over structure in cases where
+either would succeed.
+
+Because C<duckmap> is defined as a recursive implicit loop, loop
+controls apply only to the current level of the tree.
+
+=item deepmap
+
+ multi method deepmap ( @values: Code *&expression --> List of Parcel )
+ multi deepmap ( Code $expression, *@values --> List of Parcel )
+
+Like C<map> and C<duckmap>, C<deepmap> evaluates the expression for
+each of the values you give it.  Unlike C<map> and C<duckmap>, an
+element is considered a value only if it does not do the C<Iterable>
+role.  If the element is iterable, the algorithm recurses to produce
+an identical structure to its input.  Elements that are not iterable
+are considered leaf values and mapped through the supplied expression.
+
+Because C<deepmap> is defined as a recursive implicit loop, loop
+controls apply only to the current level of the tree.
 
 =item reduce
 

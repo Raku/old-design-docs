@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 11 August 2012
-    Version: 257
+    Last Modified: 15 Sep 2012
+    Version: 258
 
 =head1 Overview
 
@@ -4121,9 +4121,16 @@ require parens.)
 A unary hyper operator (either prefix or postfix) has only one
 hyper marker, located on its argument side, while an infix operator
 always has one on each side to indicate there are two arguments.
-Unary operators always produce a list or array of exactly the same
-shape as their single argument (at least down to the level that the operator
-may be applied).  When infix operators are presented with
+
+Unary hyper operators always produce a hash or array of exactly the
+same I<declared> shape as the single argument.  If the item is not
+declared with a shape, only the top dimension is mapped, equivalent
+to a normal C<.map> method.  (To map deeper dimensions than provided
+for by hypers, use the either C<.duckmap> or C<.deepmap> method,
+depending on whether you want to give the item mapping or the
+substructure first shot at each node.)
+
+When infix operators are presented with
 two lists or arrays of identical shape, a result of that same shape is
 produced.  Otherwise the result depends on how you write the hyper
 markers.
