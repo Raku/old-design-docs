@@ -7,50 +7,290 @@ DRAFT: Synopsis 21: Calling Foreign Code
 
 =head1 AUTHORS
 
-    Tim Nelson <wayland@wayland.id.au>
-    Larry Wall <larry@wall.org>
+    Arne Skjærholt <arnsholt@gmail.com>
+    Jonathan Worthington <jnthn@jnthn.net>
 
 =head1 VERSION
 
     Created: 27 Feb 2009
 
-    Last Modified: 27 Feb 2009
-    Version: 1
+    Last Modified: 23 Nov 2012
+    Version: 2
 
-The document is a draft.
+The document is a draft. The current state of the document is largely derived
+from Zavolaj: NativeCall as implemented for Rakudo at
+L<https://github.com/jnthn/zavolaj/>.
 
 If you read the HTML version, it is generated from the Pod in the specs
 repository under
 L<https://github.com/perl6/specs/blob/master/S21-calling-foreign-code.pod>
 so edit it there in the git repository if you would like to make changes.
 
-=head1 Overview
+=head1 SYNOPSIS
 
-Unfortunately, calling foreign code properly is quite platform dependent.  This means that
-parts of the external calling conventions can't be standardised.  But the parts that can
-be standardised are specified here.
+    use NativeCall;
 
-=head1 Specification
-X<use>
+    sub native_function(int arg) is native('libsomething') { * }
+    sub short_name() is native('libsomething') is symbol('long_and_complicated_name) { * }
 
-The C<use> statement allows an external language to be specified in
-addition to (or instead of) an authority, so that you can use modules
-from other languages.  The C<from> adverb also parses any additional
-parts as short-form arguments.  For instance:
+    native_function(42);
 
-    use Whiteness:from<perl5>:name<Acme::Bleach>:auth<cpan:DCONWAY>:ver<1.12>;
-    use Whiteness:from<perl5 Acme::Bleach cpan:DCONWAY 1.12>;  # same thing
+=head1 DESCRIPTION
 
-    use libc:from<C>;
+Perl 6 has a standard foreign function interface, NativeCall. The only
+libraries NativeCall is able to interface with are those written in C.
+Languages like Fortran and C++ require name mangling, which is
+compiler-specific and thus falls well beyond the scope of this specification.
 
-=head1 Other Considerations
+Hypotheticals:
+=for item
+This is likely not an exhaustive list of showstoppers for C++/Fortran compat;
+also, some platforms may be tricky simply in terms of C interop as well
 
-=head2 Linking to common platforms
+=head2 Calling foreign code
 
-XXX We need a discussion of how to link to some of the common platforms
+A sub is marked as a native routine with the C<is native> trait. A native sub
+must have an attached signature, which is used to specify the native-level
+argument structure of the function. If the return type of the function is
+C<Mu> the native function returns no value, any other return type must be
+compatible with the types specified in the next section.
 
-=head1 Additions
+=head3 The C<is native> trait
 
-Please post errors and feedback to perl6-language.  If you are making
-a general laundry list, please separate messages by topic.
+    sub trait_mod:<is>(Routine $r, :$native!) is export(:DEFAULT, :traits) { ... }
 
+The C<is native> trait is the main gateway used to access C libraries. A
+routine with this trait applied will not be a normal Perl 6 callable, but will
+call into the function with the same name in the specified library.
+
+The library name passed to C<is native> is passed unmodified to
+L<man:dlopen(3)> or the platform's equivalent and the symbol is the looked for
+in the handle returned from the call to C<dlopen>. If the library name is an
+undefined value or the empty string, the symbol will be searched for in the
+currently loaded libraries of the process; that is, behaviour consistent with
+C<dlsym(RTLD_DEFAULT, symbol)> in C.
+
+Hypotheticals:
+=for item
+Perl 6 allows a greater range of characters in identifiers than C. Should we
+look for cases where the identifier isn't legal in C?
+
+=for item
+This is rather UNIX-centric. Other platforms may very well complicate things.
+
+=head3 The C<is symbol> trait
+
+    sub trait_mod:<is>(Routine $r, :$symbol!) is export(:DEFAULT, :traits) { ... }
+
+Since all symbols in a C library share a single namespace with all other
+libraries, it is common practice to prefix externally visible symbols with a
+library prefix so as not to interfere with other libraries. In Perl 6 this may
+be a nuisance, and the C<is symbol> trait lets a user specify a different
+symbol name to search for than the name of the sub.
+
+A native sub also adorned with C<is symbol> will search for the symbol
+specified in the symbol trait, rather than the name of the subroutine itself.
+
+=head3 The C<is nativeconv> trait
+
+    sub trait_mod:<is>(Routine $r, :nativeconv!) is export(:DEFAULT, :traits) { ... }
+
+Native code typically supports several different calling conventions. If a
+convention different than the default one is needed, it is specified with C<is
+nativeconv($convention)>. The conventions supported are platform-specific.
+
+=head3 The C<is encoded> trait
+
+    sub trait_mod:<is>(Routine $r,   :encoded!) is export(:DEFAULT, :traits) { ... }
+    sub trait_mod:<is>(Parameter $p, :encoded!) is export(:DEFAULT, :traits) { ... }
+
+Input arguments and return values that are strings may be returned in any of a
+multitude of encodings. If the value is encoded differently from UTF-8, it
+must be stated explicitly.
+
+=head3 Global variables
+
+Caveat emptor: This whole section is conjectural (and none of it is
+implemented in Zavolaj).
+
+Just like functions exported by a library, global variables are accessed with
+the C<is native> trait; after all, all exported symbols are the same from the
+point of view of the linker: a pointer to something. The C<is symbol> and
+C<is encoding> (for strings) traits also apply to variables.
+
+=head2 Marshalling and demarshalling of Perl 6 data
+
+The raw internal representation of most Perl 6 objects can't be expected to
+work sensibly with native code. To specify how to marshal and demarshal
+complex Perl 6 objects, representation polymorphism is most frequently used,
+but some classes are provided for frequent use cases.
+
+For pointer types, the type object associated with the Perl 6 class represents
+the null pointer.
+
+=head3 Numeric types
+
+Numeric types, both native types and not, have obvious marshalling semantics
+(as long as they are not arbitrary-precision types). A NativeCall
+implementation should suport the following types:
+
+=item C<int8>, C<uint8> signed and unsigned byte
+=item C<int16>, C<uint16> signed and unsigned two-byte integer
+=item C<int32>, C<uint32> signed and unsigned four-byte integer
+=item C<int64>, C<uint64> signed and unsigned eight-byte integer
+=item C<int>, C<uint> signed and unsigned machine word
+=item C<Int> largest available integer type
+
+=item C<num32> four-byte floating point number
+=item C<num>, C<num64> eight-byte floating point number
+
+Hypotheticals:
+=for item
+This is a wider range of native types than what S02 mandates. We'll either
+want to expand that list of natives, or find some other way of specifying
+sizes.
+
+=for item
+There is no obvious mirror of C<Int> for largest available I<unsigned> type.
+
+=for item
+Should C<Num> be a synonym for C<num>/C<num64>?
+
+=for item
+If the Int or Num type object is passed, should it be silently converted to a
+zero value, or cause an exception?
+
+=for item
+How should overflows be handled?
+
+=head3 Strings
+
+    multi explicitly-manage(Str $x is rw, :$encoding = 'utf8') is export(:DEFAULT, :utils) { ... }
+
+By default, a string passed to a native sub wil be marshalled to a C<char *>
+appropriately encoded as specified with the C<is encoded> trait. The memory
+allocated to the C string is freed when the function returns. If a C<Str>
+object should have a persistent C<char *> associated with it, this can be
+signalled by caling C<explicitly-manage($str, $encoding)>. The buffer
+allocated will never be freed.
+
+A string-valued native sub's return value will be unmarshalled according to
+the C<is encoded> trait, and the C pointer is not freed as deciding whether
+the caller or callee owns the data can't be decided automatically, and freeing
+by default risks causing later code to access freed memory.
+
+Hypotheticals:
+=for item
+We need better facilities for signalling when it's appropriate to free data.
+The current facilities have the benefit that it won't cause memory-related
+errors later on, but on the flip side, it will leak memory over time.
+
+=head3 The C<OpaquePointer> class
+
+    class OpaquePointer is repr('CPointer') { }
+
+The C<OpaquePointer> type is the simplest possible way to interface with C
+pointers, and can be seen as similar to the C<void *> type in C. An
+C<OpaquePointer> offers no way to inspect the pointer or manipulate it; it can
+only be passed around in the program and back to C.
+
+=head3 The C<CPointer> REPR
+
+    typedef struct _magic magic;
+    magic *magic_new(void);
+    void   magic_perform(magic *m);
+
+    class Magic is repr('CPointer') {
+        my Magic sub magic_new()       is native('libmagic') { * }
+        my sub magic_perform(Magic $m) is native('libmagic') { * }
+
+        method new() { magic_new(); }
+        method perform() { magic_perform(self); }
+    }
+
+The C<CPointer> REPR enables types that are similar to C<OpaquePointer> in
+that they cannot be introspected or mutated, but different in that they can
+have methods. This makes it easy to interface with "object-oriented" C code
+that returns an opaque pointer handle that encapsulate the resources used by
+the library and lets us implement this naturally using Perl 6 OO.
+
+A C<CPointer> object can not have attributes.
+
+=head3 The C<CArray> class
+
+    class CArray[::Type] does Positional[Type] is export(:DEFAULT, :types) { ... }
+
+General Perl 6 arrays support features such as laziness, which means that they
+can not easily be marshalled into a C representation. Thus, NativeCall
+provides the CArray type which supports a set of array features compatible
+with marshalling to and from C. The C<Type> parameter is, of course, mandatory
+as the exact layout of the array in memory depends on the type of the elements.
+
+A C<Carray> that has been marshalled from a value returned from C cannot,
+given how arrays work in C, know the bounds of the array. Thus, it is the
+I<user's> responsibility to ensure that all accesses are within the bounds of
+the array. NativeCall will make no attempt to figure this out, and requests
+for array elements outside of the array is likely to result in death by
+segmentation fault.
+
+If the C<CArray> has been created in Perl 6, the bounds of the array are
+known, and operations can be bounds-checked and the array grown appropriately.
+Note, however, that growing an array may result in its C representation being
+moved to a different memory location. Thus, if a piece of C code has stored
+the location of an array and it is later on moved due to operations on the
+Perl side, strange bugs and segfaults are likely to ensue.
+
+=head3 The C<CStruct> REPR
+
+    class StructObject is repr('CStruct') { ... }
+
+Structs are an important part of most non-trivial C APIs; using the C<CStruct>
+REPR, arbitrary structs can be accessed just like ordinary Perl 6 classes. 
+
+=head3 Callable objects
+
+Callback arguments are, in essence, no different from normal data. They are
+declared as callables (typically with the C<&> sigil) and also have an
+attached signature. The signature is important as the callback handling code
+needs this information to get the function's arguments off the stack.
+
+Callbacks returned from C are specified identically, but as return values
+rather than parameters (note: callbacks returned from C NYI in Zavolaj).
+
+=head3 Complex data value types
+
+Caveat emptor: This section, like the one on global variables, is all
+conjecture. Nothing is implemented in Zavolaj.
+
+In Perl 6 the distinction between value type and reference is intrinsic to the
+type. In C, on the other hand, any type can be used both as a value and
+reference type, depending on how it's used. Thus, NativeCall needs some
+mechanism to duplicate this. One possible source of inspiration for this is
+C#. C# distinguishes between value and reference types similarly to Perl 6 and
+also has a well-supported foreign function interface.
+
+=head3 Varargs
+To be determined. This section is hypothetical.
+
+One option is an API similar to the C99 C<stdarg.h> macros and explicitly get
+arguments off an opaque object. For example C<my $arg = va_arg($args, Type)>.
+
+=head2 Miscellaneous helper functions
+=head3 Refreshing outdated objects
+
+    multi refresh($obj) is export(:DEFAULT, :utils) { { ... }
+
+To avoid unmarshalling data from the C representation whenever data is
+accessed, an efficient implementation is going to want to cache unmarshalled
+data. Whenever a complex object is passed to a native subroutine, the
+implementation should make sure the cache data isn't out of date. However, if
+the C code saves a pointer passed to it and a later invocation mutates the
+data pointed to, NativeCall can't magically detect this. In cases like this,
+the user will have to use C<refresh> to invalidate any outdated objects in the
+cache.
+
+Hypotheticals:
+=for item
+Sometimes it will be necessary to reinterpret a pointer-valued object as a
+different kind of pointer. One way to provide this would be a function a la:
+C<my $val = reinterpret($ptr, Type)>.
