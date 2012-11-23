@@ -31,7 +31,7 @@ so edit it there in the git repository if you would like to make changes.
     use NativeCall;
 
     sub native_function(int arg) is native('libsomething') { * }
-    sub short_name() is native('libsomething') is symbol('long_and_complicated_name) { * }
+    sub short_name() is native('libsomething') is symbol('long_and_complicated_name') { * }
 
     native_function(42);
 
@@ -43,9 +43,14 @@ Languages like Fortran and C++ require name mangling, which is
 compiler-specific and thus falls well beyond the scope of this specification.
 
 Hypotheticals:
-=for item
+
+=over
+
+=item
 This is likely not an exhaustive list of showstoppers for C++/Fortran compat;
 also, some platforms may be tricky simply in terms of C interop as well
+
+=back
 
 =head2 Calling foreign code
 
@@ -134,34 +139,49 @@ Numeric types, both native types and not, have obvious marshalling semantics
 (as long as they are not arbitrary-precision types). A NativeCall
 implementation should suport the following types:
 
+=over
+
 =item C<int8>, C<uint8> signed and unsigned byte
+
 =item C<int16>, C<uint16> signed and unsigned two-byte integer
+
 =item C<int32>, C<uint32> signed and unsigned four-byte integer
+
 =item C<int64>, C<uint64> signed and unsigned eight-byte integer
+
 =item C<int>, C<uint> signed and unsigned machine word
+
 =item C<Int> largest available integer type
 
 =item C<num32> four-byte floating point number
+
 =item C<num>, C<num64> eight-byte floating point number
 
+=back
+
 Hypotheticals:
-=for item
+
+=over
+
+=item
 This is a wider range of native types than what S02 mandates. We'll either
 want to expand that list of natives, or find some other way of specifying
 sizes.
 
-=for item
+=item
 There is no obvious mirror of C<Int> for largest available I<unsigned> type.
 
-=for item
+=item
 Should C<Num> be a synonym for C<num>/C<num64>?
 
-=for item
+=item
 If the Int or Num type object is passed, should it be silently converted to a
 zero value, or cause an exception?
 
-=for item
+=item
 How should overflows be handled?
+
+=back
 
 =head3 Strings
 
@@ -180,10 +200,15 @@ the caller or callee owns the data can't be decided automatically, and freeing
 by default risks causing later code to access freed memory.
 
 Hypotheticals:
-=for item
+
+=over
+
+=item
 We need better facilities for signalling when it's appropriate to free data.
 The current facilities have the benefit that it won't cause memory-related
 errors later on, but on the flip side, it will leak memory over time.
+
+=back
 
 =head3 The C<OpaquePointer> class
 
@@ -276,6 +301,7 @@ One option is an API similar to the C99 C<stdarg.h> macros and explicitly get
 arguments off an opaque object. For example C<my $arg = va_arg($args, Type)>.
 
 =head2 Miscellaneous helper functions
+
 =head3 Refreshing outdated objects
 
     multi refresh($obj) is export(:DEFAULT, :utils) { { ... }
@@ -290,7 +316,12 @@ the user will have to use C<refresh> to invalidate any outdated objects in the
 cache.
 
 Hypotheticals:
-=for item
+
+=over
+
+=item
 Sometimes it will be necessary to reinterpret a pointer-valued object as a
 different kind of pointer. One way to provide this would be a function a la:
 C<my $val = reinterpret($ptr, Type)>.
+
+=back
