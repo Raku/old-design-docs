@@ -601,6 +601,10 @@ At most one such warning is issued per C<.indent> call.
 If C<$steps> is C<*>, removes just enough indentation to make some line have
 zero indentation.
 
+Empty lines don't participate in re-indenting at all. That is, a line with
+0 characters will still have 0 characters after the call. It also will not
+cause a warning to be issued.
+
 The method will assume hard tabs to be equivalent
 to C<< ($?TABSTOP // 8) >> spaces, and will treat any other horizontal
 whitespace character as equivalent to one C<chr(32)> space. If the indenting doesn't
@@ -610,7 +614,7 @@ number of spaces before the unindenting of that line.
 Decisions on how to indent each line are based solely on characters on
 that line. Thus, an C<.indent> call on a multiline string therefore amounts
 to C< .lines».indent.join("\n") >, modulo exotic line endings in the
-original string.
+original string, and the proviso about empty lines.
 
 =back
 
