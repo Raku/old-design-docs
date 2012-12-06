@@ -1,4 +1,3 @@
-
 =encoding utf8
 
 =head1 TITLE
@@ -13,8 +12,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 28 Jul 2012
-    Version: 118
+    Last Modified: 6 Dec 2012
+    Version: 119
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -617,7 +616,7 @@ of an expression.  If you want to continue the expression after the
 statement, or if you want to attach multiple statements, you must either
 use the curly form or surround the entire expression in brackets of some sort:
 
-    @primesquares = (do $_ if prime($_) for 1..100) »**» 2;
+    @primesquares = (do $_ if .is-prime for 1..100) »**» 2;
 
 Since a bare expression may be used as a statement, you may use C<do>
 on an expression, but its only effect is to function as an unmatched
@@ -628,11 +627,11 @@ bracket.  A C<do> is unnecessary immediately after any opening bracket as
 the syntax inside brackets is a semicolon-separated list of statements,
 so the above can in fact be written:
 
-    @primesquares = ($_ if prime($_) for 1..100) »**» 2;
+    @primesquares = ($_ if .is-prime for 1..100) »**» 2;
 
 This basically gives us list comprehensions as rvalue expressions:
 
-    (for 1..100 { $_ if prime($_)}).say
+    (for 1..100 { $_ if .is-prime }).say
 
 Another consequence of this is that any block just inside a
 left parenthesis is immediately called like a bare block, so a
