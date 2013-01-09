@@ -765,22 +765,22 @@ C<take> is operating.  These need not be identical contexts, since they
 may bind or coerce the resulting parcels differently:
 
     my @y;
-    @x = gather for 1..2 {          # flat context for list of parcels
-        my ($y) := take $_, $_ * 10;  # item context promotes parcel to seq
+    my @x = gather for 1..2 {            # flat context for list of parcels
+        my ($y) := \(take $_, $_ * 10);  # binding forces item context
         push @y, $y;
     }
-    # @x contains 4 Ints:  1,10,2,20 flattened by list assignment to @x
-    # @y contains 2 Seqs: Seq(1,10),Seq(2,20) sliced by binding to positional $y
+    # @x contains 4 Ints:    1,10,2,20 flattened by list assignment to @x
+    # @y contains 2 Parcels: $(1,10),$(2,20) sliced by binding to positional $y
 
 Likewise, we can just remember the gather's result parcel by binding and
 later coercing it:
 
-    my |$c := gather for 1..2 {
+    my ($c) := \(gather for 1..2 {
         take $_, $_ * 10;
-    }
+    });
     # $c.flat produces 1,10,2,20 -- flatten fully into a list of Ints.
-    # $c.lol produces Seq(1,10),Seq(2,20) -- list of Seqs, a 2-D list.
-    # $c.item produces Seq((1,10),(2,20)) -- coerced to Seq of unresolved Parcels
+    # $c.lol produces Lol.new($(1,10),$(2,20)) -- list of Parcels, a 2-D list.
+    # $c.item produces ($(1,10),$(2,20)).list.item -- a list of Parcels, as an item.
 
 Note that the C<take> itself is in sink context in this example because
 the C<for> loop is in the sink context provided inside the gather.
