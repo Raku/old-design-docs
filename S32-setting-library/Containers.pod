@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 24 Dec 2012
-    Version: 33
+    Last Modified: 10 Jan 2013
+    Version: 34
 
 The document is a draft.
 
@@ -431,12 +431,31 @@ C<is canonicalized(&lc)>.)
 
 =item uniq
 
- multi method uniq(List:D:) returns Positional:D
+ multi method uniq(List:D: --> Positional:D )
 
- multi sub uniq(*@values) returns Positional:D
+ multi sub uniq(*@values --> Positional:D )
 
-Returns a list of unique values from the invocant/argument list. C<uniq>
-uses C<< &infix:<===> >> to compare whether two objects are the same.
+Returns a list of unique values from the invocant/argument
+list. C<uniq> uses C<< &infix:<===> >> semantics to compare whether
+two objects are the same.  The function does not use C<===> directly,
+however; it is actually implemented via an object-keyed hash (such as
+an object set), so that any instance of a given identity suppresses all
+subsequent instances of that identity, even if they are not contiguous
+in the list.  (Use C<squish> instead if you know the input is sorted
+such that identical objects are adjacent.)
+
+=item squish
+
+ multi method squish(List:D: --> Positional:D )
+
+ multi sub squish(*@values --> Positional:D )
+
+Returns a list of values from the invocant/argument list where runs
+of more than one object of the same identity are squished down to
+a single instance. Like C<uniq>, C<squish> uses C<< &infix:<===> >>
+semantics to compare whether two objects are the same.  Unlike,
+C<uniq>, this function does not need to keep a hash of all previous
+identities; it simply tracks the previous one, and uses C<===> directly.
 
 =item min
 
