@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 28 Jul 2012
-    Version: 155
+    Last Modified: 9 Jan 2013
+    Version: 156
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -633,9 +633,75 @@ always lexically scoped.  Operators other than the standard ones should
 not be installed into the C<*> namespace.  Always use exportation to make
 non-standard syntax available to other scopes.
 
-=head1 Parameters and arguments
+=head1 Calling conventions
 
-Perl 6 subroutines may be declared with parameter lists.
+In Perl 6 culture, we distinguish the terms I<parameter> and
+I<argument>; a parameter is the formal name that will attach to an
+incoming argument during the course of execution, while an argument
+is the actual value that will be bound to the formal parameter.
+The process of attaching these values (arguments) to their temporary
+names (parameters) is known as I<binding>.  (Some C.S. literature
+uses the terms "formal argument" and "actual argument" for these
+two conepts, but here we try to avoid using the term "argument"
+for formal parameters.)
+
+Various Perl 6 code objects (either routines or blocks) may be
+declared with parameter lists, either explicitly by use of an signature
+declaration, or implicitly by use of placeholder variables within the body
+of code.  (Use of both for the same code block is not allowed.)
+
+=head1 Signatures
+
+A signature consists of a list of zero or more parameter declarations,
+separated by commas.  (These are described below.)  Signatures are
+usually found inside parentheses (within routine declarations), or
+after an arrow C<< -> >> (within block declarations), but other forms
+are possible for specialized cases.  A signature may also indicate what
+the code returns, either generally or specifically.  This is indicated
+by placing the return specification after a C<< --> >> token.  If the
+return specification names a type (that is, an indefinite object),
+then a successful call to the code must always return a value of
+that type.  If the return specification returns a definite object,
+then that value is always returned from a successful call.  (For this
+purpose the C<Nil> value is treated as definite.)  An unsuccessful call
+may always call C<fail> to return a C<Failure> object regardless of
+the return specification.
+
+Ordinarily, if the return is specified as a type (or is unspecified),
+the final statement of the block will be evaluated for its the return
+value, and this will be the return value of the code block as a whole.
+(It must conform to the return type specification, if provided.)
+An explicit C<return> may be used instead to evaluate the C<return>'s
+arguments as the code block's return value, and leave the code block
+immediately, short-circuiting the rest of the block's execution.
+
+If the return specification is a definite immutable value (or Nil) rather than
+a type, then all top-level statements in the code block are evaluated
+only for their side effects; in other words, all of the statements are
+evaluated in sink context, including the final statement.  An explicit
+C<return> statement is allowed, but only in argumentless form, to
+indicate that execution is to be short-circuited and the I<declared>
+return value is to be returned.  No other value may be returned in
+its place.
+
+If the return specification is definite but not an immutable value,
+then it must be a mutable container (variable) of some sort.
+The container variable is declared as any other parameter would be, but
+no incoming argument will ever be bound to it.  It is permitted
+to supply a default value, in which case the return variable will
+always be initialized with that default value.  As with value return,
+all top-level statements are evaluated in sink context, and only
+argumentless C<return> is allowed, indicating that the current contents
+of the return value should be returned.
+
+Note that the default return policy assumes functional semantics, with
+the result that a loop as the final statement would be evaluated as
+a map, which may surprise some people.  An implementation is allowed
+to warn when it finds such a loop; this warning may be suppressed by
+supplying a return specification, which will also determine whether
+the final loop statement is evaluated in sink context.
+
+=head1 Parameters and arguments
 
 By default, all parameters are readonly aliases to their corresponding
 arguments--the parameter is just another name for the original
