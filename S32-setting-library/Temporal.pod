@@ -17,8 +17,8 @@ Synopsis 32: Setting Library - Temporal
 
     Created: 19 Mar 2009
 
-    Last Modified: 29 Nov 2010
-    Version: 21
+    Last Modified: 24 Jan 2013
+    Version: 22
 
 =head1 Time and time again
 
@@ -148,17 +148,34 @@ unambiguous C<DateTime>, the object returned by C<$dt.in-timezone(...)> is
 required to remember its actual offset from UTC, so that, for example,
 the default formatter can generate the right string.
 
-The C<truncated-to> method allows you to "clear" a number of time values
+The C<truncated-to> constructor allows you to "clear" a number of time values
 below a given resolution:
 
     my $dt = DateTime.new('2005-02-01T15:20:35Z');
-    say $dt.truncated-to(:hour); # 2005-02-01T15:00:00Z
+    say $dt.truncated-to(hour); # 2005-02-01T15:00:00Z
 
-An argument of C<:week> yields an object with the date of the last Monday
+Arguments to C<truncated-to> belong to the enum C<TimeUnit>, which encompasses
+these values:
+
+    second  seconds
+    minute  minutes
+    hour    hours
+    day     days
+    week    weeks
+    month   months
+    year    years
+
+An argument of C<week> to C<truncated-to> yields an object with the date of the last Monday
 (or the same date, if it already is a Monday) and with hours, minutes, and
 seconds all set to zero:
 
-    say $dt.truncated-to(:week); # 2005-01-31T00:00:00Z
+    say $dt.truncated-to(week); # 2005-01-31T00:00:00Z
+
+The C<delta> constructor allows you to move a number of C<TimeUnit>s forward or
+backward in time.
+
+    $dt.delta(44, minutes);
+    $dt.delta(-1, week);
 
 There's one additional constructor: C<now>. It works just like
 C<DateTime.new(now)> except that there is no positional parameter and the
@@ -227,7 +244,8 @@ Days, Months and days of week are 1-based.
     Date.new(:year(2010), :month(12), :day(20));
     Date.new(2010, 12, 20);
     Date.new(2010, 1, 20).clone(month => 12);
-    Date.new(2010, 12, 24).truncated-to(:week);
+    Date.new(2010, 12, 24).truncated-to(week);
+    Date.new(2010, 12, 24).delta(10, weeks);
 
 The constructors die with a helpful error message if month or day are out of
 range.
