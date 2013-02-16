@@ -586,7 +586,8 @@ array values.  (Note: When used on actual sets and other iterable
 structures, specialized versions of this method are allowed to bypass
 turning it into a list first.  Also, the return values are allowed
 to be specialized to any non-flattening container, so that subsets
-of sets can actually be a set of sets.)
+of sets can actually be a set of sets.  If the ordering of the input
+doesn't matter, neither does the ordering of the subsets.)
 
 It is erroneous to ask for the combinations of any infinite list.
 The compiler is allowed to complain if it notices, however.
@@ -1112,6 +1113,24 @@ Works like an ordinary list C<pick>.
  multi method roll ( $set: Whatever --> Any )
 
 Works like an ordinary list C<roll>.
+
+=item combinations
+
+ multi method combinations ( Int $of )
+ multi method combinations ( Range $of = 1 .. +self )
+
+Works as if the set were turned into a list of elements and then
+the combinations were turned back into a list of sets, ordered by
+increasing size.  You may, of course, turn that list back into a set of sets.
+
+Note that, without an argument, this method does not quite calculate
+the powerset; you must add in the null set to get that, as below.
+
+=item powerset
+
+ multi method powerset { set ∅, self.combinations }
+
+Defined as above.
 
 =back
 
