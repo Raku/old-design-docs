@@ -19,8 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 9 Feb 2013
-    Version: 35
+    Last Modified: 16 Feb 2013
+    Version: 36
 
 The document is a draft.
 
@@ -130,7 +130,7 @@ Constructs an C<List> that can visit all iterable elements of all the arguments.
 
  sub list(*@args --> List )
 
-Constructs an C<List> that can visit all iterable elements of all the arguments.
+Constructs a C<List> that can visit all iterable elements of all the arguments.
 
 =item cat
 
@@ -573,6 +573,23 @@ the values in the list matches.
 
 Treats the list as a string (by simply C<join>ing them together), and calls
 C<.comb> on that string with the same parameters. See C<Str::comb>.
+
+=item combinations
+
+ multi method combinations ( Int $of )
+ multi method combinations ( Range $of = 1 .. +self )
+
+Returns all combinations of the list taken N at a time.  If the
+range option is taken, returns all subset combinations in order of
+increasing size.  The return value is a list of (presumably immutable)
+array values.  (Note: When used on actual sets and other iterable
+structures, specialized versions of this method are allowed to bypass
+turning it into a list first.  Also, the return values are allowed
+to be specialized to any non-flattening container, so that subsets
+of sets can actually be a set of sets.)
+
+It is erroneous to ask for the combinations of any infinite list.
+The compiler is allowed to complain if it notices, however.
 
 =back
 
