@@ -577,17 +577,19 @@ C<.comb> on that string with the same parameters. See C<Str::comb>.
 =item combinations
 
  multi method combinations ( Int $of )
- multi method combinations ( Range $of = 1 .. +self )
+ multi method combinations ( Range $of = 1 .. * )
 
-Returns all combinations of the list taken N at a time (specified by the C<$of> parameter).  If the
-range option is taken, returns all subset combinations in order of
-increasing size.  The return value is a list of (presumably immutable)
-array values.  (Note: When used on actual sets and other iterable
-structures, specialized versions of this method are allowed to bypass
-turning it into a list first.  Also, the return values are allowed
-to be specialized to any non-flattening container, so that subsets
-of sets can actually be a set of sets.  If the ordering of the input
-doesn't matter, neither does the ordering of the subsets.)
+Returns all combinations of the list taken N at a time (specified
+by the C<$of> parameter).  If the range option is taken, returns all
+subset combinations in order of increasing size, up to the specified
+max, or the size of the list, whichever is smaller.  The return value
+is a list of (presumably immutable) array values.  (Note: When used
+on actual sets and other iterable structures, specialized versions of
+this method are allowed to bypass turning it into a list first.  Also,
+the return values are allowed to be specialized to any non-flattening
+container, so that subsets of sets can actually be a set of sets.
+If the ordering of the input doesn't matter, neither does the ordering
+of the subsets.)
 
 It is erroneous to ask for the combinations of any infinite list.
 The compiler is allowed to complain if it notices, however.
@@ -1117,20 +1119,14 @@ Works like an ordinary list C<roll>.
 =item combinations
 
  multi method combinations ( Int $of )
- multi method combinations ( Range $of = 1 .. +self )
+ multi method combinations ( Range $of = 1 .. * )
 
 Works as if the set were turned into a list of elements and then
 the combinations were turned back into a list of sets, ordered by
 increasing size.  You may, of course, turn that list back into a set of sets.
 
 Note that, without an argument, this method does not quite calculate
-the powerset; you must add in the null set to get that, as below.
-
-=item powerset
-
- multi method powerset { set ∅, self.combinations }
-
-Defined as above.
+the powerset; you must explictly call with a range of 0..* for that.
 
 =back
 
