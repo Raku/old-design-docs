@@ -577,7 +577,7 @@ C<.comb> on that string with the same parameters. See C<Str::comb>.
 =item combinations
 
  multi method combinations ( Int $of )
- multi method combinations ( Range $of = 1 .. * )
+ multi method combinations ( Range $of = 0 .. * )
 
 Returns all combinations of the list taken N at a time (specified
 by the C<$of> parameter).  If the range option is taken, returns all
@@ -590,6 +590,10 @@ the return values are allowed to be specialized to any non-flattening
 container, so that subsets of sets can actually be a set of sets.
 If the ordering of the input doesn't matter, neither does the ordering
 of the subsets.)
+
+Note that, without an argument, the first returned combination will
+always be the empty list, and the last combination will always
+be the entire list.
 
 It is erroneous to ask for the combinations of any infinite list.
 The compiler is allowed to complain if it notices, however.
@@ -1119,14 +1123,13 @@ Works like an ordinary list C<roll>.
 =item combinations
 
  multi method combinations ( Int $of )
- multi method combinations ( Range $of = 1 .. * )
+ multi method combinations ( Range $of = 0 .. * )
 
 Works as if the set were turned into a list of elements and then
 the combinations were turned back into a list of sets, ordered by
 increasing size.  You may, of course, turn that list back into a set of sets.
 
-Note that, without an argument, this method does not quite calculate
-the powerset; you must explictly call with a range of 0..* for that.
+Note that, without an argument, this method basically calculates the powerset.
 
 =back
 
