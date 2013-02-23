@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 11 Jan 2013
-    Version: 259
+    Last Modified: 23 Feb 2013
+    Version: 260
 
 =head1 Overview
 
@@ -2512,7 +2512,7 @@ C<< infix:<or> >>, short-circuit inclusive or
 
 Returns the first argument that evaluates to true, otherwise returns
 the result of the last argument.  In list context forces a false return
-to mean C<()>, or C<Nil>.  See C<||> above for high-precedence version.
+to mean C<()>.  See C<||> above for high-precedence version.
 
 =item *
 
@@ -3412,7 +3412,7 @@ endpoint in the Range.
 If used in a list context, a C<Range> object returns an iterator that
 produces a sequence of values starting at the min and ending at the max.
 Either endpoint may be excluded using C<^>.  Hence C<1..2> produces
-C<(1,2)> but C<1^..^2> is equivalent to C<2..1> and produces no values (Nil).
+C<(1,2)> but C<1^..^2> is equivalent to C<2..1> and produces no values, like C<()> does.
 To specify a sequence that counts down, use a reverse:
 
     reverse 1..2
@@ -3469,7 +3469,7 @@ inferred from the right operand.  (A star on both sides is not allowed.)
     v1.2.3 .. * # Any version higher than 1.2.3.
     May .. *    # May through December
 
-An empty range cannot be iterated; it returns a C<Nil> instead.  An empty
+An empty range cannot be iterated; it returns C<()> instead.  An empty
 range still has a defined C<.min> and C<.max>, but one of the following is
 true:  1. The C<.min> is greater than the C<.max>.  2. The C<.min> is equal
 to the C<.max> I<and> at least one of C<.excludes_min> or C<.excludes_max> is true.
@@ -3590,18 +3590,20 @@ as a default because the more specific types listed above it didn't match.
 
     $_        X         Type of Match Implied   Match if (given $_)
     ======    =====     =====================   ===================
-    Any       True      ~~ True                 (parsewarn)
-    Any       False     ~~ False match          (parsewarn)
+    Any       True      ~~ True                 (parsewarn on literal token)
+    Any       False     ~~ False match          (parsewarn on literal token)
+    Any       Match     ~~ Successful match     (parsewarn on literal token)
+    Any       Nil       ~~ Benign failure       (parsewarn on literal token)
     Any       *         block signature match   block successfully binds to |$_
 
     Any       Callable:($)  item sub truth          X($_)
     Any       Callable:()   simple closure truth    X() (ignoring $_)
-    Any       Bool      simple truth            X
-    Any       Match     match success           X
+    Any       Bool      simple truth            X (treats Bool value as success/failure)
+    Any       Match     match success           X (treats Match value as success)
+    Any       Nil       benign failure          X (treats Nil value as failure)
     Any       Numeric   numeric equality        +$_ == X
     Any       Stringy   string equality         ~$_ eq X
     Any       Whatever  always matches          True
-    Any       Nil       is nil                  $_ === Nil
 
     Hash      Pair      test hash mapping       $_{X.key} ~~ X.value
     Any       Pair      test object attribute   ?."{X.key}" === ?X.value (e.g. filetests)
@@ -3826,10 +3828,13 @@ C<*> to match anything, if that's what you really want.  Or use a closure
 that returns a constant boolean value.)
 
 Note also that regex matching does I<not> return a C<Bool>, but merely
-a C<Match> object that can be used as a boolean value.  Use an explicit
-C<?> or C<so> to force a C<Bool> value if desired.
+a C<Match> object (or a C<Nil>) that can be used as a boolean value.  Use an explicit
+C<?> or C<so> to force a C<Bool> value if desired.  A C<Match> object
+represents a successful match and is treated by smartmatching the same as a C<True>,
+Similarly, a C<Nil> represents a failure, and cannot be used directly on the
+right side of a smartmatch.  Test for definedness instead, or use C<* === Nil>.
 
-The primary use of the C<~~> operator is to return a boolean value in
+The primary use of the C<~~> operator is to return a boolean-ish value in
 a boolean context.  However, for certain operands such as regular
 expressions, use of the operator within item or list context transfers
 the context to that operand, so that, for instance, a regular expression

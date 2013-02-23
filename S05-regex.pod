@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 5 Oct 2012
-    Version: 159
+    Last Modified: 23 Feb 2013
+    Version: 160
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -2268,7 +2268,7 @@ object in others).
 
 =item *
 
-Specifically, a C</.../> matches immediately in a value context (void,
+Specifically, a C</.../> matches immediately in a value context (sink,
 Boolean, string, or numeric), or when it is an explicit argument of
 a C<~~>.  Otherwise it's a C<Regex> constructor identical to the explicit
 C<regex> form.  So this:
@@ -2818,14 +2818,17 @@ the regex containing the C<||>.
 
 =item *
 
-A match always returns a C<Match> object, which is also available
-as C<$/>, which is a dynamic lexical declared in the outer
+A successful match always returns a C<Match> object, which is generally also
+put into C<$/>, a dynamic lexical declared in the outer
 routine that is calling the regex.  (A named C<regex>, C<token>,
 or C<rule> is a routine, and hence declares its own
 lexical C<$/> variable, which always refers to the most recent
 submatch within the rule, if any.)  The current match state is
 kept in the regex's C<$¢> variable which will eventually get
 bound to the user's C<$/> variable when the match completes.
+
+An unsuccessful match returns C<Nil> (and sets C<$/> to C<Nil> if
+the match would have set it).
 
 =item *
 
@@ -3039,11 +3042,14 @@ in the parse tree.]
 
 =item *
 
-All match attempts--successful or not--against any regex, subrule, or
-subpattern (see below) return an object of class C<Match>. That is:
+All match attempts--successful or not--against any regex, subrule,
+or subpattern (see below) return an object that can be evaluated
+as a boolean.  (This object will be either a C<Match> or a C<Nil>.)
+That is:
 
      $match_obj = $str ~~ /pattern/;
      say "Matched" if $match_obj;
+
 
 =item *
 
