@@ -12,8 +12,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 6 Dec 2012
-    Version: 119
+    Last Modified: 23 Feb 2013
+    Version: 120
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -209,8 +209,8 @@ the value of the last expression evaluated, even if that expression
 was just a conditional.  Unlike in Perl 5, if a final statement in
 Perl 6 is a conditional that does not execute any of its branches, it
 doesn't matter what the value of the conditional is, the value of that
-conditional statement is always C<Nil>.  If there are no statements
-in the block at all, the result is also C<Nil>.
+conditional statement is always C<()>.  If there are no statements
+in the block at all, the result is also C<()>.
 
 =head1 Statement-ending blocks
 
@@ -273,7 +273,7 @@ Perl 5.  However, you may omit the parentheses on the conditional:
 
 The result of a conditional statement is the result of the block
 chosen to execute.  If the conditional does not execute any
-branch, the return value is C<Nil>.
+branch, the return value is C<()>.
 
 The C<unless> statement does not allow an C<elsif> or C<else> in Perl 6.
 
@@ -324,7 +324,7 @@ so you can say:
 
 and that is equivalent to:
 
-    @x = 41, ($answer ?? 42 !! Nil), 43
+    @x = 41, ($answer ?? 42 !! ()), 43
 
 =head1 Loop statements
 
@@ -339,7 +339,7 @@ Perl 5.  However, the labeled forms can use method call syntax:
 C<LABEL.next>, etc.  The C<.next> and C<.last> methods take an
 optional argument giving the final value of that loop iteration.
 So the old C<next LINE> syntax is still allowed but really does
-something like C<LINE.next(Nil)> underneath.  Any block object can
+something like C<LINE.next(())> underneath.  Any block object can
 be used, not just labels, so to return a value from this iteration
 of the current block you can say:
 
@@ -366,9 +366,9 @@ it's either an ordinary object or a parcel containing multiple values.
 Normal flat list context ignores parcel boundaries and flattens the list.
 Slice context turns any parcel objects into C<Seq> objects.
 
-Iterations that return C<Nil> (such as by calling C<next> with no extra return
-arguments) return that C<Nil> as the next value, which will therefore disappear
-when interpolated in flat context, but will interpolate an empty C<Seq> into slice
+Iterations that return C<()> (such as by calling C<next> with no extra return
+arguments) return that C<()> as the next value, which will therefore disappear
+when interpolated in flat context, but will interpolate an empty C<Parcel> into slice
 context.
 
 For finer-grained control of which iterations return values, use

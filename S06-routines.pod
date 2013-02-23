@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 9 Jan 2013
-    Version: 156
+    Last Modified: 23 Feb 2013
+    Version: 157
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -675,7 +675,7 @@ An explicit C<return> may be used instead to evaluate the C<return>'s
 arguments as the code block's return value, and leave the code block
 immediately, short-circuiting the rest of the block's execution.
 
-If the return specification is a definite immutable value (or Nil) rather than
+If the return specification is a definite immutable value (or C<Nil>) rather than
 a type, then all top-level statements in the code block are evaluated
 only for their side effects; in other words, all of the statements are
 evaluated in sink context, including the final statement.  An explicit
@@ -1068,7 +1068,8 @@ Named parameters are optional unless marked with a following C<!>.
 Default values for optional named parameters are defined in the same
 way as for positional parameters, but may depend only on existing
 values, including the values of parameters that have already been
-bound.  Named optional parameters default to C<Nil> if they have
+bound.  Named optional parameters default to C<Nil> (that is, they
+set the default of the container) if they have
 no default.  Named required parameters fail unless an argument pair
 of that name is supplied.
 
@@ -3086,7 +3087,8 @@ already bound to the corresponding parameters:
 Position parameters may also be primed.  To skip a position argument,
 pass a C<*>, which is handled specially by C<.assuming>.  Passing a
 C<Nil> causes priming with the default argument supplied with the
-parameter at that position in the signature, or an undefined value if
+parameter at that position in the signature, or the (presumably undefined) default
+value for the container associated with the parameter if
 the parameter in question has no default.  C<Nil> may also be passed
 to a named argument to force priming to the default.
 
