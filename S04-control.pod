@@ -12,8 +12,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 23 Feb 2013
-    Version: 120
+    Last Modified: 27 Feb 2013
+    Version: 121
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -869,7 +869,6 @@ is parsed as:
 
     do { do { do { foo(); }}}; bar(43);
 
-
 =head1 Switch statements
 X<given>X<when>X<switch>X<case>X<default>
 
@@ -998,7 +997,10 @@ A C<try> block by default has a C<CATCH> block that handles all fatal
 exceptions by ignoring them.  If you define a C<CATCH> block within
 the C<try>, it replaces the default C<CATCH>.  It also makes the C<try>
 keyword redundant, because any block can function as a C<try> block
-if you put a C<CATCH> block within it.
+if you put a C<CATCH> block within it.  To prevent lazy lists for leaking out
+unexpectedly, the inside of a C<try> is always considered
+an eager context, unless the C<try> itself is in a sink context, in which
+case the inside of C<try> is also in sink context.
 
 An exception handler is just a switch statement on an implicit topic
 that happens to be the current exception to be dealt with.
