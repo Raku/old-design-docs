@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 16 Jan 2013
-    Version: 127
+    Last Modified: 8 Mar 2013
+    Version: 128
 
 =head1 Overview
 
@@ -607,6 +607,18 @@ form.)
 You can also get at the container through the appropriate symbol table:
 
     if MY::<$scalar>.readonly {...}
+
+=head2 FALLBACK methods
+
+If your class defines a method with the special name C<FALLBACK>, that
+method will be called if all other attempts to locate a method of that
+name fail, including normal method dispatch as well as delegation (see
+below).  The first argument to the method will be the method name (as
+a string) that was unsuccessfully searched for.  The original call's
+arguments are passed in as rest of the C<FALLBACK>'s argument list.
+
+It is legal for the C<FALLBACK> method to be a proto method that dispatches
+to multi methods.
 
 =head1 Class methods
 
@@ -1469,6 +1481,17 @@ so the earliest one wins.  (Non-wildcard method conflicts can be
 caught at class composition time.)  If the wildcards for this class
 find nothing, then wildcards are checked for each of the ancestral
 classes in standard method resolution order.
+
+The form with C<*> checks only for existing methods in the delegate's
+class (or its parents).  It will not call any kind of a fallback
+via the delegate.  (This allows you to call a C<FALLBACK> routine
+of your own if the delegation would fail, since your own C<FALLBACK>
+always runs after delegation, even wildcard delegation.)  If instead
+you want to delegate completely and utterly, including a search of
+the delegate for its own fallback methods, with abject failure if
+the delegate can't handle it, then use the "HyperWhatever" instead:
+
+    has $the_real_me handles **;
 
 If, where you would ordinarily specify a string, you put a pair, then
 the pair maps the method name in this class to the method name in the
