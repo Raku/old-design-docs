@@ -204,11 +204,11 @@ There are two ways to get around that.  Here's one way:
 Alternately, you can spell out what C<{*}> is actually sugar for,
 which would be some dispatcher macro such as:
 
-    my proto sub foo (|$cap (@args)) {
+    my proto sub foo (|cap (@args)) {
         do-something-before(@args);
-        my |$retcap := MULTI-DISPATCH-CALLWITH(&?ROUTINE,$cap);
+        my |retcap := MULTI-DISPATCH-CALLWITH(&?ROUTINE, cap);
         do-something-after(@args);
-        return |$retcap;
+        return |retcap;
     }
 
 which optimizes (we hope) to an inlined multidispatcher to locate all
@@ -1333,9 +1333,9 @@ bound to a single array parameter declared with a double C<**> marker:
 
 Note that this is different from
 
-    sub foo (|$slice) { ... }
+    sub foo (|slice) { ... }
 
-insofar as C<|$slice> is bound to a single argument-list object that
+insofar as C<|slice> is bound to a single argument-list object that
 makes no commitment to processing its structure (and maybe doesn't
 even know its own structure yet), while C<**@slice> has to create
 an array that binds the incoming dimensional lists to the array's
@@ -1367,7 +1367,7 @@ C<\()> in several ways:
     foo;        # +@slice == 0
     foo();      # +@slice == 1
 
-    sub bar (|$args = \(1,2,3)) {...}
+    sub bar (|args = \(1,2,3)) {...}
     bar;        # $args === \(1,2,3)
     bar();      # $args === \()
 
@@ -1958,7 +1958,7 @@ The C<$_> variable functions as a placeholder in a block without any
 other placeholders or signature.  Any bare block without placeholders
 really has a parameter like this:
 
-    -> \$_ = OUTER::<$_> { .mumble }
+    -> $_ is parcel = OUTER::<$_> { .mumble }
 
 (However, statement control C<if> notices this and passes no argument,
 so C<$_> ends up being bound to the outer C<$_> anyway.)
@@ -2911,7 +2911,7 @@ The entire argument list may be captured by binding to a C<Capture> parameter.
 It can then be passed to C<callwith> using that name:
 
     # Double the return value for &thermo
-    &thermo.wrap( -> |$args { callwith(|$args) * 2 } );
+    &thermo.wrap( -> |args { callwith(|args) * 2 } );
 
 In this case only the return value is changed.
 
@@ -2919,7 +2919,7 @@ The wrapper is not required to call the original routine; it can call another
 C<Callable> object by passing the C<Capture> to its C<callwith> method:
 
     # Transparently redirect all calls to &thermo to &other_thermo
-    &thermo.wrap( sub (|$args) { &other_thermo.callwith(|$args) } );
+    &thermo.wrap( sub (|args) { &other_thermo.callwith(|args) } );
 
 or more briefly:
 
@@ -2934,9 +2934,9 @@ next-most-likely method or multi-sub; see S12 for details.
 As with any return value, you may capture the returned C<Capture> of C<call>
 by binding:
 
-    my |$retval := callwith(|$args);
+    my |retval := callwith(|args);
     ... # postprocessing
-    return |$retval;
+    return |retval;
 
 Alternately, you may prevent any return at all by using the variants
 C<nextsame> and C<nextwith>.  Arguments are passed just as with
@@ -3600,7 +3600,7 @@ single item.
 
 This method returns the signature of the current routine.
 
-=item .cando(\$capture)
+=item .cando($capture)
 
 This method returns a (potentially lazy) list of the candidates that match the given
 capture, ordered by goodness of match, with the best match first.
