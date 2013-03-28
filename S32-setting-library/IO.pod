@@ -17,13 +17,14 @@ DRAFT: Synopsis 32: Setting Library - IO
     Tim Nelson <wayland@wayland.id.au>
     Daniel Ruoso <daniel@ruoso.com>
     Lyle Hopkins <webmaster@cosmicperl.com>
+    Brent Laabs <bslaabs@gmail.com>
 
 =head1 VERSION
 
     Created: 19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
 
-    Last Modified: 14 July 2012
-    Version: 16
+    Last Modified: 28 March 2013
+    Version: 17
 
 The document is a draft.
 
@@ -96,7 +97,9 @@ and the parent directory are excluded, which can be controlled with the
 C<$test> named parameter. Only items that smart-match against this test are
 returned.
 
-The return value is a list of C<IO::File> and C<IO::Dir> objects.
+The return value is a list of C<IO::File> and C<IO::Dir> objects.  Because of
+this, you may want use the C<basename> method on the results to get the just
+the file name, without its full path.
 
 =item note
 
@@ -391,31 +394,30 @@ TODO: methods created, accessed, modified
     class IO::Path is Cool does IO::FileTest { }
 
 Holds a path of a file or directory. The path is generally divided
-into three parts, the I<file system>, I<directory> and I<base name>.
+into three parts, the I<volume>, I<directory> and I<base name>.
 
-On Windows, the file system is a drive letter like C<C:>. Relative paths
-never have a file system part. On UNIX-based systems, the file system part
-is empty.
+On Windows, the volume is a drive letter like C<C:>, or a UNC network volume
+like C<\\share\>. On UNIX-based systems, the volume part is empty.
 
 The base name is name of the file or directory that the IO::Path object
 represents, and the directory is the part of the path leading up to the base
 name.
 
-    path            file system   directory  base name
-    /usr/bin/gvim                 /usr/bin   gvim   
-    /usr/bin/                     /usr       bin
-    C:\temp\f.txt  C:             temp       f.txt
+    path            volume    directory  base name
+    /usr/bin/gvim             /usr/bin   gvim   
+    /usr/bin/                 /usr       bin
+    C:\temp\f.txt   C:        temp       f.txt
 
 =over 4
 
-=item path
+=item Str
 
-Returns the path (file system, directory and base name joined together) as
-a string.
+Stringification returns the path (volume, directory and base name joined
+together) as a string.
 
-=item filesystem
+=item volume
 
-Returns the file system part of the path
+Returns the volume part of the path
 
 =item directory
 
@@ -425,9 +427,50 @@ Returns the directory part of the path
 
 Returns the base name part of the path
 
-=item Str
+=item path
 
-Stringifies to the base name.
+Returns the entire IO::Path object (a no-op).
+
+=item contents
+
+	method contents( Mu :$test = none('.', '..') )
+
+Returns a lazy list of file names in the path, if it is a directory. The
+current and the parent directory are excluded, which can be controlled with
+the C<$test> named parameter. Only items that smart-match against this test
+are returned.
+
+The return value is a list of C<IO::File> and C<IO::Dir> objects.  Because of
+this, you may want use the C<basename> method on the results to get the just
+the file name, without its full path.
+
+=item is-relative
+
+Returns True if the path is a relative path (like C<foo/bar>), False
+otherwise.
+
+=item is-absolute
+
+Returns True if the path is an absolute path (like C</usr/bin>), False
+otherwise.
+
+=item absolute
+
+    method absolute ( Str $base = $*CWD )
+
+Transforms the path into an absolute form, and returns the result as a new
+IO::Path.  If C<$base> is supplied, transforms it relative to that base
+directory; otherwise the current working directory is used.  Paths that are
+already absolute are returned unchanged.
+
+=item relative
+
+    method relative ( Str $base = $*CWD )
+
+Transforms the path into an relative form, and returns the result as a new
+IO::Path.  If C<$base> is supplied, transforms it relative to that base
+directory; otherwise the current working directory is used.  Paths that are
+already relative are returned unchanged.
 
 =back
 
