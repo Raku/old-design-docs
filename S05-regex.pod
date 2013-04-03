@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 23 Feb 2013
-    Version: 160
+    Last Modified: 3 Apr 2013
+    Version: 161
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -2000,7 +2000,10 @@ Match a single lowercase character.
 =item * alpha
 X<alpha>X<< <alpha> >>
 
-Match a single alphabetic character.
+Match a single alphabetic character, or an underscore.
+
+To match Unicode alphabetic characters without the underscore, use
+C<< <+alpha-[_]> >>.
 
 =item * digit
 X<digit>X<< <digit> >>
@@ -2115,8 +2118,16 @@ Hence, C<< <+:Lu+:Lt> >> is equivalent to C<< <+upper+title> >>.
 
 =item *
 
-The C<\L...\E>, C<\U...\E>, and C<\Q...\E> sequences are gone.  In the
-rare cases that need them you can use C<< <{ lc $regex }> >> etc.
+The C<\L...\E>, C<\U...\E>, and C<\Q...\E> sequences are gone.  The
+single-character case modifiers C<\l> and C<\u> are also gone.  In the
+rare cases that need them you can use C<< <{ lc $regex }> >>,
+C<< <{tc $word}> >>, etc.  
+
+=item *
+
+As mentioned above, the C<\b> and C<\B> word boundary assertions are gone,
+and are replaced with C<< <|w> >> (or <wb>) and C<< <!|w> >> (or <!wb>)
+zero-width assertions.
 
 =item *
 
@@ -2196,7 +2207,31 @@ C<\E> matches anything but an escape.
 C<\X...> matches anything but the specified character (specified in
 hexadecimal).
 
+=item *
+
+Backslash escapes for literal characters in ordinary strings are allowed in
+regexes (C<\a>, C<\x>, etc.).  However, the exception to this rule is C<\b>,
+which is disallowed in order to avoid conflict with its former use as a word
+boundary assertion.  To match a literal backspace, use C<\c8>, C<\x8>, or a
+double-quoted C<\b>.
+
 =back
+
+=head 2 Character class shortcuts
+
+For historical and convenience reasons, the following character classes are
+available as backslash sequences:
+
+   \d      <digit>    A digit
+   \D      <-digit>   A nondigit
+   \w      <alnum>    A word character
+   \W      <-alnum>   A non-word character
+   \s      <sp>       A whitespace character
+   \S      <-sp>      A non-whitespace character
+   \h                 A horizontal whitespace
+   \H                 A non-horizontal whitespace
+   \v                 A vertical whitespace
+   \V                 A non-vertical whitespace
 
 =back
 
