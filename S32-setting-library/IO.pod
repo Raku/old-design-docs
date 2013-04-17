@@ -23,8 +23,8 @@ DRAFT: Synopsis 32: Setting Library - IO
 
     Created: 19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
 
-    Last Modified: 28 March 2013
-    Version: 17
+    Last Modified: 17 April 2013
+    Version: 18
 
 The document is a draft.
 
@@ -43,8 +43,7 @@ methods on file handles.
 File handles are of type C<IO::Handle>, and can be created with C<&open>.
 Paths are generally passed as strings or C<IO::Path> objects.
 
-C<&dir> returns C<IO::File> and C<IO::Dir> objects, which are
-subclasses of C<IO::Path>.
+C<&dir> returns C<IO::Path> objects.
 
                       
               default handle
@@ -97,9 +96,9 @@ and the parent directory are excluded, which can be controlled with the
 C<$test> named parameter. Only items that smart-match against this test are
 returned.
 
-The return value is a list of C<IO::File> and C<IO::Dir> objects.  Because of
-this, you may want use the C<basename> method on the results to get the just
-the file name, without its full path.
+The return value is a list of C<IO::Path> objects.  Because of this, you may
+want use the C<basename> method on the results to get the just the file name,
+without its full path.
 
 =item note
 
@@ -353,11 +352,11 @@ Closes the handle. Fails on error.
 
 Provides ways to inspect a file or path without opening it.
 
-If you apply that role to a class, that class must provide a C<path>
-method which C<IO::FileTests>' method will call to obtain the path to
-test. This C<path> method must return a C<Str:D>.
+If you apply that role to a class, that class must provide a C<Str> method
+which returns the full path.  C<IO::FileTests> will call this method
+to obtain the path to test.  Stringification must return C<Str:D> here.
 
-The methods are typically only one letter long (for now; perl 5 tradition
+The methods are typically only one letter long (for now; Perl 5 tradition
 strikes) and are summarized in the following table:
 
     M  Test performed
@@ -391,7 +390,7 @@ TODO: methods created, accessed, modified
 
 =head2 IO::Path
 
-    class IO::Path is Cool does IO::FileTest { }
+    class IO::Path is Cool does IO::FileTestable { }
 
 Holds a path of a file or directory. The path is generally divided
 into three parts, the I<volume>, I<directory> and I<base name>.
@@ -440,9 +439,9 @@ current and the parent directory are excluded, which can be controlled with
 the C<$test> named parameter. Only items that smart-match against this test
 are returned.
 
-The return value is a list of C<IO::File> and C<IO::Dir> objects.  Because of
-this, you may want use the C<basename> method on the results to get the just
-the file name, without its full path.
+The return value is a list of C<IO::Path> objects.  Because of this, you may
+want use the C<basename> method on the results to get the just the file name,
+without its full path.
 
 =item is-relative
 
@@ -473,20 +472,6 @@ directory; otherwise the current working directory is used.  Paths that are
 already relative are returned unchanged.
 
 =back
-
-=head2 IO::File
-
-    class IO::File is IO::Path { ... }
-
-Represents a path that is known to be a plain file (not a directory), at
-least at the time when the object was created.
-
-=head2 IO::Dir
-
-    class IO::Dir is IO::Path { ... }
-
-Represents a path that is known to be a directory, at
-least at the time when the object was created.
 
 =head1 Here Be Dragons
 
@@ -1019,7 +1004,7 @@ passed in.  Here are some example mappings:
 
     URI type IO type
     ======== =======
-    file:    IO::File or IO::Directory
+    file:    IO::Path
     ftp:     IO::Socket::INET (data channel)
     http:    IO::Socket::INET
 
