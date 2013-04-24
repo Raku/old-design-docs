@@ -95,12 +95,9 @@ C<:day> (and the same defaults as listed above).
 All of the aforementioned forms of C<new> accept two additional named
 arguments. C<:formatter> is a callable object that takes a C<DateTime> and
 returns a string. The default formatter creates an ISO 8601 timestamp (see
-below). C<:timezone> is a callable object that takes a C<DateTime> to
-convert and a C<Bool> that specifies the direction of the conversion: to
-UTC if true, from UTC if false. The C<:timezone> signifies the necessary
-conversion by returning an integer giving the difference from UTC in
-seconds. Alternatively, C<:timezone> can be a number, which is interpreted
-as a static offset from UTC. The default time zone is C<0> (i.e., UTC).
+below). C<:timezone> must be an Int or an object that supports an .Int method.
+The Int value of C<:timezone> must reflect the timezone offset, in seconds 
+from UTC. The default time zone is C<0> (i.e., UTC).
 The system's local time zone is available as C<$*TZ>.
 
 A shorter way to send in date and time information is to provide a
@@ -141,12 +138,6 @@ method:
 
 The C<utc> method is shorthand for C<in-timezone(0)>, and the C<local>
 method is short for C<in-timezone($*TZ)>.
-
-In general, C<DateTime> is not required to check for ambiguous or invalid
-local times caused by Daylight Saving Time. However, if C<$dt> is an
-unambiguous C<DateTime>, the object returned by C<$dt.in-timezone(...)> is
-required to remember its actual offset from UTC, so that, for example,
-the default formatter can generate the right string.
 
 The C<truncated-to> constructor allows you to "clear" a number of time values
 below a given resolution:
@@ -221,12 +212,8 @@ The method C<whole-second> returns the second truncated to an integer.
 The C<Date> method returns a C<Date> object, and is the same as
 C<Date.new($dt.year, $dt.month, $dt.day)>.
 
-The method C<offset> returns the object's current offset from UTC.
-In general, C<$dt.offset> is C<$dt.timezone($dt, True)> if
-C<$dt.timezone> does C<Callable> and $<dt.timezone> itself otherwise.
-The exception is when C<$dt> is ambiguous but was created by
-converting an unambiguous C<DateTime>. In that case, implementations
-will need to return a precomputed offset to guarantee correctness.
+The method C<offset> returns the object's current offset from UTC in seconds.
+This returns the Int value of C<:timezone>.
 
 =head1 C<Date>
 
