@@ -346,7 +346,7 @@ Closes the handle. Fails on error.
 
 =back
 
-=head1 IO::FileTests
+=head2 IO::FileTests
 
     role IO::FileTests does IO { ... }
 
@@ -361,32 +361,59 @@ strikes) and are summarized in the following table:
 
     M  Test performed
     =  ==============
-    r  $.path is readable by effective uid/gid.
-    w  $.path is writable by effective uid/gid.
-        x  $.path is executable by effective uid/gid.
-    o  $.path is owned by effective uid.
+    r  Path is readable by effective uid/gid.
+    w  Path is writable by effective uid/gid.
+    x  Path is executable by effective uid/gid.
+    o  Path is owned by effective uid.
 
-    R  $.path is readable by real uid/gid.
-    W  $.path is writable by real uid/gid.
-    X  $.path is executable by real uid/gid.
-    O  $.path is owned by real uid.
+    R  Path is readable by real uid/gid.
+    W  Path is writable by real uid/gid.
+    X  Path is executable by real uid/gid.
+    O  Path is owned by real uid.
 
-    e  $.path exists.
-    s  $.path has a size > 0 bytes
+    e  Path exists.
+    s  Size of the path in bytes.
 
-    f  $.path is a plain file.
-    d  $.path is a directory.
-    l  $.path is a symbolic link.
-    p  $.path is a named pipe (FIFO)
-    S  $.path is a socket.
-    b  $.path is a block special file.
-    c  $.path is a character special file.
+    f  Path is a plain file.
+    d  Path is a directory.
+    l  Path is a symbolic link.
+    p  Path is a named pipe (FIFO)
+    S  Path is a socket.
+    b  Path is a block special file.
+    c  Path is a character special file.
 
-    u  $.path has setuid bit set.
-    g  $.path has setgid bit set.
-    k  $.path has sticky bit set.
+    u  Path has setuid bit set.
+    g  Path has setgid bit set.
+    k  Path has sticky bit set.
 
-TODO: methods created, accessed, modified
+=over 4
+X<stattimes>
+
+=item created
+
+Returns the creation time of the path, on filesystems where this information
+is available.
+
+=item accessed
+
+Returns the last access time (C<atime>) of the path, to the degree that it is
+updated on that system.
+
+=item modified
+
+Returns the time that the path was last modified (C<mtime>).
+
+=item changed
+
+Returns the time that the path was last changed (modified or a metadata change).
+
+=item stat
+
+Returns a stat buffer for the path.
+
+=back
+
+TODO: methods created, accessed, modified: return format, failure
 
 =head2 IO::Path
 
@@ -402,10 +429,16 @@ The base name is name of the file or directory that the IO::Path object
 represents, and the directory is the part of the path leading up to the base
 name.
 
-    path            volume    directory  base name
-    /usr/bin/gvim             /usr/bin   gvim   
-    /usr/bin/                 /usr       bin
-    C:\temp\f.txt   C:        temp       f.txt
+    path              volume         directory  base name
+    /usr/bin/gvim                    /usr/bin   gvim   
+    /usr/bin/                        /usr       bin
+    foo/bar.txt                      foo        bar.txt
+    C:\temp\f.txt     C:             \temp      f.txt
+    \\server\share\a  \\server\share \          a
+
+IO::Path uses the syntax for the current operating system.  If
+you want to work with another OS, use the OS-specific subclasses like
+IO::Path::Cygwin.
 
 =over 4
 
@@ -416,15 +449,18 @@ together) as a string.
 
 =item volume
 
-Returns the volume part of the path
+Returns the volume part of the path.  On Unix-like OSes or systems without a
+concept of volume in the path, returns the empty string.
 
 =item directory
 
-Returns the directory part of the path
+Returns the directory part of the path, not including the last item.  Functions
+equivalently to the C<dirname> shell program on Unix-like systems. 
 
 =item basename
 
-Returns the base name part of the path
+Returns the base name part of the path -- that is, the last portion.  Functions
+equivalently to the C<basename> shell program on Unix-like systems. 
 
 =item path
 
@@ -471,7 +507,38 @@ IO::Path.  If C<$base> is supplied, transforms it relative to that base
 directory; otherwise the current working directory is used.  Paths that are
 already relative are returned unchanged.
 
+=item parent
+
+Removes the last portion the given path, and returns a new IO::Path.  This does
+not remove C<.>, C<..>, or symbolic links, so you may want to consider calling
+cleanup or resolve first.
+
+On a Unix/POSIX filesystem, if called recursively, it will work like so:
+
+	parent level          relative       absolute
+	Starting Path (0)     foo/bar        /foo/bar
+	1                       foo            /foo
+	2                        .              /
+	3                        ..             /
+	4                      ../..            /
+	5                     ../../..          /
+
+=item child
+
+    method child ( $childname )
+
+Appends C<$childname> to the end of the path, adding path separators where
+needed.
+
 =back
+
+=head3 OS Specific subclasses.
+
+IO::Path::Unix, IO::Path::Win32, and IO::Path::Cygwin subclasses are available
+for manipulating paths from different operating systems than the one you're
+currently using.  Unix works with any POSIX-like operating system, such as Linux
+or Darwin.  Win32 works for paths from Windows, DOS, OS/2, NetWare, and Symbian.
+
 
 =head1 Here Be Dragons
 
@@ -569,7 +636,7 @@ Creates a new socket and opens it.
 
 =back
 
-=head2 IO::Handle
+=head2 IO::Handle (opened version)
 
 This role indicates that this object actually represents an open file
 descriptor in the os level.
