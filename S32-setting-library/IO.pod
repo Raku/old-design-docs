@@ -1,5 +1,4 @@
-﻿
-=encoding utf8
+﻿=encoding utf8
 
 =head1 TITLE
 
@@ -23,8 +22,8 @@ DRAFT: Synopsis 32: Setting Library - IO
 
     Created: 19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
 
-    Last Modified: 17 April 2013
-    Version: 18
+    Last Modified: 30 April 2013
+    Version: 19
 
 The document is a draft.
 
@@ -440,6 +439,12 @@ IO::Path uses the syntax for the current operating system.  If
 you want to work with another OS, use the OS-specific subclasses like
 IO::Path::Cygwin.
 
+There are several ways of creating an IO::Path.  Both IO::Handle and Str have
+a .path method, or you can construct it directly:
+
+	IO::Path.new( $full-path );
+	IO::Path.new( :$volume, :$directory, :$basename);
+	
 =over 4
 
 =item Str
@@ -478,6 +483,20 @@ are returned.
 The return value is a list of C<IO::Path> objects.  Because of this, you may
 want use the C<basename> method on the results to get the just the file name,
 without its full path.
+
+=item cleanup
+
+Returns a new IO::Path object with the canonical path.  This eliminates extra
+slashes and C<'.'> directories, but leaves C<'..'> in.
+
+=item resolve
+
+Returns a new IO::Path object that has not only had C<cleanup> called, but also
+removes symbolic links and references to the parent directory (C<..>).
+
+   my $path = "foo/./bar///..".path;
+   $path.=cleanup;  # now "foo/bar/.."
+   $path.=resolve;  # now "foo" (if "bar" is not a symlink)
 
 =item is-relative
 
@@ -525,7 +544,7 @@ On a Unix/POSIX filesystem, if called recursively, it will work like so:
 
 =item child
 
-    method child ( $childname )
+    method child ( Str $childname )
 
 Appends C<$childname> to the end of the path, adding path separators where
 needed.
@@ -538,6 +557,321 @@ IO::Path::Unix, IO::Path::Win32, and IO::Path::Cygwin subclasses are available
 for manipulating paths from different operating systems than the one you're
 currently using.  Unix works with any POSIX-like operating system, such as Linux
 or Darwin.  Win32 works for paths from Windows, DOS, OS/2, NetWare, and Symbian.
+
+=head2 IO::Spec
+
+This class is a collection of methods dealing with file specifications (commonly
+known as file names, though it can include the entire directory path).
+Most of the methods are less convenient than in IO::Path, but it allows access
+to lower-level operations on file path strings.
+
+As with IO::Path, these operations are significantly different on some operating
+systems, so we have the following subclasses: IO::Spec::Unix, IO::Spec::Win32, 
+and IO::Spec::Cygwin.  IO::Spec automatically loads the correct module for use
+on the current system.
+
+Each class can (and should) be used in its undefined form:
+
+	my $cleanpath = IO::Spec.canonpath("a/.//b/")  # gives "a/b"
+
+Although we inherit a lot from Perl 5's File::Spec, some things have changed:
+C<no_updirs> has been removed (but see C<no-parent-or-current-test>) and
+C<case_tolerant> has also been removed (and put in a module).  Method C<join>
+is no longer an alias for catfile, but is now a function similar to C<catpath>.
+
+Each of the following methods are available under the subclasses, with the
+exception of C<os>.
+
+=over
+
+=item os
+
+The os method takes a single argument, an operating system string, and returns
+an IO::Spec object for the appropriate OS.
+
+	my $mac_os_x_spec = File::Spec.os('darwin');
+		# returns a File::Spec::Unix object
+	my $windows_spec = File::Spec.os('MSWin32');
+		#returns File::Spec::Win32
+	say File::Spec.os('Win32').canonpath('C:\\foo\\.\\bar\\');
+		# prints "C:\foo\bar"
+
+The parameter can be either an operating system string, or the last part of
+the name of a subclass ('Win32', 'Mac').  The default is `$*OS`, which gives
+you the same subclass that IO::Spec already uses for your system.
+
+This is only implemented by the IO::Spec class, and not its subclasses.
+
+
+=item canonpath
+X<canonpath>
+
+No physical check on the filesystem, but a logical cleanup of a
+path.
+
+    $cpath = IO::Spec.canonpath( $path ) ;
+
+Note that this does *not* collapse F<x/../y> sections into F<y>.  This
+is by design.  If F</foo> on your system is a symlink to F</bar/baz>,
+then F</foo/../quux> is actually F</bar/quux>, not F</quux> as a naive
+F<../>-removal would give you.  If you want to do this kind of
+processing, you probably want IO::Path's C<resolve> method to
+actually traverse the filesystem cleaning up paths like this.
+
+=item is-absolute
+
+Takes as its argument a path, and returns True if it is an absolute path,
+False otherwise.  For File::Spec::Win32, it returns 1 if it's an absolute
+path with no volume, and 2 if it's absolute with a volume.
+
+    $is_absolute = IO::Spec.is-absolute( $path );
+
+
+=item splitpath
+X<splitpath>
+
+    method splitpath( $path, $nofile = False )
+
+Splits a path in to volume, directory, and filename portions. On systems
+with no concept of volume, returns '' for volume. 
+
+    my ($volume,$directories,$file) = IO::Spec.splitpath( $path );
+    my ($volume,$directories,$file) = IO::Spec.splitpath( $path, $no_file );
+
+For systems with no syntax differentiating filenames from directories, 
+assumes that the last file is a path unless C<$no_file> is true or a
+trailing separator or F</.> or F</..> is present. On Unix, this means that C<$no_file>
+true makes this return ( '', $path, '' ).
+
+The directory portion may or may not be returned with a trailing '/'.
+
+The results can be passed to L</catpath()> to get back a path equivalent to
+(usually identical to) the original path.
+
+=item split
+
+A close relative of `splitdir`, this function also splits a path into
+volume, directory, and filename portions.  Unlike splitdir, split returns
+paths compatible with dirname and basename I<and> returns it arguments as
+a hash of C<volume>, C<directory>, and C<basename>.
+
+This means that trailing slashes will be eliminated from the directory
+and basename components, in Win32 and Unix-like environments.  The basename
+component will always contain the last part of the path, even if it is a
+directory, C<'.'>, or C<'..'>.  If a relative path's directory portion would
+otherwise be empty, the directory is set to C<'.'> (or whatever C<curdir> is).
+
+On systems with no concept of volume, returns C<''> (the empty string) for volume.
+
+    my %splitfile = IO::Spec.split( $path );
+    say IO::Spec::Win32( "C:\\saga\\waffo\\" );
+        # ("volume" => "C:", "directory" => "\\saga", "basename" => "waffo")
+
+The results can be passed to `.join` to get back a path equivalent to
+(but not necessarily identical to) the original path.  If you want to keep
+all of the characters involved, use `.splitdir` instead.
+
+=item Comparison of splitpath and split
+
+	OS      Path       splitpath               split (.values)
+	linux   /a/b/c     ("", "/a/b/", "c")      ("", "/a/b", "c")
+	linux   /a/b//c/   ("", "/a/b//c/", "")    ("", "/a/b", "c")
+	linux   /a/b/.     ("", "/a/b/.", "")      ("", "/a/b", ".")
+	Win32   C:\a\b\    ("C:", "\\a\\b\\", "")  ("C:", "\\a", "b")
+	VMS     A:[b.c]    ("A:", "[b.c]", "")     ("A:", "[b]", "[c]")
+
+
+=item catpath()
+
+Takes volume, directory and file portions and returns an entire path string.
+Under Unix, C<$volume> is ignored, and directory and file are concatenated.
+On other OSes, C<$volume> is significant.    Directory separators like slashes
+are inserted if need be.
+
+    $full_path = IO::Spec.catpath( $volume, $directory, $file );
+
+=item join
+
+A close relative of `.catpath`, this function takes volume, directory and
+basename portions and returns an entire path string.  If the dirname is `'.'`,
+it is removed from the (relative) path output, because this function inverts
+the functionality of dirname and basename.
+
+    $full-path = IO::Spec.join(:$volume, :$directory, :$basename);
+    say IO::Spec::Unix.join( directory => '/hobbit', basename => 'frodo' );
+        # "/hobbit/frodo"	
+
+Directory separators are inserted if necessary.  Under Unix, $volume is
+ignored, and only directory and basename are concatenated.  On other OSes,
+$volume is significant.
+
+This method is the inverse of `.split`; the results can be passed to it
+to get the volume, dirname, and basename portions back.
+
+
+### Comparison of catpath and join
+
+	OS     Components            catpath        join
+	linux  ("", "/a/b", "c")     /a/b/c         /a/b/c
+	linux  ("", ".", "foo")      ./foo          foo
+	linux  ("", "/", "/")        //             /
+	Win32  ("C:", "\a", "b")     C:\a\b         C:\a\b
+	VMS    ("A:", "[b]", "[c]")  A:[b][c]       A:[b.c]
+
+* The VMS section is still speculative, and not yet supported.
+
+=item splitdir
+X<splitdir> X<split, dir>
+
+The opposite of L</catdir>.
+
+    @dirs = IO::Spec.splitdir( $directories );
+
+C<$directories> must be only the directory portion of the path on systems 
+that have the concept of a volume or that have path syntax that differentiates
+files from directories.
+
+Unlike just splitting the directories on the separator, empty
+directory names (C<''>) can be returned, because these are significant
+on some OSes.
+
+=item catdir
+X<catdir>
+
+Concatenate two or more directory names to form a complete path ending
+with a directory.  Removes any trailing slashes from the resulting
+string, unless it's the root directory.
+
+    $path = IO::Spec.catdir( @directories );
+
+=item catfile
+X<catfile>
+
+Concatenate one or more directory names and a filename to form a
+complete path ending with a filename
+
+    $path = IO::Spec.catfile( @directories, $filename );
+
+=item abs2rel
+X<abs2rel>
+
+Takes a destination path and an optional base path returns a relative path
+from the base path to the destination path:
+
+    $rel_path = IO::Spec.abs2rel( $path ) ;
+    $rel_path = IO::Spec.abs2rel( $path, $base ) ;
+
+If C<$base> is not present or '', then C<$*CWD> is used. If C<$base> is
+relative, then it is converted to absolute form using
+L</rel2abs()>. This means that it is taken to be relative to
+C<$*CWD>.
+
+On systems with the concept of volume, if C<$path> and C<$base> appear to be
+on two different volumes, we will not attempt to resolve the two
+paths, and we will instead simply return C<$path>.
+
+On systems that have a grammar that indicates filenames, this ignores the 
+C<$base> filename as well. Otherwise all path components are assumed to be
+directories.
+
+If C<$path> is relative, it is converted to absolute form using L</rel2abs()>.
+This means that it is taken to be relative to C<$*CWD>.
+
+No checks against the filesystem are made.
+
+=item rel2abs()
+X<rel2abs>
+
+Converts a relative path to an absolute path. 
+
+    $abs_path = IO::Spec.rel2abs( $path ) ;
+    $abs_path = IO::Spec.rel2abs( $path, $base ) ;
+
+If C<$base> is not present or '', then C<$*CWD> is used. If C<$base> is relative,
+then it is converted to absolute form using L</rel2abs()>. This means that it
+is taken to be relative to C<$*CWD>.
+
+On systems with the concept of volume, if C<$path> and C<$base> appear to be
+on two different volumes, we will not attempt to resolve the two
+paths, and we will instead simply return C<$path>.  Note that previous
+versions of this module ignored the volume of C<$base>, which resulted in
+garbage results part of the time.
+
+On systems that have a grammar that indicates filenames, this ignores the 
+C<$base> filename as well. Otherwise all path components are assumed to be
+directories.
+
+If C<$path> is absolute, it is cleaned up and returned using L</canonpath>.
+
+No checks against the filesystem are made.
+
+=item curdir
+X<curdir>
+
+Returns a string representation of the current directory (C<.> on Linux and Windows).
+
+    my $curdir = IO::Spec.curdir;
+
+=item updir
+X<updir>
+
+Returns a string representation of the parent directory (C<..> on Linux and Windows).
+
+    my $updir = IO::Spec.updir;
+
+=item rootdir
+X<rootdir>
+
+Returns a string representation of the root directory (C</> on Linux).
+
+    my $rootdir = IO::Spec.rootdir;
+
+=item devnull
+X<devnull>
+
+Returns a string representation of the null device (C</dev/null> on Linux).
+
+    my $devnull = IO::Spec.devnull;
+
+=item path
+X<path>
+
+Takes no argument.  Returns the environment variable C<PATH> (or the local
+platform's equivalent) as a list.
+
+    my @PATH = IO::Spec.path;
+
+=item tmpdir
+X<tmpdir>
+
+Returns a string representation of the first writable directory from a
+list of possible temporary directories.  Returns the current directory
+if no writable temporary directories are found.  The list of directories
+checked depends on the platform; e.g. IO::Spec::Unix checks C<< %ENV<TMPDIR> >>
+and F</tmp>.
+
+    $tmpdir = IO::Spec.tmpdir;
+
+### no-parent-or-current-test
+
+Returns a test as to whether a given path is identical to the parent or the
+current directory.  On Linux, this is simply C<none('.', '..')>.  The `dir()`
+function automatically removes these for you in directory listings, so under
+normal circumstances you shouldn't need to use it directly.
+
+	'file' ~~ IO::Spec.no-parent-or-current-test    #False
+	'.'    ~~ IO::Spec.no-parent-or-current-test    #True
+	'..'   ~~ IO::Spec.no-parent-or-current-test    #True
+
+This can, however, be used to extend C<dir()> through its `$test` parameter:
+
+	dir( "my/directory", test=>
+		all(IO::Spec.no-parent-or-current-test, /^ '.' /));
+
+This example would return all files begining with a period that are
+not `.` or `..` directories.  This would work similarly with IO::Path.contents.
+
+This method replaces the functionality of the Perl 5 C<no_updirs> method.
 
 
 =head1 Here Be Dragons
@@ -1055,8 +1389,6 @@ Encoding and locale are required for sane conversions.
 
 This role provides encoded access to a readable data stream, implies
 C<IO::Encoded>. Might imply C<IO::Buffered>, but that's not a requirement.
-
-=over
 
 =over 4
 
