@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 6 Mar 2013
-    Version: 261
+    Last Modified: 2 May 2013
+    Version: 262
 
 =head1 Overview
 
@@ -2868,14 +2868,25 @@ C<ff> operator.  (C<..> now always produces a C<Range> object
 even in item context.)  The C<ff> operator may take a caret on
 either end to exclude either the beginning or ending.  There is
 also a corresponding C<fff> operator with Perl 5's C<...> semantics.
-You may say
+
+The two sides of a flipflop are evaluated as smartmatches against
+the current value of the topic stored in C<$_>.  For instance, you may say
 
     /foo/ ff *
 
-to indicate a flipflop that never flops once flipped.
+to match the first line containing 'foo', along with all following
+lines: since the C<*> always smartmatches, it create a flipflop that
+never flops once flipped.
 
 The state of a flipflop is kept in an anonymous state variable, so separate
 closure clones get their own states.
+
+Note that unlike Perl 5's flipflop, numeric values are not
+automatically checked against the current line number.  (If you
+wish to have those semantics for your smartmatches, you could mixin
+a numeric value to C<$_> to create a chimeric object that is both
+integer and string.  Conjecture: C<lines()> should have an option that
+does this.)
 
 =item *
 
