@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 3 Apr 2013
-    Version: 161
+    Last Modified: 6 May 2013
+    Version: 162
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1201,7 +1201,7 @@ how to handle them (more on that below).
 =item *
 
 The default way in which the engine handles a string scalar is to match it
-as a C<< '...' >> literal (i.e. it does not treat the interpolated string
+as a C<< "..." >> literal (i.e. it does not treat the interpolated string
 as a subpattern).  In other words, a Perl 6:
 
      / $var /
@@ -1210,12 +1210,15 @@ is like a Perl 5:
 
      / \Q$var\E /
 
-However, if C<$var> contains a C<Regex> object, instead of attempting to
-convert it to a string, it is called as a subrule, as if you said
-C<< <$var> >>.  (See assertions below.)  This form does not capture,
-and it fails if C<$var> is tainted.
+To interpolate a C<Regex> object, use C<< <$var> >> instead.
 
 If C<$var> is undefined, a warning is issued and the match fails.
+
+When matching against a Stringy type that is not Str, the variable must
+be interpretable as a value of that Stringy type (or a related type
+that can be coerced to that type).  For example, when regex matching a
+Buf type, the variable will be matched under the Buf type's semantics,
+not Str semantics.
 
 [Conjecture: when we allow matching against non-string types, doing a
 type match on the current node will require the syntax of an embedded
@@ -1271,7 +1274,7 @@ An interpolated array:
 
      / @cmds /
 
-is matched as if it were an alternation of its elements.  Ordinarily it
+is matched as if it were an alternation of its literal elements.  Ordinarily it
 matches using junctive semantics:
 
      / [ @cmds[0] | @cmds[1] | @cmds[2] | ... ] /
@@ -1293,16 +1296,18 @@ Or course, you can also
 
 to be clear that you mean junctive semantics.
 
+Since C<$x> is interpolated as if you'd said C<"$x">, if C<$x> contains
+a list, it is stringified first.  To get alternation you must use the
+C<@$x> or C<@($x)> form to indicate that you're intending the scalar
+variable to be treated as a list.
+
 An interpolated array using junctive semantics is declarative
 (participates in external longest token matching) only if it's 
 known to be constant at the time the regex is compiled.  
 
-As with a scalar variable, each element is matched as a literal
-unless it happens to be a C<Regex> object, in which case it is matched
-as a subrule.  As with scalar subrules, a tainted subrule always fails.
-All string values pay attention to the current C<:ignorecase>
-and C<:ignoremark> settings, while C<Regex> values use their own
-C<:ignorecase> and C<:ignoremark> settings.
+As with a scalar variable, each element is matched as a literal.
+All such values pay attention to the current C<:ignorecase>
+and C<:ignoremark> settings.
 
 When you get tired of writing:
 
