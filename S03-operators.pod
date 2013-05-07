@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 2 May 2013
-    Version: 262
+    Last Modified: 7 May 2013
+    Version: 263
 
 =head1 Overview
 
@@ -4144,18 +4144,68 @@ A unary hyper operator (either prefix or postfix) has only one
 hyper marker, located on its argument side, while an infix operator
 always has one on each side to indicate there are two arguments.
 
-Unary hyper operators always produce a hash or array of exactly the
-same I<declared> shape as the single argument.  If the item is not
-declared with a shape, only the top dimension is mapped, equivalent
-to a normal C<.map> method.  (To map deeper dimensions than provided
-for by hypers, use the either C<.duckmap> or C<.deepmap> method,
-depending on whether you want to give the item mapping or the
-substructure first shot at each node.)
+The meaning of a unary hyper operator depends on whether the operator
+is considered to be a structural dereferencing operator.  Most operators
+are not structural.
 
-When infix operators are presented with
-two lists or arrays of identical shape, a result of that same shape is
-produced.  Otherwise the result depends on how you write the hyper
-markers.
+Non-structural unary hyper operators produce a hash or array of exactly the
+same shape as the single argument.  The hyper will descend into nested
+lists and hashes to distribute over the lower-level values just as they
+distribute over the top-level values that are leaves in the tree.  Non-structural
+unary hypers do not care whether the nesting is achieved by declaration
+in the case of shaped arrays, or by mere incorporation of sublists and subhashes
+dynamically.  In any case the operator is applied only to the leaves of the
+structure.
+
+There are a few operators that are deemed to be structural, however,
+and will produce counterintuitive results if treated as ordinary
+operators.  These include the dereferencing operators such as
+subscripts, as well as various methods that assume they are already
+working something Positional or Associative that serves as a parental node
+in the tree that a normal hyperop would want to descend into.
+
+These operations are marked by declaring them with the C<is nodal>
+property, which is available by inspection to the hyper controller
+when it examines the function it was passed.  (Hypers are just one
+form of higher-order programming, after all, and functions are also
+objects with properties.)  So this declaration is to be placed on
+the top-level declaration of the operator, a proto declaration when
+there are multiple candidates, or the candidate itself when there is
+only one candidate.  If the C<is nodal> trait is declared, the hyper
+controller will consider it to be structural.
+
+[Conjecture: we might revise this be a C<does Nodal> role instead of
+a trait, if the implementors decide that makes more sense.]
+
+For structural hypers, we never implicitly follow references to
+substructures, since the operator itself wants to deal with the
+structure.  So these operators distribute only over the top level
+of the structure.
+
+For arrays or hashes declared with a shape (see S09), this top level
+may be multidimensional; unary hypers consider shaped arrays to really
+be one-dimensional (and indeed, for compactly stored multidimensional
+arrays, multidimensional subscripts can just be calculations into an
+underlying linear representation, which can be optimized to run on
+a GPU, so this makes implementational sense).
+
+If the item is not declared with a shape, only the top dimension
+is mapped, equivalent to a normal C<.map> method.  (To map deeper
+dimensions than provided for by hypers, use the either C<.duckmap>
+or C<.deepmap> method, depending on whether you want to give the item
+mapping or the substructure first shot at each node.)
+
+In contrast to unary operators that allows for (a few) structural
+operators, infix operators are never considered structural, so the
+hyper infix controller will always consider the dynamic shape as
+potentially traversable in addition to any static shape.  That is,
+it is allowed to follow references from any parent node to dynamically
+nested structures.  (Whether it actually follows a particular reference
+depends on the relative shapes of the two arguments.)
+
+When infix operators are presented with two lists or arrays of
+identical shape, a result of that same shape is produced.  Otherwise
+the result depends on how you write the hyper markers.
 
 For an infix operator, if either argument is insufficiently
 dimensioned, Perl "upgrades" it, but only if you point the "sharp" end
@@ -4286,49 +4336,6 @@ which means something like:
 
     my $type = $node.WHAT;
     $node.?foo // $type($node.map: { .».foo })
-
-When processing recursive structures, there is an ambiguity when a node
-could be processed either directly by the operator or recursively
-by iterating a contained structure.  For unary hypers, we use a
-policy called "duck mapping", which says that when a node responds
-directly to the operator supplied, it is considered a leaf node,
-and any Iterable components of the node are ignored.  If and only if
-a node does not respond to the operator, it is examined to see if is
-Iterable, and recursion occurs.  (For this meaning of "responds to",
-we ignore any multi candidates defined in Cool, or the negation
-above would not work, since Array responds to negation via Cool.
-[Conjecture: there's a C<use strict :multi> pragma that can enable
-these dispatch semantics in a lexical scope.])
-
-A declaratively shaped array or hash with multiple dimensions is
-considered a single level of tree node for this purpose.  You must
-use subscripting if you wish to isolate a 1-dimensional slice of such
-a shaped object.
-
-The main upshot of this duck mapping policy is that it is possible
-to use array or hash operators that make sense on a node of the tree,
-and the requested operator will take precedence over recursion.  For
-example, if you have an array of hashes, you can subscript into
-each of the hashes in parallel without caring whether the value
-produced is iterable:
-
-    @AoHoA».<foo>;  # a list of all the 'foo' Arrays
-
-This would not be possible if recursion took precedence over subscripting.
-Since duck mapping stops recursing whenever the operator is applicable,
-duck mapping can be considered to have a shallow bias.  If you wish to have
-a deep mapping where the recursion takes precedence over the operator,
-so that all the leaves are found first, and then the operator applied,
-you need to use the C<.deepmap> method instead:
-
-    $node.deepmap: *.foo;
-    
-which means something like:
-    
-    my $type = $node.WHAT;
-    $node ~~ Iterable ?? $type($node.map({ .deepmap: *.foo })) !! $node.?foo
-
-[Conjecture: we could allow C<««> and C<»»> hypers which did deep mapping.]
 
 You are not allowed to define your own hyper operators, because they
 are supposed to have consistent semantics derivable entirely from
