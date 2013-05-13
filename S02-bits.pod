@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 23 Feb 2013
-    Version: 272
+    Last Modified: 13 May 2013
+    Version: 273
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2458,13 +2458,14 @@ appropriate adverb to the subscript.
     %hash<a b c> :k;    # returns 'a', 'b'
     %hash<a b c> :v;    # returns 'A', 'B'
 
-These adverbial forms all weed out non-existing entries.
+These adverbial forms all weed out non-existing entries if the
+adverb is true; if not, they leave them in, just as an ordinary slice would.
 
-likewise,
+Likewise,
 
     my ($a,$b,$c) = %hash<a b c> :delete;
 
-deletes the entries "en passant" while returning them.  (Of course,
+deletes the entries I<en passant> while returning them.  (Of course,
 any of these forms also work in the degenerate case of a slice
 containing a single index.)  Note that these forms work by virtue
 of the fact that the subscript is the topmost previous operator.
@@ -2479,6 +2480,11 @@ operator that is tighter than comma would appear to be topmost:
 because they are usually used in list context, which operates
 at comma precedence.)
 
+The element is deleted only if the adverb is true.  While C<:!delete>
+is essentially a no-op; you could conditionally delete entries I<en passant>
+based on passing a flag such as in C<:delete($kill'em)>.  In either case,
+the values are returned.
+
 You may also perform an existence test, either on a single item or
 a junction of items:
 
@@ -2492,6 +2498,8 @@ Using the C<:exists> adverb together with a list slice results in
 an error -- preferably at compile time -- because it could be
 argued both ways whether C<:exists> on a bare list would have
 C<any> or C<all> semantics.
+
+You may use :!exists to test for non-existence.
 
 =head2 Numeric and boolean context of hashes
 
