@@ -19,10 +19,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 7 Mar 2013
-    Version: 37
-
-The document is a draft.
+    Last Modified: 14 May 2013
+    Version: 38
 
 If you read the HTML version, it is generated from the Pod in the specs
 repository under
@@ -1103,14 +1101,23 @@ to something like an ordered hash is also allowed.)
 
     class Set does Associative {...}
 
-A set of unique values.  When used as a hash always treats the set's
-values as the keys of the hash, returning C<True> for set elements.
-See C<KeySet> for a container that can represent different sets
-as keys are added or deleted.  A C<Set> responds to hash operators as
-if it were a C<Hash of True>.
+A set of unique values or objects.  (Sets are notionally "object
+hashes", that is, hashes that allow more than just strings as keys; as
+such, they are subject to C<===> equality rather than C<eqv> equality.)
+A C<Set> responds to hash operators as if it were a C<Hash of True>.
+that is, when used as a hash, a set always treats the set's elements
+as the keys of the hash, returning C<True> for existing set elements,
+and C<False> for any key not found in the set.
 
-Regardless of their behavior as hashes, Sets and Bags do not flatten
-in list context.
+See C<KeySet> for a container that can represent different sets as
+keys are added or deleted.
+
+Regardless of their behavior as hashes, set (and bag) types do not
+flatten in list context; they are returned as items in list context.
+On the other end, the constructors for set and bag types do not
+automatically interpolate the contents of sets or bags (or any other
+other item type).  Together these rules allow us to constructs sets
+and bags containing sets and bags as elements.
 
 =over
 
@@ -1149,11 +1156,14 @@ A mutable Set container, represented as C<KeyHash of Bool>.
 
     class Bag does Associative {...}
 
-A collection of values that need not be unique, represented by an
-associative mapping from each key value to its replication number.
-The C<.elems> method returns the sum of all replication values.
+A collection of values or objects that work just like sets, except
+that they need not be unique.  The count of each value or object is
+represented by an associative mapping from each key value/object to its
+replication number.  The C<.elems> method returns the sum of all
+replication values.
 
-Sets and Bags do not flatten into list context.
+Sets and bags do not flatten into list context, nor do the constructors
+interpolate items passed to them, even if they look like sets or bags.
 
 =over
 
@@ -1206,20 +1216,22 @@ A mutable C<Bag> container, represented as C<KeyHash of UInt>.
 
     role KeyHash[::T, $default = Any] does Associative {...}
 
-A C<KeyHash> represents a mutable set of values, represented as the keys
-of a C<Hash>.  When asked to behave as a list it ignores its values
-and returns only C<.keys>.  C<KeySet> and C<KeyBag> are derived from
-this type, but constrain their values to be C<Bool> and C<UInt>,
-respectively.  A C<KeyHash> automatically deletes any key whose
-value goes false.  For any C<KeyHash>, the C<.elems> methods returns
-the current sum of the values, which the C<KeyHash> must either track
-or compute on demand.  Tracking is preferable for efficient implementation
-of C<.pick> and C<.grab>.
+A C<KeyHash> represents a mutable set of objects, represented as the
+keys of a C<Hash>.  When asked to behave as a list it ignores its
+C<.values> and returns only C<.keys> (possibly replicated by weight
+in the case of bag types).  C<KeySet> and C<KeyBag> are derived
+from this type, but constrain their hash values to be C<Bool> and
+C<UInt>, respectively.  A C<KeyHash> automatically deletes any key
+whose corresponding value goes to the default value for the hash.
+For any C<KeyHash>, the C<.elems> methods returns the current sum
+of the values, which the C<KeyHash> must either track or compute
+on demand.  Tracking is preferable for efficient implementation of
+C<.pick> and C<.grab>.
 
-All C<KeyHash> containers have a default value that is false (such as
-C<0> or C<''> or C<Nil> or C<Bool::False>), and keep around only those
-entries with non-default values, deleting any entry if its value goes
-to false.
+All standard C<KeyHash> containers have a default value that is false
+(such as C<0> or C<''> or C<Nil> or C<Bool::False>), and keep around
+only those entries with non-default values, automatically deleting
+any entry if its value goes to that (false) default value.
 
 =over
 
