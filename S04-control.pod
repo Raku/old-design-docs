@@ -13,7 +13,7 @@ Synopsis 4: Blocks and Statements
     Created: 19 Aug 2004
 
     Last Modified: 15 May 2013
-    Version: 122
+    Version: 123
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1349,6 +1349,7 @@ them respond to various control exceptions and exit values:
 
       BEGIN {...}*      at compile time, ASAP, only ever runs once
       CHECK {...}*      at compile time, ALAP, only ever runs once
+      FINAL {...}*      at link time, ALAP, only ever runs once
        INIT {...}*      at run time, ASAP, only ever runs once
         END {...}       at run time, ALAP, only ever runs once
 
@@ -1368,6 +1369,8 @@ them respond to various control exceptions and exit values:
 
       CATCH {...}       catch exceptions, before LEAVE
     CONTROL {...}       catch control exceptions, before LEAVE
+
+    COMPOSE {...}       when a role is composed into a class
 
 Those marked with a C<*> can also be used within an expression:
 
@@ -1417,6 +1420,9 @@ Code that is generated at run time can still fire off C<CHECK>
 and C<INIT> phasers, though of course those phasers can't do things that
 would require travel back in time.  You need a wormhole for that.
 
+The compiler is free to ignore C<FINAL> phasers compiled at run time
+since they're too late for the application-wide linking decisions.
+
 Some of these phasers also have corresponding traits that can be set on variables.
 These have the advantage of passing the variable in question into
 the closure as its topic:
@@ -1433,7 +1439,8 @@ a list of phasers rather than a single phaser.  In general, initializing
 phasers execute in order declared, while finalizing phasers execute in
 the opposite order.  When phasers are in different modules, the
 C<INIT> and C<END> phasers are treated as if declared at C<use> time in
-the using module.
+the using module.  (It is erroneous to depend on this order if the
+module is used more than once, however.)
 
 The semantics of C<INIT> and C<START> are not equivalent to each
 other in the case of cloned closures.  An C<INIT> only runs once for
@@ -1506,7 +1513,7 @@ any C<CATCH> and C<CONTROL> phasers.  This includes
 the C<LEAVE> variants, C<KEEP> and C<UNDO>.  C<POST> phasers are evaluated after
 everything else, to guarantee that even C<LEAVE> phasers can't violate postconditions.
 Likewise C<PRE> phasers fire off before any C<ENTER> or C<FIRST> (though not
-before C<BEGIN>, C<CHECK>, or C<INIT>, since those are done at compile or
+before C<BEGIN>, C<CHECK>, C<FINAL>, or C<INIT>, since those are done at compile or
 process initialization time).
 
 The C<POST> block can be defined in one of two ways.  Either the
@@ -1823,7 +1830,7 @@ that can carry the info lazily.  Neither approach is pretty.]
 
 Some closures produce C<Block> objects at compile time that cannot be
 cloned, because they're not attached to any runtime code that can
-actually clone them.  C<BEGIN>, C<CHECK>, C<INIT>, and C<END> blocks
+actually clone them.  C<BEGIN>, C<CHECK>, C<FINAL>, C<INIT>, and C<END> blocks
 fall into this category.  Therefore you can't reliably refer to
 run-time variables from these closures even if they appear to be in the
 scope.  (The compile-time closure may, in fact, see some kind of permanent
