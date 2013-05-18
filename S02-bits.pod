@@ -3070,16 +3070,21 @@ variable sets or temporizes the incipient C<$?> variable in the
 surrounding lexical scope that is being compiled.  If nothing in
 the context is being compiled, an exception is thrown.
 
-    $?FOO // say "undefined";   # probably says undefined
     BEGIN { COMPILING::<$?FOO> = 42 }
     say $?FOO;                  # prints 42
     {
         say $?FOO;              # prints 42
+    }
+    {
         BEGIN { temp COMPILING::<$?FOO> = 43 } # temporizes to *compiling* block
         say $?FOO;              # prints 43
-        BEGIN { COMPILING::<$?FOO> = 44 }
+    }
+    {
+        BEGIN {
+            COMPILING::<$?FOO> = 44;
+            say COMPILING::<$?FOO>; # prints 44, but $?FOO probably undefined
+        }
         say $?FOO;              # prints 44
-        BEGIN { say COMPILING::<$?FOO> }        # prints 44, but $?FOO probably undefined
     }
     say $?FOO;                  # prints 42 (left scope of temp above)
     $?FOO = 45;                 # always an error
