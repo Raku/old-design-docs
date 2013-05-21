@@ -2460,6 +2460,10 @@ appropriate adverb to the subscript.
 
 These adverbial forms all weed out non-existing entries if the
 adverb is true; if not, they leave them in, just as an ordinary slice would.
+So:
+
+    @array[0,1,2] :!p;  # returns 0 => 'A', 1 => 'B', 2 => (Any)
+    %hash<a b c>  :!kv; # returns 'a', 'A', 'b', 'B', 'c', (Any)
 
 Likewise,
 
@@ -2495,11 +2499,54 @@ a junction of items:
     if %hash{none <a b c>} :exists {...}
 
 Using the C<:exists> adverb together with a list slice results in
-an error -- preferably at compile time -- because it could be
-argued both ways whether C<:exists> on a bare list would have
-C<any> or C<all> semantics.
+in a C<Parcel> of C<Bool>, which you could also put in a junction with
+similar semantics:
+
+    if any %hash<a b c> :exists {...}
+    if all %hash<a b c> :exists {...}
+    if one %hash<a b c> :exists {...}
+    if none %hash<a b c> :exists {...}
+
+although with different optimisation options for the compiler.
 
 You may use :!exists to test for non-existence.
+
+=head2 Combining subscript adverbs
+
+Like named parameters in a call, there is no order in handling multiple
+adverbs with subscripts.  Some combinations make sense, such as:
+
+  %a = %b{@keys-to-extract} :delete :p; # same as :p :delete
+
+would slice out pairs for the given the keys out of one hash into another.
+Whereas
+
+  @actually-deleted = %h{@keys-to-extract} :delete :k; # same as :k :delete
+
+would return the I<keys> that were actually deleted from the hash.
+
+The adverbs that specify a return type only, can B<not> be combined, because
+combinations such as I<:kv:p> or I<:v:k> simply do not make sense.
+
+These combinations are considered legal and mean the following:
+
+  :delete :p             delete, return pairs of actually deleted keys
+  :delete :!p            delete, return pairs of all keys attempted
+  :delete :kv            delete, return key/values of actually deleted keys
+  :delete :!kv           delete, return key/values of all keys attempted
+  :delete :v             delete, return values of actually deleted keys
+  :delete :!v            delete, return values of all keys attempted
+  :delete :k             delete, return actually deleted keys
+  :delete :!k            delete, return all keys attempted to delete
+  :delete :exists        delete, return Bools indicating deletion successful
+  :delete :!exists       delete, return Bools indicating deletion not successful
+  :delete :exists :p     delete, return pairs with key/True for deleted
+  :delete :exists :!p    delete, return pairs with key/Bool deletion successful
+  :delete :exists :kv    delete, return list with key,True for deleted
+  :delete :exists :!kv   delete, return list with key,Bool deletion successful
+
+An implementation is free to silently ignore any other combinations or
+silently prefer one of the adverbs given above any other.
 
 =head2 Numeric and boolean context of hashes
 
