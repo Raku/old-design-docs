@@ -2450,7 +2450,6 @@ appropriate adverb to the subscript.
     @array[0,1,2] :kv;  # returns 0, 'A', 1, 'B'
     @array[0,1,2] :k;   # returns 0, 1
     @array[0,1,2] :v;   # returns 'A', 'B'
-    @array[0,1,2] :vk;  # returns 'A', 0, 'B', 1
 
     %hash = (:a<A>, :b<B>);
     %hash<a b c>;       # returns 'A', 'B', (Any)
@@ -2458,7 +2457,6 @@ appropriate adverb to the subscript.
     %hash<a b c> :kv;   # returns 'a', 'A', 'b', 'B'
     %hash<a b c> :k;    # returns 'a', 'b'
     %hash<a b c> :v;    # returns 'A', 'B'
-    %hash<a b c> :vk;   # returns 'A', 'a', 'B', 'b'
 
 These adverbial forms all weed out non-existing entries if the
 adverb is true; if not, they leave them in, just as an ordinary slice would.
@@ -2466,7 +2464,6 @@ So:
 
     @array[0,1,2] :!p;  # returns 0 => 'A', 1 => 'B', 2 => (Any)
     %hash<a b c>  :!kv; # returns 'a', 'A', 'b', 'B', 'c', (Any)
-    %hash<a b c>  :!vk; # returns 'A', 'a', 'B', 'b', (Any), 'c'
 
 Likewise,
 
@@ -2537,20 +2534,16 @@ These combinations are considered legal and mean the following:
   :delete :!p            delete, return pairs of all keys attempted
   :delete :kv            delete, return key/values of actually deleted keys
   :delete :!kv           delete, return key/values of all keys attempted
-  :delete :k             delete, return actually deleted keys
-  :delete :!k            delete, return all keys attempted to delete
   :delete :v             delete, return values of actually deleted keys
   :delete :!v            delete, return values of all keys attempted
-  :delete :vk            delete, return value/keys of actually deleted keys
-  :delete :!vk           delete, return value/keys of all keys attempted
+  :delete :k             delete, return actually deleted keys
+  :delete :!k            delete, return all keys attempted to delete
   :delete :exists        delete, return Bools indicating keys existed
   :delete :!exists       delete, return Bools indicating keys did not exist
   :delete :exists :p     delete, return pairs with key/True for key existed
   :delete :exists :!p    delete, return pairs with key/Bool whether key existed
   :delete :exists :kv    delete, return list with key,True for key existed
   :delete :exists :!kv   delete, return list with key,Bool whether key existed
-  :delete :exists :vk    delete, return list with True,key for key existed
-  :delete :exists :!vk   delete, return list with Bool,key whether key existed
 
 An implementation is free to silently ignore any other combinations or
 silently prefer one of the adverbs given above any other.
