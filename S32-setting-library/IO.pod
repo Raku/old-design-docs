@@ -269,10 +269,38 @@ C<IO::Writeable::Encoded> methods.
 
 =item slurp
 
-    method slurp()
+    method slurp(
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+        --> Str|Buf)
 
-Reads all the remaining contents of the handle into a C<Str> (or a C<Buf>
-if  the handle was opened with C<:bin>).
+Slurps the entire file into a C<Str> (or C<Buf> if C<:bin>) regardless of context.
+(See also C<lines>.)
+
+The routine will C<fail> if the file does not exist, or is a directory.
+
+=item spurt
+
+    multi method spurt (
+        Str   $contents,
+        Str  :$enc = $?ENC,
+        Bool :append = False,
+        Bool :$createonly = False)
+    
+    multi method spurt (
+        Buf   $contents,
+        Bool :append = False,
+        Bool :$createonly = False)
+
+Opens the file for writing, dumps the contents, and closes the file.
+
+This routine will C<fail> if the file exists and C<:createonly> is set.
+
+If C<:append> is provided, an existing file will not be clobbered, but the
+string will be appended.
+
+The routine will also C<fail> with the corresponding exception if there was any
+other error in opening, writing, or closing.
 
 =item t
 
