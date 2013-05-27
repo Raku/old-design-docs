@@ -65,9 +65,15 @@ File tests are performed through C<IO::Path> objects.
 X<open>
 
     multi open (Str $name,
+      # mode
+        Bool :$r  = True,
+        Bool :$w  = False,
         Bool :$rw = False,
+        Bool :$a  = False,
+      # encoding
         Bool :$bin = False,
         Str  :$enc = "Unicode",
+      # newlines
         Any  :$nl = "\n",
         Bool :$chomp = True,
         ...
@@ -83,7 +89,8 @@ be picked implicitly.)  A file opened with C<:bin> may still be
 processed line-by-line, but IO will be in terms of C<Buf> rather
 than C<Str> types.
 
-TODO: document read/write/append modes (:r, :w, :a)
+For a discussion of the read/write/append modes (:r, :w, :a), see
+L</IO::Handle/open> under IO::Handle.
 
 =item dir
 X<dir>
@@ -192,6 +199,34 @@ writing like a file.
 
 =over 4
 
+    multi method open (
+      # mode
+        Bool :$r  = True,
+        Bool :$w  = False,
+        Bool :$rw = False,
+        Bool :$a  = False,
+      # encoding
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+      # newlines
+        Any  :$nl = "\n",
+        Bool :$chomp = True,
+        --> IO::Handle
+    ) is export
+
+Open the handle for reading or writing (or both).  Specifying C<:r>, the default,
+opens the handle as read-only, C<:w> is write-only, C<:rw> is read-write, and
+C<:a> appends writes to the file.
+
+The C<:enc> parameter controls which text encoding the file is interpreted as.
+Unicode is the default encoding.  See L</encoding> for encoding options.
+
+The C<:nl> option sets L</input-line-separator>, and C<:chomp> determines if
+the new line separator will be chopped removed by C<get> and C<lines>.
+
+Conjectural: The <:p> parameter opens a pipe, which is readable with C<:r>
+(default) and writable with C<:w>.
+
 =item get
 
     method get() returns Str:D
@@ -274,8 +309,10 @@ C<IO::Writeable::Encoded> methods.
         Str  :$enc = "Unicode",
         --> Str|Buf)
 
-Slurps the entire file into a C<Str> (or C<Buf> if C<:bin>) regardless of context.
-(See also C<lines>.)
+Opens the handle if necessary, slurps the entire file into a C<Str>
+(or C<Buf> if C<:bin> parameter is given) regardless of context.  Closes the
+handle after it is done, and returns the contents of the file.
+(See also L</lines>.)
 
 The routine will C<fail> if the file does not exist, or is a directory.
 
@@ -347,7 +384,7 @@ Returns the number of lines that have been read with C<get>.
 
     method input-line-separator( --> Str) is rw
 
-This regulates how "get" and "lines" behave.
+This regulates how C<get> and C<lines> behave.
 
 The input line (record) separator, newline by default.
 This influences Perl's idea of what a ``line'' is.
@@ -366,6 +403,13 @@ even if it's a newline.
 You may also set it to a regular expression.  The value of C<$/>
 will be (temporarily) set to the matched separator upon input,
 if you care about the contents of the separator.
+
+=item encoding
+    multi method encoding($enc?)
+With no arguments, simply returns the current encoding used on the handle.
+If supplied a string identifying a valid encoding, change the handle to read
+with that encoding.  Options include C<binary>, C<utf8>, and
+other text encodings.  An invalid encoding causes the method to fail.
 
 =item close
 
@@ -708,6 +752,7 @@ all of the characters involved, use `.splitdir` instead.
 	Win32   C:\a\b\    ("C:", "\\a\\b\\", "")  ("C:", "\\a", "b")
 	VMS     A:[b.c]    ("A:", "[b.c]", "")     ("A:", "[b]", "[c]")
 
+* The VMS section is still speculative, and not yet supported.
 
 =item catpath()
 
@@ -737,7 +782,7 @@ This method is the inverse of `.split`; the results can be passed to it
 to get the volume, dirname, and basename portions back.
 
 
-### Comparison of catpath and join
+=item Comparison of catpath and join
 
 	OS     Components            catpath        join
 	linux  ("", "/a/b", "c")     /a/b/c         /a/b/c
@@ -749,7 +794,7 @@ to get the volume, dirname, and basename portions back.
 * The VMS section is still speculative, and not yet supported.
 
 =item splitdir
-X<splitdir> X<split, dir>
+X<splitdir>
 
 The opposite of L</catdir>.
 
@@ -791,7 +836,7 @@ from the base path to the destination path:
 
 If C<$base> is not present or '', then C<$*CWD> is used. If C<$base> is
 relative, then it is converted to absolute form using
-L</rel2abs()>. This means that it is taken to be relative to
+L</IO::Spec/rel2abs>. This means that it is taken to be relative to
 C<$*CWD>.
 
 On systems with the concept of volume, if C<$path> and C<$base> appear to be
@@ -802,12 +847,12 @@ On systems that have a grammar that indicates filenames, this ignores the
 C<$base> filename as well. Otherwise all path components are assumed to be
 directories.
 
-If C<$path> is relative, it is converted to absolute form using L</rel2abs()>.
+If C<$path> is relative, it is converted to absolute form using L</IO::Spec/rel2abs>.
 This means that it is taken to be relative to C<$*CWD>.
 
 No checks against the filesystem are made.
 
-=item rel2abs()
+=item rel2abs
 X<rel2abs>
 
 Converts a relative path to an absolute path. 
@@ -815,19 +860,16 @@ Converts a relative path to an absolute path.
     $abs_path = IO::Spec.rel2abs( $path ) ;
     $abs_path = IO::Spec.rel2abs( $path, $base ) ;
 
-If C<$base> is not present or '', then C<$*CWD> is used. If C<$base> is relative,
-then it is converted to absolute form using L</rel2abs()>. This means that it
-is taken to be relative to C<$*CWD>.
+If C<$base> is not present or '', then C<$*CWD> is used. If C<$base> is also 
+relative, then it is first converted to absolute form, relative to C<$*CWD>.
 
 On systems with the concept of volume, if C<$path> and C<$base> appear to be
-on two different volumes, we will not attempt to resolve the two
-paths, and we will instead simply return C<$path>.  Note that previous
-versions of this module ignored the volume of C<$base>, which resulted in
-garbage results part of the time.
+on two different volumes, IO::Spec will not attempt to resolve the two
+paths, and will instead simply return C<$path>.
 
-On systems that have a grammar that indicates filenames, this ignores the 
-C<$base> filename as well. Otherwise all path components are assumed to be
-directories.
+On systems that have a grammar that indicates filenames (like VMS), this
+ignores the C<$base> filename as well. Otherwise all path components are
+assumed to be directories.
 
 If C<$path> is absolute, it is cleaned up and returned using L</canonpath>.
 
@@ -875,15 +917,15 @@ X<tmpdir>
 Returns a string representation of the first writable directory from a
 list of possible temporary directories.  Returns the current directory
 if no writable temporary directories are found.  The list of directories
-checked depends on the platform; e.g. IO::Spec::Unix checks C<< %ENV<TMPDIR> >>
+checked depends on the platform; e.g. IO::Spec::Unix checks C<< %*ENV<TMPDIR> >>
 and F</tmp>.
 
     $tmpdir = IO::Spec.tmpdir;
 
-### no-parent-or-current-test
+item no-parent-or-current-test
 
 Returns a test as to whether a given path is identical to the parent or the
-current directory.  On Linux, this is simply C<none('.', '..')>.  The `dir()`
+current directory.  On Linux, this is simply C<none('.', '..')>.  The L</Functions/dir>
 function automatically removes these for you in directory listings, so under
 normal circumstances you shouldn't need to use it directly.
 
