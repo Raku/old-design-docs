@@ -1345,15 +1345,14 @@ transition from one phase of computing to another.  For instance,
 a C<CHECK> block is called at the end of compiling a compilation
 unit.  Other kinds of phasers can be installed as well; these are
 automatically called at various times as appropriate, and some of
-them respond to various control exceptions and exit values:
+them respond to various control exceptions and exit values.
+Phasers marked with a C<*> can be used for their return value.
 
       BEGIN {...}*      at compile time, ASAP, only ever runs once
       CHECK {...}*      at compile time, ALAP, only ever runs once
       FINAL {...}*      at link time, ALAP, only ever runs once
        INIT {...}*      at run time, ASAP, only ever runs once
         END {...}       at run time, ALAP, only ever runs once
-
-      START {...}*      on first ever execution, once per closure clone
 
       ENTER {...}*      at every block entry time, repeats on loop blocks.
       LEAVE {...}       at every block exit time (even stack unwinds from exceptions)
@@ -1372,16 +1371,34 @@ them respond to various control exceptions and exit values:
 
     COMPOSE {...}       when a role is composed into a class
 
-Those marked with a C<*> can also be used within an expression:
+Some of the statement prefixes also behave a little bit like phasers,
+but they run in-line with the executable code, so they are spelled
+in lowercase.  They parse the same as phasers:
+
+         do {...}*      run a block or statement as a term
+       once {...}*      run only once, suppressing additional evaluations
+     gather {...}*      start a co-routine thread
+       lift {...}*      use caller's semantics for operators
+       lazy {...}*      return a promise to evaluate
+       sink {...}*      eval eagerly and throw results away
+        try {...}*      evaluate and trap exceptions
+    quietly {...}*      evaluate and suppress warnings
+    contend {...}*      attempt side effects under STM
+      async {...}       start a subthread
+
+Constructs marked with a C<*> have a run-time value, and if evaluated
+earlier than their surrounding expression, they simply save their
+result for use in the expression later when the rest of the expression
+is evaluated:
 
     my $compiletime = BEGIN { now };
-    our $temphandle = START { maketemp() };
+    our $temphandle = ENTER { maketemp() };
 
 As with other statement prefixes, these value-producing constructs
 may be placed in front of either a block or a statement:
 
     my $compiletime = BEGIN now;
-    our $temphandle = START maketemp();
+    our $temphandle = ENTER maketemp();
 
 In fact, most of these phasers will take either a block or a statement
 (known as a I<blast> in the vernacular).  The statement form can be
@@ -1393,7 +1410,7 @@ variables with the same scope as the preceding example, but run the
 statements as a whole at the indicated time:
 
     BEGIN my $compiletime = now;
-    START our $temphandle = maketemp();
+    ENTER our $temphandle = maketemp();
 
 (Note, however, that the value of a variable calculated at compile
 time may not persist under run-time cloning of any surrounding closure.)
@@ -1433,7 +1450,7 @@ the closure as its topic:
 Apart from C<CATCH> and C<CONTROL>, which can only occur once, most
 of these can occur multiple times within the block.  So they aren't
 really traits, exactly--they add themselves onto a list stored in the
-actual trait (except for C<START>, which executes inline).  So if you
+actual trait.  So if you
 examine the C<ENTER> trait of a block, you'll find that it's really
 a list of phasers rather than a single phaser.  In general, initializing
 phasers execute in order declared, while finalizing phasers execute in
@@ -1443,16 +1460,16 @@ the using module.  (It is erroneous to depend on this order if the
 module is used more than once, however, since the phasers are only
 installed the first time they're noticed.)
 
-The semantics of C<INIT> and C<START> are not equivalent to each
+The semantics of C<INIT> and C<once> are not equivalent to each
 other in the case of cloned closures.  An C<INIT> only runs once for
-all copies of a cloned closure.  A C<START> runs separately for each
+all copies of a cloned closure.  A C<once> runs separately for each
 clone, so separate clones can keep separate state variables:
 
     our $i = 0;
     ...
     $func = { state $x will start { $x = $i++ }; dostuff($i) };
 
-But C<state> automatically applies "start" semantics to any initializer,
+But C<state> automatically applies "once" semantics to any initializer,
 so this also works:
 
     $func = { state $x = $i++; dostuff($i) }
@@ -1462,11 +1479,11 @@ previous, and each clone maintains its own state of C<$x>, because that's
 what C<state> variables do.
 
 Even in the absence of closure cloning, C<INIT> runs before the
-mainline code, while C<START> puts off the initialization till the
+mainline code, while C<once> puts off the initialization till the
 last possible moment, then runs exactly once, and caches its value
 for all subsequent calls (assuming it wasn't called in sink context,
-in which case the C<START> is evaluated once only for its side effects).
-In particular, this means that C<START> can make use of any parameters
+in which case the C<once> is evaluated once only for its side effects).
+In particular, this means that C<once> can make use of any parameters
 passed in on the first call, whereas C<INIT> cannot.
 
 All of these phaser blocks can see any previously declared lexical
@@ -1496,7 +1513,7 @@ by C<next>.  In particular, a C<last> bypasses evaluation of C<NEXT>
 phasers.
 
 [Note: the name C<FIRST> used to be associated with C<state>
-declarations.  Now it is associated only with loops.  See the C<START>
+declarations.  Now it is associated only with loops.  See the C<once>
 above for C<state> semantics.]
 
 Except for C<CATCH> and C<CONTROL> phasers, which run while an exception
