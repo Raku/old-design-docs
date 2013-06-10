@@ -106,6 +106,10 @@ The return value is a list of C<IO::Path> objects.  Because of this, you may
 want use the C<basename> method on the results to get the just the file name,
 without its full path.
 
+=item glob
+
+TODO: fileglobs
+
 =item note
 
     multi note (*@LIST --> Bool)
@@ -120,7 +124,7 @@ scope by declaring:
 
 =item slurp
 
-    multi slurp (IO $fh = $*ARGFILES,
+    multi slurp (IO::Handle $fh = $*ARGFILES,
         Bool :$bin = False,
         Str  :$enc = "Unicode",
         --> Str|Buf
@@ -138,13 +142,13 @@ The routine will C<fail> if the file does not exist, or is a directory.
 
 =item spurt
 
-    multi spurt (IO $fh,
+    multi spurt (IO::Handle $fh,
         Str   $contents,
         Str  :$enc = $?ENC,
         Bool :append = False,
         Bool :$createonly = False,
     )
-    multi spurt (IO $fh,
+    multi spurt (IO::Handle $fh,
         Buf   $contents,
         Bool :append = False,
         Bool :$createonly = False,
@@ -177,6 +181,19 @@ other error in opening, writing, or closing.
     multi sub chdir(IO::Path::D)
 
 Changes the current working directory to the new value. Fails on error.
+
+=item unlink
+
+    sub unlink(Cool:D $path)
+
+Unlinks an ordinary file, link, or symbolic link from disk -- that is, it is
+deleted.  If the operation fails, unlink throws a X::IO::Unlink error.
+
+=item rmdir
+
+    sub rmdir(Cool:D $directory)
+
+Removes the directory given from disk.  Throws an X::IO::Rmdir error on failure.
 
 =back
 
@@ -628,6 +645,25 @@ On a Unix/POSIX filesystem, if called recursively, it will work like so:
 
 Appends C<$childname> to the end of the path, adding path separators where
 needed.
+
+=item copy
+
+    method copy ($dest, :$createonly = False )
+
+Copies a file from the path, to the destination specified.  If :createonly is
+set to True, copy fails when a file already exists in the destination.  If the
+operation cannot be completed, fails as X::IO::Copy.
+
+=item unlink
+
+Unlinks (deletes) the ordinary file, link, or symbolic link represented by the
+IO::Path.  Returns True on success; throws an X::IO::Unlink error on failure.
+
+=item rmdir
+
+Removes (deletes) the directory represented by the IO::Path.  Typically fails
+unless the directory is empty.  Returns True on success; throws an X::IO::Rmdir
+error on failure.
 
 =back
 
