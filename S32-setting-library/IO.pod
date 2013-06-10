@@ -104,7 +104,8 @@ returned.
 
 The return value is a list of C<IO::Path> objects.  Because of this, you may
 want use the C<basename> method on the results to get the just the file name,
-without its full path.
+without its full path.  If dir() fails, it returns an
+L<X::IO::Dir|S32::Exception/X::IO::Dir> failure.
 
 =item glob
 
@@ -180,20 +181,22 @@ other error in opening, writing, or closing.
     multi sub chdir(Str:D)
     multi sub chdir(IO::Path::D)
 
-Changes the current working directory to the new value. Fails on error.
+Changes the current working directory to the new value. Fails (X::IO::Chdir) on error.
 
 =item unlink
 
     sub unlink(Cool:D $path)
 
 Unlinks an ordinary file, link, or symbolic link from disk -- that is, it is
-deleted.  If the operation fails, unlink throws a X::IO::Unlink error.
+deleted.  Returns True on success; otherwise returns an L<S32::Exception/X::IO::Unlink>
+failure.
 
 =item rmdir
 
     sub rmdir(Cool:D $directory)
 
-Removes the directory given from disk.  Throws an X::IO::Rmdir error on failure.
+Removes the directory given from disk.  Returns True on success, or an 
+L<X::IO::Rmdir|S32::Exception/X::IO::Rmdir> failure.
 
 =back
 
@@ -485,11 +488,6 @@ strikes) and are summarized in the following table:
 =over 4
 X<stattimes>
 
-=item created
-
-Returns the creation time of the path, on filesystems where this information
-is available.
-
 =item accessed
 
 Returns the last access time (C<atime>) of the path, to the degree that it is
@@ -657,13 +655,13 @@ operation cannot be completed, fails as X::IO::Copy.
 =item unlink
 
 Unlinks (deletes) the ordinary file, link, or symbolic link represented by the
-IO::Path.  Returns True on success; throws an X::IO::Unlink error on failure.
+IO::Path.  Returns True on success; on error, fails with an X::IO::Unlink.
 
 =item rmdir
 
 Removes (deletes) the directory represented by the IO::Path.  Typically fails
-unless the directory is empty.  Returns True on success; throws an X::IO::Rmdir
-error on failure.
+unless the directory is empty.  Returns True on success; fails with an X::IO::Rmdir
+on error.
 
 =back
 
