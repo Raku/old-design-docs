@@ -12,8 +12,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 29 May 2013
-    Version: 124
+    Last Modified: 13 Jun 2013
+    Version: 125
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -1011,6 +1011,10 @@ unexpectedly, the inside of a C<try> is always considered
 an eager context, unless the C<try> itself is in a sink context, in which
 case the inside of C<try> is also in sink context.
 
+Additionally, the C<try> block or statement implicitly enforces a
+C<use fatal> context such that failures are immediately thrown as exceptions.
+(See below.)
+
 An exception handler is just a switch statement on an implicit topic
 that happens to be the current exception to be dealt with.
 Inside the C<CATCH> block, the exception in question is
@@ -1101,6 +1105,12 @@ a C<CATCH> must not behave that way, so we say that a C<CATCH> block
 never attempts to handle any exception thrown within its own dynamic scope.
 (Otherwise any C<die> would cause an infinite loop.)  Instead we treasure
 them up and rethrow them to a handler further up.
+
+Unlike C<try>, the presence of a C<CATCH> block does not
+imply C<use fatal> semantics for failures; you may, however, use
+either an explicit C<try> block around the C<CATCH> or an explicit
+C<use fatal> to guarantee that failures are thrown eagerly rather
+than lazily.
 
 =head1 Control Exceptions
 
@@ -1381,7 +1391,7 @@ in lowercase.  They parse the same as phasers:
        lift {...}*      use caller's semantics for operators
        lazy {...}*      return a promise to evaluate
        sink {...}*      eval eagerly and throw results away
-        try {...}*      evaluate and trap exceptions
+        try {...}*      evaluate and trap exceptions (implies 'use fatal')
     quietly {...}*      evaluate and suppress warnings
     contend {...}*      attempt side effects under STM
       async {...}       start a subthread
