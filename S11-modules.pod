@@ -86,6 +86,15 @@ Exportation is now done by trait declaration on the exportable item:
     sub bop is export(:ALL)             {...}  #  :ALL
     sub qux is export(:others)          {...}  #  :ALL, :others
 
+Constants (and enums) are also exportable items. As are variables declared
+in C<our> scoping:
+
+    our @foo is export = <foo bar>
+    our %bar is export = <foo bar>
+    our $baz is export = "foobar"
+    constant $FOO is export = "foobar"
+    enum FooBar is export (:baz(1))
+
 Every C<UNIT> gets a lexically scoped C<EXPORT> package automatically.
 Declarations marked as C<is export> are bound into it, with their tagsets
 as inner package names. For example, the C<sub bar> above will bind as
