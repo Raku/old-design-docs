@@ -170,14 +170,16 @@ an array of those list values classified by the mapper into the category
 of the associated key.  For example:
 
   @list = (1, 2, 3, 4);
-  (:@even, :@odd) := classify { $_ % 2 ?? 'odd' !! 'even' }, @list;
+  (:@even, :@odd) := @list.classify: { $_ % 2 ?? 'odd' !! 'even' };
+  (:@even, :@odd) := classify { $_ % 2 ?? 'odd' !! 'even' }, @list; # same
 
 In this example, @even will contain all even numbers from C<@list>
 and C<@odd> will contain all odd numbers from C<@list>.
 
 To simply transform a list into a hash of arrays:
 
-  %cars_by_color := classify { .color }, @cars;
+  %cars_by_color := @cars.classify: { .color };
+  %cars_by_color := classify { .color }, @cars; # same
   red_car_owners(%cars_by_color<red>.map:{.owner});
 
 A mapper may be any unary function, hash, or array.
@@ -223,7 +225,8 @@ the C<$test> smart-matches as true.
 
 Here is an example of its use:
 
- @friends = grep { .is_friend }, @coworkers;
+ @friends = @coworkers.grep: { .is_friend };
+ @friends = grep { .is_friend }, @coworkers; # same
 
 This takes the array C<@coworkers>, checks every element to see
 which ones return true for the C<.is_friend> method, and returns
