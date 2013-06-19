@@ -27,19 +27,25 @@ new type system.
 C<Routine> is the parent type of all keyword-declared code blocks.
 All routines are born with undefined values of C<$_>, C<$!>,
 and C<$/>, unless the routine declares them otherwise explicitly.
-A compilation unit is also considered a routine, or you would not be
-able to reference C<$!> or C<$/> in them.  (Non-routine code C<Block>s,
+A compilation unit, such as a module file or an eval string, is also
+considered a routine, or you would not be
+able to reference C<$!> or C<$/> in them.
+
+Non-routine code C<Block>s,
 declared with C<< -> >> or with bare curlies, are born only with C<$_>,
 which is aliased to its OUTER::<$_> unless bound as a parameter.
 A block generally uses the C<$!> and C<$/> defined by the innermost
 enclosing routine, unless C<$!> or C<$/> is explicitly declared in
-the block.  A conditional thunk follows the same rules, except that
-a thunk has no scope to declare a new variable.  Note however that
+the block.
+
+A thunk is a piece of code that may not execute immediately, for instance
+because it is part of a conditional operator, or a default initialization of
+an attribute.  It has no scope of its own, so any new variables defined in
+a thunk, will leak to the scope that they're in.  Note however that
 any and all lazy constructs, whether block-based or thunk-based,
 such as gather or async or C<< ==> >> should declare their own C<$/>
 and C<$!> so that the user's values for those variables cannot be
-clobbered asynchronously.  And this parenthetical remark is starting to
-be seriously misplaced...)
+clobbered asynchronously.
 
 B<Subroutines> (keyword: C<sub>) are non-inheritable routines with
 parameter lists.
