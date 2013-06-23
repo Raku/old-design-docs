@@ -657,9 +657,9 @@ non-existent state, as if they never had a value. Deleted elements at
 the end of an Array shorten the length of the Array, unless doing so
 would violate an C<is shape()> definition.
 
-The interpretation of C<@indices> is subject to change.
-The normal way to delete is by applying a C<:delete> adverb to
-any subscripting operation.
+This is considered to be an internal method.  The interpretation of C<@indices>
+is therefor subject to change.  The normal way to delete is by applying a
+C<:delete> adverb to any subscripting operation.
 
 Returns the value(s) previously held in deleted locations.
 
@@ -678,8 +678,8 @@ is not the same as being defined.
 Supplying a different number of indices than invocant has dimensions is
 an error.
 
-The normal way to test for existence is to apply the C<:exists>
-adverb to a subscripting operation.
+This is considered to be an internal method: the normal way to test for
+existence is to apply the C<:exists> adverb to a subscripting operation.
 
 =item :exists
 
@@ -687,7 +687,6 @@ This adverb may be applied to any subscripting operation.  The
 operation returns true if specified element exists.  If a slice
 is specified by the subscript, a C<Parcel> of C<Bool> is returned,
 which can be processed using junctions.
-
 
 =item pop
 
@@ -864,10 +863,29 @@ The following are defined in the C<Hash> class.
 
 =over 4
 
+=item delete
+
+ method delete ( %hash: $key --> $value ) is export
+
+Remove the specified element from the hash, and return its value.
+
+This is considered to be an internal method: the normal way to delete is by
+applying a C<:delete> adverb to any subscripting operation.
+
 =item :delete
 
 This adverb may be applied to any subscripting operation.  The operation
 returns the elements normally, but reads them out destructively.
+
+=item exists
+
+ method exists ( %hash: $key --> Bool )
+
+True if the specified element has been assigned to. This need not the be same
+as being defined.
+
+This is considered to be an internal method: the normal way to test for
+existence is to apply the C<:exists> adverb to a subscripting operation.
 
 =item :exists
 
