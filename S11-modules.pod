@@ -3,27 +3,109 @@
 
 =head1 TITLE
 
-Synopsis 11: Modules
+Synopsis 11: Units and Modules
 
 =head1 AUTHORS
 
     Larry Wall <larry@wall.org>
+    Elizabeth Mattijsen <liz@dijkmat.nl>
 
 =head1 VERSION
 
     Created: 27 Oct 2004
 
-    Last Modified: 14 Sep 2012
-    Version: 38
+    Last Modified: 24 June 2013
+    Version: 39
 
 =head1 Overview
 
 This synopsis discusses those portions of Apocalypse 12 that ought to have
 been in Apocalypse 11.
 
+=head1 Units
+
+Perl 6 code is compiled per compilation unit, or "compunit" for short.  These
+are either stored in a file (usually with a .pm or .pm6 extension) and loaded
+with a C<use>, C<need> or C<require> statement.  Or they are created as a
+string in a variable and compiled with an C<eval> statement.  This synopsis is
+mostly about compunits stored in a file.
+
+In the common vernacular of a Perl 5 developer, a "module" is the same as the
+file that contains the source code of a package.  For Perl 6 developers, this
+is not much different.  However, such a "module" is really a compunit that may
+contain 0 or more package-like statements of "modules".  Confusing?  Yes it is.
+On top of that, Perl 6 allows different versions of the same "module" to be
+installed in a single directory.  And it allows compunits from other languages
+to be loaded.
+
+In Perl, the C<use> statement is really just telling Perl to find a file for
+the given name (after some name to filename translation logic has been applied)
+and load its contents.  Whether that name is the name of a C<package>,
+C<module>, C<class>, C<grammer> or C<role>, a combination of these or
+something else entirely in a C<slang>, is B<not> known at the moment the file
+is searched (and found).  Only when the contents of a file are compiled, does
+Perl find out what's inside.
+
+In Perl 5, the name to filename translation is mechanical.  Foo::Bar will
+always refer to Foo/Bar.pm in a directory: it does not need any outside
+information to find out the name of the file to be loaded.  For files that
+reside in directories that are not part of the installation, this is the same
+in Perl 6.  These directories are however typically used for development and/or
+testing.  Such a directory can be marked as not allowing installed compunits,
+e.g. by the existence of a hidden file like ".camelia_dev".
+
+In Perl 6, this is not an option for compunits that have been installed: the
+name that indicates a compunit, is case-sensitive and in Unicode.  This needs
+to be supported even on a system that has a filesystem that is case-insensitive
+and/or does not support Unicode and/or does not allow long enough filenames.
+Let alone be able to store meta-information, such as the version of the
+compunit.  Therefor, an authoritative "database" of meta-information of
+installed compunits is needed in those directories that contain installed
+compunits.  Such a database could be as simple as a hidden text-file named
+".camelia".
+
+The optional "unit" statement provides all the necessary meta-information that
+is needed to add a compunit to a given Perl 6 installation, as well as being
+able to load the compunit at a later time.  There can only be at most one
+"unit" statement per compunit, and it must occur B<before> any "module"-like
+statement.
+
+The syntax of such a unit declaration has multiple parts in which the
+non-identifier parts are specified in adverbial pair notation without
+intervening spaces.  You may write the various parts in any order, except
+that the compunit identifier must come first.  The required parts for library
+insertion are the name of the compunit, a URI identifying the author
+(or authorizing authority, so we call it "auth" to be intentionally ambiguous),
+and its version number ("ver" for short).  For example:
+
+    unit Dog:auth<cpan:JRANDOM>:ver<1.2.1>;
+    unit Dog:auth<http://www.some.com/~jrandom>:ver<1.2.1>;
+    unit Dog:auth<mailto:jrandom@some.com>:ver<1.2.1>;
+
+The combination of name, "auth" and "ver", we call the "credentials" of a
+compunit.
+
+If a compunit is missing a unit declaration, then the name of the first
+"module"-like statement will be assumed as the name of the unit, and the
+credentials will be assumed to be just the name.  So:
+
+    class Dog;
+
+would be the same as having specified:
+
+    unit Dog:auth(Any):ver(Any);
+    class Dog;
+
+If a compunit contains a unit declaration, but was loaded from a directory
+that is not part of the installation, then the credentials are ignored.  Of
+course, it is always possible to load a compunit using a C<require> statement
+with the name of the file.  In that case, the credentials will be honored.
+In either case, an exception may be thrown if a compunit had been loaded with
+indentical credentials before.
+
 =head1 Modules
 
-As in Perl 5, a module is just a kind of package.  Unlike in
+As in Perl 5, a "module" is just a kind of package.  Unlike in
 Perl 5, modules and classes are declared with separate keywords,
 but they're still just packages with extra behaviors.  In the case
 of modules, the extra behavior is the availability of the 'export' trait
@@ -45,13 +127,13 @@ or use the sigil-like C<::ModuleName> syntax.  The C<::> prefix does not
 imply globalness as it does in Perl 5.  (Use C<GLOBAL::> for that.)
 
 A bare (unscoped) C<module> declarator declares a nested C<our> module
-name within the current package.  However, at the start of the file,
-the current package is C<GLOBAL>, so the first such declaration in the
+name within the current namespace.  However, at the start of the file,
+the current namespace is C<GLOBAL>, so the first such declaration in the
 file is automatically global.
 
 X<use>
 You can use C<our module> to explicitly
-declare a module in the current package (or module, or class).
+declare a module in the current namespace (or module, or class).
 To declare a lexically scoped module, use C<my module>.
 Module names are always searched for from innermost scopes to outermost.
 As with an initial C<::>, the presence of a C<::> within the name
@@ -95,23 +177,24 @@ in C<our> scoping:
     constant $FOO is export = "foobar"
     enum FooBar is export (:baz(1))
 
-Every C<UNIT> gets a lexically scoped C<EXPORT> package automatically.
-Declarations marked as C<is export> are bound into it, with their tagsets
-as inner package names. For example, the C<sub bar> above will bind as
-C<< UNIT::EXPORT::DEFAULT::<&bar> >>, C<< UNIT::EXPORT::ALL::<&bar> >>,
-and C<< UNIT::EXPORT::others::<&bar> >>.
+Every compunit has a C<UNIT> namespace, which gets a lexically scoped C<EXPORT>
+namespace automatically.  Declarations marked as C<is export> are bound into
+it, with their tagsets as inner namespaces. For example, the C<sub bar> above
+will bind as C<< UNIT::EXPORT::DEFAULT::<&bar> >>,
+C<< UNIT::EXPORT::ALL::<&bar> >>, and C<< UNIT::EXPORT::others::<&bar> >>.
 
 Tagset names consisting entirely of capitals are reserved for Perl.
 
 Exports contained within a module will also be bound into an our-scoped
-C<EXPORT> package nested in the module, again with the tagsets forming
-inner packages. This is so the C<import> keyword can be used with a module
-name to import from it; the lexical C<IMPORT> in C<UNIT>, on the other hand,
-is the only thing that is considered by C<use>.
+C<EXPORT> namespace nested in the module, again with the tagsets forming
+inner namespaces. This is so the C<import> keyword can be used with a namespace
+to import from it; the lexical C<IMPORT> namespace in C<UNIT>, on the other
+hand, is the only thing that is considered by C<use> for importing.
 
-Inner modules automatically add their export list to modules in all their
+Inner packages automatically add their export list to packages in all their
 outer scopes (including UNIT):
 
+    unit Foo:auth<cpan:JRANDOM>:ver<1.2.1>;
     module Foo {
         sub foo is export {...}
         module Bar {
@@ -122,17 +205,17 @@ outer scopes (including UNIT):
         }
     }
 
-The C<Foo> module will export C<&foo>, C<&bar> and C<&baz> by default.
+The C<Foo> compunit will export C<&foo>, C<&bar> and C<&baz> by default.
 
 Any C<proto> declaration that is not declared C<my> is exported by default.
-Any C<multi> that depends on an exported C<proto> is also automatically exported.
-Any autogenerated C<proto> is assumed to be exported by default.
+Any C<multi> that depends on an exported C<proto> is also automatically
+exported.  Any autogenerated C<proto> is assumed to be exported by default.
 
 =head1 Dynamic exportation
 
 The default C<EXPORTALL> handles symbol exports by removing recognized
 export items and tagsets from the argument list, then calls the C<EXPORT>
-subroutine in that module (if there is one), passing in the remaining
+subroutine in that namespace (if there is one), passing in the remaining
 arguments.
 
 If the exporting module is actually a class, C<EXPORTALL> will invoke its
@@ -144,7 +227,7 @@ X<use>
 [Note: the :MY forms are being rethought currently.]
 
 Importing via C<use> binds into the current lexical scope by default
-(rather than the current package, as in Perl 5).
+(rather than the current namespace, as in Perl 5).
 
     use Sense <common @horse>;
 
@@ -164,7 +247,7 @@ It is also possible to re-export the imported symbols:
     use Sense <common> :EXPORT;         # import "common" and re-export it
     use Sense <common> :EXPORT<@horse>; # import "common" but export "@horse"
 
-In the absence of a specific scoping specified by the caller, the module
+In the absence of a specific scoping specified by the caller, one
 may also specify a different scoping default by use of C<:MY> or C<:OUR>
 tags as arguments to C<is export>.  (Of course, mixing incompatible scoping
 in different scopes is likely to lead to confusion.)
@@ -184,19 +267,19 @@ These further break down into:
     BEGIN {
       my $target ::= OUTER;
       for <Sense> {
-        my $scope = load_module(find_module_defining($_));
+        my $scope = load_compunit(find_compunit_defining($_));
         # install the name of the type
         $target.install_alias($_, $scope{$_}) if $scope{$_}:exists;
-        # get the package declared by the name in that scope,
-        my $package_name = $_ ~ '::';
+        # get the namespace declared by the name in that scope,
+        my $namespace = $_ ~ '::';
         # if there isn't any, then there's just the type...
-        my $loaded_package = $scope{$package_name} or next;
-        # get a copy of the package, to avoid action-at-a-distance
+        my $loaded_compunit = $scope{$namespace} or next;
+        # get a copy of the namespace, to avoid action-at-a-distance
         # install it in the target scope
-        $target{$package_name} := $loaded_package.copy;
+        $target{$namespace} := $loaded_compunit.copy;
         # finally give the chance for the module to install
         # the selected symbols
-        $loaded_package.EXPORTALL($target, <common @horse>);
+        $loaded_compunit.EXPORTALL($target, <common @horse>);
       }
     }
 
@@ -224,16 +307,16 @@ is equivalent to:
     BEGIN {
       my $target ::= OUTER;
       for <A B C> {
-        my $scope = load_module(find_module_defining($_));
+        my $scope = load_compunit(find_compunit_defining($_));
         # install the name of the type
         $target.install_alias($_, $scope{$_}) if $scope{$_}:exists;
-        # get the package declared by the name in that scope,
-        my $package_name = $_ ~ '::';
+        # get the namespace declared by the name in that scope,
+        my $namespace = $_ ~ '::';
         # if there isn't any, then there's just the type...
-        my $loaded_package = $scope{$package_name} or next;
-        # get a copy of the package, to avoid action-at-a-distance
+        my $loaded_compunit = $scope{$namespace} or next;
+        # get a copy of the namespace, to avoid action-at-a-distance
         # install it in the target scope
-        $target{$package_name} := $loaded_package.copy;
+        $target{$namespace} := $loaded_compunit.copy;
       }
     }
 
@@ -281,12 +364,12 @@ This means something like:
 
     BEGIN MY.declare_stub_symbols('Sense', <common @horse>);
     # run time!
-    MY.import_realias(:from(load_module(find_module_defining('Sense'))), 'Sense');
+    MY.import_realias(:from(load_compunit(find_compunit_defining('Sense'))), 'Sense');
     MY.import_realias(:from(Sense), <common @horse>);
 
 (The C<.import_realias> requires that the symbols to be imported already
 exist; this differs from C<.import_alias>, which requires that the
-imported symbols I<not> already exist in the target scope.)
+imported symbols do I<not> already exist in the target scope.)
 
 Additionally, the C<require> expression evaluates to the value which is
 installed as the alias, so that C<(require Foo::Bar).new> and similar
@@ -301,7 +384,7 @@ and may only be accessed by whatever global names the module installs:
 which breaks down to:
 
     BEGIN MY.declare_stub_symbols(<common @horse>);
-    MY.import_realias(:from(load_module("/home/non/Sense.pm")), <common @horse>);
+    MY.import_realias(:from(load_compunit("/home/non/Sense.pm")), <common @horse>);
 
 Only explicitly mentioned names may be so imported.  In order
 to protect the run-time sanctity of the lexical pad, it may not be
@@ -329,57 +412,28 @@ To specify both a module name and a filename, use a colonpair modifier:
 
     require Sense:file("/home/non/Sense.pm") <common @horse>;
 
-At mininum, this will create the C<Sense> package at compile time,
+At mininum, this will create the C<Sense> namespace at compile time,
 even if the C<require> never puts anything into it at run time.
 (Sound practice would keep it consistent with whatever the C<require>
-is going to do later, however.)  By default the package is created
-as an C<our> package unless it has already been declared C<my> earlier.
+is going to do later, however.)  By default the namespace is created
+as an C<our> namespace unless it has already been declared C<my> earlier.
 
-It is also possible to specify the module name indirectly by string:
+It is also possible to specify the compunit name indirectly by string:
 
     my $sense = "Sense";
     require ::($sense) <common @horse>;
 
 The parser will have no idea what your module is actually going
 to be called, so it installs no package name known at compile time.
-Other than that, the semantics are identical to the direct form:
-
-=head1 Importing from a pseudo-package
-
-You may also import symbols from the various pseudo-packages listed in S02.
-They behave as if all their symbols are in the C<:ALL> export list:
-
-    import PROCESS <$IN $OUT $ERR>;
-    import CALLER <$x $y>;
-
-    # Same as:
-    #     my ($IN, $OUT, $ERR) := PROCESS::<$IN $OUT $ERR>
-    #     my ($x, $y) := ($CALLER::x, $CALLER::y)
-
-[Conjecture: this section may go away, since the aliasing forms
-are not all that terrible, and it's not clear that we want the
-overhead of emulating export lists.]
+Other than that, the semantics are identical to the direct form.
 
 =head1 Versioning
 
-When at the top of a file you say something like
-
-    module Squirrel;
-
-or
-
-    class Dog;
-
-you're really only giving one part of the name of the module.
-The full name of the module or class includes other metadata,
-in particular, the author, and the version.
-
-Modules posted to CPAN or entered into any standard Perl 6 library
-are required to declare their full name so that installations can know
-where to keep them, such that multiple versions by different authors
-can coexist, all of them available to any installed version of Perl.
-(When we say "modules" here we don't mean only modules declared with
-the C<module> declarator, but also classes, roles, grammars, etc.)
+Compilation units posted to CPAN as part of a distribution, or entered into
+any standard Perl 6 library, are required to declare their full name so that
+installations can know where to keep them, such that multiple versions by
+different authors can coexist, all of them available to any installed version
+of Perl.
 
 Such modules are also required to specify exactly which version (or
 versions) of Perl they are expecting to run under, so that future
@@ -410,25 +464,17 @@ case-insensitive systems without loss of information.  That's fine,
 but the language-level abstraction must not leak details of this
 mechanism without the user asking for the details to be leaked.
 
-The syntax of a versioned module or class declaration has multiple
-parts in which the non-identifier parts are specified in adverbial pair
-notation without intervening spaces.  Internally these are stored in
-a canonical string form which you should ignore.  You may write the
-various parts in any order, except that the bare identifier must come
-first.  The required parts for library insertion are the short name of the
-class/module, a URI identifying the author (or authorizing authority, so we
-call it "auth" to be intentionally ambiguous), and its version number.
+As discussed in C<Units>, the required parts for library insertion are the name
+of the compilation unit, a URI identifying the auth and its version number.
 For example:
 
-    class Dog:auth<cpan:JRANDOM>:ver<1.2.1>;
-    class Dog:auth<http://www.some.com/~jrandom>:ver<1.2.1>;
-    class Dog:auth<mailto:jrandom@some.com>:ver<1.2.1>;
+    unit Dog:auth<cpan:JRANDOM>:ver<1.2.1>;
 
 Since these are somewhat unwieldy to look at, we allow a shorthand in
 which a bare subscripty adverb interprets its elements according to their
 form:
 
-    class Dog:<cpan:JRANDOM 1.2.1>
+    unit Dog:<cpan:JRANDOM 1.2.1>
 
 The pieces are interpreted as follows:
 
@@ -436,8 +482,7 @@ The pieces are interpreted as follows:
 
 =item *
 
-Anything matching C<< [<ident> '::']* <ident> >> is treated as a
-package name.
+Anything matching C<< [<ident> '::']* <ident> >> is treated as a compunit name.
 
 =item *
 
@@ -449,30 +494,7 @@ Anything matching C<< v? [\d+ '.']* \d+ >> is treated as a version number.
 
 =back
 
-These declarations automatically alias the full name of the class
-(or module) to the short name.  So for the rest of the lexical scope,
-C<Dog> refers to the longer name.  The real library name can be
-specified separately as another adverb, in which case the identifier
-indicates only the alias within the current lexical scope:
-
-    class Pooch:name<Dog>:auth<cpan:JRANDOM>:ver<1.2.1>
-
-or
-
-    class Pooch:<Dog cpan:JRANDOM 1.2.1>
-
-for short.
-
-Here the real name of the module starts C<Dog>, but we refer to it
-as C<Pooch> for the rest of this file.  Aliasing is handy if you need to
-interface to more than one module named C<Dog>.
-
-If there are extra classes or modules or packages declared within
-the same file, they implicitly have a long name including the file's
-version and author, but you needn't declare them again.
-
-Since these long names are the actual names of the classes as far as
-the library system is concerned, when you say:
+When you're attempt to load a compilation unit, like:
 
     use Dog;
 
@@ -523,21 +545,24 @@ something like:
 to guarantee that you get the unembraced Perl.  C<:-)>
 
 When it happens that the same module is available from more than one
-authority, and the desired authority is not specified by the C<use>,
+auth, and the desired auth is not specified by the C<use>,
 the version lineage that was created first wins, unless overridden by
-local policy or by official abandonment by the original authority (as
+local policy or by official abandonment by the original auth (as
 determined either by the author or by community consensus in case the
 author is no longer available or widely regarded as uncooperative).
 An officially abandoned lineage will be selected only if it is the
 only available lineage of locally installed modules.
 
-Once the authority is selected, then and only then is any version
-selection done; the version specification is ignored until the
-authority is selected.  This implies that all official modules record
+Once the auth is selected, then and only then is any version
+selection done.  This implies that all official compunits record
 permanently when they were first installed in the official library,
-and this creation date is considered immutable.
+and this creation date is considered immutable.  This date must be specified
+with the ":created" adverb in the "unit" statement.
 
-For wildcards any valid smartmatch selector works:
+    unit Test:auth<cpan:TPF>:ver<1.0>:created<20130625>;
+
+When loading a compilation unit with wildcards, any valid smartmatch selector
+works:
 
     use Dog:auth(/:i jrandom/):ver(v1.2.1 | v1.3.4);
     use Dog:auth({ .substr(0,5) eq 'cpan:'}):ver(Any);
@@ -552,7 +577,16 @@ and it knows (even if you don't) that you mean
 
     my Dog:<cpan:JRANDOM 1.3.4> $spot .= new("woof");
 
-The C<use> statement allows an external language to be specified in
+If you need to have two different versions of the same compunit loaded at the
+same time, you can specify the name of the compunit seperately with the :name
+adverb:
+
+    use OldDog:name<Dog>:auth<cpan:JRANDOM>:ver<1.2.1>;
+    use OldDog:<Dog cpan:JRANDOM 1.2.1>;  # same thing
+
+This would alias Dog:<cpan:JRANDOM 1.3.4> to OldDog in the current scope.
+
+The C<use> statement also allows an external language to be specified in
 addition to (or instead of) an authority, so that you can use modules
 from other languages.  The C<from> adverb also parses any additional
 parts as short-form arguments.  For instance:
@@ -575,37 +609,37 @@ And saying
 
 specifically rules out any prereleases.
 
-If two different modules in your program require two different
-versions of the same module, Perl will simply load both versions at
-the same time.  For modules that do not manage exclusive resources,
+If two different compunits in your program require two different
+versions of the same compunit, Perl will simply load both versions at
+the same time.  For compunits that do not manage exclusive resources,
 the only penalty for this is memory, and the disk space in the library
-to hold both the old and new versions.  For modules that do manage
+to hold both the old and new versions.  For compunits that do manage
 an exclusive resource, such as a database handle, there are two approaches
 short of requiring the user to upgrade.  The first is simply to refactor
-the module into a stable supplier of the exclusive resource that doesn't
+the compunit into a stable supplier of the exclusive resource that doesn't
 change version often, and then the outer wrappers of that resource can
 both be loaded and use the same supplier of the resource.
 
-The other approach is for the module to keep the management of its exclusive
+The other approach is for the compunit to keep the management of its exclusive
 resource, but offer to emulate older versions of the API.  Then if there
 is a conflict over which version to use, the new one is used by both users,
 but each gets a view that is consistent with the version it thinks it is
 using.  Of course, this depends crucially on how well the new version
 actually emulates the old version.
 
-To declare that a module emulates an older version, declare it like this:
+To declare that a compunit emulates an older version, declare it like this:
 
-    class Dog:<cpan:JRANDOM 1.2.1> emulates :<1.2.0>;
+    unit Dog:<cpan:JRANDOM 1.2.1> emulates :<1.2.0>;
 
 Or to simply exclude use of the older module and (presumably) force
 the user to upgrade:
 
-    class Dog:<cpan:JRANDOM 1.2.1> excludes :<1.2.0>;
+    unit Dog:<cpan:JRANDOM 1.2.1> excludes :<1.2.0>;
 
 The name is parsed like a C<use> wildcard, and you can have more than one,
 so you can say things like:
 
-    class Dog:<cpan:JRANDOM 1.2.1>
+    unit Dog:<cpan:JRANDOM 1.2.1>
         emulates Dog:auth(DCONWAY|JCONWAY|TCONWAY):ver<1.0+>
         excludes Fox:<http://oreillymedia.com 3.14159>
         emulates Wolf:from<C# 0.8..^1.0>;
@@ -665,7 +699,7 @@ deeply to switch between Perl versions:
 It's not necessary to force Perl 6 if the interpreter or command
 specified already implies it, such as use of a "C<#!/usr/bin/perl6>"
 shebang line.  Nor is it necessary to force Perl 6 in any file that
-begins with the "class" or "module" keywords.
+begins with the "unit", "class", "module", "grammar" or "role" keywords.
 
 =head1 Tool use vs language changes
 
@@ -681,13 +715,13 @@ definitions inside eval.
 
 All language tweaks from the start of the compilation unit must
 be tracked.  Tweaks can be specified either directly in your code as
-macros and such, or such definitions may be imported from a module.
+macros and such, or such definitions may be imported from a namespace.
 As the compiler progresses through the compilation unit, other grammars
 may be substituted in an inner lexical scope for an outer grammar,
 and parsing continues under the new grammar (which may or may not be
 a derivative of the standard Perl grammar).
 
-Language tweaks are considered part of the interface of any module
+Language tweaks are considered part of the interface of any namespace
 you import.  Version numbers are assumed to represent a combination of
 interface and patch level.  We will use the term "interface version"
 to represent that part of the version number that represents the
@@ -703,56 +737,55 @@ to hold branches without relinquishing overall naming authority.)
 So anyway, the basic rule is this: you may import language tweaks
 from your own private (user-library) code as you like; however, all
 imports of language tweaks from the official library must specify
-the exact interface version of the module.
+the exact interface version of the namespace.
 
 Such officially installed interface versions must be considered
 immutable on the language level, so that once any language-tweaking
-module is in circulation, it may be presumed to represent a fixed
+compunit is in circulation, it may be presumed to represent a fixed
 language change.  By examination of these interface versions a language
 processing tool can know whether it has sufficient information to
 know the current language.
 
 In the absence of that information, the tool can choose either
-to download and use the module directly, or the tool can proceed
+to download and use the compunit directly, or the tool can proceed
 in ignorance.  As an intermediate position, if the tool does not
 actually care about running the code, the tool need not actually have
-the complete module in question; many language tweaks could be stored
+the complete compunit in question; many language tweaks could be stored
 in a database of interface versions, so if the tool merely knows the
 nature of the language tweak on the basis of the interface version it
-may well be able to proceed with perfect knowledge.  A module that
+may well be able to proceed with perfect knowledge.  A compunit that
 uses a well-behaved macro or two could be fairly easily emulated
 based on the version info alone.
 
 But more realistically, in the absence of such a hypothetical database,
-most systems already come with a kind of database for modules that
+most systems already come with a kind of database for distributions that
 have already been installed.  So perhaps the most common case is
-that you have downloaded an older version of the same module, in
+that you have downloaded an older version of the same distribution, in
 which case the tool can know from the interface version whether that
-older module represents the language tweak sufficiently well that
-your tool can use the interface definition from that module without
+older distribution represents the language tweak sufficiently well that
+your tool can use the interface definition from that distribution without
 bothering to download the latest patch.
 
-Note that most class modules do no language tweaking, and in any case
+Note that most compilation units do no language tweaking, and in any case
 cannot perform language tweaks unless these are explicitly exported.
 
-Modules that exported C<multi>s are technically language tweaks on the
+Compilation units that export C<multi>s are technically language tweaks on the
 semantic level, but as long as those new definitions modify semantics
 within the existing grammar (by avoiding the definition of new macros
 or operators), they do not fall into the language tweak category.
-Modules that export new operators or macros are always considered
+Compilation units that export new operators or macros are always considered
 language tweaks.  (Unexported macros or operators intended only for
 internal use of the module itself do not count as language tweaks.)
 
 The requirement for immutable interfaces extends transitively to
-any modules imported by a language tweak module.  There can be no
+any namespaces imported by a language tweak module.  There can be no
 indeterminacy in the language definition either directly or indirectly.
 
-It must be possible for any official module to be separately compiled
-without knowledge of the lexical or dynamic context in which it will be embedded, and
-this separate compilation must be able to produce a deterministic
+It must be possible for any official compilation unit to be separately compiled
+without knowledge of the lexical or dynamic context in which it will be
+embedded, and this separate compilation must be able to produce a deterministic
 profile of the interface.  It must be possible to extract out the
 language tweaking part of this profile for use in tools that wish to
 know how to parse the current language variant deterministically.
-
 
 =for vim:set expandtab sw=4:
