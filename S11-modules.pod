@@ -24,50 +24,50 @@ been in Apocalypse 11.
 
 =head1 Units
 
-Perl 6 code is compiled per compilation unit, or "compunit" for short.  These
+Perl 6 code is compiled per compilation unit, or I<compunit> for short.  These
 are either stored in a file (usually with a .pm or .pm6 extension) and loaded
 with a C<use>, C<need> or C<require> statement.  Or they are created as a
 string in a variable and compiled with an C<eval> statement.  This synopsis is
 mostly about compunits stored in a file.
 
-In the common vernacular of a Perl 5 developer, a "module" is the same as the
+In the common vernacular of a Perl 5 developer, a I<module> is the same as the
 file that contains the source code of a package.  For Perl 6 developers, this
-is not much different.  However, such a "module" is really a compunit that may
-contain 0 or more package-like statements of "modules".  Confusing?  Yes it is.
-On top of that, Perl 6 allows different versions of the same "module" to be
+is not much different.  However, such a I<module> is really a compunit that may
+contain 0 or more package-like statements of I<modules>.  Confusing?  Yes it is.
+On top of that, Perl 6 allows different versions of the same I<module> to be
 installed in a single directory.  And it allows compunits from other languages
 to be loaded.
 
 In Perl, the C<use> statement is really just telling Perl to find a file for
 the given name (after some name to filename translation logic has been applied)
 and load its contents.  Whether that name is the name of a C<package>,
-C<module>, C<class>, C<grammer> or C<role>, a combination of these or
+C<module>, C<class>, C<grammar> or C<role>, a combination of these or
 something else entirely in a C<slang>, is B<not> known at the moment the file
 is searched (and found).  Only when the contents of a file are compiled, does
 Perl find out what's inside.
 
-In Perl 5, the name to filename translation is mechanical.  Foo::Bar will
-always refer to Foo/Bar.pm in a directory: it does not need any outside
+In Perl 5, the name to filename translation is mechanical.  C<Foo::Bar> will
+always refer to C<Foo/Bar.pm> in a directory: it does not need any outside
 information to find out the name of the file to be loaded.  For files that
 reside in directories that are not part of the installation, this is the same
 in Perl 6.  These directories are however typically used for development and/or
 testing.  Such a directory can be marked as not allowing installed compunits,
-e.g. by the existence of a hidden file like ".camelia_dev".
+e.g. by the existence of a hidden file like C<.camelia_dev>.
 
 In Perl 6, this is not an option for compunits that have been installed: the
 name that indicates a compunit, is case-sensitive and in Unicode.  This needs
 to be supported even on a system that has a filesystem that is case-insensitive
 and/or does not support Unicode and/or does not allow long enough filenames.
 Let alone be able to store meta-information, such as the version of the
-compunit.  Therefor, an authoritative "database" of meta-information of
+compunit.  Therefore, an authoritative I<database> of meta-information of
 installed compunits is needed in those directories that contain installed
 compunits.  Such a database could be as simple as a hidden text-file named
-".camelia".
+C<.camelia>.
 
-The optional "unit" statement provides all the necessary meta-information that
+The optional C<unit> statement provides all the necessary meta-information that
 is needed to add a compunit to a given Perl 6 installation, as well as being
 able to load the compunit at a later time.  There can only be at most one
-"unit" statement per compunit, and it must occur B<before> any "module"-like
+C<unit> statement per compunit, and it must occur B<before> any C<module>-like
 statement.
 
 The syntax of such a unit declaration has multiple parts in which the
@@ -75,18 +75,18 @@ non-identifier parts are specified in adverbial pair notation without
 intervening spaces.  You may write the various parts in any order, except
 that the compunit identifier must come first.  The required parts for library
 insertion are the name of the compunit, a URI identifying the author
-(or authorizing authority, so we call it "auth" to be intentionally ambiguous),
-and its version number ("ver" for short).  For example:
+(or authorizing authority, so we call it I<auth> to be intentionally ambiguous),
+and its version number (I<ver> for short).  For example:
 
     unit Dog:auth<cpan:JRANDOM>:ver<1.2.1>;
     unit Dog:auth<http://www.some.com/~jrandom>:ver<1.2.1>;
     unit Dog:auth<mailto:jrandom@some.com>:ver<1.2.1>;
 
-The combination of name, "auth" and "ver", we call the "credentials" of a
+The combination of name, I<auth> and I<ver>, we call the I<credentials> of a
 compunit.
 
 If a compunit is missing a unit declaration, then the name of the first
-"module"-like statement will be assumed as the name of the unit, and the
+C<module>-like statement will be assumed as the name of the unit, and the
 credentials will be assumed to be just the name.  So:
 
     class Dog;
@@ -105,10 +105,10 @@ indentical credentials before.
 
 =head1 Modules
 
-As in Perl 5, a "module" is just a kind of package.  Unlike in
+As in Perl 5, a C<module> is just a kind of package.  Unlike in
 Perl 5, modules and classes are declared with separate keywords,
 but they're still just packages with extra behaviors.  In the case
-of modules, the extra behavior is the availability of the 'export' trait
+of modules, the extra behavior is the availability of the C<export> trait
 and any associated support for Perl 6 standard export semantics.
 
 A module is declared with the C<module> keyword.  There are
@@ -142,7 +142,7 @@ does not imply globalness (unlike in Perl 5).
 The default namespace for the main program is C<GLOBAL>.
 (Putting C<module GLOBAL;> at the top of your program
 is redundant, except insofar as it tells Perl that the code is Perl
-6 code and not Perl 5 code.  But it's better to say "use v6" for that.)
+6 code and not Perl 5 code.  But it's better to say C<use v6> for that.)
 
 Module traits are set using C<is>:
 
@@ -557,7 +557,7 @@ Once the auth is selected, then and only then is any version
 selection done.  This implies that all official compunits record
 permanently when they were first installed in the official library,
 and this creation date is considered immutable.  This date must be specified
-with the ":created" adverb in the "unit" statement.
+with the C<:created> adverb in the C<unit> statement.
 
     unit Test:auth<cpan:TPF>:ver<1.0>:created<20130625>;
 
@@ -677,7 +677,7 @@ version number or other literal:
     6;
     "Coolness, dude!";
 
-it runs Perl 6 in "lax" mode, without strictures or warnings, since obviously
+it runs Perl 6 in I<lax> mode, without strictures or warnings, since obviously
 a bare literal in a sink (void) context I<ought> to have produced a "Useless use of..." warning.
 (Invoking perl with C<-e '6;'> has the same effect.)
 
@@ -699,7 +699,7 @@ deeply to switch between Perl versions:
 It's not necessary to force Perl 6 if the interpreter or command
 specified already implies it, such as use of a "C<#!/usr/bin/perl6>"
 shebang line.  Nor is it necessary to force Perl 6 in any file that
-begins with the "unit", "class", "module", "grammar" or "role" keywords.
+begins with the C<unit>, C<class>, C<module>, C<grammar> or C<role> keywords.
 
 =head1 Tool use vs language changes
 
@@ -723,7 +723,7 @@ a derivative of the standard Perl grammar).
 
 Language tweaks are considered part of the interface of any namespace
 you import.  Version numbers are assumed to represent a combination of
-interface and patch level.  We will use the term "interface version"
+interface and patch level.  We will use the term I<interface version>
 to represent that part of the version number that represents the
 interface.  For typical version number schemes, this is the first two
 numbers (where the third number usually represents patch level within
