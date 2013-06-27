@@ -531,12 +531,14 @@ name.
     \\server\share\a  \\server\share \          a
 
 IO::Path uses the syntax for the current operating system.  If
-you want to work with another OS, use the OS-specific subclasses like
-IO::Path::Cygwin.
+you want to work paths as if you were using another OS, use the OS-specific
+subclasses such as IO::Path::Cygwin.
 
-There are several ways of creating an IO::Path.  Both IO::Handle and Str have
+There are several ways of creating an IO::Path.  Both IO::Handle and Cool have
 a .path method, or you can construct it directly:
 
+        "my/path".path
+        $filehandle.path
 	IO::Path.new( $full-path );
 	IO::Path.new( :$volume, :$directory, :$basename);
 	
@@ -643,6 +645,20 @@ On a Unix/POSIX filesystem, if called recursively, it will work like so:
 
 Appends C<$childname> to the end of the path, adding path separators where
 needed.
+
+=item succ
+
+Increments the basename portion of the string, as Str.succ does, and returns
+that successor as an IO::Path.
+
+This is useful for getting all the parts of say, a multi-part archive, but
+does not always return the next item in the folder.  To crawl a folder, you
+probably want to iterate on the parent directory's contents.
+
+=item pred
+
+Decrements the basename portion of the string, as Str.pred does, and returns
+that predecessor as an IO::Path.
 
 =item copy
 
