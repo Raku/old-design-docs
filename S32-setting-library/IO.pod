@@ -583,17 +583,30 @@ without its full path.
 
 =item cleanup
 
+        method cleanup( :$parent = False )
+
 Returns a new IO::Path object with the canonical path.  This eliminates extra
-slashes and C<'.'> directories, but leaves C<'..'> in.
+slashes and C<'.'> directories, but leaves C<'..'> in (or whatever the parent
+directory is called on that platform).
+
+With C<:parent>, cleanup will logically remove references to the parent
+directory without I<checking the filesystem>.  That is, the parent of a
+symbolic link will remove the symlink itself, not the parent of the symlink's
+destination.
 
 =item resolve
 
-Returns a new IO::Path object that has not only had C<cleanup> called, but also
-removes symbolic links and references to the parent directory (C<..>).
+Returns a new IO::Path object that is cleaned-up (as above), and all symbolic
+links and references to the parent directory (C<..>) are physically resolved.
+This means that the filesystem is examined for each directory in the path,
+and any symlinks found are followed.  Identical to C<.cleanup(:parent)> on systems
+where symbolic links are not supported.
 
+   # bar is a symlink pointing to "/baz"
    my $path = "foo/./bar///..".path;
    $path.=cleanup;  # now "foo/bar/.."
-   $path.=resolve;  # now "foo" (if "bar" is not a symlink)
+   $path.cleanup(:parent); # yields "foo"
+   $path.=resolve;  # now "/" (the parent of "/baz")
 
 =item is-relative
 
