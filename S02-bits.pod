@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 15 May 2013
-    Version: 274
+    Last Modified: 4 Jul 2013
+    Version: 275
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1314,7 +1314,7 @@ automatically declaring a undefined prototype value with the same name, known
 as the I<type object>.  The name itself returns that type object:
 
     Mu          Perl 6 object (default block parameter type, Any, Junction, or Each)
-    Any         Perl 6 object (default routine parameter type, excludes Junction, Failure)
+    Any         Perl 6 object (default routine parameter type, excludes Junction, Nil, Failure)
     Cool        Perl 6 Convenient OO Loopbacks
     Whatever    Wildcard (like Any, but subject to do-what-I-mean via MMD)
     Int         Any Int object
@@ -1364,21 +1364,13 @@ checked with a single check:
     $object.fee.fie.[$foe].{$foo}.sic // die "Oops: $!";
 
 Failures may only be passed into functions via parameters that allow
-C<Mu> or C<Failure>.  As a special case, a C<Failure> may be returned
-from a function even if that function declares a return type constraint
-that does not include the C<Failure> type.  (In fact, the attempt to
-return a value that doesn't match the return constraint will internally
-call C<fail>, and that failure will be returned according to standard
-C<fail> policy, which is dependent on the preferences of the caller.)
+C<Mu> or C<Failure>, and a failure may only be returned from a function
+whose return type permits it.
+
 After the failure is returned, any subsequent attempt to use the
 failure in an C<Any> context will be subject to further failure
 analysis, and will likely throw an exception immediately.  Likewise,
 discarding the failure in sink context produces an immediate exception.
-It is assumed that this downstream failure processing is robust enough
-that the optimizer is allowed to assume that a function returns what
-it declares as its return type, and most of the time omit the check for
-failure on the return value.  Nearly all the failure checks are already
-enforced downstream by the smartmatcher, usually through the binder.
 
 Note that a C<Failure> object is undefined, but may contain one or
 more defined C<Exception> objects, which are considered normal
