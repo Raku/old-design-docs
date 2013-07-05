@@ -9,13 +9,14 @@ DRAFT: Synopsis 32: Setting Library - Rules
 
     Tim Nelson <wayland@wayland.id.au>
     Larry Wall <larry@wall.org>
+    Brent Laabs <bslaabs@gmail.com>
 
 =head1 VERSION
 
     Created: 27 Feb 2009
 
-    Last Modified: 27 Feb 2009
-    Version: 1
+    Last Modified: 5 Jul 2013
+    Version: 2
 
 The document is a draft.
 
@@ -24,15 +25,34 @@ repository under
 L<https://github.com/perl6/specs/blob/master/S32-setting-library/Rules.pod>
 so edit it there in the git repository if you would like to make changes.
 
+=head1 Overview
+
+This synopsis deals with objects produced by the regexes and grammars
+described in much greater detail in S05.  
+
 =head1 Roles
 
 =head2 Regex
 
-    role Regex {...}
+    class Regex is Method {...}
+
+Regex objects are created through the syntax described in S05:
+
+    / ... /
+    rx/ ... /
+    regex { ... }
+
+They can be stored in variables for later use, as with the C<qr//> syntax
+in Perl 5.
+
+=item method Bool(Regex:D: )
+
+In boolean context, a regex object will match against C<$_>, and return
+the result as a Bool.
 
 =head2 Match
 
-    role Match does Positional does Associative {
+    class Match is Cool does Positional does Associative {
         method Int from()   {...}
         method Int to()     {...}
         method Int chars()  {...}
@@ -45,6 +65,7 @@ so edit it there in the git repository if you would like to make changes.
         method     bool()   {...}
         method     Str()    {...}
         method     Num()    {...}
+        method     ast()    {...}
     }
 
 =head2 Cursor
@@ -55,6 +76,33 @@ so edit it there in the git repository if you would like to make changes.
     }
 
 =head2 Grammar
+
+    class Grammar is Cursor
+
+Much as a class is a collection of named attributes and methods, a grammar
+is a collection of named regexes and rules.  For more on creating and using
+grammars, see L<S05/Grammars>.
+
+=item parse / subparse
+X<parse> X<subparse>
+
+    method parse ($target, :$rule = 'TOP', Mu :$actions = Mu, *%opts)
+    method subparse ($target, :$rule = 'TOP', Mu :$actions = Mu, *%opts)
+
+Parses the the C<$target> string with given <:rule>, and returns the result
+as a Match object.  Defaults to the C<TOP> rule.  A class containing actions
+may be attached using the C<actions> named argument.
+
+The C<parse> method automatically anchors the rule to the beginning and end
+of the target string (adding C<^> and C<$> around the rule).  The C<subparse>
+method does not add anchors, and will match substrings against the rule.
+
+=item parsefile
+
+    method parsefile (Cool $filename, :$rule = 'TOP', Mu :$actions = Mu, *%opts)
+
+Parse the file as with C<.parse>, but matches the grammar against the contents
+of C<$filename> instead.
 
 See Abstractions.pod
 
