@@ -790,9 +790,23 @@ of its from, longname, auth and ver information.
 
  my $repo = CompUnitRepo.new( $location );
 
+Create a new CompUnitRepo object, either for inclusion in C<@*INC>, or to
+install a compilation unit..  The parameter indicates the location in
+which compunits are supposed to be located for this object.  This could be a
+local directory (as in the case of L<CompUnitRepo::Local::File> and
+L<CompUnitRepo::Local::Installation>).  Or it could be anything that indicates
+a remote repository, such as a connect string to a database, or a URL to a
+CPAN mirror or github repository.  Returns the instantiated object.
+
 =head2 install
 
- $repo->install( $source, $longname?, $from? )
+ $repo->install( $source, $from? )
+
+Install a compilation unit in the appropriate way for this object.  May cause
+a fatal exception if this repository does not support installing.  The first
+parameter contains the actual source-code of the compilation unit to be
+installed.  The optional second parameter specifies the slang in which the
+compunit is written.  It defaults to "perl6".
 
 =head2 candidates
 
