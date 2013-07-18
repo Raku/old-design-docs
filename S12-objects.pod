@@ -2528,15 +2528,63 @@ When the parser encounters a package declarator, it uses the name of
 the declarator (such as C<class> or C<grammar>) to look up the type of
 meta-object to use. The default meta-objects support the standard Perl 6
 OO semantics. However, it is possible for a module to export different
-meta-objects with different semantics. This is done by making entries in
-an EXPORTHOW package, which in turn must be located in UNIT of the module.
-The name it is installed under maps to a package or type declarator name.
+meta-objects with different semantics. This is done by declaring an
+C<EXPORTHOW> package, which should be located in C<UNIT> of the module
+(and thus can be lexically scoped).
 
-Thus, a module can provide a replacement implementation of the meta-object
-type used for grammars like this:
+Just as the C<EXPORT> package never contains symbols directly, but instead
+contains packages that denote tags and directives (such as C<DEFAULT>), the
+C<EXPORTHOW> package expects meta-objects to be installed under one of the
+following packages:
 
-    my module EXPORTHOW { }
-    EXPORTHOW::<grammar> = TracedGrammarHOW;
+    SUPERSEDE   Uses the exported meta-object for the named declarator in
+                the scope that the module is imported in to
+    COMPOSE     Takes the meta-object currently in effect for the named
+                declarator and composes the exported role into it
+    DECLARE     Like SUPERSEDE, but also adds a new package declarator to
+                the grammar if required
+
+For example, a module can replace the meta-object used for the C<grammar>
+keyword in any scope it is imported into by doing:
+
+    my module EXPORTHOW::SUPERSEDE { }
+    EXPORTHOW::SUPERSEDE<grammar> = TracedGrammarHOW;
+
+An MVC framework could declare a new C<controller> package declarator and
+associate it with a meta-class of its choosing by doing:
+
+    my module EXPORTHOW::DECLARE { }
+    EXPORTHOW::DECLARE<controller> = ControllerHOW;
+
+The C<COMPOSE> directive is perhaps the most sophisticated, and its usage is
+encouraged where possible. Instead of exporting an entirely new meta-object,
+C<COMPOSE> enables exporting a role. At the point the declarator is first used,
+all roles exported for it through C<COMPOSE> will be taken together and added
+to a class derived from the current meta-object for the declarator (which may
+have been provided by a SUPERSEDE or DECLARE export from another module used in
+the scope). This class will then be composed, with any conflicts indicated.
+
+    my module EXPORTHOW::COMPOSE {
+        # Provide a role that adds logging to class method calls.
+        role class {
+            method find_method($obj, $name) {
+                say "Calling $name";
+                nextsame;
+            }
+            
+            method publish_method_cache($obj) {
+                # Make sure all dispatches go through find_method
+            }
+        }
+    }
+
+The benefit of C<COMPOSE> is that it enables two modules that extend a meta-object
+in a non-conflicting way to be used together in the same scope, with explicit
+detection of conflicts if they occur. For example, if one module wishes to
+override C<compose> and another wishes to override C<find_method>, the two can
+be used together safely. By contrast, C<SUPERSEDE> and C<DECLARE> can only be used
+by one module per declarator in a given scope, thwarting composition. The
+compiler should produce an error if this rule is broken.
 
 The easiest way to define a new meta-object is to inherit from an existing
 meta-object.
