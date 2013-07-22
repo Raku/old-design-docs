@@ -489,6 +489,42 @@ Constraints and container types can be used together:
 Note that C<$x> is also initialized to the C<Int> type object.  See below for
 more on this.
 
+=head2 Nil
+
+There is a special value named C<Nil>.  It means "there
+is no value here".  It is a little bit like the empty
+C<()> list, insofar as both represent an absence of values, except that C<()> is defined and means "there are
+0 arguments here if you're counting that low".  The C<Nil> value represents the absence of a value
+where there I<should> be one, so it does not disappear in list context,
+but relies on something downstream to catch it or blow up.
+C<Nil> also indicates a failed match.
+
+Since method calls are performed directly on any object, C<Nil>
+can respond to certain method calls.  C<Nil.defined> returns
+C<False> (whereas C<().defined> returns C<True>).  C<Nil.so> also
+returns C<False>.  C<Nil.ACCEPTS> always returns C<Nil>.  C<Nil.perl> and
+C<Nil.gist> return C<'Nil'>.  C<Nil.Stringy> and C<Nil.Str> throw a resumable warning
+that returns a value of C<''> on resumption.  C<Nil.Numeric> likewise throws
+a resumable warning that returns 0 on resumption.  Any undefined method call
+on C<Nil> returns C<Nil>, so that C<Nil> propagates down method
+call chains.
+
+Assigning C<Nil> to any scalar container causes the container to
+throw out any contents and restore itself to an uninitialized state
+(after which it will appear to contain an object appropriate to the declared
+default of the container, where C<Any> is the default default; the element may be simply deleted
+if that's how the default can be represented in the structure).  Binding of
+C<Nil> with C<:=> simply puts Nil in the container.  However, binding
+C<Nil> to a parameter (C<::=> semantics) works more like assignment;
+passing C<Nil> to a parameter with a default causes that parameter
+to be set to its default value rather than an undefined value, as if
+the argument had not been supplied.
+
+Assigning C<Nil> to any entire composite container (such as an
+C<Array> or C<Hash>) empties the container, resetting it back to an
+uninitialized state.  The container object itself then becomes undefined.
+(Asssignment of C<()> leaves it defined.)
+
 =head2 Type Objects
 
 C<my Dog $spot> by itself does not automatically call a C<Dog> constructor.
@@ -2251,40 +2287,6 @@ can capture not only the current identity of a single object, but
 also the relative identities of several related objects.  Conversely,
 you can think of Perl 5 references as a degenerate form of C<Capture>
 when you want to refer only to a single item.
-
-There is a special value named C<Nil>.  It means "there
-is no value here".  It is a little bit like the empty
-C<()> list, insofar as both represent an absence of values, except that C<()> is defined and means "there are
-0 arguments here if you're counting that low".  The C<Nil> value represents the absence of a value
-where there I<should> be one, so it does not disappear in list context,
-but relies on something downstream to catch it or blow up.
-C<Nil> also indicates a failed match.
-
-Since method calls are performed directly on any object, C<Nil>
-can respond to certain method calls.  C<Nil.defined> returns
-C<False> (whereas C<().defined> returns C<True>).  C<Nil.so> also
-returns C<False>.  C<Nil.ACCEPTS> always returns C<Nil>.  C<Nil.perl> and
-C<Nil.gist> return C<'Nil'>.  C<Nil.Stringy> and C<Nil.Str> throw a resumable warning
-that returns a value of C<''> on resumption.  C<Nil.Numeric> likewise throws
-a resumable warning that returns 0 on resumption.  Any undefined method call
-on C<Nil> returns C<Nil>, so that C<Nil> propagates down method
-call chains.
-
-Assigning C<Nil> to any scalar container causes the container to
-throw out any contents and restore itself to an uninitialized state
-(after which it will appear to contain an object appropriate to the declared
-default of the container, where C<Any> is the default default; the element may be simply deleted
-if that's how the default can be represented in the structure).  Binding of
-C<Nil> with C<:=> simply puts Nil in the container.  However, binding
-C<Nil> to a parameter (C<::=> semantics) works more like assignment;
-passing C<Nil> to a parameter with a default causes that parameter
-to be set to its default value rather than an undefined value, as if
-the argument had not been supplied.
-
-Assigning C<Nil> to any entire composite container (such as an
-C<Array> or C<Hash>) empties the container, resetting it back to an
-uninitialized state.  The container object itself then becomes undefined.
-(Asssignment of C<()> leaves it defined.)
 
 The C<sink> statement prefix will eagerly evaluate any block or
 statement, throw away the results, and instead return the empty C<Parcel> value, C<()>.
