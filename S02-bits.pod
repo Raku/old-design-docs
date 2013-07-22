@@ -980,26 +980,6 @@ a C<Buf> based on non-integers or on non-native types:
 
 However, no guarantee of memory contiguity can be made for non-native types.
 
-=head2 The C<utf8> Type
-
-The C<utf8> type is derived from C<buf8>, with the additional constraint
-that it may only contain validly encoded UTF-8.  Likewise, C<utf16> is
-derived from C<buf16>, and C<utf32> from C<buf32>.
-
-Note that since these are type names, parentheses must always be
-used to call them as coercers, since the listop form is not allowed
-for coercions.  That is:
-
-    utf8 op $x
-
-is always parsed as
-
-    (utf8) op $x
-
-and never as
-
-    utf8(op $x)
-
 =head2 The C<Whatever> Object
 
 The C<*> character as a standalone term captures the notion of "Whatever",
@@ -1501,6 +1481,24 @@ various native types are automatically derived from native unsigned int types:
     blob16      Blob[uint16]
     blob32      Blob[uint32]
     blob64      Blob[uint64]
+
+The C<utf8> type is derived from C<blob8>, with the additional constraint
+that it may only contain validly encoded UTF-8.  Likewise, C<utf16> is
+derived from C<blob16>, and C<utf32> from C<blob32>.
+
+Note that since these are type names, parentheses must always be
+used to call them as coercers, since the listop form is not allowed
+for coercions.  That is:
+
+    utf8 op $x
+
+is always parsed as
+
+    (utf8) op $x
+
+and never as
+
+    utf8(op $x)
 
 These types do (at least) the following roles:
 
