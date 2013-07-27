@@ -1454,7 +1454,6 @@ Some of these phasers also have corresponding traits that can be set on variable
 These have the advantage of passing the variable in question into
 the closure as its topic:
 
-    my $r will start { .set_random_seed() };
     our $h will enter { .rememberit() } will undo { .forgetit() };
 
 Apart from C<CATCH> and C<CONTROL>, which can only occur once, most
@@ -1477,7 +1476,7 @@ clone, so separate clones can keep separate state variables:
 
     our $i = 0;
     ...
-    $func = { state $x will start { $x = $i++ }; dostuff($i) };
+    $func = once { state $x { $x = $i++ }; dostuff($i) };
 
 But C<state> automatically applies "once" semantics to any initializer,
 so this also works:
