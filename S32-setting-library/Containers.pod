@@ -155,12 +155,12 @@ cache hits.
 
 =item classify
 
- multi method classify ( @values: &mapper --> Hash )
- multi method classify ( @values: %mapper --> Hash )
- multi method classify ( @values: @mapper --> Hash )
- multi classify ( &mapper, *@values --> Hash )
- multi classify ( %mapper, *@values --> Hash )
- multi classify ( @mapper, *@values --> Hash )
+ multi method classify ( @values: &mapper, :bind --> Hash )
+ multi method classify ( @values: %mapper, :bind --> Hash )
+ multi method classify ( @values: @mapper, :bind --> Hash )
+ multi classify ( &mapper, *@values, :bind --> Hash )
+ multi classify ( %mapper, *@values, :bind --> Hash )
+ multi classify ( @mapper, *@values, :bind --> Hash )
 
 C<classify> transforms a finite list or array of values into a hash
 representing the classification of those values according to a mapper;
@@ -194,16 +194,20 @@ a Hash of Lists.  All higher up classifications, will necessarily always be a
 Hash of Hashes.  Please note that all Parcels must have the same number of
 elements.
 
+The optional C<:bind> parameter indicates whether the values should be bound
+to the lowest level of array: this will generally reduce the amount of memory
+needed.  By default, values will be copied.
+
 To categorize values into multiple categories, see C<categorize>.
 
 =item categorize
 
- multi method categorize ( @values: &mapper --> Hash )
- multi method categorize ( @values: %mapper --> Hash )
- multi method categorize ( @values: @mapper --> Hash )
- multi categorize ( &mapper, *@values --> Hash )
- multi categorize ( %mapper, *@values --> Hash )
- multi categorize ( @mapper, *@values --> Hash )
+ multi method categorize ( @values: &mapper, :bind --> Hash )
+ multi method categorize ( @values: %mapper, :bind --> Hash )
+ multi method categorize ( @values: @mapper, :bind --> Hash )
+ multi categorize ( &mapper, *@values, :bind --> Hash )
+ multi categorize ( %mapper, *@values, :bind --> Hash )
+ multi categorize ( @mapper, *@values, :bind --> Hash )
 
 Like C<classify>, C<categorize> transforms a finite list or array of values
 into a hash representing the categorizations of those
@@ -218,12 +222,16 @@ the current value.  Hence, if the mapper returns C<()>, the value
 is discarded rather than being stored under any key.  On the
 other hand, if the mapper returns a list of categories, the value in
 question will be pushed into multiple hash locations (while C<classify>
-would merely make a key out of the list returned from the mapper).  However,
+would merely make a key out of the list returned from the mapper).  However, a
 category may also be a L<Parcel> to indicate a multi-level categorization.  In
 such a case, only the categorization of the lowest level, will actually yield
 a Hash of Lists.  All higher up categorizations, will necessarily always be a
 Hash of Hashes.  Please note that all Parcels must have the same number of
 elements.
+
+The optional C<:bind> parameter indicates whether the values should be bound
+to the lowest level of array: this will generally reduce the amount of memory
+needed.  By default, values will be copied.
 
 =item grep
 
@@ -1001,18 +1009,18 @@ to the original hash.
 
 =item classify
 
- multi method classify ( Hash: &mapper, *@values --> Hash )
- multi method classify ( Hash: %mapper, *@values --> Hash )
- multi method classify ( Hash: @mapper, *@values --> Hash )
+ multi method classify ( Hash: &mapper, *@values, :bind --> Hash )
+ multi method classify ( Hash: %mapper, *@values, :bind --> Hash )
+ multi method classify ( Hash: @mapper, *@values, :bind --> Hash )
 
 Same as L<List>'s C<classify>, but allows consecutive runs to be applied to the
 same hash.
 
 =item categorize
 
- multi method categorize ( Hash: &mapper, *@values --> Hash )
- multi method categorize ( Hash: %mapper, *@values --> Hash )
- multi method categorize ( Hash: @mapper, *@values --> Hash )
+ multi method categorize ( Hash: &mapper, *@values, :bind --> Hash )
+ multi method categorize ( Hash: %mapper, *@values, :bind --> Hash )
+ multi method categorize ( Hash: @mapper, *@values, :bind --> Hash )
 
 Same as L<List>'s C<categorize>, but allows consecutive runs to be applied to
 the same hash.
