@@ -155,12 +155,12 @@ cache hits.
 
 =item classify
 
- multi method classify ( @values: &mapper, :bind --> Hash )
- multi method classify ( @values: %mapper, :bind --> Hash )
- multi method classify ( @values: @mapper, :bind --> Hash )
- multi classify ( &mapper, *@values, :bind --> Hash )
- multi classify ( %mapper, *@values, :bind --> Hash )
- multi classify ( @mapper, *@values, :bind --> Hash )
+ multi method classify ( @values: &mapper --> Hash )
+ multi method classify ( @values: %mapper --> Hash )
+ multi method classify ( @values: @mapper --> Hash )
+ multi classify ( &mapper, *@values --> Hash )
+ multi classify ( %mapper, *@values --> Hash )
+ multi classify ( @mapper, *@values --> Hash )
 
 C<classify> transforms a finite list or array of values into a hash
 representing the classification of those values according to a mapper;
@@ -174,7 +174,9 @@ of the associated key.  For example:
   (:@even, :@odd) := classify { $_ % 2 ?? 'odd' !! 'even' }, @list; # same
 
 In this example, @even will contain all even numbers from C<@list>
-and C<@odd> will contain all odd numbers from C<@list>.
+and C<@odd> will contain all odd numbers from C<@list>.  Please note that
+for performance reasons, an implementation is free to C<bind> values to the
+resulting arrays.  So you should consider these arrays to be immutable.
 
 To simply transform a list into a hash of arrays:
 
@@ -194,20 +196,16 @@ a Hash of Lists.  All higher up classifications, will necessarily always be a
 Hash of Hashes.  Please note that all Parcels must have the same number of
 elements.
 
-The optional C<:bind> parameter indicates whether the values should be bound
-to the lowest level of array: this will generally reduce the amount of memory
-needed.  By default, values will be copied.
-
 To categorize values into multiple categories, see C<categorize>.
 
 =item categorize
 
- multi method categorize ( @values: &mapper, :bind --> Hash )
- multi method categorize ( @values: %mapper, :bind --> Hash )
- multi method categorize ( @values: @mapper, :bind --> Hash )
- multi categorize ( &mapper, *@values, :bind --> Hash )
- multi categorize ( %mapper, *@values, :bind --> Hash )
- multi categorize ( @mapper, *@values, :bind --> Hash )
+ multi method categorize ( @values: &mapper --> Hash )
+ multi method categorize ( @values: %mapper --> Hash )
+ multi method categorize ( @values: @mapper --> Hash )
+ multi categorize ( &mapper, *@values --> Hash )
+ multi categorize ( %mapper, *@values --> Hash )
+ multi categorize ( @mapper, *@values --> Hash )
 
 Like C<classify>, C<categorize> transforms a finite list or array of values
 into a hash representing the categorizations of those
@@ -215,6 +213,9 @@ values according to a mapper; each hash key represents one possible
 categorization for one or more of the incoming list values, and
 the corresponding hash value contains an array of those list values
 categorized by the mapper into the category of the associated key.
+Please note that for performance reasons, an implementation is free to C<bind>
+values to the resulting arrays.  So you should consider these arrays to be
+immutable.
 
 Unlike C<classify>, C<categorize> always assumes that the return
 value of the mapper is a list of categories that are appropriate to
@@ -228,10 +229,6 @@ such a case, only the categorization of the lowest level, will actually yield
 a Hash of Lists.  All higher up categorizations, will necessarily always be a
 Hash of Hashes.  Please note that all Parcels must have the same number of
 elements.
-
-The optional C<:bind> parameter indicates whether the values should be bound
-to the lowest level of array: this will generally reduce the amount of memory
-needed.  By default, values will be copied.
 
 =item grep
 
@@ -716,14 +713,10 @@ If C<@array> is empty returns a failure.
 
 =item push
 
- multi method push ( @array: *@values, :bind --> Array ) is export
+ multi method push ( @array: *@values --> Array ) is export
 
 Adds all the values to the end of C<@array> eagerly.  Returns the modified
 array.
-
-The optional C<:bind> parameter indicates whether the values should be bound:
-this will generally reduce the amount of memory needed.  By default, values
-will be copied.
 
 =item plan
 
@@ -990,7 +983,7 @@ into multiple pairs.  (The C<< X=> >> expands C<$v> if it is a list.)
 
 =item push
 
- multi method push ( %hash: *@values, :bind --> Hash ) is export
+ multi method push ( %hash: *@values --> Hash ) is export
 
 Like hash assignment insofar as it accepts either C<Pair> objects or
 alternating keys and values; also like in that it returns the new hash.
@@ -1011,24 +1004,20 @@ that is not a list.)
 The intent is that reversing a hash twice produces a hash equivalent
 to the original hash.
 
-The optional C<:bind> parameter indicates whether the values should be bound:
-this will generally reduce the amount of memory needed.  By default, values
-will be copied.
-
 =item classify
 
- multi method classify ( Hash: &mapper, *@values, :bind --> Hash )
- multi method classify ( Hash: %mapper, *@values, :bind --> Hash )
- multi method classify ( Hash: @mapper, *@values, :bind --> Hash )
+ multi method classify ( Hash: &mapper, *@values --> Hash )
+ multi method classify ( Hash: %mapper, *@values --> Hash )
+ multi method classify ( Hash: @mapper, *@values --> Hash )
 
 Same as L<List>'s C<classify>, but allows consecutive runs to be applied to the
 same hash.
 
 =item categorize
 
- multi method categorize ( Hash: &mapper, *@values, :bind --> Hash )
- multi method categorize ( Hash: %mapper, *@values, :bind --> Hash )
- multi method categorize ( Hash: @mapper, *@values, :bind --> Hash )
+ multi method categorize ( Hash: &mapper, *@values --> Hash )
+ multi method categorize ( Hash: %mapper, *@values --> Hash )
+ multi method categorize ( Hash: @mapper, *@values --> Hash )
 
 Same as L<List>'s C<categorize>, but allows consecutive runs to be applied to
 the same hash.
