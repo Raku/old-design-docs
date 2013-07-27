@@ -716,10 +716,14 @@ If C<@array> is empty returns a failure.
 
 =item push
 
- multi method push ( @array: *@values --> Array ) is export
+ multi method push ( @array: *@values, :bind --> Array ) is export
 
-Adds all the values to the end of C<@array> eagerly.
-Returns the modified array.
+Adds all the values to the end of C<@array> eagerly.  Returns the modified
+array.
+
+The optional C<:bind> parameter indicates whether the values should be bound:
+this will generally reduce the amount of memory needed.  By default, values
+will be copied.
 
 =item plan
 
@@ -986,7 +990,7 @@ into multiple pairs.  (The C<< X=> >> expands C<$v> if it is a list.)
 
 =item push
 
- multi method push ( %hash: *@values --> Hash ) is export
+ multi method push ( %hash: *@values, :bind --> Hash ) is export
 
 Like hash assignment insofar as it accepts either C<Pair> objects or
 alternating keys and values; also like in that it returns the new hash.
@@ -1006,6 +1010,10 @@ that is not a list.)
 
 The intent is that reversing a hash twice produces a hash equivalent
 to the original hash.
+
+The optional C<:bind> parameter indicates whether the values should be bound:
+this will generally reduce the amount of memory needed.  By default, values
+will be copied.
 
 =item classify
 
