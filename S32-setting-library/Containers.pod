@@ -187,7 +187,13 @@ Values that have no mapping will be classified under an undefined
 failure key (whatever is returned by the mapper in use).  [Conjecture:
 if a hash comes with a default value, it can map anything.]
 
-C<classify> always assumes that the mapper returns a single value.
+C<classify> always assumes that the mapper returns a single value.  However,
+this may also be a L<Parcel> to indicate a multi-level classification.  In
+such a case, only the classification of the lowest level, will actually yield
+a Hash of Lists.  All higher up classifications, will necessarily always be a
+Hash of Hashes.  Please note that all Parcels must have the same number of
+elements.
+
 To categorize values into multiple categories, see C<categorize>.
 
 =item categorize
@@ -212,7 +218,12 @@ the current value.  Hence, if the mapper returns C<()>, the value
 is discarded rather than being stored under any key.  On the
 other hand, if the mapper returns a list of categories, the value in
 question will be pushed into multiple hash locations (while C<classify>
-would merely make a key out of the list returned from the mapper).
+would merely make a key out of the list returned from the mapper).  However,
+category may also be a L<Parcel> to indicate a multi-level categorization.  In
+such a case, only the categorization of the lowest level, will actually yield
+a Hash of Lists.  All higher up categorizations, will necessarily always be a
+Hash of Hashes.  Please note that all Parcels must have the same number of
+elements.
 
 =item grep
 
