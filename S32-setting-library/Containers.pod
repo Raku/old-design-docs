@@ -455,12 +455,14 @@ C<is canonicalized(&lc)>.)
 
 Returns a list of unique values from the invocant/argument
 list. C<uniq> uses C<< &infix:<===> >> semantics to compare whether
-two objects are the same.  The function does not use C<===> directly,
-however; it is actually implemented via an object-keyed hash (such as
-an object set), so that any instance of a given identity suppresses all
-subsequent instances of that identity, even if they are not contiguous
-in the list.  (Use C<squish> instead if you know the input is sorted
-such that identical objects are adjacent.)
+two objects are the same. The order of the original list is preserved
+even as duplicates are removed.
+
+    say <a a b b b c c>.uniq    # a b c
+    say <a b b c c b a>.uniq    # a b c
+
+(Use C<squish> instead if you know the input is sorted such that identical
+objects are adjacent.)
 
 =item squish
 
@@ -471,9 +473,13 @@ such that identical objects are adjacent.)
 Returns a list of values from the invocant/argument list where runs
 of more than one object of the same identity are squished down to
 a single instance. Like C<uniq>, C<squish> uses C<< &infix:<===> >>
-semantics to compare whether two objects are the same.  Unlike,
-C<uniq>, this function does not need to keep a hash of all previous
-identities; it simply tracks the previous one, and uses C<===> directly.
+semantics to compare whether two objects are the same.  Unlike
+C<uniq>, this function only removes adjacent duplicates; identical
+objects further apart are still kept. The order of the original list
+is preserved even as duplicates are removed.
+
+    say <a a b b b c c>.squish  # a b c
+    say <a b b c c b a>.squish  # a b c b a
 
 =item min
 
