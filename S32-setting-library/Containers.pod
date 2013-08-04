@@ -449,49 +449,38 @@ C<is canonicalized(&lc)>.)
 
 =item uniq
 
- multi method uniq(List:D: --> List:D, :&with = &[===])
+ multi method uniq(List:D: --> List:D)
 
- multi sub uniq(*@values --> List:D, :&with = &[===])
+ multi sub uniq(*@values --> List:D)
 
 Returns a list of unique values from the invocant/argument list, such
 that only the first occurrence of each duplicated value remains in the
-result list. The order of the original list is preserved even as
+result list. C<uniq> uses C<< &infix:<===> >> semantics to compare whether
+two objects are the same. The order of the original list is preserved even as
 duplicates are removed.
 
     say <a a b b b c c>.uniq    # a b c
     say <a b b c c b a>.uniq    # a b c
-
-By default, C<uniq> uses C<< &infix:<===> >> semantics to compare
-whether two objects are the same. Use the C< :with > parameter to
-override this default.
-
-    say <fly you fools>.uniq(:with({ $^a.chars == $^b.chars }))
-    # fly fools
 
 (Use C<squish> instead if you know the input is sorted such that identical
 objects are adjacent.)
 
 =item squish
 
- multi method squish(List:D: --> List:D, :&with = &[===])
+ multi method squish(List:D: --> List:D)
 
- multi sub squish(*@values --> List:D, :&with = &[===])
+ multi sub squish(*@values --> List:D)
 
 Returns a list of values from the invocant/argument list where runs
 of more than one value are replaced with only the first instance.
-Unlike C<uniq>, this function only removes adjacent duplicates; identical
-values further apart are still kept. The order of the original list is
-preserved even as duplicates are removed.
+Like C<uniq>, C<squish> uses C<< &infix:<===> >> semantics to compare
+whether two objects are the same. Unlike C<uniq>, this function only
+removes adjacent duplicates; identical values further apart are still
+kept. The order of the original list is preserved even as duplicates
+are removed.
 
     say <a a b b b c c>.squish  # a b c
     say <a b b c c b a>.squish  # a b c b a
-
-By default, C<squish> uses C<< &infix:<===> >> semantics to compare
-whether two objects are the same. Use the C< :with > parameter to
-override this default.
-
-    say <aA Aa bb BB aa>.squish(:with({ $^a.foldcase eq $^b.foldcase }))
-    # aA bb aa
 
 =item min
 
