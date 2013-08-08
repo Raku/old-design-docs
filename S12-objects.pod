@@ -974,6 +974,7 @@ of the candidate list:
     nextsame;           # redispatch with the original arguments (no return)
     nextwith();         # redispatch with no arguments (no return)
     nextwith(1,2,3);    # redispatch with a new set of arguments (no return)
+    samewith(1,2,3);    # same dispatcher with new arguments (no return)
 
 For dispatches using C<.> and C<.?>, the return value is the
 C<Capture> returned by the first method completed without deferring.
@@ -1013,6 +1014,12 @@ we're throwing away, in case we're not sure about our context.
 This confusion could arise since we use C<nextsame> semantics at
 least three different ways: single dispatch, multiple dispatch,
 and routine wrapper dispatch.]
+
+The C<samewith> redispatches the method call using the current dispatcher: this
+is mainly intended if you have one "worker" method, and several "frontend"
+methods in the same class to avoid code duplication.  The frontend methods then
+mangle the parameters before sending them off to the worker method with
+C<samewith>.
 
 =head1 Parallel dispatch
 
