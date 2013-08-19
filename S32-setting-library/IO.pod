@@ -22,8 +22,8 @@ DRAFT: Synopsis 32: Setting Library - IO
 
     Created: 19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
 
-    Last Modified: 30 May 2013
-    Version: 20
+    Last Modified: 19 Aug 2013
+    Version: 21
 
 The document is a draft.
 
@@ -181,7 +181,30 @@ other error in opening, writing, or closing.
     multi sub chdir(Str:D)
     multi sub chdir(IO::Path::D)
 
-Changes the current working directory to the new value. Fails (X::IO::Chdir) on error.
+Changes the current (emulated) working directory to the new value, scoped to the current scope of C<$*CWD> (usually thread-local at worst, or the scope of a C<visitdir> inside the current thread). Fails (X::IO::Chdir) on error.
+If C<$*CWD> is not scoped to the current dynamic scope, you must call C<chdir> again when exiting the
+dynamic scope to get back to the original directly, just as you would with a real C<chdir>.  In this case
+you would probably be better off using C<visitdir> instead, which will automatically scope C<$*CWD> to the current
+dynamic scope.
+
+Note that actually changing the process's working directory requires
+a call to C<PROCESS::chdir> (which will inform the chdir emulation
+that the process's actual current working directory has changed).
+This function is not threadsafe, however.  And if calling out to a
+foreign function, only one thread can safely use it; in general it's
+better to pass absolute paths to foreign functions that don't allow
+you to set the working directory as a parameter.
+
+=item visitdir
+
+    multi sub visitdir(Str:D)
+    multi sub visitdir(IO::Path::D)
+
+Changes the current (emulated) working directory to the new
+value, scoped to the current dynamic scope just as C<temp $*CWD = newdir();>
+would. Fails (X::IO::Chdir) on error.  Since C<$*CWD> is dynamically scoped,
+leaving the current dynamic scope automatically restores the current (emulated)
+working directory.
 
 =item unlink
 
