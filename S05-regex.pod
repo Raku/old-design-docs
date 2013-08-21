@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 12 May 2013
-    Version: 164
+    Last Modified: 21 Aug 2013
+    Version: 165
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -69,6 +69,13 @@ C<$1>, etc.) are just elements of C<$/>.
 By the way, unlike in Perl 5, the numbered capture variables now
 start at C<$0> instead of C<$1>.  See below.
 
+In order to detect accidental use of Perl 5's unrelated C<$/>
+variable, Perl 6's C<$/> variable may not be assigned to directly.
+
+    $/ = $x;   # "Unsupported use of $/ variable as input record separator"
+    $/ := $x;  # OK, binding
+    $/ RR= $x; # OK, metaoperator
+    ($/) = $x; # OK, list assignment
 
 =head1 Unchanged syntactic features
 
