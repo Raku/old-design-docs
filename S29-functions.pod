@@ -19,8 +19,8 @@ Synopsis 29: Builtin Functions
 
     Created: 12 Mar 2005
 
-    Last Modified: 23 Feb 2013
-    Version: 54
+    Last Modified: 22 Aug 2013
+    Version: 55
 
 The document is a draft.
 
@@ -300,21 +300,22 @@ the exception.
 
 =item bless
 
- method bless($candidate, *@protos, *%init_args )
+ method bless(*@protos, *%init_args )
 
 Calling C<bless> on any invocant (but typically a type object) to create a new
 object with the same class as the invocant.
 
-C<$candidate> is used to provide the underlying representation of the object.
-The default is C<P6opaque>, but various other representations might be
-desired, especially when interoperating with other languages. C<@protos> and
-C<%init_args> both provide ways for values to be provided to the new
-object, just like in the default C<new> method.
+(The C<.bless> function used to take a first argument indicating a candidate
+to bless, but this was almost invariably specified as C<*>, meaning "whatever",
+so now the object builder just implicitly asks the representation what its
+preferred, er, representation is.  The C<*> form is now deprecated, and that
+argument should be removed from any existing code.)
 
-C<bless> automatically calls all appropriate C<BUILD> routines by calling the
-C<BUILDALL> routine for the current class, which initializes the object in
-least-derived to most-derived order. See L<S12/Objects>
-for more detailed information on object creation.
+C<bless> automatically creates an object appropriate to the
+representation of the class, then calls all appropriate C<BUILD>
+routines for the current class, which initializes the object in
+least-derived to most-derived order. See L<S12/Objects> for more
+detailed information on object creation.
 
 =item chrs
 
@@ -1007,7 +1008,6 @@ redo
 
 =item Other
 
-bless
 caller
 chr
 die

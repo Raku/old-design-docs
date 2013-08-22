@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 19 August 2013
-    Version: 130
+    Last Modified: 22 August 2013
+    Version: 131
 
 =head1 Overview
 
@@ -735,8 +735,8 @@ by this class) is illegal and produces a dire compile-time warning
 (which may be suppressed).  Within a submethod the C<$.foo> form may
 only be used on attributes from parent classes, because only the parent
 classes' part of the object is guaranteed to be in a consistent state
-(because C<BUILDALL> call's the parent classes' C<BUILD> routines
-first).  If you attempt to get around this by declaring C<BUILD> as
+(because C<bless> calls the C<BUILD> routines of the parent classes before
+the child classes).  If you attempt to get around this by declaring C<BUILD> as
 a method rather than a submethod, that will also be flagged as a dire
 (but suppressible) compile-time warning.  (It is I<possible> to define
 an inheritable C<BUILD> routine if you have access to all the metadata
@@ -814,29 +814,23 @@ the same name.  You may write your own C<new> to override the default,
 or write constructors with any other name you like.  As in Perl 5,
 a constructor is any routine that calls C<bless>.  Unlike in Perl 5,
 you call it as a method on the class object (though any object may be
-used as a class object), passing the candidate as the first argument.
-To bless a hash as in Perl 5, say:
+used as a class object), passing the arguments to be used in building
+the object.
 
-    $object = $class.bless({k1 => $v1, k2 => $v2, ...});
+The representation of the class determines how to create the object,
+so it's not longer necessary for you to supply a candidate to C<bless>.
+For example, a P5Hash object would give you an object representation that
+uses hashes just like P5 does.  The default C<P6Opaque> representation
+doesn't tell you what it's going to use for its representation, since
+that's why it's called "opaque", after all.
 
-However, the normal way to create a candidate to bless is by calling
-C<CREATE> (which by default creates an opaque object):
-
-    $object = $class.bless($class.CREATE(), k1 => $v1, k2 => $v2, ...)
-    $object = $class.bless($class.CREATE(), :k1($v1), :k2($v2), ...)  # same
-
-Alternatively, you can pass C<Whatever> and have C<bless> call CREATE
-for you.
-
-    $object = $class.bless(*, k1 => $v1, k2 => $v2, ...)
-
-In addition to the candidate positional argument, C<bless> also
+The C<bless> method
 allows one or more positional arguments representing autovivifying
 type objects.  Such an object looks like a type name followed by a
 hash subscript (see "Autovivifying objects" below).  These are used
 to initialize superclasses.
 
-Other than the candidate object and any autovivifying type objects,
+Other than a list of autovivifying type objects,
 all arguments to C<bless> must be named arguments, not positional.
 Hence, the main purpose of custom constructors is to turn positional
 arguments into named arguments for C<bless>.  The C<bless> method
@@ -847,23 +841,21 @@ Use C<.clone> instead of C<.bless> if that's what you mean.
 =head2 Semantics of C<bless>
 
 Any named arguments to C<bless> are automatically passed to the
-C<CREATE> and C<BUILD> routines.  If you wish to pass special options
-to the C<CREATE> routine (such as an alternate representation),
-call C<CREATE> yourself and then pass the resulting candidate to C<.bless>:
+C<BUILD> routines.
 
-    my $candidate = $class.CREATE(:repr<P6opaque>);
-    $object = $class.bless($candidate, :k1($v1), :k2($v2))
+For for normal user classes, C<P6opaque> is the default representation.
+Other possibilities are C<P6hash>, C<P5hash>, C<P5array>, C<PyDict>,
+C<Cstruct>, etc.  If you wish to pass special options to the
+representation layer for creating the object, that's between you
+and the representation.  (A representation might look for additional
+class traits, for instance, telling it bit sizes and such.)
 
-For the built-in default C<CREATE> method, C<P6opaque> is the default
-representation.  Other possibilities are C<P6hash>, C<P5hash>,
-C<P5array>, C<PyDict>, C<Cstruct>, etc.
-
-The C<bless> function automatically calls all appropriate C<BUILD>
-routines by calling the C<BUILDALL> routine for the current class,
+The C<bless> method automatically calls all appropriate C<BUILD>
+routines for the current class,
 which initializes the object in least-derived to most-derived order.
-C<DESTROY> and C<DESTROYALL> work the same way, only in reverse.
+(C<DESTROY> submethods work the same way, only in reverse.)
 
-The default C<BUILD> and C<BUILDALL> are inherited from C<Mu>,
+The default C<BUILD> semantics are inherited from C<Mu>,
 so you need to write initialization routines only if you wish to
 modify the default behavior.  The C<bless> function automatically
 passes the appropriate argument list to the C<BUILD> of its various
