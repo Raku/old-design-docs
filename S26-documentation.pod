@@ -73,7 +73,7 @@ Anything in a document that is neither a Pod directive nor contained
 within a Pod block is treated as "ambient" material. Typically this
 would be the source code of the program that the Pod is documenting. Pod
 parsers still parse this text into the internal representation of the
-file, representing it as a C<Pod6::Block::Ambient> block. Renderers
+file, representing it as a C<Pod::Block::Ambient> block. Renderers
 will I<usually> ignore such blocks, but see L<#Aliases>.
 
 In Perl 5's POD format, once a POD directive is encountered, the parser
@@ -355,7 +355,7 @@ via the returned Pod object's C<.leading> and C<.trailing> methods:
 The Pod object representing each Declarator block is still appended to
 the current surrounding Pod object (e.g. to C<$=pod> at the top level).
 Each such block representation is an object of class
-C<Pod6::Block::Declarator>, and has a C<.WHEREFORE> method that returns
+C<Pod::Block::Declarator>, and has a C<.WHEREFORE> method that returns
 the code object or metaobject created by the declarator to which the
 documentation is attached.
 
@@ -405,12 +405,12 @@ implementation dependent, and may also be pre-empted explicitly by some
 L<C<DOC> configuration statement|#How Pod is parsed and processed>
 within the document, such as:
 
-    DOC use Pod6::Markovian;
+    DOC use Pod::Markovian;
 
 or:
 
     DOC INIT {
-        use Pod6::Eiffelish::Long;
+        use Pod::Eiffelish::Long;
 
         say eiffelish_long($=pod);
 
@@ -1488,13 +1488,13 @@ or:
 
 Named blocks are converted by the Pod parser to block objects;
 specifically, to objects of a subclass of the standard
-C<Pod6::Block::Named> class.
+C<Pod::Block::Named> class.
 
 For example, the blocks of the previous example would be converted to
-objects of the classes C<Pod6::Block::Named::Xhtml> and
-C<Pod6::Block::Named::Image> respectively. Both of those classes
+objects of the classes C<Pod::Block::Named::Xhtml> and
+C<Pod::Block::Named::Image> respectively. Both of those classes
 would be automatically created as subclasses of the
-C<Pod6::Block::Named> class (unless they were already defined in a module
+C<Pod::Block::Named> class (unless they were already defined in a module
 loaded via some prior L<C<DOC use>|#How Pod is parsed and processed>.
 
 The resulting object's C<.typename> method retrieves the short name of
@@ -2440,7 +2440,7 @@ a colon-terminated scheme specifier. The rest of the enclosed text is
 treated as the (verbatim) contents of the formatting code. For example:
 
 =begin code :allow<B>
-    DOC use Pod6::TT;
+    DOC use Pod::TT;
 
     =head1 Overview of the B<M<TT: $CLASSNAME >> class
     (version B<M<TT: $VERSION>>)
@@ -2452,10 +2452,10 @@ The C<M<>> formatting code is the inline equivalent of a
 L<named block|#Named blocks>.
 
 Internally an C<M<>> code is converted to an object derived from the
-C<Pod6::FormattingCode::Named> class. The name of the scheme becomes
+C<Pod::FormattingCode::Named> class. The name of the scheme becomes
 the final component of the object's classname. For instance, the C<M<>>
 code in the previous example would be converted to a
-C<Pod6::FormattingCode::Named::TT> object, whose C<.typename>
+C<Pod::FormattingCode::Named::TT> object, whose C<.typename>
 method retrieves the string C<"TT"> and whose C<.contents>
 method retrieves a list of the formatting code's (verbatim,
 unformatted) contents.
@@ -2803,12 +2803,12 @@ standard Perl 6 compilation process, the processing of any given file of
 Pod can be modified from within that file itself by the appropriate
 insertion of C<DOC> blocks. For example:
 
-    DOC use Pod6::Markovian;
+    DOC use Pod::Markovian;
 
 or:
 
     DOC BEGIN {
-        use Pod6::Literate;
+        use Pod::Literate;
 
         if ($?DOC ~~ /short/) {
             literate_sequence(<
