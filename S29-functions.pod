@@ -20,7 +20,7 @@ Synopsis 29: Builtin Functions
     Created: 12 Mar 2005
 
     Last Modified: 4 Sep 2013
-    Version: 57
+    Version: 58
 
 The document is a draft.
 
@@ -272,7 +272,7 @@ if you really just want to keep rolling over in bed until your alarm
 goes off at a particular time, use C<sleep-till> instead, since it
 is not subject to relative clock drift.
 
-See C<Synopsis 17: Concurrency> for more details.
+All of these sleep functions work only on the current thread.
 
 =item sleep-timer
 
@@ -290,25 +290,13 @@ the first place.)
 
 =item sleep-till
 
- multi sleep-till ( Instant $for = Inf --> Instant )
+ multi sleep-till ( Instant $till = Inf --> Bool )
 
 Just like C<sleep>, but checks the current time and goes back to
 sleep if accidentally woken up early, to guarantee waiting until the
-specified time.  Returns the actual current time, since it already
-just looked it up.
-
-=item interval
-
- multi interval ( Num $for --> Num )
-
-Attempt to sleep for up to C<$for> seconds since the last time C<interval>
-was called in the current thread, or the parent thread.  Returns number of
-seconds actually slept.  Does not sleep at all the first time it is called,
-or if the specified number of seconds has already passed since the last call.
-Implementations are obligated to support sub-second resolutions if that is
-at all possible.
-
-See C<Synopsis 17: Concurrency> for more details.
+specified time.  Returns True if the function actually waited, or if
+the specified time happens to be the present moment.  Returns False
+if you asked to sleep until a time in the past.
 
 =item die
 
