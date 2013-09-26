@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 20 Aug 2013
-    Version: 276
+    Last Modified: 26 Sep 2013
+    Version: 277
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1128,6 +1128,13 @@ does not make a list of closures, but is equivalent to
 
     -> $arg { @array X* $arg }
 
+Postcircumfixes (with or without the dot) are also autoprimed, so we have
+
+    *[$x]       -> @a { @a[$x] }
+    *{$x}       -> %h { %h[$x] }
+    *<foo>      -> %h { %h<foo> }
+    *($x)       -> &c { &c($x) }
+
 =head3 The C<WhateverCode> Types
 
 These returned closures are of type C<WhateverCode:($)> or C<WhateverCode:($,$)>
@@ -1140,7 +1147,7 @@ or its derivative closures can distinguish them by type:
     0, 1, *+1 ... *  # counting
     0, 1, *+* ... *  # fibonacci
 
-For any prefix, postfix, or infix operator that would be primed by a
+For any prefix, infix, postfix, or postcircumfix operator that would be primed by a
 C<Whatever>, a C<WhateverCode> also autoprimes it, such that any noun
 phrase based on C<*> as a head noun autoprimes transitively outward as
 far as it makes sense, including outward through metaoperators.  Hence:
@@ -1150,6 +1157,26 @@ far as it makes sense, including outward through metaoperators.  Hence:
     * + * + *   # { $^x + $^y + $^z }
     (-*.abs)i   # { (-$^x.abs)i }
     @a «+» *    # { @a «+» $^x }
+
+Note in particular that parentheses will autoprime on a C<WhateverCode>, so
+
+    *[0](1,2,3,4,5)
+
+means
+
+    -> @a { @a[0](1,2,3,4,5) }
+
+rather than
+
+    (-> @a { @a.[0] })(1,2,3,4,5)
+
+If you want the latter semantics for some reason, use a temporary:
+
+    my $c = *[0]; $c(1,2,3,4,5);
+
+or just put the autoprime in parens:
+
+    (*[0])(1,2,3,4,5)
 
 =head3 Operators with idiosyncratic Whatever
 
