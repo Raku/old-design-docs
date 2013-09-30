@@ -2716,7 +2716,13 @@ and C<< <!> >> always fails to match anything.
 
 =head1 Longest-token matching
 
-Instead of representing temporal alternation, C<|> now represents
+Since "longest-token matching" is a long phrase, we will usually refer
+to this idea as B<LTM>.  The basic notion is that LTM is how people
+tend to parse text in their heads, so the computer ought to try to do
+the same.  And parsing with LTM is all about how the computer decides
+which alternative of a set of alternatives is going to match.
+
+Instead of representing temporal alternation as it does in Perl 5, in Perl 6 C<|> represents
 logical alternation with declarative longest-token semantics.  (You may
 now use C<||> to indicate the old temporal alternation.  That is, C<|>
 and C<||> now work within regex syntax much the same as they do outside
@@ -2786,8 +2792,10 @@ Any atom that is quantified with a frugal match (using the C<?> modifier).
 =item *
 
 Any C<{...}> action, but not an assertion containing a closure.
-The closure form of the general C<**{...}> quantifier terminates the
-longest token, but not the closureless forms.
+(The empty closure C<{}> is customarily used to explicitly terminate
+the pure part of the pattern.)  The closure form of the general
+C<**{...}> quantifier also terminates the longest token, but the
+closureless forms of quantifier do not.
 
 =item *
 
@@ -2820,35 +2828,32 @@ be able to recover from the failure of such an assertion and backtrack
 to the next best token candidate, which might be the same length or shorter,
 but can never be longer than the current candidate.
 
-For a pattern that starts with a positive lookahead assertion,
-the assertion is assumed to be more specific than the subsequent
-pattern, so the lookahead's pattern is treated as the longest token;
-the longest-token matcher will be smart enough to rematch any text
-traversed by the lookahead when (and if) it continues the match.
+For a pattern that contains a positive lookahead assertion such as
+C<< <?foo> >> or C<< <?before \s> >>, the assertion is assumed to be
+more specific than the subsequent pattern, so the lookahead's pattern
+is counted as the final part of the longest token; the longest-token
+matcher will be smart enough to treat the extra bit as 0-width, that
+is, to rematch any text traversed by the lookahead when (and if)
+it continues the match.  (Indeed, if the entire lookahead is pure
+enough to participate in LTM, the rematcher may simply optimize away
+the rematching, since the lookahead already matched in the LTM engine.)
+
+However, for a pattern that contains a negative lookahead assertion
+such as C<< <!foo> >> or C<< <!before \s> >>, just the opposite is
+true: the subsequent pattern is assumed to be more specific than
+the assertion's.  So LTM completely ignores negative lookaheads, and
+continues to look for pure patterns in whatever follows the negative
+lookahead.  You might say that positive lookaheads are opaque to LTM,
+but negative lookaheads are transparent to LTM.  As a consequence,
+if you wish to write a positive lookahead that is transparent to
+LTM, you may indicate this with a double negation: C<< <!!foo> >>.
+(The optimizer is free to remove the double negation, but not the
+transparency.)
 
 Oddly enough, the C<token> keyword specifically does not determine
 the scope of a token, except insofar as a token pattern usually
-doesn't do much matching of whitespace.  In contrast, the C<rule>
-keyword (which assumes C<:sigspace>) defines a pattern that tends
-to disqualify itself on the first whitespace following the first recognized item.  So most of the token
-patterns will end up coming from C<token> declarations.  For instance,
-a token declaration such as
-
-    token list_composer { \[ <expr> \] }
-
-considers its "longest token" to be just the left square bracket, because
-the first thing the C<expr> rule will do is traverse optional whitespace.
-As an exception to this, and in order to promote readability, a special
-exception is made for alternations inside rules.  If an alternation in a
-rule, or any other context where C<:sigspace> is active,
-has any leading whitespace on any of the alternatives, it is ignored.  That is, C<rule { [ a | b ] }> is treated as
-if it were C<rule { [a |b ] }>, and the L<LTM|/"Longest-token matching">
-match begins with the first non-sigspace atom.  This exception applies to
-the rule itself as well, since any rule might participate in an alternation
-higher in the grammar.  And just to keep things simple, we say that the initial
-whitespace in any regex before the first actual match is not subject to significance.
-This includes any whitespace after a C<:sigspace>, if that declaration is the first
-thing in the regex.
+doesn't do much matching of whitespace, and whitespace is the archtypical
+way of terminating tokens.
 
 The initial token matcher must take into account case sensitivity
 (or any other canonicalization primitives) and do the right thing even
