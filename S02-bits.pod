@@ -1630,9 +1630,9 @@ because they can be wrapped in place.)
     Scalar      Perl scalar
     Array       Perl array
     Hash        Perl hash
-    SetHash     Setty MixHash[Bool,False]
-    BagHash     Baggy MixHash[UInt,0]
-    MixHash     Mixy  MixHash[Real,0.0]
+    SetHash     Setty QuantHash[Bool,False]
+    BagHash     Baggy QuantHash[UInt,0]
+    MixHash     Mixy  QuantHash[Real,0.0]
     Pair        A single key-to-value association
     Buf         Perl buffer (array of integers with some stringy features)
     IO          Perl filehandle
@@ -1646,19 +1646,19 @@ because they can be wrapped in place.)
     Stash       A symbol table hash (package, module, class, lexpad, etc)
     SoftRoutine A routine that is committed to staying mutable
 
-The C<MixHash> role differs from a normal C<Associative> hash in how it handles default
-values.  If the value of a C<MixHash> element is set to the default
-value for the C<MixHash>, the element is deleted.  If undeclared,
-the default default for a C<MixHash> is 0 for numeric types, C<False>
+The C<QuantHash> role differs from a normal C<Associative> hash in how it handles default
+values.  If the value of a C<QuantHash> element is set to the default
+value for the C<QuantHash>, the element is deleted.  If undeclared,
+the default default for a C<QuantHash> is 0 for numeric types, C<False>
 for boolean types, and the null string for string and buffer types.
-A C<MixHash> of an object type defaults to the undefined prototype
+A C<QuantHash> of an object type defaults to the undefined prototype
 for that type.  More generally, the default default is whatever defined
-value a C<Nil> would convert to for that value type.  A C<MixHash>
+value a C<Nil> would convert to for that value type.  A C<QuantHash>
 of C<Scalar> deletes elements that go to either 0 or the null string.
-A C<MixHash> also autodeletes keys for normal undefined values (that is,
+A C<QuantHash> also autodeletes keys for normal undefined values (that is,
 those undefined values that do not contain an unthrown exception).
 
-A C<SetHash> is a C<MixHash> of booleans with a default of C<False>.
+A C<SetHash> is a C<QuantHash> of booleans with a default of C<False>.
 If you use the C<Hash> interface and increment an element of a
 C<SetHash> its value becomes true (creating the element if it doesn't
 exist already).  If you decrement the element it becomes false and
@@ -1670,7 +1670,7 @@ behaves as a C<Set> of its keys.  (Since the only possible value of
 a C<SetHash> is the C<True> value, it need not be represented in
 the actual implementation with any bits at all.)
 
-A C<BagHash> is a C<MixHash> of C<UInt> with default of 0.  If you
+A C<BagHash> is a C<QuantHash> of C<UInt> with default of 0.  If you
 use the C<Hash> interface and increment an element of a C<BagHash>
 its value is increased by one (creating the element if it doesn't exist
 already).  If you decrement the element the value is decreased by one;
@@ -1693,9 +1693,9 @@ The following roles are supported:
     Scalar      
     Array       Positional Iterable
     Hash        Associative
-    SetHash     Setty MixHash[Bool]
-    BagHash     Baggy MixHash[UInt]
-    MixHash     Mixy  MixHash[Real]
+    SetHash     Setty QuantHash[Bool]
+    BagHash     Baggy QuantHash[UInt]
+    MixHash     Mixy  QuantHash[Real]
     Pair        Associative
     PairSeq     Associative Positional Iterable
     Buf         Stringy

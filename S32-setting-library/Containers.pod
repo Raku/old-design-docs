@@ -1206,7 +1206,7 @@ Note that, without an argument, this method basically calculates the powerset.
 
 =head2 SetHash
 
-A mutable Set container, represented as C<MixHash[Bool,False]>.
+A mutable Set container, represented as C<QuantHash[Bool,False]>.
 
 =head2 Bag
 
@@ -1268,25 +1268,25 @@ Rolling requires no temporary state.
 
 =head2 BagHash
 
-A mutable C<Bag> container, represented as C<MixHash[UInt,0]>.
+A mutable C<Bag> container, represented as C<QuantHash[UInt,0]>.
 
-=head2 MixHash
+=head2 QuantHash
 
-    role MixHash[::T, $default = Any] does Mixy does Associative {...}
+    role QuantHash[::T, $default = Any] does Mixy does Associative {...}
 
-A C<MixHash> represents a mutable set of objects, represented as the
+A C<QuantHash> represents a mutable set of objects, represented as the
 keys of a C<Hash>.  When asked to behave as a list it ignores its
 C<.values> and returns only C<.keys> (possibly replicated by weight
 in the case of bag types).  C<SetHash> and C<MixBag> are derived
 from this type, but constrain their hash values to be C<Bool> and
-C<UInt>, respectively.  A C<MixHash> automatically deletes any key
+C<UInt>, respectively.  A C<QuantHash> automatically deletes any key
 whose corresponding value goes to the default value for the hash.
-For any C<MixHash>, the C<.elems> methods returns the current sum
-of the values, which the C<MixHash> must either track or compute
+For any C<QuantHash>, the C<.elems> methods returns the current sum
+of the values, which the C<QuantHash> must either track or compute
 on demand.  Tracking is preferable for efficient implementation of
 C<.pick> and C<.grab>.
 
-All standard C<MixHash> containers have a default value that is false
+All standard C<QuantHash> containers have a default value that is false
 (such as C<0> or C<''> or C<Nil> or C<Bool::False>), and keep around
 only those entries with non-default values, automatically deleting
 any entry if its value goes to that (false) default value.
@@ -1302,9 +1302,9 @@ any entry if its value goes to that (false) default value.
 
 Like C<pick>, a C<grab> returns a random selection of elements, weighted
 by the values corresponding to each key.
-Since a C<MixHash>, unlike a C<Set> or C<Bag>, is mutable, C<.grab>
-works directly on the C<MixHash>, modifying it in place.  (You may use
-C<.pick> to treat the C<MixHash> as immutable; this will copy it and grab
+Since a C<QuantHash>, unlike a C<Set> or C<Bag>, is mutable, C<.grab>
+works directly on the C<QuantHash>, modifying it in place.  (You may use
+C<.pick> to treat the C<QuantHash> as immutable; this will copy it and grab
 only from the temporary copy.)
 
 Grabbing decrements the grabbed
@@ -1322,7 +1322,7 @@ and whose values are the deleted replication values.
 
 =head2 MixHash
 
-A C<MixHash[Real,0]>; like a C<BagHash> but may have non-integral
+A C<QuantHash[Real,0]>; like a C<BagHash> but may have non-integral
 weights for use in weighted picking.  Keys with fractional weights
 are deleted if they go to 0.  Negative weights are not deleted, but
 the implementation may complain if it notices you attempting to use
