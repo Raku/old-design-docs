@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 13 Jul 2013
-    Version: 267
+    Last Modified: 2 Oct 2013
+    Version: 268
 
 =head1 Overview
 
@@ -538,8 +538,8 @@ not be overridden.)
 Increment of a C<Bool> (in a suitable container) turns it true.
 Decrement turns it false regardless of how many times it was
 previously incremented.  This is useful if your C<%seen> hash is
-actually a C<KeySet>, in which case decrement actually deletes it
-from the C<KeySet>.
+actually a C<SetHash>, in which case decrement actually deletes the key
+from the C<SetHash>.
 
 Increment/decrement of an undefined C<Numeric>, C<Cool>, or C<Any> variable
 sets the variable to 0 and then performs the increment/decrement.  Hence a
@@ -3688,7 +3688,7 @@ the table assumes the following types will behave similarly:
     Actual type                 Use entries for
     ===========                 ===============
     Iterator Seq                Array
-    KeySet KeyBag KeyHash       Hash
+    SetHash BagHash MixHash     Hash
     named values created with
       Class, Enum, or Role,
       or generic type binding   Type
@@ -3856,11 +3856,14 @@ by returning an object that can return a list in list context, or that
 can return a boolean in a boolean context.  In the case regex matching
 the C<Match> object is a kind of C<Capture>, which has these capabilities.
 
-For the purpose of smartmatching, all C<Set> and C<Bag> values are
-considered to be of type C<KeyHash>, that is, C<Hash> containers
+For the purpose of smartmatching, all C<Set>, C<Bag>, and C<Mix>
+values are considered equivalent to the corresponding hash type,
+C<SetHash>, C<BagHash>, and C<MixHash>, that is, C<Hash> containers
 where the keys represent the unique objects and the values represent
 the replication count of those unique keys.  (Obviously, a C<Set> can
 have only 0 or 1 replication because of the guarantee of uniqueness).
+So all of these C<Mixy> types only compare keys, not values.  Use C<eqv>
+instead to test the equivalence of both keys and values.
 
 Despite the need for an implementation to examine the bounds of a
 range in order to perform smartmatching, the result of smartmatching

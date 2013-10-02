@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 26 Sep 2013
-    Version: 277
+    Last Modified: 2 Oct 2013
+    Version: 278
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1442,6 +1442,7 @@ C<$x.WHICH> eqv C<$y.WHICH>).
     Range       A pair of Ordered endpoints
     Set         Unordered collection of values that allows no duplicates
     Bag         Unordered collection of values that allows duplicates
+    Mix         Unordered collection of values with weights
     Enum        An immutable Pair
     EnumMap     A mapping of Enums with no duplicate keys
     Signature   Function parameters (left-hand side of a binding)
@@ -1455,6 +1456,7 @@ C<$x.WHICH> eqv C<$y.WHICH>).
 
 C<Set> values may be composed with the C<set> listop or method.
 C<Bag> values may be composed with the C<bag> listop or method.
+C<Mix> values may be composed with the C<mix> listop or method.
 
 C<Instant>s and C<Duration>s are measured in atomic seconds with
 fractions.  Notionally they are real numbers which may be implemented
@@ -1581,8 +1583,9 @@ These types do (at least) the following roles:
     Bool        Boolean
     Block       Callable
     Range       Iterable
-    Set         Associative[Bool] Iterable
-    Bag         Associative[UInt] Iterable
+    Set         Setty Iterable
+    Bag         Baggy Iterable
+    Mix         Mixy Iterable
     Enum        Associative
     EnumMap     Associative Positional Iterable
     Signature   
@@ -1612,7 +1615,7 @@ simultaneously, but an iterator/list itself has only one thread of
 consumption.  Every time you do C<get> on an iterator, a value
 disappears from its list.
 
-Note that C<Set> and C<Bag> iterators return only keys, not values.  You
+Note that C<Set>, C<Bag>, and C<Mix> iterators return only keys, not values.  You
 must explicitly use c<.pairs> to get key/value pairs.
 
 =head2 Mutable types
@@ -1627,8 +1630,9 @@ because they can be wrapped in place.)
     Scalar      Perl scalar
     Array       Perl array
     Hash        Perl hash
-    KeySet      KeyHash of Bool (does Set in list/array context)
-    KeyBag      KeyHash of UInt (does Bag in list/array context)
+    SetHash     Setty MixHash[Bool,False]
+    BagHash     Baggy MixHash[UInt,0]
+    MixHash     Mixy  MixHash[Real,0.0]
     Pair        A single key-to-value association
     Buf         Perl buffer (array of integers with some stringy features)
     IO          Perl filehandle
@@ -1642,38 +1646,38 @@ because they can be wrapped in place.)
     Stash       A symbol table hash (package, module, class, lexpad, etc)
     SoftRoutine A routine that is committed to staying mutable
 
-The C<KeyHash> role differs from a normal C<Associative> hash in how it handles default
-values.  If the value of a C<KeyHash> element is set to the default
-value for the C<KeyHash>, the element is deleted.  If undeclared,
-the default default for a C<KeyHash> is 0 for numeric types, C<False>
+The C<MixHash> role differs from a normal C<Associative> hash in how it handles default
+values.  If the value of a C<MixHash> element is set to the default
+value for the C<MixHash>, the element is deleted.  If undeclared,
+the default default for a C<MixHash> is 0 for numeric types, C<False>
 for boolean types, and the null string for string and buffer types.
-A C<KeyHash> of an object type defaults to the undefined prototype
+A C<MixHash> of an object type defaults to the undefined prototype
 for that type.  More generally, the default default is whatever defined
-value a C<Nil> would convert to for that value type.  A C<KeyHash>
+value a C<Nil> would convert to for that value type.  A C<MixHash>
 of C<Scalar> deletes elements that go to either 0 or the null string.
-A C<KeyHash> also autodeletes keys for normal undefined values (that is,
+A C<MixHash> also autodeletes keys for normal undefined values (that is,
 those undefined values that do not contain an unthrown exception).
 
-A C<KeySet> is a C<KeyHash> of booleans with a default of C<False>.
+A C<SetHash> is a C<MixHash> of booleans with a default of C<False>.
 If you use the C<Hash> interface and increment an element of a
-C<KeySet> its value becomes true (creating the element if it doesn't
+C<SetHash> its value becomes true (creating the element if it doesn't
 exist already).  If you decrement the element it becomes false and
 is automatically deleted.  Decrementing a non-existing value results
 in a C<False> value.  Incrementing an existing value results in C<True>.
 When not used as a C<Hash> (that is,
-when used as an C<Array> or list or C<Set> object) a C<KeySet>
+when used as an C<Array> or list or C<Set> object) a C<SetHash>
 behaves as a C<Set> of its keys.  (Since the only possible value of
-a C<KeySet> is the C<True> value, it need not be represented in
+a C<SetHash> is the C<True> value, it need not be represented in
 the actual implementation with any bits at all.)
 
-A C<KeyBag> is a C<KeyHash> of C<UInt> with default of 0.  If you
-use the C<Hash> interface and increment an element of a C<KeyBag>
+A C<BagHash> is a C<MixHash> of C<UInt> with default of 0.  If you
+use the C<Hash> interface and increment an element of a C<BagHash>
 its value is increased by one (creating the element if it doesn't exist
 already).  If you decrement the element the value is decreased by one;
 if the value goes to 0 the element is automatically deleted.  An attempt
 to decrement a non-existing value returns a C<Failure> value.  When not
 used as a C<Hash> (that is, when used as an C<Array> or list or C<Bag>
-object) a C<KeyBag> behaves as a C<Bag> of its keys, with each key
+object) a C<BagHash> behaves as a C<Bag> of its keys, with each key
 replicated the number of times specified by its corresponding value.
 (Use C<.kv> or C<.pairs> to suppress this behavior in list context.)
 
@@ -1689,9 +1693,9 @@ The following roles are supported:
     Scalar      
     Array       Positional Iterable
     Hash        Associative
-    KeySet      KeyHash[Bool]
-    KeyBag      KeyHash[UInt]
-    KeyHash     Associative
+    SetHash     Setty MixHash[Bool]
+    BagHash     Baggy MixHash[UInt]
+    MixHash     Mixy  MixHash[Real]
     Pair        Associative
     PairSeq     Associative Positional Iterable
     Buf         Stringy
@@ -1955,7 +1959,7 @@ C<Range>, C<Buf>, C<Parcel>, or C<Capture>.  The C<Positional>
 role implies the ability to support C<< postcircumfix:<[ ]> >>.
 
 Likewise, C<%x> may be bound to any object that does the C<Associative>
-role, such as C<Pair>, C<PairSet>, C<Set>, C<Bag>, C<KeyHash>, or
+role, such as C<Pair>, C<PairSet>, C<Set>, C<Bag>, C<Mix>, or
 C<Capture>.  The C<Associative> role implies the ability to support
 C<< postcircumfix:<{ }> >>.
 
