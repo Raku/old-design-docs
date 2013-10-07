@@ -12,8 +12,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 29 Jul 2013
-    Version: 126
+    Last Modified: 7 Oct 2013
+    Version: 127
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -374,13 +374,6 @@ context.
 For finer-grained control of which iterations return values, use
 C<gather> and C<take>.
 
-Since the final expression in a subroutine returns its value, it's
-possible to accidentally return a loop's return value when you were
-only evaluating the loop for its side effects.  If you do not wish
-to accidentally return a list from the final loop statement in a
-subroutine, place an explicit return statement after it, or use a C<sink>
-statement prefix on the loop itself.
-
 =head2 The C<while> and C<until> statements
 X<while>X<until>
 
@@ -649,10 +642,74 @@ that it can always be followed by a statement label.  This is particularly
 useful for the do-once block, since it is officially a loop and can take
 therefore loop control statements.
 
+=head2 Loops at the statementlist level vs the statement level
+
+In any sequence of statements, only the value of the final statement
+is returned, so all prior statements are evaluated in sink context,
+which is automatically eager, to force the evaluation of side effects.
+(Side effects are the only reason to execute such statements in the
+first place, and Perl will, in fact, warn you if you do something that
+is "useless" in sink context.)  A loop in sink context not only evaluates
+itself eagerly, but can optimize away the production of any values from
+the loop.
+
+The final statement of a statement list is not a sink context, and
+can return any value including a lazy list.  However, to support the
+expectations of imperative programmers (the vast majority of us,
+it turns out), any explicit loop found as the final statement of
+a statement list is automatically forced to use eager semantics so
+that the loop executes to completion before returning from the block.
+Such a loop still returns the loop results as a list, but only after
+the loop completes.  (To suppress even this list return, put a return
+statement after the loop, or declare the subroutine with a return
+type that indicates no return value is expected.)
+
+This forced eagerness is applied to loops I<only> at the statement list
+level, that is, at the top level of a compilation unit, or directly
+inside a block.  Constructs that parse a single statement or semilist
+as an argument are presumed to want the results of that statement,
+so such constructs remain lazy even when that statement is a loop.
+Assuming each of the following statements is the final statement in a block,
+eager loops such as these may be indicated:
+
+    ... if COND for LIST        # eager list comprehension
+    for LIST { ... }
+    loop { ... }
+    ... while COND
+    while COND { ... }
+    repeat until COND { ... }
+
+but lazy loops can be indicated by putting the loop in parens or brackets:
+
+    (... if COND for LIST)      # lazy list comprehension
+    [for LIST { ... }] 
+    (loop { ... })
+
+or by use of either a statement prefix or a phaser in statement form:
+
+    lazy for LIST { ... }
+    ENTER for LIST { ... }
+
+Note that the corresponding block forms put the loop into a statement list, so
+these loops are eagerly evaluated:
+
+    lazy { for LIST { ... } }   # useless use of 'lazy' here
+    ENTER { for LIST { ... } }
+
+It doesn't matter that there is only one statement there; what matters
+is that a sequence of statements is expected there by the grammar.
+
+Note that since C<do> is considered a one-time loop, it is always
+evaluated eagerly, despite being a statement prefix.  This is no great
+hardship; the C<lazy> prefix is better documentation in any case.
+And surely the verb "do" ought to imply some degree of getting it done
+eagerly.
+
 =head2 Statement-level bare blocks
 
 Although a bare block occurring as a single statement is no longer
-a do-once loop, it still executes immediately as in Perl 5, as if it
+a do-once loop, as with loops when used in a statement list,
+it still executes immediately as in Perl 5, as if it
 were immediately dereferenced with a C<.()> postfix, so within such a
 block C<CALLER::> refers to the dynamic scope associated
 with the lexical scope surrounding the block.
