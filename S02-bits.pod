@@ -523,7 +523,7 @@ the argument had not been supplied.
 Assigning C<Nil> to any entire composite container (such as an
 C<Array> or C<Hash>) empties the container, resetting it back to an
 uninitialized state.  The container object itself then becomes undefined.
-(Asssignment of C<()> leaves it defined.)
+(Assignment of C<()> leaves it defined.)
 
 =head2 Type Objects
 
@@ -570,7 +570,7 @@ where it makes sense to accept a wider set of types but coerce them
 to a narrow type.  (This only works for one-way coercion, so you
 may not declare any C<rw> parameter with a coercive type.)  The type
 outside the parens indicates the desired end result, and subsequent
-code may depend on the it being that type.  The type inside the parens
+code may depend on it being that type.  The type inside the parens
 indicates the acceptable set of types that are allowed to be bound or
 assigned to this location via coercion.  If the wide type is omitted,
 C<Any> is assumed.  In any case, the wide type is only indicative of
@@ -624,9 +624,10 @@ C<rat>, C<buf>, C<bit>.  Native types are primarily intended for
 declaring compact array storage, that is, a sequence of storage locations of
 the specified type laid out in memory contiguously without pointer indirection.
 However, Perl will try to make those look like their corresponding uppercase
-types if you treat them that way. (In other words, it does autoboxing.
-Note, however, that sometimes repeated autoboxing can slow your program
-more than the native type can speed it up.)
+types if you treat them that way. (In other words, it does autoboxing and
+autounboxing as necessary.  Note, however, that repeated autoboxing and unboxing
+can make your program much slower, compared to a program that makes
+consistent use of either native types or object types.)
 
 =head3 The C<.WHICH> Method for Value Types
 
@@ -665,7 +666,7 @@ unless your process really is running under a NUMA.)
 
 Alternately, if an object is being serialized to a form that does
 not preserve object identity, there is no requirement to preserve
-uniqueness, since the object is in this case is really being translated
+uniqueness, since in this case the object is really being translated
 to a value type representation, and reconstituted on the other end
 as a different unique object.
 
@@ -692,7 +693,7 @@ the appropriate type unless explicitly initialized to a defined value.
 
 Any container's default may be overridden by the C<is default(VALUE)>
 trait.  If the container's contents are deleted, the value is
-notionally set to provided default value; this value may or may not
+notionally set to the provided default value; this value may or may not
 be physically represented in memory, depending on the implemention
 of the container.  You should officially not care about that (much).
 
@@ -786,8 +787,8 @@ the Big Bang with attosecond precision.  Though perhaps not with
 attosecond accuracy...)
 
 The limitation on C<Rat> values is intended to be enforced only on
-user-visible types.  Intermediate values used internally in calculation
-the values of C<Rat> operators may exceed this precision, or represent
+user-visible types.  Intermediate values used in the internal calculations
+of C<Rat> operators may exceed this precision, or represent
 negative denominators.  That is, the temporaries used in calculating
 the new numerator and denominator are (at least in the abstract) of
 C<Int> type.  After a new numerator and denominator are determined,
@@ -932,7 +933,7 @@ Implementation note: since Perl 6 mandates that the default Unicode
 processing level must view graphemes as the fundamental unit rather
 than codepoints, this has some implications regarding efficient
 implementation.  It is suggested that all graphemes be translated on
-input to a unique grapheme numbers and represented as integers within
+input to unique grapheme numbers and represented as integers within
 some kind of uniform array for fast substr access.  For those graphemes
 that have a precomposed form, use of that codepoint is suggested.
 (Note that this means Latin-1 can still be represented internally
