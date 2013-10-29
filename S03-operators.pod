@@ -509,16 +509,27 @@ predecessors, and will fail if you run off of either end.
     ❶..❿        # dingbat negative circled 1..10
       etc.
 
+Note: for actual ranges in Perl you'll need to quote the characters above:
+
+    '⓪'..'㊿'   # circled digits/numbers 0..50
+
 If you want to future-proof the top end of your range against further
 Unicode additions, you may specify it as "whatever":
 
-    ⓪..*        # circled digits/numbers up to current known Unicode max
+    '⓪'..*      # circled digits/numbers up to current known Unicode max
 
-(Note that we can't just increment unrecognized characters, because
+Since these non-carrying ranges fail when they run out, it is
+recommended that you avoid non-carrying rangechars where, for instance,
+you need to keep generating unique filenames.  It's much better to
+generate longer strings via carrying rangechars in such cases.
+
+Note that all character increments can be handled by lookup in a
+single table of successors since we've defined our ranges not to overlap.
+
+Anyway, back to string increment.  Only rangechars may be incremented;
+we can't just increment unrecognized characters, because
 we have to locate the string's final sequence of rangechars before knowing
-which portion of the string to increment.  Note also that all character
-increments can be handled by lookup in a single table of successors
-since we've defined our ranges not to include overlapping cycles.)
+which portion of the string to increment.
 
 Perl 6 also supports C<Str> decrement with similar semantics, simply by
 running the cycles the other direction.  However, leftmost characters
@@ -2056,6 +2067,16 @@ If the start and stop strings are the same length, this is applied at every posi
 Hence, to produce all octal numbers that fit in 16 bits, you can say:
 
     '000000' ... '177777'
+
+At need, you can override these numeric codepoint semantics by using
+an explicit successor function:
+
+    '⓪', *.succ ... '㊿'       # circled digits/numbers 0..50
+
+(In fact, this is precisly what the translation from ranges does, in
+order to preserve the abstract ordering of rangechars that have
+non-contiguous codepoints.  But it's easier just to use the range
+operator if that's the case.)
 
 If the start string is shorter than the stop string, the strings are
 assumed to be right justified, and the leftmost start character is
