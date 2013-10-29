@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 2 Oct 2013
-    Version: 268
+    Last Modified: 29 Oct 2013
+    Version: 269
 
 =head1 Overview
 
@@ -487,26 +487,33 @@ For digits we have ranges like:
     ୦..୯        # Oriya
       etc.
 
-Other non-script 0..9 ranges may also be incremented, such as
+Certain other non-script 0..9 ranges may also be incremented, such as
 
     ⁰..⁹        # superscripts (note, cycle includes latin-1 chars)
     ₀..₉        # subscripts
     ０..９      # fullwidth digits
 
-Conjecturally, any common sequence may be treated as a cycle even if it does
-not represent 0..9:
+Ranges that are open-ended simply because Unicode has not defined
+codepoints for them (yet?) are counted as rangechars, but are
+specifically excluded from "carry" semantics, because Unicode may add
+those codepoints in the future.  (This has already happened with the
+circled numbers, for instance!)  For such ranges, Perl will pretend
+that the characters are contiguous for calculating successors and
+predecessors, and will fail if you run off of either end.
 
     Ⅰ..Ⅻ        # clock roman numerals uc
     ⅰ..ⅻ        # clock roman numerals lc
-    ①..⑳        # circled digits 1..20
-    ⒜..⒵        # parenthesize lc
+    ⓪..㊿       # circled digits/numbers 0..50
+    ⒜..⒵        # parenthesized lc
     ⚀..⚅        # die faces 1..6
     ❶..❿        # dingbat negative circled 1..10
       etc.
 
-While it doesn't really make sense to "carry" such numbers when they
-reach the end of their cycle, treating such values as incrementable may
-be convenient for writing outlines and similar numbered bullet items.
+If you want to future-proof the top end of your range against further
+Unicode additions, you may specify it as "whatever":
+
+    ⓪..*        # circled digits/numbers up to current known Unicode max
+
 (Note that we can't just increment unrecognized characters, because
 we have to locate the string's final sequence of rangechars before knowing
 which portion of the string to increment.  Note also that all character
