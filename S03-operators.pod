@@ -14,8 +14,8 @@ Synopsis 3: Perl 6 Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 29 Oct 2013
-    Version: 269
+    Last Modified: 30 Oct 2013
+    Version: 270
 
 =head1 Overview
 
@@ -2020,6 +2020,17 @@ Hence the sequence operator is "auto-reversing", unlike a range operator.
 
     'z' .. 'a'   # represents a null range
     'z' ... 'a'  # z y x ... a
+
+For completeness, you may omit the first value using the C<^...> form:
+
+    'z' ^... 'a' # y x ... a
+    5 ^... 1     # 4, 3, 2, 1
+
+But be aware that this form will almost certainly confuse your readers if the list
+on the left is complicated, especially if the left list is another sequence:
+
+    1, 2, 3 ^... *;                 # 2, 3 ...  !
+    1, 2, 3 ... 10, 20, 30 ^... *;  # 2, 3 ...  !?!?
 
 As with numeric values, a string match must be exact, or an infinite sequence
 is produced.  Use a different smartmatch such as a regular expression or
