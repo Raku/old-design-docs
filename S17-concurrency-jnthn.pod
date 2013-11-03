@@ -36,15 +36,21 @@ lack composability. For example:
 
 =over
 
-=item Locks do not compose, since two independently correct operations using
+=item *
+
+Locks do not compose, since two independently correct operations using
 locks may deadlock when performed together.
 
-=item Callback-centric approaches tend to compose badly, with chains of
+=item *
+
+Callback-centric approaches tend to compose badly, with chains of
 asynchronous operations typically leading to deeply nested callbacks. This
 essentially is just leaving the programmer to do a CPS transform of their own
 logical view of the program by hand.
 
-=item Directly spawning threads on a per-component basis tends to compose
+=item *
+
+Directly spawning threads on a per-component basis tends to compose
 badly, as when a dozen such components are used together the result is a high
 number of threads with no ability to centrally schedule or handle errors.
 
@@ -95,16 +101,24 @@ same result as evaluating it serially:
 
 =over
 
-=item Hyper operators (L<S03/Hyper operators>) express that parallel operator
+=item *
+
+Hyper operators (L<S03/Hyper operators>) express that parallel operator
 application is safe
 
-=item Junctions (L<S09/Junctions>) may auto-thread in parallel
+=item *
 
-=item Feeds (L<S06/Feed operators>) form pipelines and express that the stages
+Junctions (L<S09/Junctions>) may auto-thread in parallel
+
+=item *
+
+Feeds (L<S06/Feed operators>) form pipelines and express that the stages
 may be executed in parallel in a producer-consumer style relationship (though
 each stage is in itself not parallelized)
 
-=item C<hyper> and C<race> list operators (L<S02/The hyper operator>) express
+=item *
+
+C<hyper> and C<race> list operators (L<S02/The hyper operator>) express
 that iteration may be done in parallel; this is a generalization of hyper
 operators
 
@@ -294,7 +308,7 @@ both the original C<Promise> as well as the code specified in C<then>.
     my $feedback_promise = $download_promise.then(-> $res {
         given $res.status {
             when Kept   { say "File $res.result().name() download" }
-            when Broken { say "FAIL: $res.cause()                  }
+            when Broken { say "FAIL: $res.cause()"                 }
         }
     });
 
@@ -469,9 +483,13 @@ The following methods are available on a C<Subscribable>:
 =over
 
 =item flat
+
 =item grep
+
 =item map
+
 =item uniq
+
 =item squish
 
 =back
@@ -482,11 +500,17 @@ reached:
 =over
 
 =item elems
+
 =item max
+
 =item min
+
 =item minmax
+
 =item reduce
+
 =item reverse
+
 =item sort
 
 =back
@@ -496,11 +520,15 @@ together:
 
 =over
 
-=item C<merge> produces a subscribable containing the values produced by two
+=item C<merge>
+
+produces a subscribable containing the values produced by two
 other subscribables, and triggering last once both of the subscribables have
 done so. 
 
-=item C<zip> produces a subscribable that pairs together items from two other
+=item C<zip>
+
+produces a subscribable that pairs together items from two other
 subscribables, using C<< infix:<,> >> by default or any other user-supplied
 function.
 
