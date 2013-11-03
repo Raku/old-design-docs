@@ -1,0 +1,749 @@
+=encoding utf8
+
+=head1 TITLE
+
+RE-DRAFT: Synopsis 17: Concurrency 
+
+=head1 AUTHORS
+
+    Jonathan Worthington <jnthn@jnthn.net>
+    Elizabeth Mattijsen <liz@dijkmat.nl>
+
+=head1 VERSION
+
+    Created: 3 Nov 2013
+
+    Last Modified: 3 Nov 2013
+    Version: 1
+
+The current S17 is rather speculative in nature, and dates back to 2005, when
+both Perl 6 and the concurrency landscape looked somewhat different. This
+heretical S17 is instead based around the things being implemented in Rakudo
+on the JVM, and which we expect to provide in Rakudo on MoarVM also. It covers
+both things that are implemented today, in addition to things expected to be
+implemented in the near future (where "near" means O(months)).
+
+=head1 Design Philosophy
+
+=head2 Focus on composability
+
+Perl 6 generally prefers constructs that compose well, enabling large problems
+to be solved by putting together solutions for lots of smaller problems. This
+also helps make it easier to extend and refactor code.
+
+Many common language features related to parallel and asynchronous programming
+lack composability. For example:
+
+=over
+
+=item Locks do not compose, since two independently correct operations using
+locks may deadlock when performed together.
+
+=item Callback-centric approaches tend to compose badly, with chains of
+asynchronous operations typically leading to deeply nested callbacks. This
+essentially is just leaving the programmer to do a CPS transform of their own
+logical view of the program by hand.
+
+=item Directly spawning threads on a per-component basis tends to compose
+badly, as when a dozen such components are used together the result is a high
+number of threads with no ability to centrally schedule or handle errors.
+
+=back
+
+In Perl 6, concurrency features aimed at typical language users should have
+good composability properties, both with themselves and also with other
+language features.
+
+=head2 Boundaries between synchronous and asynchronous should be explicit
+
+Asynchrony happens when we initiate an operation, then continue running our
+own idea of "next thing" without waiting for the operation to complete. This
+differs from synchronous programming, where calling a sub or method causes the
+caller to wait for a result for continuing.
+
+The vast majority of programmers are much more comfortable with synchrony, as
+in many senses it's the "normal thing". As soon as we have things taking place
+asynchronously, there is a need to coordinate the work, and doing so tends to
+be domain specific. Therefore, placing the programmer in an asynchronous
+situation when they didn't ask for it is likely to lead to confusion and bugs.
+We should try to make places where asynchrony happens clear.
+
+It's also worthwhile trying to make it easy to keep asynchronous things flowing
+asynchronously. While synchronous code is pull-y (for example, eating its way
+through iterable things, blocking for results), asynchronous code is push-y
+(results get pushed to things that know what to do next).
+
+Places where we go from synchronous to asynchronous, or from asynchronous to
+synchronous, are higher risk areas for bugs and potential bottlenecks. Thus,
+Perl 6 should try to provide features that help minimize the need to make such
+transitions.
+
+=head2 Implicit parallelism is OK
+
+Parallelism is primarily about taking something we could do serially and using
+multiple CPU cores in order to get to a result more quickly. This leads to a
+very nice property: a parallel solution to a problem should give the same
+answer as a serial solution. 
+
+While under the hood there is asynchrony and the inherent coordination it
+requires, on the outside a problem solved using parallel programming is still,
+when taken as a whole, a single, synchronous operation.
+
+Elsewhere in the specification, Perl 6 provides several features that allow
+the programmer to indicate that parallelizing an operation will produce the
+same result as evaluating it serially:
+
+=over
+
+=item Hyper operators (L<S03/Hyper operators>) express that parallel operator
+application is safe
+
+=item Junctions (L<S09/Junctions>) may auto-thread in parallel
+
+=item Feeds (L<S06/Feed operators>) form pipelines and express that the stages
+may be executed in parallel in a producer-consumer style relationship (though
+each stage is in itself not parallelized)
+
+=item C<hyper> and C<race> list operators (L<S02/The hyper operator>) express
+that iteration may be done in parallel; this is a generalization of hyper
+operators
+
+=back
+
+=head2 Make the hard things possible
+
+The easy things should be easy, and able to be built out of primitives that
+compose nicely. However, such things have to be built out of what VMs and
+operating systems provide: threads, atomic instructions (such as CAS), and
+concurrency control constructs such as mutexes and semaphores. Perl 6 is meant
+to last for decades, and the coming decades will doubtless bring new ways do
+do parallel and asynchronous programming that we do not have today. They will
+still, however, almost certainly need to be built out of what is available.
+
+Thus, the primitive things should be provided for those who need to work on
+such hard things. Perl 6 should not hide the existence of OS-level threads, or
+fail to provide access to lower level concurrency control constructs. However,
+they should be clearly documented as I<not> the way to solve the majority of
+problems.
+
+=head1 Schedulers
+
+Schedulers lie at the heart of all concurrency in Perl 6. While most users are
+unlikely to immediately encounter schedulers when starting to use Perl 6's
+concurrency features, many of them are implemented in terms of it. Thus, they
+will be described first here to avoid lots of forward references.
+
+A scheduler is something that does the C<Scheduler> role. Its responsibility
+is taking code objects representing tasks that need to be performed and making
+sure they get run, as well as handling any time-related operations (such as,
+"run this code every second").
+
+The current default scheduler is available as C<$*SCHEDULER>. If no such
+dynamic variable has been declared, then C<$PROCESS::SCHEDULER> is used. This
+defaults to an instance of C<ThreadPoolScheduler>, which maintains a pool of
+threads and distributes scheduled work amongst them. Since the scheduler is
+dynamically scoped, this means that test scheduler modules can be developed
+that poke a C<$*SCHEDULER> into C<EXPORT>, and then provide the test writer
+with control over time.
+
+The simplest operation available on a scheduler is C<schedule>, which takes a
+C<Callable> object and schedules it.
+
+    $*SCHEDULER.schedule({ say "Golly, I got scheduled!" });
+
+There is also a method to schedule an operation to run after a certain time
+period:
+
+    $*SCHEDULER.schedule_in({ say "10s later" }, 10);
+
+And one to schedule an operation to run at a fixed interval, possibly with a
+delay before the first scheduling.
+
+    # Every second, from now
+    $*SCHEDULER.schedule_every({ say "Oh wow, a kangaroo!" }, 1);
+    $*SCHEDULER.schedule_every({ say "Oh wow, a kangaroo!" }, 1, 0);
+    
+    # Every 0.5s, but don't start for 2s.
+    $*SCHEDULER.schedule_every({ say "Kenya believe it?" }, 0.5, 2);
+
+[To consider: we could have a single schedule method taking named parameters
+:$catch, :$in, and :$every instead.]
+
+If a scheduled item dies, the scheduler will catch this exception and pass it
+to a C<handle_uncaught> method, a default implementation of which is provided
+by the C<Scheduler> role. This by default will report the exception and cause
+the entire application to terminate. However, it is possible to replace this:
+
+    $*SCHEDULER.uncaught_handler = sub ($exception) {
+        $logger.log_error($exception);
+    }
+
+For more fine-grained handling, it is possible to schedule code along with a
+code object to be invoked with the thrown exception if it dies:
+
+    $*SCHEDULER.schedule_with_catch(
+        { upload_progress($stuff) },
+        -> $ex { warn "Could not upload latest progress" });
+
+Schedulers also provide a count of the number of outstanding operations to be
+performed:
+
+    say $*SCHEDULER.outstanding;
+
+They may optionally provide further introspection in order to support tools
+such as debuggers.
+
+There is also a C<CurrentThreadScheduler>, which always schedules things on
+the current thread. It provides the same methods, just no concurrency, and
+any exceptions are thrown immediately. This is mostly useful for forcing
+synchrony in places that default to asynchrony.
+
+=head1 Promises
+
+A C<Promise> is a synchronization primitive for an asynchronous piece of work
+that will produce a single result (thus keeping the promise) or fail in some
+way (thus breaking the promise).
+
+The simplest way to use a C<Promise> is to create one:
+
+    my $promise = Promise.new;
+
+And then later C<keep> it:
+
+    $promise.keep(42);
+
+Or C<break> it:
+
+    $promise.break(X::Some::Problem.new);       # With exception
+    $promise.break("I just couldn't do it");    # With message
+
+The current status of a C<Promise> is available through the C<status> method,
+which returns an element from the C<PromiseStatus> enumeration.
+
+    enum PromiseStatus (:Planned(0), :Kept(1), :Broken(2));
+
+The result itself can be obtained by calling C<result>. If the C<Promise> was
+already kept, the result is immediately returned. If the C<Promise> was broken
+then the exception that it was broken with is thrown. If the C<Promise> is not
+yet kept or broken, then the caller will block until this happens. There is a
+C<has_result> method for checking if a C<Promise> is already kept or broken,
+and a C<cause> method for extracting the exception from a C<Broken> C<Promise>
+rather than having it thrown.
+
+    if $promise.has_result {
+        if $promise.status == Kept {
+            say "Kept, result = " ~ $promise.result;
+        }
+        else {
+            say "Broken because " ~ $promise.cause;
+        }
+    }
+    else {
+        say "Still working!";
+    }
+
+A C<Promise> will boolify to C<has_result> also, for convenience.
+
+[Conjectural: we perhaps don't need has_result and the boolification. If the
+boolification is a good idea, maybe we drop .has_result.]
+
+There are various convenient "factory" methods on C<Promise>. The most common
+is C<run>.
+
+    my $p = Promise.run(&do_hard_calculation);
+
+This creates a C<Promise> that runs the supplied code, and calls C<keep> with
+its result. If the code throws an exception, then C<break> is called with the
+C<Exception>. Most of the time, however, the above is simply written as:
+
+    my $p = async {
+        # code here
+    }
+
+Which is implemented by calling C<Promise.run>.
+
+There is also a method to create a C<Promise> that is kept after a number of
+seconds:
+
+    my $kept_in_10s = Promise.sleep(10);
+
+The C<result> is always C<True> and such a C<Promise> can never be broken. It
+is mostly useful for combining with other promises.
+
+There are also a couple of C<Promise> combinators. The C<anyof> combinator
+creates a C<Promise> that is kept whenever any of the specified C<Promise>s
+are kept. If the first promise to produce a result is instead broken, then
+the resulting C<Promise> is also broken. The cause is passed along. When the
+C<Promise> is kept, it has a C<True> result.
+
+    my $calc     = async { ... }
+    my $timeout  = Promise.sleep(10);
+    my $timecalc = Promise.anyof($calc, $timeout);
+
+There is also an C<allof> combinator, which creates a C<Promise> that will be
+kept well all of the specified C<Promise>s are kept, or broken if any of them
+are broken.
+
+The C<then> method on a C<Promise> is used to request that a certain piece of
+code should be run, receiving the C<Promise> as an argument, when the
+C<Promise> is kept or broken. If the C<Promise> is already kept or broken,
+the code is scheduled immediately. It is possible to call C<then> more than
+once, and each time it returns a C<Promise> representing the completion of
+both the original C<Promise> as well as the code specified in C<then>.
+
+    my $feedback_promise = $download_promise.then(-> $res {
+        given $res.status {
+            when Kept   { say "File $res.result().name() download" }
+            when Broken { say "FAIL: $res.cause()                  }
+        }
+    });
+
+One risk when working with C<Promise> is that another piece of code will
+sneak in and keep or break a C<Promise> it should not. Therefore, the various
+built-in C<Promise> factory methods and combinators use C<Promise::Keeper>
+objects. The C<keeper> method on a C<Promise> returns an object with C<keep>
+and C<break> methods. It can only be called once during a C<Promise> object's
+lifetime. Since C<keep> and C<break> on the C<Promise> itself just delegate
+to C<self.keeper.keep(...)> or C<self.keeper.break(...)>, obtaining the keeper
+before letting the C<Promise> escape to the outside world is a way to take
+ownership of the right to keep or break it. For example, here is how the
+C<Promise.sleep> factory is implemented:
+
+    method sleep(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
+        my $p = Promise.new(:$scheduler);
+        my $k = $p.keeper;
+        $scheduler.schedule_in({ $k.keep(True) }, $seconds);
+        $p
+    }
+
+The C<await> function is used to wait for one or more C<Promise>s to produce a
+result.
+
+    my ($a, $b) = await $p1, $p2;
+
+This simply calls C<result> on each of the C<Promise>s, so any exception will
+be thrown. There is also a C<select> function:
+
+    select(
+        $p1 => { say "First promise got a value" }
+        $p2 => { say "Second promise got a value" }
+    );
+
+That will invoke the closure associated with the first promise that produces a
+result, either kept or broken. In order to avoid blocking, it is possible to
+provide a default that will be invoked if none of the promises currently have
+a result available.
+
+    select(
+        $p1     => { say "First promise got a value" }
+        $p2     => { say "Second promise got a value" }
+        default => { say "Nothing has a result yet" }
+    );
+
+=head2 Channels
+
+A C<Channel> is essentially a concurrent queue. One or more threads can put
+values into the C<Channel> using C<send>:
+
+    my $c = Channel.new;
+    $c.send($msg);
+
+Meanwhile, others can C<receive> them:
+
+    my $msg = $c.receive;
+
+Channels are ideal for producer/consumer scenarios, and since there can be
+many senders and many receivers, they adapt well to scaling certain pipeline
+stages out over multiple workers also. [Conjectural: The two feed operators
+C<< ==> >> and C<< <== >> are implemented using Channel to connect each of
+the stages.]
+
+A C<Channel> may be "forever", but it is possible to C<close> it to further
+sends:
+
+    $c.close();
+
+Trying to C<send> any further messages on a closed channel will throw the
+C<X::Channel::SendOnClosed> exception. Closing a channel has no effect on the
+receiving end until all sent values have been received. At that point, any
+further calls to receive will throw C<X::Channel::ReceiveOnClosed>. The
+C<closed> property returns a C<Promise> that is kept when the sender has
+called C<close> and all sent messages have been received.
+
+While C<receive> blocks until it can read, C<poll> takes a message from the
+channel if one is there or immediately returns C<Nil> if nothing is there.
+The C<peek> method is similar, but will not remove the message. Note that use
+of C<peek> is risky in any multi-receiver situation, since another worker may
+receive the message you peeked.
+
+The C<select> function also works on channels, and will try to receive a value
+from the first C<Channel> that has one available. It can also be used in order
+to write a loop to receive from a channel until it is closed:
+
+    loop {
+        select(
+            $c        => { say "Received $_" }
+            $c.closed => { last }
+        )
+    }
+
+[Conjectural: this is such a common pattern that we might want to provide a
+$channel.receive_loop(-> $val { ... }) to factor it out.]
+
+=head2 Subscribables
+
+Channels are good for producer/consumer scenarios, but because each worker
+blocks on receive, it is not such an ideal construct for doing fine-grained
+processing of asynchronously produced streams of values. Additionally, there
+can only be one receiver for each value. Subscribables exist to address both
+of these issues.
+
+Anything that does the C<Subscribable> role can be subscribed to by calling
+the C<subscribe> method on it. This takes between one and three callables as
+arguments:
+
+    $events.subscribe(
+        -> $value { say "Got a $value" },
+        { say "Reached the end" },
+        -> $ex { say "Got an exception" });
+
+The first, known as C<next>, is invoked whenever a value is produced by the
+thing that has been subscribed to. The second, known as C<last>, is invoked
+when all values have been produced and no more will be. The final one, known
+as C<fail>, is invoked if there is an error. This also means there will be no
+further values. Grammar wise, that is:
+
+    next* [ last | fail ]?
+
+The simplest thing that can be subscribed to is a C<Publisher>. This has
+methods C<next>, C<last>, and C<fail>, which notify all current subscribers.
+
+    my $p = Publisher.new;
+    
+    my $s1 = $p.subscribe({ say $_ });
+    $p.next(1);                              # 1\n
+    $p.next(2);                              # 2\n
+    
+    my $s2 = $p.subscribe({ say 2 * $_ },
+                          { say "End" });
+    $p.next(3);                              # 3\n6\n
+
+The object returned by C<subscribe> represents the subscription. To stop
+subscribing, call C<unsubscribe> on it.
+
+    $s1.unsubscribe();
+    $p.next(3);                              # 8\n
+    $p.last();                               # End\n
+
+This doesn't introduce any asynchrony directly. However, it is possible for
+values to be published to a C<Subscribable> from an asynchronous worker.
+
+The C<Publish> class has various methods that produce more interesting kinds
+of C<Subscribable>. These default to working asynchronously. Furthermore, they
+start producing values upon the point of subscription.
+
+C<Publish.for> takes a (potentially lazy) list of values, and returns a
+C<Subscribable> that, when subscribed to, will iterate over the values and
+invoke the C<next> callable for each of them, and any C<last> callable at the
+end. If the iteration at some point produces an exception, then the C<fail>
+callable will be invoked.
+
+C<Publish.interval> produces a C<Subscribable> that, when subscribed to, will
+produce an ascending value at a regular time interval.
+
+    Publish.interval(1).subscribe(&say);     # Once a second, starting now
+    Publish.interval(5, 10).subscribe(&say); # Each 5 seconds, starting in 10 seconds
+
+[TODO: many more of these, including ones for publishing a Channel and a
+Promise.]
+
+Subscribables are mathematically dual to iterators, and so it is possible to
+define the same set of operations on them as are available on lazy lists. The
+key difference is that, while C<grep> on a lazy list I<pulls> a value to
+process, working synchronously, C<grep> on a Subscribable has values I<pushed>
+through it, and pushes those that match the filter onwards to anything that is
+subscribed to it.
+
+The following methods are available on a C<Subscribable>:
+
+=over
+
+=item flat
+=item grep
+=item map
+=item uniq
+=item squish
+
+=back
+
+There are some others that will only publish a result or results if C<last> is
+reached:
+
+=over
+
+=item elems
+=item max
+=item min
+=item minmax
+=item reduce
+=item reverse
+=item sort
+
+=back
+
+There are some combinators that deal with bringing multiple subscribables
+together:
+
+=over
+
+=item C<merge> produces a subscribable containing the values produced by two
+other subscribables, and triggering last once both of the subscribables have
+done so. 
+
+=item C<zip> produces a subscribable that pairs together items from two other
+subscribables, using C<< infix:<,> >> by default or any other user-supplied
+function.
+
+=back
+
+[TODO: plenty more of these: combine_latest, while, until...]
+
+These combinators that involve multiple subscribables need care in their
+implementation, since values may arrive at any point on each, and possibly at
+the same time. To help write such combinators, the C<on> meta-combinator is
+useful. C<on> subscribes to many subscribables, and ensures that only one
+callback will be running at a time, freeing the combinator writer of worrying
+about synchronization issues. Here is how C<zip> is implemented:
+
+    method zip(Subscribable $a, Subscribable $b, &with = &infix:<,>) {
+        my @as;
+        my @bs;
+        on -> $res {
+            $a => sub ($val) {
+                @as.push($val);
+                if @as && @bs {
+                    $res.next(with(@as.shift, @bs.shift));
+                }
+            },
+            $b => sub ($val) {
+                @bs.push($val);
+                if @as && @bs {
+                    $res.next(with(@as.shift, @bs.shift));
+                }
+            }
+        }
+    }
+
+Thus there is never any race or other thread-safely problems with mutating the
+C<@as> and C<@bs>. The default behaviour, if a callable is specified along
+with the subscribable, is to use it for C<next> and provide a default C<last>
+and C<fail>. The default C<last> triggers C<last> on the result subscribable,
+which is the correct semantics for C<zip>. On the other hand, C<merge> wants
+different semantics, and so must provide a C<last>. This is done as follows:
+
+    method merge(Subscribable $a, Subscribable $b) {
+        my $lasts = 0;
+        on -> $res {
+            $a => {
+                next => sub ($val) { $res.next($val) },
+                last => {
+                    $res.last() if ++$lasts == 2;
+                }
+            },
+            $b => {
+                next => sub ($val) { $res.next($val) },
+                last => {
+                    $res.last() if ++$lasts == 2;
+                }
+            }
+        }
+    }
+
+A C<fail> can be provided in a similar way, although the default - convey the
+failure to the result subscribable - is normally what is wanted. The exception
+is writing combinators related to error handling.
+
+[TODO: specify C<catch> and various other error-handling related timeouts.]
+
+=head2 Threads
+
+VM-level threads, which typically correspond to OS-level threads, are exposed
+through the C<Thread> class. Whatever underlies it, a C<Thread> should always
+be backed by something that is capable of being scheduled on a CPU core (that
+is, it may I<not> be a "green thread" or similar). Most users will not need to
+work with C<Thread>s directly. However, those building their own schedulers
+may well need to do so, and there may be other exceptional circumstances that
+demand such low-level control.
+
+The easiest way to start a thread is with the C<run> method, which takes a
+C<Callable> and runs it on a new thread:
+
+    my $thread = Thread.run({
+        say "Gosh, I'm in a thread!";
+    });
+
+It is also possible to create a thread object, and set it running later:
+
+    my $thread = Thread.new(code => {
+        say "A thread, you say?";
+    });
+    # later...
+    $thread.start();
+
+Both approaches result in C<$thread> containing a C<Thread> object. At some
+point, C<join> should be called on the thread, from the thread that started
+it. This blocks until the thread has completed.
+
+    say "Certainly before the thread is run";
+    my $thread = Thread.start({ say "In the thread" });
+    say "This could come before or after the thread's output";
+    $thread.join();
+    say "Certainly after all the above output";
+
+As an alternative to C<join>, it is possible to create a thread whose lifetime
+is bounded by that of the overall application. Such threads are automatically
+terminated when the application exits. In a scenario where the initial thread
+creates an application lifetime thread and no others, then the exit of the
+initial thread will cause termination of the overall program. Such a thread is
+created by either:
+
+    my $thread = Thread.new(:code({ ... }), :app_lifetime);
+
+Or just:
+
+    my $thread = Thread.start({ ... }, :app_lifetime);
+
+The property can be introspected:
+
+    say $thread.app_lifetime; # True/False
+
+Each thread also has a unique ID, which can be obtained by the C<id> property.
+
+    say $thread.id;
+
+This should be treated as an opaque number. It can not be assumed to map to
+any particular operating system's idea of thread ID, for example. For that,
+use something that lets you get at OS-level identifiers (such as calling an OS
+API using NativeCall).
+
+A thread may also be given a name. This can be useful for understanding its
+usage. Uniqueness is not enforced; indeed, the default is "<anon>".
+
+A thread stringifies to something of the form:
+
+    Thread<id>(name)
+
+For example:
+
+    Thread<1234>(<anon>)
+
+The currently executing thread is available through C<$*THREAD>. This is even
+available in the initial thread of the program, in this case by falling back
+to C<$PROCESS::THREAD>, which is the initial thread of the process.
+
+Finally, the C<yield> method can be called on C<Thread> (not on any particular
+thread) to hint to the OS that the thread has nothing useful to do for the
+moment, and so another thread should run instead.
+
+=head2 Atomic Compare and Swap
+
+The Atomic Compare and Swap (CAS) primitive is directly supported by most
+modern hardware. It has been shown that it can be used to build a whole range
+of concurrency control mechanisms (such as mutexes and semaphores). It can
+also be used to implement lock-free data structures. It is decidedly a
+primitive, and not truly composable due to risk of livelock. However, since so
+much can be built out of it, Perl 6 provides it directly.
+
+A Perl 6 implementation of CAS would look something like this:
+
+    sub cas($ref is rw, $expected, $new) {
+        my $seen = $ref;
+        if $ref === $expected {
+            $ref = $new;
+        }
+        return $seen;
+    }
+
+Except that it happens atomically. For example, a crappy non-reenterant
+mutex could be implemented as:
+
+    class CrappyMutex {
+        has $!locked = 0;
+        
+        method lock() {
+            loop {
+                return if cas($!locked, 0, 1) == 0;
+            }
+        }
+        
+        method unlock() {
+            $!locked = 0;
+        }
+    }
+
+Another common use of CAS is in providing lock-free data structures. Any data
+structure can be made lock-free as long as you're willing to never mutate it,
+but build a fresh one each time. To support this, there is another C<&cas>
+candidate that takes a scalar and a block. It calls the block with the seen
+initial value. The block should return a the new, updated value. If nothing
+else updated the value in the meantime, the reference will be updated. In the
+case the CAS fails because another update got in first, the block will be run
+again, passing in the latest value.
+
+For example, we could implement a top-5 news headlines list, which can be
+accessed and updated without ever locking, as:
+
+    class TopHeadlines {
+        has $!headlines = [];   # Scalar holding array, as CAS needs
+        
+        method headlines() {
+            $!headlines
+        }
+        
+        method add_headline($headline) {
+            cas($!headlines, -> @current {
+                my @new = $headline, @current;
+                @new.pop while @new.elems > 5;
+                @new
+            });
+        }
+    }
+
+It's the programmer's duty to ensure that the original data structure is never
+mutated and that the block has no side-effects (since it may be run any number
+of times).
+
+=head1 Locks
+
+Locks are unpleasant to work with, and users are pushed towards higher level
+synchronization primitives. However, those need to be implemented in lower
+level things for efficiency. As such, a simple lock mechanism - as close to
+what the execution environment offers as possible - is provided by the C<Lock>
+class. Note that it is erroneous to rely on the exact representation of an
+instance of this type (for example, don't assume it can be mixed into). Put
+another way, treat C<Lock> like a native type.
+
+A C<Lock> is instantiated with C<new>:
+
+    $!lock = Lock.new;
+
+The best way to use it is:
+
+    $!lock.run({
+        # code to run with the lock held
+    });
+
+This acquires the lock, runs the code passed, and then releases the lock. It
+ensures the lock will be released even if an exception is thrown. It is also
+possible to do:
+
+    {
+        $!lock.lock();
+        # do stuff
+        LEAVE $!lock.unlock()
+    }
+
+When using the C<lock> and C<unlock> methods, the programmer must ensure that
+the lock is unlocked. C<Lock> is reentrant. Naturally, it's possible to easily
+introduce deadlocks. Again, this is a last resort, intended for those who are
+building first resorts.
