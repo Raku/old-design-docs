@@ -690,7 +690,7 @@ A Perl 6 implementation of CAS would look something like this:
         return $seen;
     }
 
-Except that it happens atomically. For example, a crappy non-reenterant
+Except that it happens atomically. For example, a crappy non-reentrant
 mutex could be implemented as:
 
     class CrappyMutex {
@@ -711,9 +711,9 @@ Another common use of CAS is in providing lock-free data structures. Any data
 structure can be made lock-free as long as you're willing to never mutate it,
 but build a fresh one each time. To support this, there is another C<&cas>
 candidate that takes a scalar and a block. It calls the block with the seen
-initial value. The block should return a the new, updated value. If nothing
-else updated the value in the meantime, the reference will be updated. In the
-case the CAS fails because another update got in first, the block will be run
+initial value. The block returns the new, updated value. If nothing
+else updated the value in the meantime, the reference will be updated. If
+the CAS fails because another update got in first, the block will be run
 again, passing in the latest value.
 
 For example, we could implement a top-5 news headlines list, which can be
@@ -742,8 +742,8 @@ of times).
 =head1 Locks
 
 Locks are unpleasant to work with, and users are pushed towards higher level
-synchronization primitives. However, those need to be implemented in lower
-level things for efficiency. As such, a simple lock mechanism - as close to
+synchronization primitives. However, those need to be implemented via lower
+level constructs for efficiency. As such, a simple lock mechanism - as close to
 what the execution environment offers as possible - is provided by the C<Lock>
 class. Note that it is erroneous to rely on the exact representation of an
 instance of this type (for example, don't assume it can be mixed into). Put
@@ -770,6 +770,6 @@ possible to do:
     }
 
 When using the C<lock> and C<unlock> methods, the programmer must ensure that
-the lock is unlocked. C<Lock> is reentrant. Naturally, it's possible to easily
+the lock is unlocked. C<Lock> is reentrant. Naturally, it's easy to
 introduce deadlocks. Again, this is a last resort, intended for those who are
 building first resorts.
