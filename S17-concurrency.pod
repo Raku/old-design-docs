@@ -275,9 +275,9 @@ C<Exception>. Most of the time, however, the above is simply written as:
 Which is implemented by calling C<Promise.run>.
 
 There is also a method to create a C<Promise> that is kept after a number of
-seconds:
+seconds, so it can act as an alarm:
 
-    my $kept_in_10s = Promise.sleep(10);
+    my $kept_in_10s = Promise.alarm(10);
 
 The C<result> is always C<True> and such a C<Promise> can never be broken. It
 is mostly useful for combining with other promises.
@@ -289,7 +289,7 @@ the resulting C<Promise> is also broken. The cause is passed along. When the
 C<Promise> is kept, it has a C<True> result.
 
     my $calc     = async { ... }
-    my $timeout  = Promise.sleep(10);
+    my $timeout  = Promise.alarm(10);
     my $timecalc = Promise.anyof($calc, $timeout);
 
 There is also an C<allof> combinator, which creates a C<Promise> that will be
@@ -319,9 +319,9 @@ lifetime. Since C<keep> and C<break> on the C<Promise> itself just delegate
 to C<self.keeper.keep(...)> or C<self.keeper.break(...)>, obtaining the keeper
 before letting the C<Promise> escape to the outside world is a way to take
 ownership of the right to keep or break it. For example, here is how the
-C<Promise.sleep> factory is implemented:
+C<Promise.alarm> factory is implemented:
 
-    method sleep(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
+    method alarm(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new(:$scheduler);
         my $k = $p.keeper;
         $scheduler.schedule-in({ $k.keep(True) }, $seconds);
