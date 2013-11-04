@@ -1822,33 +1822,6 @@ allowed as a synonym):
     my sub get_book ($key) of Hash of Array of Recipe {...}
     my sub get_book ($key) returns Hash of Array of Recipe {...}
 
-=head2 Polymorphic types (Conjectural)
-
-Anywhere you can use a single type you can use a set of types, for convenience
-specifiable as if it were an "or" junction:
-
-    my Int|Str $error = $val;              # can assign if $val~~Int or $val~~Str
-
-Fancier type constraints may be expressed through a subtype:
-
-    subset Shinola of Any where {.does(DessertWax) and .does(FloorTopping)};
-    if $shimmer ~~ Shinola {...}  # $shimmer must do both interfaces
-
-Since the terms in a parameter could be viewed as a set of
-constraints that are implicitly "anded" together (the variable itself
-supplies type constraints, and C<where> clauses or tree matching just
-add more constraints), we relax this to allow juxtaposition of
-types to act like an "and" junction:
-
-    # Anything assigned to the variable $mitsy must conform
-    # to the type Fish and either the Squirrel or Dog type...
-    my Squirrel|Dog Fish $mitsy = new Fish but { Bool.pick ?? .does Squirrel
-                                                           !! .does Dog };
-
-[Note: the above is a slight lie, insofar as parameters are currently
-restricted for 6.0.0 to having only a single main type for the
-formal variable until we understand MMD a bit better.]
-
 =head2 Parameter types
 
 Parameters may be given types, just like any other variable:
