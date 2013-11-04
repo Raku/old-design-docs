@@ -14,7 +14,7 @@ RE-DRAFT: Synopsis 17: Concurrency
     Created: 3 Nov 2013
 
     Last Modified: 4 Nov 2013
-    Version: 2
+    Version: 3
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on the JVM.  It covers both things that are
@@ -402,69 +402,70 @@ to write a loop to receive from a channel until it is closed:
 [Conjectural: this is such a common pattern that we might want to provide a
 $channel.receive_loop(-> $val { ... }) to factor it out.]
 
-=head2 Subscribables
+=head2 Supplies
 
 Channels are good for producer/consumer scenarios, but because each worker
 blocks on receive, it is not such an ideal construct for doing fine-grained
 processing of asynchronously produced streams of values. Additionally, there
-can only be one receiver for each value. Subscribables exist to address both
-of these issues.
+can only be one receiver for each value. Supplies exist to address both
+of these issues.  A C<Supply> pushes or pumps values to one or more receivers
+who have registered their interest.
 
-Anything that does the C<Subscribable> role can be subscribed to by calling
-the C<subscribe> method on it. This takes between one and three callables as
+Anything that does the C<Supply> role can be tapped (that is, subscribed to) by calling
+the C<tap> method on it. This takes between one and three callables as
 arguments:
 
-    $events.subscribe(
+    $supply.tap(
         -> $value { say "Got a $value" },
         { say "Reached the end" },
         -> $ex { say "Got exception: $ex" });
 
-The first, known as C<next>, is invoked whenever a value is produced by the
-thing that has been subscribed to. The second, known as C<last>, is invoked
+The first, known as C<more>, is invoked whenever a value is produced by the
+thing that has been tapped. The second, known as C<done>, is invoked
 when all values have been produced and no more will be. The final one, known
 as C<fail>, is invoked if there is an error. This also means there will be no
 further values. Expressing the possible invocations as a grammar:
 
-    next* [ last | fail ]?  # invocations
+    more* [ done | fail ]?  # invocations
 
-The simplest thing that can be subscribed to is a C<Publisher>. This has
-methods C<next>, C<last>, and C<fail>, which notify all current subscribers.
+The simplest Supply is a C<Supply> class, which is punned from the role.  On the "pumping" end, this has corresponding
+methods C<more>, C<done>, and C<fail>, which notify all current taps.
 
-    my $p = Publisher.new;
+    my $p = Supply.new;
     
-    my $s1 = $p.subscribe({ say $_ });
-    $p.next(1);                              # 1\n
-    $p.next(2);                              # 2\n
+    my $s1 = $p.tap({ say $_ });
+    $p.more(1);                              # 1\n
+    $p.more(2);                              # 2\n
     
-    my $s2 = $p.subscribe({ say 2 * $_ },
-                          { say "End" });
-    $p.next(3);                              # 3\n6\n
+    my $s2 = $p.tap({ say 2 * $_ },
+                    { say "End" });
+    $p.more(3);                              # 3\n6\n
 
-The object returned by C<subscribe> represents the subscription. To stop
-subscribing, call C<unsubscribe> on it.
+The object returned by C<tap> represents the subscription. To stop
+subscribing, call C<close> on it.
 
-    $s1.unsubscribe();
-    $p.next(3);                              # 8\n
-    $p.last();                               # End\n
+    $s1.close();
+    $p.more(3);                              # 8\n
+    $p.done();                               # End\n
 
 This doesn't introduce any asynchrony directly. However, it is possible for
-values to be published to a C<Subscribable> from an asynchronous worker.
+values to be pumped by a C<Supply> from an asynchronous worker.
 
-The C<Publish> class has various methods that produce more interesting kinds
+The C<Supply> class has various methods that produce more interesting kinds
 of C<Subscribable>. These default to working asynchronously. Furthermore, they
 start producing values upon the point of subscription.
 
-C<Publish.for> takes a (potentially lazy) list of values, and returns a
-C<Subscribable> that, when subscribed to, will iterate over the values and
-invoke the C<next> callable for each of them, and any C<last> callable at the
+C<Supply.for> takes a (potentially lazy) list of values, and returns a
+C<Supply> that, when tapped, will iterate over the values and
+invoke the C<more> callable for each of them, and any C<done> callable at the
 end. If the iteration at some point produces an exception, then the C<fail>
 callable will be invoked.
 
-C<Publish.interval> produces a C<Subscribable> that, when subscribed to, will
+C<Supply.interval> produces a C<Subscribable> that, when tapped, will
 produce an ascending value at a regular time interval.
 
-    Publish.interval(1).subscribe(&say);     # Once a second, starting now
-    Publish.interval(5, 10).subscribe(&say); # Each 5 seconds, starting in 10 seconds
+    Supply.interval(1).tap(&say);     # Once a second, starting now
+    Supply.interval(5, 10).tap(&say); # Each 5 seconds, starting in 10 seconds
 
 [TODO: many more of these, including ones for publishing a Channel and a
 Promise.]
@@ -473,8 +474,8 @@ Subscribables are mathematically dual to iterators, and so it is possible to
 define the same set of operations on them as are available on lazy lists. The
 key difference is that, while C<grep> on a lazy list I<pulls> a value to
 process, working synchronously, C<grep> on a Subscribable has values I<pushed>
-through it, and pushes those that match the filter onwards to anything that is
-subscribed to it.
+through it, and pushes those that match the filter onwards to anything that
+taps it.
 
 The following methods are available on a C<Subscribable>:
 
@@ -492,7 +493,7 @@ The following methods are available on a C<Subscribable>:
 
 =back
 
-There are some others that will only publish a result or results if C<last> is
+There are some others that will only publish a result or results if C<done> is
 reached:
 
 =over
@@ -521,7 +522,7 @@ together:
 =item C<merge>
 
 produces a subscribable containing the values produced by two
-other subscribables, and triggering last once both of the subscribables have
+other subscribables, and triggering C<done> once both of the subscribables have
 done so. 
 
 =item C<zip>
@@ -537,7 +538,7 @@ function.
 These combinators that involve multiple subscribables need care in their
 implementation, since values may arrive at any point on each, and possibly at
 the same time. To help write such combinators, the C<on> meta-combinator is
-useful. C<on> subscribes to many subscribables, and ensures that only one
+useful. C<on> taps many supplies, and ensures that only one
 callback will be running at a time, freeing the combinator writer of worrying
 about synchronization issues. Here is how C<zip> is implemented:
 
@@ -548,13 +549,13 @@ about synchronization issues. Here is how C<zip> is implemented:
             $a => sub ($val) {
                 @as.push($val);
                 if @as && @bs {
-                    $res.next(with(@as.shift, @bs.shift));
+                    $res.more(with(@as.shift, @bs.shift));
                 }
             },
             $b => sub ($val) {
                 @bs.push($val);
                 if @as && @bs {
-                    $res.next(with(@as.shift, @bs.shift));
+                    $res.more(with(@as.shift, @bs.shift));
                 }
             }
         }
@@ -562,24 +563,24 @@ about synchronization issues. Here is how C<zip> is implemented:
 
 Thus there is never any race or other thread-safely problems with mutating the
 C<@as> and C<@bs>. The default behaviour, if a callable is specified along
-with the subscribable, is to use it for C<next> and provide a default C<last>
-and C<fail>. The default C<last> triggers C<last> on the result subscribable,
+with the subscribable, is to use it for C<more> and provide a default C<done>
+and C<fail>. The default C<done> triggers C<done> on the result subscribable,
 which is the correct semantics for C<zip>. On the other hand, C<merge> wants
-different semantics, and so must provide a C<last>. This is done as follows:
+different semantics, and so must provide a C<done>. This is done as follows:
 
     method merge(Subscribable $a, Subscribable $b) {
-        my $lasts = 0;
+        my $done = 0;
         on -> $res {
             $a => {
-                next => sub ($val) { $res.next($val) },
-                last => {
-                    $res.last() if ++$lasts == 2;
+                more => sub ($val) { $res.more($val) },
+                done => {
+                    $res.done() if ++$done == 2;
                 }
             },
             $b => {
-                next => sub ($val) { $res.next($val) },
-                last => {
-                    $res.last() if ++$lasts == 2;
+                more => sub ($val) { $res.more($val) },
+                done => {
+                    $res.done() if ++$done == 2;
                 }
             }
         }
@@ -600,11 +601,11 @@ the case.
 Instead, most system level events, be they POSIX signals, or specific OS events
 such as file updates, will be exposed as C<Subscribables>.  For instance,
 $*POSIX is a Subscribable in which POSIX signals received by the running
-process, will appear as C<POSIX::Signal> objects to the subscribers.  On
+process, will appear as C<POSIX::Signal> objects to taps.  On
 non-POSIX systems, a similar Subscribable will exist to handle system events.
 
 The $*TICK Subscribable generates an L<Instant> object at the top of every
-second for any subscribers.
+second for any taps.
 
 =head2 Threads
 
