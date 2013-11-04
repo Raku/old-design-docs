@@ -260,19 +260,19 @@ A C<Promise> will boolify to C<has_result> also, for convenience.
 boolification is a good idea, maybe we drop .has_result.]
 
 There are various convenient "factory" methods on C<Promise>. The most common
-is C<run>.
+is C<start>.
 
-    my $p = Promise.run(&do_hard_calculation);
+    my $p = Promise.start(&do_hard_calculation);
 
 This creates a C<Promise> that runs the supplied code, and calls C<keep> with
 its result. If the code throws an exception, then C<break> is called with the
 C<Exception>. Most of the time, however, the above is simply written as:
 
-    my $p = async {
+    my $p = start {
         # code here
     }
 
-Which is implemented by calling C<Promise.run>.
+Which is implemented by calling C<Promise.start>.
 
 There is also a method to create a C<Promise> that is kept after a number of
 seconds, so it can act as an alarm:
@@ -635,7 +635,7 @@ Both approaches result in C<$thread> containing a C<Thread> object. At some
 point, C<join> should be called on the thread, from the thread that started
 it. This blocks until the thread has completed.
 
-    say "Certainly before the thread is run";
+    say "Certainly before the thread is started";
     my $thread = Thread.start({ say "In the thread" });
     say "This could come before or after the thread's output";
     $thread.join();
@@ -770,9 +770,9 @@ A C<Lock> is instantiated with C<new>:
 
 The best way to use it is:
 
-    $!lock.run({
+    $!lock.run: {
         # code to run with the lock held
-    });
+    }
 
 This acquires the lock, runs the code passed, and then releases the lock. It
 ensures the lock will be released even if an exception is thrown. It is also
