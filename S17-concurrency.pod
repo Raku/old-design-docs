@@ -245,7 +245,7 @@ already kept, the result is immediately returned. If the C<Promise> was broken
 then the exception that it was broken with is thrown. If the C<Promise> is not
 yet kept or broken, then the caller will block until this happens. There is a
 C<has_result> method for checking if a C<Promise> is already kept or broken,
-and a C<cause> method for extracting the exception from a C<Broken> C<Promise>
+and an C<excuse> method for extracting the exception from a C<Broken> C<Promise>
 rather than having it thrown.
 
     if $promise.has_result {
@@ -253,7 +253,7 @@ rather than having it thrown.
             say "Kept, result = " ~ $promise.result;
         }
         else {
-            say "Broken because " ~ $promise.cause;
+            say "Broken because " ~ $promise.excuse;
         }
     }
     else {
@@ -264,6 +264,14 @@ A C<Promise> will boolify to C<has_result> also, for convenience.
 
 [Conjectural: we perhaps don't need has_result and the boolification. If the
 boolification is a good idea, maybe we drop .has_result.]
+
+You can also simply use a switch:
+
+    given $promise.status {
+	when Planned { say "Still working!" }
+        when Kept    { say "Kept, result = ", $promise.result }
+        when Broken  { say "Broken because ", $promise.excuse }
+    }
 
 There are various convenient "factory" methods on C<Promise>. The most common
 is C<start>.
@@ -291,7 +299,7 @@ is mostly useful for combining with other promises.
 There are also a couple of C<Promise> combinators. The C<anyof> combinator
 creates a C<Promise> that is kept whenever any of the specified C<Promise>s
 are kept. If the first promise to produce a result is instead broken, then
-the resulting C<Promise> is also broken. The cause is passed along. When the
+the resulting C<Promise> is also broken. The excuse is passed along. When the
 C<Promise> is kept, it has a C<True> result.
 
     my $calc     = start { ... }
@@ -312,7 +320,7 @@ both the original C<Promise> as well as the code specified in C<then>.
     my $feedback_promise = $download_promise.then(-> $res {
         given $res.status {
             when Kept   { say "File $res.result().name() download" }
-            when Broken { say "FAIL: $res.cause()"                 }
+            when Broken { say "FAIL: $res.excuse()"                 }
         }
     });
 
