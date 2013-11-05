@@ -346,8 +346,8 @@ C<Promise.alarm> factory is implemented:
 
     method alarm(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new(:$scheduler);
-        my $k = $p.vow;
-        $scheduler.cue: { $k.keep(True) }, :in($seconds);
+        my $v = $p.vow;
+        $scheduler.cue: { $v.keep(True) }, :in($seconds);
         $p;
     }
 
@@ -372,7 +372,7 @@ a result available.
     winner {
         when $p1 { say "First promise got a value" }
         when $p2 { say "Second promise got a value" }
-	default  { say "Not done yet" }
+        default  { say "Not done yet" }
     }
 
 The construct as a whole returns the result of whichever block was selected.
@@ -456,22 +456,22 @@ further values. Expressing the possible invocations as a grammar:
 The simplest Supply is a C<Supply> class, which is punned from the role.  On the "pumping" end, this has corresponding
 methods C<more>, C<done>, and C<fail>, which notify all current taps.
 
-    my $p = Supply.new;
+    my $s = Supply.new;
     
-    my $s1 = $p.tap({ say $_ });
-    $p.more(1);                              # 1\n
-    $p.more(2);                              # 2\n
+    my $t1 = $s.tap({ say $_ });
+    $s.more(1);                              # 1\n
+    $s.more(2);                              # 2\n
     
-    my $s2 = $p.tap({ say 2 * $_ },
+    my $t2 = $s.tap({ say 2 * $_ },
                     { say "End" });
-    $p.more(3);                              # 3\n6\n
+    $s.more(3);                              # 3\n6\n
 
 The object returned by C<tap> represents the subscription. To stop
 subscribing, call C<close> on it.
 
-    $s1.close();
-    $p.more(3);                              # 8\n
-    $p.done();                               # End\n
+    $t1.close;
+    $s.more(4);                              # 8\n
+    $s.done;                                 # End\n
 
 This doesn't introduce any asynchrony directly. However, it is possible for
 values to be pumped by a C<Supply> from an asynchronous worker.
