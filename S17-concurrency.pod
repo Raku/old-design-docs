@@ -476,8 +476,8 @@ subscribing, call C<close> on it.
 This doesn't introduce any asynchrony directly. However, it is possible for
 values to be pumped by a C<Supply> from an asynchronous worker.
 
-The C<Supply> class has various methods that produce more interesting kinds
-of C<Subscribable>. These default to working asynchronously. Furthermore, they
+The C<Supply> class (punned from the C<Supply> role) has various methods that produce more interesting kinds
+of C<Supply>. These default to working asynchronously. Furthermore, they
 start producing values upon the point of subscription.
 
 C<Supply.for> takes a (potentially lazy) list of values, and returns a
@@ -486,7 +486,7 @@ invoke the C<more> callable for each of them, and any C<done> callable at the
 end. If the iteration at some point produces an exception, then the C<fail>
 callable will be invoked.
 
-C<Supply.interval> produces a C<Subscribable> that, when tapped, will
+C<Supply.interval> produces a C<Supply> that, when tapped, will
 produce an ascending value at a regular time interval.
 
     Supply.interval(1).tap(&say);     # Once a second, starting now
@@ -498,11 +498,11 @@ Promise.]
 Subscribables are mathematically dual to iterators, and so it is possible to
 define the same set of operations on them as are available on lazy lists. The
 key difference is that, while C<grep> on a lazy list I<pulls> a value to
-process, working synchronously, C<grep> on a Subscribable has values I<pushed>
+process, working synchronously, C<grep> on a Supply has values I<pushed>
 through it, and pushes those that match the filter onwards to anything that
 taps it.
 
-The following methods are available on a C<Subscribable>:
+The following methods are available on a C<Supply>:
 
 =over
 
@@ -567,7 +567,7 @@ useful. C<on> taps many supplies, and ensures that only one
 callback will be running at a time, freeing the combinator writer of worrying
 about synchronization issues. Here is how C<zip> is implemented:
 
-    method zip(Subscribable $a, Subscribable $b, &with = &infix:<,>) {
+    method zip(Supply $a, Supply $b, &with = &infix:<,>) {
         my @as;
         my @bs;
         on -> $res {
@@ -593,7 +593,7 @@ and C<fail>. The default C<done> triggers C<done> on the result subscribable,
 which is the correct semantics for C<zip>. On the other hand, C<merge> wants
 different semantics, and so must provide a C<done>. This is done as follows:
 
-    method merge(Subscribable $a, Subscribable $b) {
+    method merge(Supply $a, Supply $b) {
         my $done = 0;
         on -> $res {
             $a => {
@@ -625,11 +625,11 @@ the case.
 
 Instead, most system level events, be they POSIX signals, or specific OS events
 such as file updates, will be exposed as C<Subscribables>.  For instance,
-$*POSIX is a Subscribable in which POSIX signals received by the running
+$*POSIX is a Supply in which POSIX signals received by the running
 process, will appear as C<POSIX::Signal> objects to taps.  On
-non-POSIX systems, a similar Subscribable will exist to handle system events.
+non-POSIX systems, a similar Supply will exist to handle system events.
 
-The $*TICK Subscribable generates an L<Instant> object at the top of every
+The $*TICK Supply generates an L<Instant> object at the top of every
 second for any taps.
 
 =head2 Threads
