@@ -539,28 +539,28 @@ reached:
 
 =back
 
-There are some combinators that deal with bringing multiple subscribables
+There are some combinators that deal with bringing multiple supplies
 together:
 
 =over
 
 =item C<merge>
 
-produces a subscribable containing the values produced by two
-other subscribables, and triggering C<done> once both of the subscribables have
+produces a supply containing the values produced by two
+other supplies, and triggering C<done> once both of the supplies have
 done so. 
 
 =item C<zip>
 
-produces a subscribable that pairs together items from two other
-subscribables, using C<< infix:<,> >> by default or any other user-supplied
+produces a supply that pairs together items from two other
+supplies, using C<< infix:<,> >> by default or any other user-supplied
 function.
 
 =back
 
 [TODO: plenty more of these: combine_latest, while, until...]
 
-These combinators that involve multiple subscribables need care in their
+These combinators that involve multiple supplies need care in their
 implementation, since values may arrive at any point on each, and possibly at
 the same time. To help write such combinators, the C<on> meta-combinator is
 useful. C<on> taps many supplies, and ensures that only one
@@ -588,8 +588,8 @@ about synchronization issues. Here is how C<zip> is implemented:
 
 Thus there is never any race or other thread-safely problems with mutating the
 C<@as> and C<@bs>. The default behaviour, if a callable is specified along
-with the subscribable, is to use it for C<more> and provide a default C<done>
-and C<fail>. The default C<done> triggers C<done> on the result subscribable,
+with the supply, is to use it for C<more> and provide a default C<done>
+and C<fail>. The default C<done> triggers C<done> on the result supply,
 which is the correct semantics for C<zip>. On the other hand, C<merge> wants
 different semantics, and so must provide a C<done>. This is done as follows:
 
@@ -612,7 +612,7 @@ different semantics, and so must provide a C<done>. This is done as follows:
     }
 
 A C<fail> can be provided in a similar way, although the default - convey the
-failure to the result subscribable - is normally what is wanted. The exception
+failure to the result supply - is normally what is wanted. The exception
 is writing combinators related to error handling.
 
 [TODO: specify C<catch> and various other error-handling related timeouts.]
