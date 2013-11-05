@@ -357,23 +357,25 @@ result.
     my ($a, $b) = await $p1, $p2;
 
 This simply calls C<result> on each of the C<Promise>s, so any exception will
-be thrown. There is also a C<select> function:
+be thrown. There is also a C<winner> statement [keywords still negotiable]:
 
-    select(
-        $p1 => { say "First promise got a value" },
-        $p2 => { say "Second promise got a value" }
-    );
+    winner {
+        when $p1 { say "First promise got a value" }
+        when $p2 { say "Second promise got a value" }
+    }
 
 That will invoke the closure associated with the first promise that produces a
 result, either kept or broken. In order to avoid blocking, it is possible to
 provide a default that will be invoked if none of the promises currently have
 a result available.
 
-    select(
-        $p1     => { say "First promise got a value" },
-        $p2     => { say "Second promise got a value" },
-        default => { say "Nothing has a result yet" }
-    );
+    winner {
+        when $p1 { say "First promise got a value" }
+        when $p2 { say "Second promise got a value" }
+	default  { say "Not done yet" }
+    }
+
+The construct as a whole returns the result of whichever block was selected.
 
 =head2 Channels
 
@@ -411,19 +413,19 @@ The C<peek> method is similar, but will not remove the message. Note that use
 of C<peek> is risky in any multi-receiver situation, since another worker may
 receive the message you peeked.
 
-The C<select> function also works on channels, and will try to receive a value
+The C<winner> construct also works on channels, and will try to receive a value
 from the first C<Channel> that has one available. It can also be used in order
 to write a loop to receive from a channel until it is closed:
 
     loop {
-        select(
-            $c        => { say "Received $_" },
-            $c.closed => { last }
-        )
+        winner {
+            when $c        { say "Received $_" }
+            when $c.closed { last }
+        }
     }
 
 [Conjectural: this is such a common pattern that we might want to provide a
-$channel.receive_loop(-> $val { ... }) to factor it out.]
+$channel.each(-> $val { ... }) to factor it out.]
 
 =head2 Supplies
 
