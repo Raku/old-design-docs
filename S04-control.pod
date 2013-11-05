@@ -12,8 +12,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 7 Oct 2013
-    Version: 127
+    Last Modified: 4 Nov 2013
+    Version: 128
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -784,8 +784,8 @@ callbacks that contain C<take>.  So we will say that it is erroneous
 for a library writer to mix dynamic gather with callbacks unless
 those callbacks are somehow "ungathered" to the outer dynamic scope.
 [Conjecture: there should either be an C<callergather> primitive that
-does this, or it should be added to the job description of C<lift>.
-A third option is to allow labeled C<gather>/C<take> for such a situation,
+does this, or 
+we should allow labeled C<gather>/C<take> for such a situation,
 and dynamic C<take> must match the C<gather>'s label (or lack thereof) exactly.
 (Using the term "label" loosely, to include other solutions besides the label syntax,
 such as .gather and .take methods on some identity object.)]
@@ -858,45 +858,6 @@ The C<take> operation may be defined internally using resumable control
 exceptions, or dynamic variables, or pigeons carrying clay tablets.
 The choice any particular implementation makes is specifically I<not> part
 of the definition of Perl 6, and you should not rely on it in portable code.
-
-=head2 The C<lift> statement prefix
-X<lift>
-
-When writing generic multi routines you often want to write a bit of
-code whose meaning is dependent on the linguistic context of the caller.  It's
-somewhat like virtual methods where the actual call depends on the type
-of the invocant, but here the "invocant" is really the lexical scope of
-the caller, and the virtual calls are name bindings.  Within a lift,
-special rules apply to how names are looked up.  Only names defined
-in the lexical scope of the immediately surrounding routine are considered concrete.
-All other names (including implicit names of operators) are looked up
-in the lexical scope of the caller when we actually know who the caller
-is at run time.  (Note the caller can vary from call to call!)
-
-This applies to anything that needs to be looked up at compile time, including
-names of variables, and named values such as types and subs.
-
-Through this mechanism, a generic multi can redirect execution to
-a more specific version, but the candidate list for this redirection
-is determined by the caller, not by the lexical scope of the multi,
-which can't see the caller's lexical scope except through the CALLER::
-pseudo package.  For example, Perl forces generic C<eq> to coerce to
-string comparison, like this:
-
-    proto infix:<eq> (Any $a, Any $b)   { lift ~$a eq ~$b }            # user's eq, user's ~
-    multi infix:<eq> (Whatever, Any $b) { -> $a { lift $a eq $b } }    # user's eq
-    multi infix:<eq> (Any $a, Whatever) { -> $b { lift $a eq $b } }    # user's eq
-    multi infix:<eq> (&f:($), Any $b)   { -> $a { lift f($a) eq $b } } # user's eq
-    multi infix:<eq> (Str $a, Str $b)   { !Str::leg($a, $b) }          # primitive leg, primitive !
-
-
-Note that in each piece of lifted code there are references to
-variables defined in the multi, such as C<$a>, C<$b>, and C<&f>.
-These are taken at face value.  Everything else within a lift is
-assumed to mean something in the caller's linguistic context.  (This implies
-that there are some errors that would ordinarily be found at
-compile time that cannot be found until we know what the caller's
-lexical scope looks like at run time.  That's okay.)
 
 =head2 Other C<do>-like forms
 X<do>
@@ -1445,8 +1406,7 @@ in lowercase.  They parse the same as phasers:
          do {...}*      run a block or statement as a term
        once {...}*      run only once, suppressing additional evaluations
      gather {...}*      start a co-routine thread
-       lift {...}*      use caller's semantics for operators
-       lazy {...}*      return a promise to evaluate
+       lazy {...}*      defer actual evaluation till value is fetched
        sink {...}*      eval eagerly and throw results away
         try {...}*      evaluate and trap exceptions (implies 'use fatal')
     quietly {...}*      evaluate and suppress warnings
