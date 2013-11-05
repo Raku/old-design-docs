@@ -310,6 +310,8 @@ There is also an C<allof> combinator, which creates a C<Promise> that will be
 kept when all of the specified C<Promise>s are kept, or broken if any of them
 are broken.
 
+[Conjecture: there should be infix operators for these resembling the junctionals.]
+
 The C<then> method on a C<Promise> is used to request that a certain piece of
 code should be run, receiving the C<Promise> as an argument, when the
 C<Promise> is kept or broken. If the C<Promise> is already kept or broken,
@@ -324,22 +326,29 @@ both the original C<Promise> as well as the code specified in C<then>.
         }
     });
 
+[Conjecture: this needs better syntax to separate the "then" policies from the "else"
+policies (and from "catch" policies?), and to avoid a bunch of switch boilerplate.
+We already know the givens here...]
+
 One risk when working with C<Promise> is that another piece of code will
-sneak in and keep or break a C<Promise> it should not. Therefore, the various
-built-in C<Promise> factory methods and combinators use C<Promise::Keeper>
-objects. The C<keeper> method on a C<Promise> returns an object with C<keep>
+sneak in and keep or break a C<Promise> it should not.  The notion of
+a promise is user-facing.  To instead represent the promise from the
+viewpoint of the promiser, the various built-in C<Promise> factory methods
+and combinators use C<Promise::Vow> objects to represent that internal
+resolve to fulfill the promise.  ("I have vowed to keep my promise
+to you.")  The C<vow> method on a C<Promise> returns an object with C<keep>
 and C<break> methods. It can only be called once during a C<Promise> object's
 lifetime. Since C<keep> and C<break> on the C<Promise> itself just delegate
-to C<self.keeper.keep(...)> or C<self.keeper.break(...)>, obtaining the keeper
+to C<self.vow.keep(...)> or C<self.vow.break(...)>, obtaining the vow
 before letting the C<Promise> escape to the outside world is a way to take
 ownership of the right to keep or break it. For example, here is how the
 C<Promise.alarm> factory is implemented:
 
     method alarm(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new(:$scheduler);
-        my $k = $p.keeper;
+        my $k = $p.vow;
         $scheduler.cue: { $k.keep(True) }, :in($seconds);
-        $p
+        $p;
     }
 
 The C<await> function is used to wait for one or more C<Promise>s to produce a
