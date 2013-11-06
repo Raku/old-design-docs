@@ -109,7 +109,60 @@ L<X::IO::Dir|S32::Exception/X::IO::Dir> failure.
 
 =item glob
 
-TODO: fileglobs
+    multi glob(Str $pattern --> Array[Str])
+
+Accepts a pattern that will then be expanded into a array of filenames (the
+creation of C<IO> objects from this list is left to the user).
+
+The default C<glob> function operates on POSIX rules, which may be read in more
+detail in the glob(7) manpage, however an overview is presented below.
+
+The C<glob> function understands a few metacharacters:
+
+    \    Escape metacharacter
+    ~    Home directory
+    ?    Match exactly one character
+    *    Match zero or more characters
+    [    Start of character class (ends with ])
+
+Note that this is not a regex-like syntax, so the C<?> and C<*> are not
+quantifiers.
+
+    glob("foo?");  # roughly equivalent to /^ foo. $/, NOT /^ foo? $/
+    glob("*bar");  # valid syntax; roughly equivalent to /^ .* bar $/
+
+The character class construct C<[...]> matches all characters specified. It has
+a few metacharacters of its own:
+
+    glob("[]]");     # matches the ] character
+    glob("[!abc]");  # matches all but 'a', 'b', or 'c' (negation)
+    glob("[a-z]");   # matches all lowercase letters from a to z (range)
+    glob("[a-]");    # matches 'a' and '-'
+    glob("[[:xdigit:]]"); # matches hexadecimal digit (named character class)
+
+Ranges matches all the characters that fall between and the startpoint and
+endpoint, inclusively. Note that the C</> character can never be matched by a
+range. If contained within the a range (such as C<[--0]>), the C</> is
+skipped. If explicitly specified as the start- or endpoint, it's considered a
+syntax error.
+
+    glob("[--0]");   # matches '-', '.', or '0' (skips '/')
+    glob("[a/b]");   # matches 'a', '/', or 'b'
+    glob("[/-0]");   # syntax error
+
+There are some notable departures from POSIX in terms of what the Perl 6
+C<&glob> function allows with character classes. Namely, neither the C<[[.ch.]]>
+nor C<[[=ch=]]> forms are supported, and the C<[^...]> form is not undefined,
+but rather matches the C<^> character among other things.
+
+Glob metacharacters that must be escaped outside character classes aren't
+within.
+
+    glob('\[\*\?\~');    # Matches the filename "[*?~"
+    glob("[[*?~]");      # Matches the filenames "[", "*", "?", and "~"
+
+Unlike Perl 5, no special attention is given to the interpolation rules of
+strings, particularly braces.
 
 =item note
 
