@@ -14,8 +14,8 @@ DRAFT: Synopsis 32: Setting Library - Callable
 
     Created: 26 Feb 2009
 
-    Last Modified: 3 May 2009
-    Version: 2
+    Last Modified: 5 Nov 2013
+    Version: 3
 
 The document is a draft.
 
@@ -27,25 +27,36 @@ so edit it there in the git repository if you would like to make changes.
 This document documents Code, Block, Signature, Capture, Routine, Sub, Method, Submethod,
 and Macro.
 
-=head1 Roles
-
-=head2 Callable
+=head1 Callable
 
     role Callable {...}
 
 The C<Callable> role implies the ability
 to support C<< postcircumfix:<( )> >>.
 
-=head2 Code
+=head1 Code
 
-    # Base class for all executable objects
-    role Code {
-        method signature( --> Signature )
-        method assuming(... --> Code)
-        method do() # See L<S12/Introspection>
-        method defined( --> Bool )
-        # XXX What does do() return?  I mean, it's a "method body", but what's that?
-    }
+    class Code does Callable {...}
+
+Base class for all executable objects.
+
+=over
+
+=item signature
+
+ method signature( --> Signature )
+
+=item assuming
+
+ method assuming( Code $executable: *@curried_positionals, *%curried_named --> Code)
+
+C<assuming> primes C<$executable>, returning a C<Code> object that,
+when executed, will use curried arguments as well as any additionally
+supplied arguments. See L<S06/Priming>.
+
+=item defined
+
+ method defined( --> Bool )
 
 For C<Code>, the C<.defined> method returns whether a body has
 been defined.  A body consisting only of C<...>, C<!!!>, or C<???>
@@ -54,41 +65,47 @@ been defined.  A body consisting only of C<...>, C<!!!>, or C<???>
 To test if a name has been declared, look up the symbol in the
 appropriate symbol table.
 
-=head2 Block
+=back
+
+=head1 Block
 
     # Executable objects that have lexical scopes
-    role Block does Code does Callable {
-        method next()
-        method last()
-        method redo()
-        method leave()
-        method labels()
-        method as() # See L<S12/Introspection> and L<S02/Value types>
+    class Block is Code does Callable {
+        method next()   {...}
+        method last()   {...}
+        method redo()   {...}
+        method leave()  {...}
+        method labels() {...}
+        method as()     {...} # See L<S12/Introspection> and L<S02/Value types>
     }
 
-=head2 Signature
+=head1 Signature
 
- # Function parameters (left-hand side of a binding)
- role Signature {...}
+ class Signature {...}
 
-=head2 Capture
+The C<Signature> class is used for function parameters, as the left-hand
+side of a binding, and for the argument to declarators like C<my>.
+See L<S02/Signature objects>, L<S06/Signatures>, and L<S06/Signature Introspection>
 
- # Function call arguments (right-hand side of a binding)
- role Capture does Positional does Associative {...}
+=head1 Capture
 
-=head2 WrapHandle
+ class Capture does Positional does Associative {...}
 
- role WrapHandle {...}
+The C<Capture> class is used for the arguments of function calls
+and the right-hand side of a binding.
+See L<S02/Parcels, parameters, and Captures>
 
-=head1 Classes
+=head1 WrapHandle
 
-=head2 Routine
+ class WrapHandle {...}
 
- class Routine does Block {
-      method WrapHandle wrap(Code $code) {...}
-      method Routine    unwrap(Wraphandle $original) {...}
-      method Str        name() {...}
-      method Bool       multi() {...}
+=head1 Routine
+
+ class Routine is Block {
+      method wrap(Code $code --> WrapHandle ) {...}
+      method unwrap(Wraphandle $original --> Routine ) {...}
+      method name( --> Str ) {...}
+      method multi( --> Bool ) {...}
  }
 
 =over
@@ -105,21 +122,21 @@ See L<S06/Wrapping>.
 
 =back
 
-=head2 Sub
+=head1 Sub
 
-    class Sub isa Routine {...}
+    class Sub is Routine {...}
 
-=head2 Method
+=head1 Method
 
-    class Method isa Routine {...}
+    class Method is Routine {...}
 
-=head2 Submethod
+=head1 Submethod
 
-    class Submethod isa Routine {...} # XXX or should this be isa Sub
+    class Submethod is Routine {...}
 
-=head2 Macro
+=head1 Macro
 
-    class Macro isa Routine {...}
+    class Macro is Routine {...}
 
 =head1 Additions
 
