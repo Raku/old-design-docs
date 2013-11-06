@@ -305,7 +305,7 @@ the resulting C<Promise> is also broken. The excuse is passed along. When the
 C<Promise> is kept, it has a C<True> result.
 
     my $calc     = start { ... }
-    my $timeout  = Promise.alarm(10);
+    my $timeout  = Promise.in(10);
     my $timecalc = Promise.anyof($calc, $timeout);
 
 There is also an C<allof> combinator, which creates a C<Promise> that will be
@@ -344,9 +344,9 @@ lifetime. Since C<keep> and C<break> on the C<Promise> itself just delegate
 to C<self.vow.keep(...)> or C<self.vow.break(...)>, obtaining the vow
 before letting the C<Promise> escape to the outside world is a way to take
 ownership of the right to keep or break it. For example, here is how the
-C<Promise.alarm> factory is implemented:
+C<Promise.in> factory is implemented:
 
-    method alarm(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
+    method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new(:$scheduler);
         my $v = $p.vow;
         $scheduler.cue: { $v.keep(True) }, :in($seconds);
