@@ -478,21 +478,22 @@ subscribing, call C<close> on it.
 This doesn't introduce any asynchrony directly. However, it is possible for
 values to be pumped by a C<Supply> from an asynchronous worker.
 
-The C<Supply> class (punned from the C<Supply> role) has various methods that produce more interesting kinds
-of C<Supply>. These default to working asynchronously. Furthermore, they
-start producing values upon the point of subscription.
+The C<Publish> class (punned from the C<Supply> role) has various methodsi
+that produce more interesting kinds of C<Supply>. These default to working
+asynchronously. Furthermore, they start producing values upon the point of
+the tap.
 
-C<Supply.for> takes a (potentially lazy) list of values, and returns a
-C<Supply> that, when tapped, will iterate over the values and
-invoke the C<more> callable for each of them, and any C<done> callable at the
-end. If the iteration at some point produces an exception, then the C<fail>
+C<Publish.for> takes a (potentially lazy) list of values, and returns a
+C<Supply> that, when tapped, will iterate over the values and invoke the
+C<more> callable for each of them, and any C<done> callable at the end.
+If the iteration at some point produces an exception, then the C<fail>
 callable will be invoked.
 
-C<Supply.interval> produces a C<Supply> that, when tapped, will
-produce an ascending value at a regular time interval.
+C<Publish.interval> produces a C<Supply> that, when tapped, will produce an
+ascending value at a regular time interval.
 
-    Supply.interval(1).tap(&say);     # Once a second, starting now
-    Supply.interval(5, 10).tap(&say); # Each 5 seconds, starting in 10 seconds
+    Publish.interval(1).tap(&say);     # Once a second, starting now
+    Publish.interval(5, 10).tap(&say); # Each 5 seconds, starting in 10 seconds
 
 [TODO: many more of these, including ones for publishing a Channel and a
 Promise.]
@@ -565,9 +566,9 @@ function.
 These combinators that involve multiple supplies need care in their
 implementation, since values may arrive at any point on each, and possibly at
 the same time. To help write such combinators, the C<on> meta-combinator is
-useful. C<on> taps many supplies, and ensures that only one
-callback will be running at a time, freeing the combinator writer of worrying
-about synchronization issues. Here is how C<zip> is implemented:
+useful. C<on> taps many supplies, and ensures that only B<one> callback will be
+running at a time, freeing the combinator writer of worrying about
+synchronization issues. Here is how C<zip> is implemented:
 
     method zip(Supply $a, Supply $b, &with = &infix:<,>) {
         my @as;
@@ -593,7 +594,8 @@ C<@as> and C<@bs>. The default behaviour, if a callable is specified along
 with the supply, is to use it for C<more> and provide a default C<done>
 and C<fail>. The default C<done> triggers C<done> on the result supply,
 which is the correct semantics for C<zip>. On the other hand, C<merge> wants
-different semantics, and so must provide a C<done>. This is done as follows:
+different semantics, and so must provide a C<done>. This can be implemented
+as follows:
 
     method merge(Supply $a, Supply $b) {
         my $done = 0;
