@@ -172,15 +172,6 @@ or at a given absolute time, specified as an C<Instant>:
 
     $*SCHEDULER.cue: at=>$instant, { say "10s later" }
 
-Use C<:every> to schedule an operation to run at a fixed interval, possibly with a
-delay before the first scheduling.
-
-    # Every second, from now
-    $*SCHEDULER.cue: :every(1), { say "Oh wow, a kangaroo!" }
-    
-    # Every 0.5s, but don't start for 2s.
-    $*SCHEDULER.cue({ say "Kenya believe it?" }, :every(0.5), :in(2));
-
 If a scheduled item dies, the scheduler will catch this exception and pass it
 to a C<handle_uncaught> method, a default implementation of which is provided
 by the C<Scheduler> role. This by default will report the exception and cause
@@ -197,6 +188,33 @@ code object to be invoked with the thrown exception if it dies:
         { upload_progress($stuff) },
         catch => -> $ex { warn "Could not upload latest progress" }
 
+Use C<:every> to schedule a task to run at a fixed interval, possibly
+with a delay before the first scheduling.
+
+    # Every second, from now
+    $*SCHEDULER.cue: :every(1), { say "Oh wow, a kangaroo!" };
+    
+    # Every 0.5s, but don't start for 2s.
+    $*SCHEDULER.cue: { say "Kenya believe it?" }, :every(0.5), :in(2);
+
+Since this will cause the given to be executed for the given interval ad
+infinitum, there are two ways to make sure the scheduling of the task is
+halted at a future time.  The first is provided by specifying the C<:times>
+parameter in the .cue:
+
+    # Every second, from now, but only 42 times
+    $*SCHEDULER.cue: :every(1), :times(42), { say "Oh wow, a kangaroo!" };
+
+The second is by specifying a variable that will be checked at the end of
+each interval.  The task will be stopped as soon as it has a True value.
+You can do this with the C<:stop> parameter.
+
+    # Every second, from now, until stopped
+    my $stop;
+    $*SCHEDULER.cue: :every(1), :$stop, { say "Oh wow, a kangaroo!" };
+    sleep 10;
+    $stop = True;  # task stopped after 10 seconds
+
 Schedulers also provide counts of the number of operations in various states:
 
     say $*SCHEDULER.loads;
@@ -206,8 +224,8 @@ delays, the number of cues that are runnable but not yet assigned to a thread,
 and the number of cues that are now assigned to a thread (and presumably running).
 [Conjecture: perhaps these should be separate methods.]
 
-Schedulers may optionally provide further introspection in order to support tools
-such as debuggers.
+Schedulers may optionally provide further introspection in order to support
+tools such as debuggers.
 
 There is also a C<CurrentThreadScheduler>, which always schedules things on
 the current thread. It provides the same methods, just no concurrency, and
