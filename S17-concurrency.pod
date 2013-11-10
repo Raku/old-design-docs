@@ -158,28 +158,28 @@ dynamically scoped, this means that test scheduler modules can be developed
 that poke a C<$*SCHEDULER> into C<EXPORT>, and then provide the test writer
 with control over time.
 
-The C<cue> method takes a C<Callable> object and schedules it.
+The C<schedule> method takes a C<Callable> object and schedules it.
 
-    $*SCHEDULER.cue: { say "Golly, I got scheduled!" }
+    $*SCHEDULER.schedule: { say "Golly, I got scheduled!" }
 
 Various options may be supplied as named arguments.  (All references to time
 are taken to be in seconds, which may be fractional.)  You may schedule an
 event to fire off after some number of seconds:
 
-    $*SCHEDULER.cue: in=>10, { say "10s later" }
+    $*SCHEDULER.schedule: in=>10, { say "10s later" }
 
 or at a given absolute time, specified as an C<Instant>:
 
-    $*SCHEDULER.cue: at=>$instant, { say "10s later" }
+    $*SCHEDULER.schedule: at=>$instant, { say "10s later" }
 
 Use C<:every> to schedule an operation to run at a fixed interval, possibly with a
 delay before the first scheduling.
 
     # Every second, from now
-    $*SCHEDULER.cue: :every(1), { say "Oh wow, a kangaroo!" }
+    $*SCHEDULER.schedule: :every(1), { say "Oh wow, a kangaroo!" }
     
     # Every 0.5s, but don't start for 2s.
-    $*SCHEDULER.cue({ say "Kenya believe it?" }, :every(0.5), :in(2));
+    $*SCHEDULER.schedule({ say "Kenya believe it?" }, :every(0.5), :in(2));
 
 If a scheduled item dies, the scheduler will catch this exception and pass it
 to a C<handle_uncaught> method, a default implementation of which is provided
@@ -193,7 +193,7 @@ the entire application to terminate. However, it is possible to replace this:
 For more fine-grained handling, it is possible to schedule code along with a
 code object to be invoked with the thrown exception if it dies:
 
-    $*SCHEDULER.cue:
+    $*SCHEDULER.schedule:
         { upload_progress($stuff) },
         catch => -> $ex { warn "Could not upload latest progress" }
 
@@ -201,9 +201,9 @@ Schedulers also provide counts of the number of operations in various states:
 
     say $*SCHEDULER.loads;
 
-This returns, in order, the number of cues that are not yet runnable due to
-delays, the number of cues that are runnable but not yet assigned to a thread,
-and the number of cues that are now assigned to a thread (and presumably running).
+This returns, in order, the number of scheduled things that are not yet runnable due to
+delays, the number of scheduled things that are runnable but not yet assigned to a thread,
+and the number of scheduled things that are now assigned to a thread (and presumably running).
 [Conjecture: perhaps these should be separate methods.]
 
 Schedulers may optionally provide further introspection in order to support tools
@@ -213,7 +213,7 @@ There is also a C<CurrentThreadScheduler>, which always schedules things on
 the current thread. It provides the same methods, just no concurrency, and
 any exceptions are thrown immediately. This is mostly useful for forcing
 synchrony in places that default to asynchrony.  (Note that C<.loads> can never
-return anything but 0 for the currently running cues, since they're waiting
+return anything but 0 for the currently running scheduled things, since they're waiting
 on the current thread to stop scheduling first!)
 
 =head1 Promises
@@ -349,7 +349,7 @@ C<Promise.in> factory is implemented:
     method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new(:$scheduler);
         my $v = $p.vow;
-        $scheduler.cue: { $v.keep(True) }, :in($seconds);
+        $scheduler.schedule: { $v.keep(True) }, :in($seconds);
         $p;
     }
 
