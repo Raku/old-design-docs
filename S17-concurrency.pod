@@ -758,8 +758,24 @@ else updated the value in the meantime, the reference will be updated. If
 the CAS fails because another update got in first, the block will be run
 again, passing in the latest value.
 
-For example, we could implement a top-5 news headlines list, which can be
-accessed and updated without ever locking, as:
+So, atomically incrementing a variable is done thusly:
+
+    cas $a, { $_.succ };    # $a++
+
+or more generally for all assignment meta-operators:
+
+    cas $a, { $_ * 5 };     # $a *= 5
+
+This very often occurring construct in concurrent programs, could need some
+syntactic sugar.  For assignment meta-operators, this is achieved by putting
+parenthesis around the operator:
+
+    $string (~=) "bar";   # cas $string, { $_ ~ "bar" }
+
+    $count (+=) 1;        # cas $count, { $_ + 1 }
+
+Another  example, implementing a top-5 news headlines list to be accessed and
+updated without ever locking, as:
 
     class TopHeadlines {
         has $!headlines = [];   # Scalar holding array, as CAS needs
