@@ -792,6 +792,15 @@ parenthesis around the operator:
 
     $count (+=) 1;        # cas $count, { $_ + 1 }
 
+However, in concurrent programming, you want to make sure that B<all> updates
+to a variable being accessed from multiple concurrent tasks, are wrapped in a
+C<cas>.  To mark accesses to a variable thusly, you can use the C<is cas>
+trait.
+
+    my $count is cas;       # $a++, $a ~= "foo", $a += 5, etc.
+    my @done is cas;        # @done.push, @done.pop, etc.
+    my %objects is cas;     # %objects{.WHAT}.push($_), etc.
+
 Another  example, implementing a top-5 news headlines list to be accessed and
 updated without ever locking, as:
 
