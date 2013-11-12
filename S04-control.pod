@@ -12,8 +12,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 4 Nov 2013
-    Version: 128
+    Last Modified: 12 Nov 2013
+    Version: 129
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -79,6 +79,16 @@ the loop scope to be exited (since the label was already "used up" to
 discover that identity), but for the dynamic fallback, the exception
 will contain only the loop label to be matched dynamically.  See
 L</Control Exceptions> below.
+
+The C<redo> operator, as a variant of C<goto>, directly transfers
+control to the first statement of the lexotically enclosed loop.
+Essentially, the compiler turns it into a C<goto> with an implicitly
+generated (secret) label on that first statement.  In order to know
+when that implicit label must be generated, we restrict C<redo> to
+the current outer lexical scope.  It may not be used dynamically.
+(If you find yourself wanting the dynamic variant, please use C<goto>
+with an explicit label instead, so the compiler can know to pessimize
+any unrolling of that loop.)
 
 =head1 The Relationship of Blocks and Declarations
 
