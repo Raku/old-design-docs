@@ -13,8 +13,8 @@ RE-DRAFT: Synopsis 17: Concurrency
 
     Created: 3 Nov 2013
 
-    Last Modified: 4 Nov 2013
-    Version: 3
+    Last Modified: 13 Nov 2013
+    Version: 4
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on the JVM.  It covers both things that are
@@ -678,16 +678,16 @@ It is also possible to create a thread object, and set it running later:
     $thread.run();
 
 Both approaches result in C<$thread> containing a C<Thread> object. At some
-point, C<join> should be called on the thread, from the thread that started
+point, C<finish> should be called on the thread, from the thread that started
 it. This blocks until the thread has completed.
 
     say "Certainly before the thread is started";
     my $thread = Thread.start({ say "In the thread" });
     say "This could come before or after the thread's output";
-    $thread.join();
+    $thread.finish();
     say "Certainly after all the above output";
 
-As an alternative to C<join>, it is possible to create a thread whose lifetime
+As an alternative to C<finish>, it is possible to create a thread whose lifetime
 is bounded by that of the overall application. Such threads are automatically
 terminated when the application exits. In a scenario where the initial thread
 creates an application lifetime thread and no others, then the exit of the
