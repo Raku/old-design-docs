@@ -475,7 +475,7 @@ further values. Expressing the possible invocations as a grammar:
 
     more* [ done | fail ]?  # invocations
 
-The simplest Supply is a C<Publish> class, which is punned from the role.
+The simplest Supply is a C<Supply> class, which is punned from the role.
 On the "pumping" end, this has corresponding methods C<more>, C<done>, and
 C<fail>, which notify all current taps.
 
@@ -499,22 +499,22 @@ subscribing, call C<close> on it.
 This doesn't introduce any asynchrony directly. However, it is possible for
 values to be pumped by a C<Supply> from an asynchronous worker.
 
-The C<Publish> class (punned from the C<Supply> role) has various methodsi
+The C<Supply> class (punned from the C<Supply> role) has various methodsi
 that produce more interesting kinds of C<Supply>. These default to working
 asynchronously. Furthermore, they start producing values upon the point of
 the tap.
 
-C<Publish.for> takes a (potentially lazy) list of values, and returns a
+C<Supply.for> takes a (potentially lazy) list of values, and returns a
 C<Supply> that, when tapped, will iterate over the values and invoke the
 C<more> callable for each of them, and any C<done> callable at the end.
 If the iteration at some point produces an exception, then the C<fail>
 callable will be invoked.
 
-C<Publish.interval> produces a C<Supply> that, when tapped, will produce an
+C<Supply.interval> produces a C<Supply> that, when tapped, will produce an
 ascending value at a regular time interval.
 
-    Publish.interval(1).tap(&say);     # Once a second, starting now
-    Publish.interval(5, 10).tap(&say); # Each 5 seconds, starting in 10 seconds
+    Supply.interval(1).tap(&say);     # Once a second, starting now
+    Supply.interval(5, 10).tap(&say); # Each 5 seconds, starting in 10 seconds
 
 [TODO: many more of these, including ones for publishing a Channel and a
 Promise.]
