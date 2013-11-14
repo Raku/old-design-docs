@@ -14,7 +14,7 @@ RE-DRAFT: Synopsis 17: Concurrency
     Created: 3 Nov 2013
 
     Last Modified: 13 Nov 2013
-    Version: 4
+    Version: 5
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on the JVM.  It covers both things that are
@@ -437,15 +437,17 @@ The C<winner> construct also works on channels, and will try to receive a value
 from the first C<Channel> that has one available. It can also be used in order
 to write a loop to receive from a channel until it is closed:
 
-    loop {
+    gather loop {
         winner {
-            when $c        { say "Received $_" }
+            when $c        { take $_ }
             when $c.closed { last }
         }
     }
 
-[Conjectural: this is such a common pattern that we might want to provide a
-$channel.each(-> $val { ... }) to factor it out.]
+This is such a common pattern that we make a channel in list context behave that way:
+
+    for @$channel -> $val { ... }
+    for $channel.list -> $val { ... }
 
 =head2 Supplies
 
