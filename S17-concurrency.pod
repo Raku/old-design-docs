@@ -613,6 +613,36 @@ synchronization issues. Here is how C<zip> is implemented:
         }
     }
 
+Conjecture: this is going to end up looking more like:
+
+
+    method zip(Supply $a, Supply $b, &with = &infix:<,>) {
+        my @as;
+        my @bs;
+	combine $a, $b -> $out, $which {
+            MORE -> $val {
+                ($which ?? @bs !! @as).push($val);
+                if @as && @bs {
+                    $out.more(with(@as.shift, @bs.shift));
+                }
+            }
+        }
+    }
+
+or even:
+
+    method zip(*@in, :&with = &infix:<,>) {
+	my @streams = [] xx @in;
+	combine @in -> $out, $which {
+            MORE -> $val {
+                @streams[$which].push($val);
+                if all @which».elems > 0 {
+                    $out.more(with(|@streams));
+                }
+            }
+        }
+    }
+	
 Thus there is never any race or other thread-safely problems with mutating the
 C<@as> and C<@bs>. The default behaviour, if a callable is specified along
 with the supply, is to use it for C<more> and provide a default C<done>
