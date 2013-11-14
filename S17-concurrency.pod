@@ -669,6 +669,16 @@ as follows:
         }
     }
 
+or conjecturally:
+
+    method merge(*@ins) {
+        my $done = 0;
+	combine @ins -> $out {
+	    MORE { $out.more($_) }
+	    DONE { $out.done() if ++$done == +@ins; }
+        }
+    }
+
 A C<fail> can be provided in a similar way, although the default - convey the
 failure to the result supply - is normally what is wanted. The exception
 is writing combinators related to error handling.
