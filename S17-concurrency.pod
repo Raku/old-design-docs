@@ -375,9 +375,9 @@ result.
 This simply calls C<result> on each of the C<Promise>s, so any exception will
 be thrown. There is also a C<winner> statement [keywords still negotiable]:
 
-    winner {
-        when $p1 { say "First promise got a value" }
-        when $p2 { say "Second promise got a value" }
+    winner $p1, $p2 {
+        done $p1 { say "First promise got a value" }
+        done $p2 { say "Second promise got a value" }
     }
 
 That will invoke the closure associated with the first promise that produces a
@@ -385,13 +385,27 @@ result, either kept or broken. In order to avoid blocking, it is possible to
 provide a default that will be invoked if none of the promises currently have
 a result available.
 
-    winner {
-        when $p1 { say "First promise got a value" }
-        when $p2 { say "Second promise got a value" }
-        default  { say "Not done yet" }
+    winner $p1, $p2 {
+        done $p1 { say "First promise got a value" }
+        done $p2 { say "Second promise got a value" }
+        later    { say "Not done yet" }
     }
 
 The construct as a whole returns the result of whichever block was selected.
+
+It's also possible to process a variadic list of promises together, using generic code
+that works over some set of the promises (use C<*> to represent any of them).  The index
+and promise are passed to the code as named arguments C<$:v> and <$:k> (possible via priming if the
+code is instantiated ahead of time).
+
+    winner @promises {
+	done * { say "Promise $:k was kept, result was: ", $:v.result }
+	fail * { say "Promise $:k was broken }
+    }
+
+In this case C<$:k> returns the index of the promise, base 0.
+Likewise C<$:v> returns the promise object itself.  Conjecture: the result
+should be bound to C<$_> to make it work more like channels below.
 
 =head2 Channels
 
@@ -411,17 +425,19 @@ stages out over multiple workers also. [Conjectural: The two feed operators
 C<< ==> >> and C<< <== >> are implemented using Channel to connect each of
 the stages.]
 
-A C<Channel> may be "forever", but it is possible to C<close> it to further
-sends:
+A C<Channel> may be "forever", but it is possible to close it to further
+sends by telling it to be C<done>:
 
-    $c.close();
+    $c.done();
 
 Trying to C<send> any further messages on a closed channel will throw the
 C<X::Channel::SendOnClosed> exception. Closing a channel has no effect on the
 receiving end until all sent values have been received. At that point, any
 further calls to receive will throw C<X::Channel::ReceiveOnClosed>. The
-C<closed> property returns a C<Promise> that is kept when the sender has
-called C<close> and all sent messages have been received.
+C<done> property returns a C<Promise> that is kept when the sender has
+called C<done> and all sent messages have been received.  For notational convenience,
+C<< prefix:<!> >> returns the same promise.  Note that multiple calls to a channel
+return the same promise, not a new one.
 
 While C<receive> blocks until it can read, C<poll> takes a message from the
 channel if one is there or immediately returns C<Nil> if nothing is there.
@@ -434,11 +450,13 @@ from the first C<Channel> that has one available. It can also be used in order
 to write a loop to receive from a channel until it is closed:
 
     gather loop {
-        winner {
-            when $c        { take $_ }
-            when $c.closed { last }
+        winner $c, !$c {
+            more * { take $_ }
+            done * { last }
         }
     }
+
+[Conjecture, we can autogenerate !$c from $c.]
 
 This is such a common pattern that we make a channel in list context behave that way:
 
@@ -615,9 +633,9 @@ Conjecture: this is going to end up looking more like:
     method zip(Supply $a, Supply $b, &with = &infix:<,>) {
         my @as;
         my @bs;
-	combine $a, $b -> $out, $which {
-            MORE -> $val {
-                ($which ?? @bs !! @as).push($val);
+	combine $a, $b -> $out {
+            more * -> $val {
+                ($*key ?? @bs !! @as).push($val);
                 if @as && @bs {
                     $out.more(with(@as.shift, @bs.shift));
                 }
@@ -629,9 +647,9 @@ or even:
 
     method zip(*@in, :&with = &infix:<,>) {
 	my @streams = [] xx @in;
-	combine @in -> $out, $which {
-            MORE -> $val {
-                @streams[$which].push($val);
+	combine @in -> $out {
+            more * -> $val {
+                @streams[$*which].push($val);
                 if all @which».elems > 0 {
                     $out.more(with(|@streams));
                 }
@@ -670,8 +688,8 @@ or conjecturally:
     method merge(*@ins) {
         my $done = 0;
 	combine @ins -> $out {
-	    MORE { $out.more($_) }
-	    DONE { $out.done() if ++$done == +@ins; }
+	    more * { $out.more($_) }
+	    done * { $out.done() if ++$done == +@ins; }
         }
     }
 
