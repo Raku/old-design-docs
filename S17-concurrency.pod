@@ -466,6 +466,19 @@ This is such a common pattern that we make a channel in list context behave that
 (Note that this is not a combinator, but a means for transfering data from the reactive
 realm to the lazy realm.  Some reasonable amount of buffering is assumed between the two.)
 
+We didn't have to use C<*> above; instead we could have said:
+
+    gather loop {
+        winner $c {
+            more $c { take $_ }
+            done $c { last }
+        }
+    }
+
+This works because C<more> only ever works on channels, while C<done>
+only ever works on promises, so it knows to check the promise of
+channel C<$c> rather than C<$c> itself.
+
 =head2 Supplies
 
 Channels are good for producer/consumer scenarios, but because each worker
