@@ -382,8 +382,8 @@ be thrown. There is also a C<winner> statement [keywords still negotiable]:
 
 That will invoke the closure associated with the first promise that produces a
 result, either kept or broken. In order to avoid blocking, it is possible to
-provide a default that will be invoked if none of the promises currently have
-a result available.
+provide a closure with the C<later> keyword, that will be invoked if none of
+the promises currently have a result available.
 
     winner $p1, $p2 {
         done $p1 { say "First promise got a value" }
@@ -400,7 +400,7 @@ code as named arguments C<$:v> and <$:k> (possibly via priming if
 the code is instantiated ahead of time).
 
     winner @promises {
-	done * { say "Promise $:k was kept, result was: ", $:v.result }
+        done * { say "Promise $:k was kept, result was: ", $:v.result }
     }
 
 In this case C<$:k> returns the index of the promise, base 0.
@@ -433,10 +433,10 @@ sends by telling it to be C<done>:
     $c.done();
 
 Trying to C<send> any further messages on a closed channel will throw the
-C<X::Channel::SendOnClosed> exception. Closing a channel has no effect on the
+C<X::Channel::SendOnDone> exception. Closing a channel has no effect on the
 receiving end until all sent values have been received. At that point, any
-further calls to receive will throw C<X::Channel::ReceiveOnClosed>. The
-C<done> property returns a C<Promise> that is kept when the sender has
+further calls to receive will throw C<X::Channel::ReceiveOnDone>. The
+C<done> property returns a C<Promise> that is kept when a sender has
 called C<done> and all sent messages have been received.  Note that multiple
 calls to a channel return the same promise, not a new one.
 
