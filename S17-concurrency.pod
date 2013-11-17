@@ -13,8 +13,8 @@ RE-DRAFT: Synopsis 17: Concurrency
 
     Created: 3 Nov 2013
 
-    Last Modified: 15 Nov 2013
-    Version: 6
+    Last Modified: 16 Nov 2013
+    Version: 7
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on the JVM.  It covers both things that are
@@ -393,19 +393,21 @@ a result available.
 
 The construct as a whole returns the result of whichever block was selected.
 
-It's also possible to process a variadic list of promises together, using generic code
-that works over some set of the promises (use C<*> to represent any of them).  The index
-and promise are passed to the code as named arguments C<$:v> and <$:k> (possible via priming if the
-code is instantiated ahead of time).
+It's also possible to process a variadic list of promises together,
+using generic code that works over some set of the promises (use C<*>
+to represent any of them).  The index and promise are passed to the
+code as named arguments C<$:v> and <$:k> (possibly via priming if
+the code is instantiated ahead of time).
 
     winner @promises {
 	done * { say "Promise $:k was kept, result was: ", $:v.result }
-	fail * { say "Promise $:k was broken }
     }
 
 In this case C<$:k> returns the index of the promise, base 0.
 Likewise C<$:v> returns the promise object itself.  Conjecture: the result
 should be bound to C<$_> to make it work more like channels below.
+
+[Conjecture: we should allow different cases for success or failure.]
 
 =head2 Channels
 
@@ -435,9 +437,8 @@ C<X::Channel::SendOnClosed> exception. Closing a channel has no effect on the
 receiving end until all sent values have been received. At that point, any
 further calls to receive will throw C<X::Channel::ReceiveOnClosed>. The
 C<done> property returns a C<Promise> that is kept when the sender has
-called C<done> and all sent messages have been received.  For notational convenience,
-C<< prefix:<!> >> returns the same promise.  Note that multiple calls to a channel
-return the same promise, not a new one.
+called C<done> and all sent messages have been received.  Note that multiple
+calls to a channel return the same promise, not a new one.
 
 While C<receive> blocks until it can read, C<poll> takes a message from the
 channel if one is there or immediately returns C<Nil> if nothing is there.
@@ -446,17 +447,16 @@ of C<peek> is risky in any multi-receiver situation, since another worker may
 receive the message you peeked.
 
 The C<winner> construct also works on channels, and will try to receive a value
-from the first C<Channel> that has one available. It can also be used in order
+from the first C<Channel> that has one available. It also automatically checks
+the .done promise corresponding to the channel, so it can also be used in order
 to write a loop to receive from a channel until it is closed:
 
     gather loop {
-        winner $c, !$c {
+        winner $c {
             more * { take $_ }
             done * { last }
         }
     }
-
-[Conjecture, we can autogenerate !$c from $c.]
 
 This is such a common pattern that we make a channel in list context behave that way:
 
