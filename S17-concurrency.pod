@@ -648,7 +648,7 @@ Conjecture: this is going to end up looking more like:
         my @bs;
 	combine $a, $b -> $out {
             more * -> $val {
-                ($*key ?? @bs !! @as).push($val);
+                ($:k ?? @bs !! @as).push($val);
                 if @as && @bs {
                     $out.more(with(@as.shift, @bs.shift));
                 }
@@ -662,21 +662,27 @@ or even:
 	my @streams = [] xx @in;
 	combine @in -> $out {
             more * -> $val {
-                @streams[$*which].push($val);
-                if all @which».elems > 0 {
+                @streams[$:k].push($val);
+                if all @streams».elems > 0 {
                     $out.more(with(|@streams));
                 }
             }
         }
     }
-	
-Thus there is never any race or other thread-safely problems with mutating the
-C<@as> and C<@bs>. The default behaviour, if a callable is specified along
-with the supply, is to use it for C<more> and provide a default C<done>
-and C<fail>. The default C<done> triggers C<done> on the result supply,
-which is the correct semantics for C<zip>. On the other hand, C<merge> wants
-different semantics, and so must provide a C<done>. This can be implemented
-as follows:
+
+(As with the reaction routines for C<winner>, in C<combine> the
+reaction routines C<$:k> is passed as the position of the matching
+entry from the list supplied to C<combine>, and C<$:v> is the actual
+supply object that was passed in that position and that is being
+tapped for its value.)
+
+Thus there is never any race or other thread-safely problems with
+mutating the C<@as> and C<@bs>. The default behaviour, if a callable is
+specified along with the supply, is to use it for C<more> and provide
+a default C<done> and C<fail>. The default C<done> triggers C<done>
+on the result supply, which is the correct semantics for C<zip>. On
+the other hand, C<merge> wants different semantics, and so must
+provide a C<done>. This can be implemented as follows:
 
     method merge(Supply $a, Supply $b) {
         my $done = 0;
@@ -708,7 +714,8 @@ or conjecturally:
 
 A C<fail> can be provided in a similar way, although the default - convey the
 failure to the result supply - is normally what is wanted. The exception
-is writing combinators related to error handling.
+is writing combinators related to error handling.  [It's probably a bad idea
+to use the word 'fail' here, since it's also an operator.]
 
 [TODO: specify C<catch> and various other error-handling related timeouts.]
 
