@@ -375,7 +375,7 @@ result.
 This simply calls C<result> on each of the C<Promise>s, so any exception will
 be thrown. There is also a C<winner> statement [keywords still negotiable]:
 
-    winner {
+    winner * {
         done $p1 { say "First promise got a value" }
         done $p2 { say "Second promise got a value" }
     }
@@ -385,7 +385,7 @@ result, either kept or broken. In order to avoid blocking, it is possible to
 provide a closure with the C<nobody> keyword, that will be invoked if none of
 the promises currently have a result available.
 
-    winner {
+    winner * {
         done $p1 { say "First promise got a value" }
         done $p2 { say "Second promise got a value" }
         nobody   { say "Not done yet" }
@@ -399,7 +399,7 @@ to represent any of them).  The index and promise are passed to the
 code as named arguments C<$:v> and <$:k> (possibly via priming if
 the code is instantiated ahead of time).
 
-    winner {
+    winner * {
         done @promises { say "Promise $:k was kept, result was: ", $:v.result }
     }
 
@@ -449,32 +449,25 @@ the .done promise corresponding to the channel, so it can also be used in order
 to write a loop to receive from a channel until it is closed:
 
     gather loop {
-        winner $c {
+        winner $channel {
             more * { take $_ }
             done * { last }
-        }
-    }
-
-This is such a common pattern that we make a channel in list context behave that way:
-
-    for @$channel -> $val { ... }
-    for $channel.list -> $val { ... }
-
-(Note that this is not a combinator, but a means for transfering data from the reactive
-realm to the lazy realm.  Some reasonable amount of buffering is assumed between the two.)
-
-We didn't have to use C<*> above; instead we could have said:
-
-    gather loop {
-        winner $c {
-            more $c { take $_ }
-            done $c { last }
         }
     }
 
 This works because C<more> only ever works on channels, while C<done>
 only ever works on promises, so it knows to check the promise of
 channel C<$c> rather than C<$c> itself.
+
+This is such a common pattern that we make a channel in list context behave
+that way:
+
+    for @$channel -> $val { ... }
+    for $channel.list -> $val { ... }
+
+(Note that this is not a combinator, but a means for transfering data from
+the reactive realm to the lazy realm.  Some reasonable amount of buffering
+is assumed between the two.)
 
 =head2 Supplies
 
