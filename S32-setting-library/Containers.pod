@@ -1233,23 +1233,24 @@ rather than a constructor.)
 
  multi method pick ( $bag: Int $num = 1 --> Any )
  multi method pick ( $bag: Whatever --> Any )
- multi method pickpairs ( $bag: Int $num = 1 --> Any )
- multi method pickpairs ( $bag: Whatever --> Any )
+ multi method pickpairs ( $bag: Int $num = 1 --> Pairs )
+ multi method pickpairs ( $bag: Whatever --> Pairs )
 
 Like an ordinary list C<pick>, but returns keys of the bag weighted by
 values, as if the keys were replicated the number of times indicated
-by the corresponding value and then list pick used.  C<BagHash> is the
+by the corresponding value and then list pick used.  The C<pickpairs> method
+does the same, except it returns both key and value.  C<BagHash> is the
 mutable form of C<Bag>.  A C<Bag> responds to hash operators as
 if it were a C<Hash of UInt>.
 
 The underlying metaphor for picking is that you're pulling colored
 marbles out a bag.  (For "picking with replacement" see C<roll> instead.)
-Picking require tracking the temporary state, so the immutable C<Bag> is copied to
-a temporary private C<BagHash>, and the picks are made from that
+Picking require tracking the temporary state, so the immutable C<Bag> is
+copied to a temporary private C<BagHash>, and the picks are made from that
 using the corresponding C<.grab> or C<.grabpairs> method (see below).
 
-Each C<.pick> invocation maintains its own private state and has no
-effect on subsequent C<.pick> invocations.
+Each C<.pick>/C<.pickpairs> invocation maintains its own private state and
+has no effect on subsequent C<.pick>/C<.pickpairs> invocations.
 
 =item roll
 
