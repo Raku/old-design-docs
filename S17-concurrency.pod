@@ -644,8 +644,8 @@ Conjecture: this is going to end up looking more like:
         my @as;
         my @bs;
 	combine $a, $b -> $out {
-            more * -> $val {
-                ($:k ?? @bs !! @as).push($val);
+            more * {
+                ($:k ?? @bs !! @as).push($_);
                 if @as && @bs {
                     $out.more(with(@as.shift, @bs.shift));
                 }
@@ -658,8 +658,8 @@ or even:
     method zip(*@in, :&with = &infix:<,>) {
 	my @streams = [] xx @in;
 	combine @in -> $out {
-            more * -> $val {
-                @streams[$:k].push($val);
+            more * {
+                @streams[$:k].push($_);
                 if all @streams».elems > 0 {
                     $out.more(with(|@streams));
                 }
