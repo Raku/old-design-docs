@@ -375,7 +375,7 @@ result.
 This simply calls C<result> on each of the C<Promise>s, so any exception will
 be thrown. There is also a C<winner> statement [keywords still negotiable]:
 
-    winner $p1, $p2 {
+    winner {
         done $p1 { say "First promise got a value" }
         done $p2 { say "Second promise got a value" }
     }
@@ -385,7 +385,7 @@ result, either kept or broken. In order to avoid blocking, it is possible to
 provide a closure with the C<nobody> keyword, that will be invoked if none of
 the promises currently have a result available.
 
-    winner $p1, $p2 {
+    winner {
         done $p1 { say "First promise got a value" }
         done $p2 { say "Second promise got a value" }
         nobody   { say "Not done yet" }
@@ -399,8 +399,8 @@ to represent any of them).  The index and promise are passed to the
 code as named arguments C<$:v> and <$:k> (possibly via priming if
 the code is instantiated ahead of time).
 
-    winner @promises {
-        done * { say "Promise $:k was kept, result was: ", $:v.result }
+    winner {
+        done @promises { say "Promise $:k was kept, result was: ", $:v.result }
     }
 
 In this case C<$:k> returns the index of the promise, base 0.
