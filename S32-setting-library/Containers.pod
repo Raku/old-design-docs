@@ -324,6 +324,7 @@ just coerce to C<Str>.
 
  multi method map ( @values: Code *&expression --> List of Parcel )
  multi map ( Code $expression, *@values --> List of Parcel )
+ multi map ( Code $expression --> List of Parcel )
 
 C<map> returns a lazily evaluated list which is comprised of
 the return value of the expression, evaluated once for every
@@ -341,6 +342,12 @@ Note that C<map> is an implicit loop, so C<next> and C<last> without
 an argument will iterate or terminate the C<map> itself, not some
 loop surrounding the statement containing the C<map>.  Use a label
 if you mean the other thing.
+
+In some situations, specifically with concurrent processes, the return
+values of a C<map> may not directly relate to a list of values: in that
+case it is possible to specify a map B<without> values: this will then
+effectively be a lazy loop returning values until it is exited with C<last>.
+This may be a cheaper alternative to a C<gather>, C<loop>, C<take> setup.
 
 =item duckmap
 
