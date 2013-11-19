@@ -13,8 +13,8 @@ RE-DRAFT: Synopsis 17: Concurrency
 
     Created: 3 Nov 2013
 
-    Last Modified: 18 Nov 2013
-    Version: 8
+    Last Modified: 19 Nov 2013
+    Version: 9
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on the JVM.  It covers both things that are
@@ -380,15 +380,19 @@ be thrown. There is also a C<winner> statement [keywords still negotiable]:
         done $p2 { say "Second promise got a value" }
     }
 
-That will invoke the closure associated with the first promise that produces a
-result, either kept or broken. In order to avoid blocking, it is possible to
-provide a closure with the C<nobody> keyword, that will be invoked if none of
-the promises currently have a result available.
+That will invoke the closure associated with the first promise that
+produces a result, either kept or broken.
 
-    winner * {
-        done $p1 { say "First promise got a value" }
-        done $p2 { say "Second promise got a value" }
-        nobody   { say "Not done yet" }
+It's possible to add a timer using the keyword C<wait> followed
+by the number of seconds to wait (which may be fractional).  As a
+degenerate case, in order to avoid blocking at all you may use a
+C<wait 0>.  The timeout is always checked last, to guarantee that
+the other entries are all tried at least once before timing out.
+
+    my $gotone = winner * {
+        done $p1 { say "First promise got a value"; $p1 }
+        done $p2 { say "Second promise got a value"; $p2 }
+        wait 0   { say "Not done yet"; Nil }
     }
 
 The construct as a whole returns the result of whichever block was selected.
