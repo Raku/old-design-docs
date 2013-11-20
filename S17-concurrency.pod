@@ -487,11 +487,11 @@ the C<tap> method on it. This takes up to three callables as
 arguments, the optional ones expresses as named arguments:
 
     $supply.tap: -> $value { say "Got a $value" },
-        done => { say "Reached the end" },
+        done  => { say "Reached the end" },
         catch => {
-	    when X::FooBar { die "Major oopsie" };
-	    default        { warn "Supply shut down early: $_" }
-	}
+            when X::FooBar { die "Major oopsie" };
+            default        { warn "Supply shut down early: $_" }
+        };
 
 The first, known as C<more>, is invoked whenever a value is produced by the
 thing that has been tapped. The second, known as C<done>, is invoked
@@ -642,7 +642,7 @@ Conjecture: this is going to end up looking more like:
     method zip(Supply $a, Supply $b, &with = &infix:<,>) {
         my @as;
         my @bs;
-	combine $a, $b -> $out {
+        combine $a, $b -> $out {
             more * {
                 ($:k ?? @bs !! @as).push($_);
                 if @as && @bs {
@@ -655,8 +655,8 @@ Conjecture: this is going to end up looking more like:
 or even:
 
     method zip(*@in, :&with = &infix:<,>) {
-	my @streams = [] xx @in;
-	combine @in -> $out {
+        my @streams = [] xx @in;
+        combine @in -> $out {
             more * {
                 @streams[$:k].push($_);
                 if all @streams».elems > 0 {
@@ -702,9 +702,9 @@ or conjecturally:
 
     method merge(*@ins) {
         my $done = 0;
-	combine @ins -> $out {
-	    more * { $out.more($_) }
-	    done * { $out.done() if ++$done == +@ins; }
+        combine @ins -> $out {
+            more * { $out.more($_) }
+            done * { $out.done() if ++$done == +@ins; }
         }
     }
 
