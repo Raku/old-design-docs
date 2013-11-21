@@ -13,8 +13,8 @@ RE-DRAFT: Synopsis 17: Concurrency
 
     Created: 3 Nov 2013
 
-    Last Modified: 19 Nov 2013
-    Version: 10
+    Last Modified: 21 Nov 2013
+    Version: 11
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on the JVM.  It covers both things that are
@@ -186,7 +186,7 @@ code object to be invoked with the thrown exception if it dies:
 
     $*SCHEDULER.cue:
         { upload_progress($stuff) },
-        catch => -> $ex { warn "Could not upload latest progress" }
+        quit => -> $ex { warn "Could not upload latest progress" }
 
 Use C<:every> to schedule a task to run at a fixed interval, possibly
 with a delay before the first scheduling.
@@ -487,23 +487,23 @@ the C<tap> method on it. This takes up to three callables as
 arguments, the optional ones expresses as named arguments:
 
     $supply.tap: -> $value { say "Got a $value" },
-        done  => { say "Reached the end" },
-        catch => {
+        done => { say "Reached the end" },
+        quit => {
             when X::FooBar { die "Major oopsie" };
             default        { warn "Supply shut down early: $_" }
-        };
+        }
 
 The first, known as C<more>, is invoked whenever a value is produced by the
 thing that has been tapped. The second, known as C<done>, is invoked
-when all values have been produced and no more will be. The final one, known
-as C<catch>, is invoked if there is an error. This also means there will be no
+when all expected values have been produced and no more will be. The final one, known
+as C<quit>, is invoked if there is an error. This also means there will be no
 further values. Expressing the possible invocations as a grammar:
 
-    more* [ done | catch ]?  # invocations
+    more* [ done | quit ]?  # invocations
 
 The simplest Supply is a C<Supply> class, which is punned from the role.
 On the "pumping" end, this has corresponding methods C<more>, C<done>, and
-C<fail>, which notify all current taps.
+C<quit>, which notify all current taps.
 
     my $s = Supply.new;
     
@@ -533,8 +533,8 @@ the tap.
 C<Supply.for> takes a (potentially lazy) list of values, and returns a
 C<Supply> that, when tapped, will iterate over the values and invoke the
 C<more> callable for each of them, and any C<done> callable at the end.
-If the iteration at some point produces an exception, then the C<catch>
-callable will be invoked.
+If the iteration at some point produces an exception, then the C<quit>
+callable will be invoked to pass along the exception.
 
 C<Supply.interval> produces a C<Supply> that, when tapped, will produce an
 ascending value at a regular time interval.
@@ -675,7 +675,7 @@ tapped for its value.)
 Thus there is never any race or other thread-safely problems with
 mutating the C<@as> and C<@bs>. The default behaviour, if a callable is
 specified along with the supply, is to use it for C<more> and provide
-a default C<done> and C<catch>. The default C<done> triggers C<done>
+a default C<done> and C<quit>. The default C<done> triggers C<done>
 on the result supply, which is the correct semantics for C<zip>. On
 the other hand, C<merge> wants different semantics, and so must
 provide a C<done>. This can be implemented as follows:
@@ -708,7 +708,7 @@ or conjecturally:
         }
     }
 
-A C<catch> can be provided in a similar way, although the default - convey the
+A C<quit> handler can be provided in a similar way, although the default - convey the
 failure to the result supply - is normally what is wanted. The exception
 is writing combinators related to error handling.
 
