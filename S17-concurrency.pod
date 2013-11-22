@@ -13,8 +13,8 @@ RE-DRAFT: Synopsis 17: Concurrency
 
     Created: 3 Nov 2013
 
-    Last Modified: 21 Nov 2013
-    Version: 11
+    Last Modified: 22 Nov 2013
+    Version: 12
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on the JVM.  It covers both things that are
@@ -432,16 +432,16 @@ C<< ==> >> and C<< <== >> are implemented using Channel to connect each of
 the stages.]
 
 A C<Channel> may be "forever", but it is possible to close it to further
-sends by telling it to be C<done>:
+sends by telling it to C<close>:
 
-    $c.done();
+    $c.close();
 
 Trying to C<send> any further messages on a closed channel will throw the
 C<X::Channel::SendOnDone> exception. Closing a channel has no effect on the
 receiving end until all sent values have been received. At that point, any
 further calls to receive will throw C<X::Channel::ReceiveOnDone>. The
-C<done> property returns a C<Promise> that is kept when a sender has
-called C<done> and all sent messages have been received.  Note that multiple
+C<done> method returns a C<Promise> that is kept when a sender has
+called C<close> and all sent messages have been received.  Note that multiple
 calls to a channel return the same promise, not a new one.
 
 While C<receive> blocks until it can read, C<poll> takes a message from the
@@ -449,7 +449,7 @@ channel if one is there or immediately returns C<Nil> if nothing is there.
 
 The C<winner> construct also works on channels, and will try to receive a value
 from the first C<Channel> that has one available. It also automatically checks
-the .done promise corresponding to the channel, so it can also be used in order
+the C<.done> promise corresponding to the channel, so it can also be used in order
 to write a loop to receive from a channel until it is closed:
 
     gather loop {
