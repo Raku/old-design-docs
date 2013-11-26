@@ -345,9 +345,18 @@ if you mean the other thing.
 
 In some situations, specifically with concurrent processes, the return
 values of a C<map> may not directly relate to a list of values: in that
-case it is possible to specify a map B<without> values: this will then
-effectively be a lazy loop returning values until it is exited with C<last>.
-This may be a cheaper alternative to a C<gather>, C<loop>, C<take> setup.
+case it is possible to specify a map with just a C<Whatever>:
+
+  map {                    # actual implementation of Channel.list
+      winner $self {
+          more * { $_ }
+          done * { last }
+      }
+  }, *;
+
+This effectively becomes a lazy loop returning values until it is exited with
+C<last>.  This may be a cheaper alternative to a C<gather>, C<loop>, C<take>
+setup.
 
 =item duckmap
 
