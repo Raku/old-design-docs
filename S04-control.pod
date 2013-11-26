@@ -12,8 +12,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 12 Nov 2013
-    Version: 129
+    Last Modified: 26 Nov 2013
+    Version: 130
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -669,12 +669,18 @@ expectations of imperative programmers (the vast majority of us,
 it turns out), any explicit loop found as the final statement of
 a statement list is automatically forced to use eager semantics so
 that the loop executes to completion before returning from the block.
-Such a loop still returns the loop results as a list, but only after
-the loop completes.  (To suppress even this list return, put a return
-statement after the loop, or declare the subroutine with a return
-type that indicates no return value is expected.)
 
-This forced eagerness is applied to loops I<only> at the statement list
+In particular, a C<for> loop still returns the loop results as a list,
+but only after the loop completes.  (To suppress even this list return,
+put a return statement after the C<for> loop, or declare the subroutine
+with a return type that indicates no return value is expected.)
+
+For other loops such as C<while>, C<repeat>, and C<loop>, not only
+are they assumed eager, the loops will also be assumed to be in sink
+context at statement level.
+
+This forced eager context (and sink context, if applicable)
+is applied to loops I<only> at the statement list
 level, that is, at the top level of a compilation unit, or directly
 inside a block.  Constructs that parse a single statement or semilist
 as an argument are presumed to want the results of that statement,
@@ -682,9 +688,12 @@ so such constructs remain lazy even when that statement is a loop.
 Assuming each of the following statements is the final statement in a block,
 eager loops such as these may be indicated:
 
-    ... if COND for LIST        # eager list comprehension
+    # assumed eager context
     for LIST { ... }
-    loop { ... }
+    ... if COND for LIST        # eager list comprehension
+
+    # assumed sink context
+    loop { ... }                # (assumes sink in addition to eager)
     ... while COND
     while COND { ... }
     repeat until COND { ... }
@@ -714,6 +723,8 @@ evaluated eagerly, despite being a statement prefix.  This is no great
 hardship; the C<lazy> prefix is better documentation in any case.
 And surely the verb "do" ought to imply some degree of getting it done
 eagerly.
+
+The C<given> construct is not considered a loop, and just returns normally.
 
 =head2 Statement-level bare blocks
 
