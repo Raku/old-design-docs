@@ -256,7 +256,7 @@ like their C<DateTime> equivalents:
     day-of-year
     is-leap-year
 
-The <Str> method returns a string of the form 'yyyy-mm-dd'.
+The C<Str> method returns a string of the form 'yyyy-mm-dd'.
 
 =head2 Arithmetics
 
@@ -266,6 +266,48 @@ The <Str> method returns a string of the form 'yyyy-mm-dd'.
     $d - 42                     # Date.new('2010-11-12')
     $d + 3                      # Date.new('2010-12-27')
     3  + $d                     # Date.new('2010-12-27')
+
+=head1 C<Duration>
+
+C<Duration> objects are usually the result of arithmetic with C<Instant>
+objects. There are two constructors avaiable for creating them.
+
+    my $passed = Duration.new( :years(5), :months(0), :days(12),
+        :hours(10), :minutes(2), seconds(0) );
+
+The named arguments form works similar to the C<DateTime> named arguments form,
+except for the pluralized argument names in C<Duration> objects.
+
+Un-specified arguments default to zero, so the above could more simply be
+written as
+
+    my $passed = Duration.new( :years(5), :days(12), :hours(10), :minutes(2) );
+
+An ISO 8601 Duration string is also permissable, with omitted fields defaulting
+to zero. The ISO 8601 version of the above would be either of the following:
+
+    my $passed = Duration.new("P5Y12DT102M");
+    my $passed = Duration.new("P0005-00-12T10:02:00");
+
+The C<"P[weeks]W"> form works as well. The following are equivalent:
+
+    my $weeks = Duration.new("P6W");
+    my $weeks = Duration.new("P42D");
+
+=head2 Accessor Methods
+
+The following methods on a C<Duration> object return a duration in that unit of
+time as either an C<Int> or a C<Rat>, whichever is narrower.
+
+    years
+    months  (assumes 30-day months)
+    weeks
+    days
+    hours
+    minutes
+    seconds
+
+The C<Str> method returns the C<Duration> as an valid ISO-8601 duration.
 
 =head1 FOOTNOTE
 
