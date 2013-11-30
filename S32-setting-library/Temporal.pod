@@ -101,21 +101,38 @@ from UTC. The default time zone is C<0> (i.e., UTC).
 The system's local time zone is available as C<$*TZ>.
 
 A shorter way to send in date and time information is to provide a
-single string with a full ISO 8601 date and time. The example from above
+single string with a valid ISO 8601 date and time. The example from above
 would then be
 
     my $moonlanding = DateTime.new( '1969-07-16T20:17:00Z' ); # UTC time
 
-The general form is C<[date]T[time][offset]>, with C<[date]> given as
-C<YYYY-MM-DD> and C<[time]> given as C<hh:mm:ss>. The final C<Z> is a short
-form for C<+0000>, meaning UTC. (Note that while this form of C<new>
-accepts all of C<+0000>, C<-0000>, and C<Z>, the default formatter for
-C<DateTime> always expresses UTC as C<Z>.) The general notation for the
-C<[offset]> is C<+hhmm> or C<-hhmm>. The time zone of the new object is
-assumed to be a static offset equal to the C<[offset]>. The C<[offset]> is
-optional; if omitted, a C<:timezone> argument is permitted; if this too is
-omitted, UTC is assumed. Finally, the constructor also accepts a
-C<:formatter> argument.
+The general form is C<[date]T[time][offset]>, with C<[date]> and C<[time]>
+required, and C<[offset]> optional. All fields require leading zeros to pad to
+the correct number of digits.
+
+The C<[date]> portion may be given in any of the forms C<YYYY-MM-DD>,
+C<YYYY-MM>, C<YYYY-Www>, C<YYYY-Www-D>, or C<YYYY-DDD>. Omitted values are set
+to their defaults as listed in the named arguments form above. Note that
+C<DateTime> does not support year numbers requiring more than four digits with
+this constructor.
+
+The C<[time]> portion may be given in any of C<hh:mm:ss>, C<hh:mm>, or
+C<hh>. Omitted values are set to their defaults.
+
+Fractional values are only kept for the seconds field. Fractions in the hour and
+minute fields are converted to integer combinations of it and more granular
+fields before storing the values. Fractions may only occurs in the
+smallest-occuring time unit.
+
+The C<[offset]> portion may be any of C<Z>, C<±hh:mm>, C<±hhmm>, or C<±hh>. C<Z>
+is considered a shorthand for C<+0000>, UTC time. An offset, if provided, is set
+as the timezone of the C<DateTime> object. If you leave out the offset in the
+string, you can use the C<:timezone> named argument alongside it. If no timezone
+information is given, the object is set to UTC by default.
+
+The date and time forms may optionally omit the separators, either the hyphens
+in the date, or the colons in the time. The notable exception is the C<YYYY-MM>
+form of date, which must retain its hyphen.
 
 With all the above constructors, if you attempt to pass in values that
 are outside of the ranges specified in the list above, you'll get an
@@ -234,6 +251,9 @@ Days, Months and days of week are 1-based.
     Date.new(2010, 12, 24).truncated-to(week);
     Date.new(2010, 12, 24).delta(10, weeks);
 
+All ISO-8601 date formats are acceptable, with any time portion ignored
+(possibly with a warning.)
+
 The constructors die with a helpful error message if month or day are out of
 range.
 
@@ -273,7 +293,7 @@ C<Duration> objects are usually the result of arithmetic with C<Instant>
 objects. There are two constructors avaiable for creating them.
 
     my $passed = Duration.new( :years(5), :months(0), :days(12),
-        :hours(10), :minutes(2), seconds(0) );
+        :hours(10), :minutes(2), :seconds(0) );
 
 The named arguments form works similar to the C<DateTime> named arguments form,
 except for the pluralized argument names in C<Duration> objects.
@@ -293,6 +313,8 @@ The C<"P[weeks]W"> form works as well. The following are equivalent:
 
     my $weeks = Duration.new("P6W");
     my $weeks = Duration.new("P42D");
+
+Fractions are allowed for the most granular value specified only.
 
 =head2 Accessor Methods
 
