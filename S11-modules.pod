@@ -65,7 +65,7 @@ compunits as files in directories.  Of course, one is free to devise any
 other way of storing and searching for compunits, as long as C<API> is the
 same.
 
-Some of Perl 6 Pod's uppercase block typenames are used to indicate
+Some of Perl 6 Pod's uppercase block typenames may be used to indicate
 meta-information that is needed to add a compunit to a given Perl 6
 installation (for instance with L<CompUnitRepo::Local::Installation>, as well
 as being able to load the compunit at a later time.  These are:
@@ -469,13 +469,15 @@ mechanism without the user asking for the details to be leaked.
 As discussed in C<Units>, the required parts for library insertion are the
 (long) name of the compilation unit, a URI identifying the author/authority
 (called auth to be intentionally ambiguous) and its version number (ver for
-short).  For example, if a compunit contains this pod:
+short).  For example, if a compunit contains this pod (and no other
+meta-information has been specified during installation with
+L<CompUnitRepo::Local::Installation>):
 
     =NAME     Dog - our favorite pet
     =AUTHOR   cpan:JRANDOM - Joe Random
     =VERSION  1.2.1
 
-When you attempt to load a compilation unit, like:
+When you then attempt to load a compilation unit, like:
 
     use Dog;
 
@@ -537,7 +539,7 @@ only available lineage of locally installed modules.
 Once the auth is selected, then and only then is any version
 selection done.  This implies that all official compunits record
 permanently when they were first installed in the official library,
-and this creation date is considered immutable.  This date must be specified
+and this creation date is considered immutable.  This date can be specified
 with the uppercase block typename CREATED.  For example:
 
  =CREATED 20130626 - it was a good day
@@ -611,8 +613,8 @@ but each gets a view that is consistent with the version it thinks it is
 using.  Of course, this depends crucially on how well the new version
 actually emulates the old version.
 
-To declare that a compunit emulates an older version, declare it the uppercase
-block typename EMULATES.  For instance:
+To declare that a compunit emulates an older version, you can declare it
+with the uppercase block typename EMULATES.  For instance:
 
  =NAME     Dog - man's best friend
  =AUTHOR   cpan:JRANDOM - Joe Random
@@ -622,7 +624,7 @@ block typename EMULATES.  For instance:
 would indicate this compunit emulates version 1.2.0 itself.
 
 Or to simply exclude use of the older module and (presumably) force
-the user to upgrade:
+the user to upgrade, you can say:
 
  =EXCLUDES 1.2.0
 
@@ -635,6 +637,11 @@ so you can say things like:
  =EMULATES Dog:auth(DCONWAY|JCONWAY|TCONWAY):ver<1.0+>
  =EXCLUDES Fox:<http://oreillymedia.com 3.14159>
  =EMULATES Wolf:from<C# 0.8..^1.0>;
+
+Please note that all of these are only potential default values for installing
+a compunit with the L<CompUnitRepo>'s C<install> interface.  Any CompUnitRepo
+implementation may choose to ignore these hints in favor of other explicit or
+implicit information.
 
 =head1 Forcing Perl 6
 
@@ -802,14 +809,26 @@ CPAN mirror or github repository.  Returns the instantiated object.
 
 =head2 install
 
- my $installed = $repo.install( $source, $from? )
+ my $installed = $repo.install(
+   $source,       # actual source
+   :$longname,    # e.g. Dog
+   :$auth,        # e.g. cpan:JRANDOM
+   :$ver,         # e.g. 1.0.3
+   :$emulates,    # e.g. 1.0.2
+   :$excludes,    # e.g. 1.2.0
+   :$created,     # e.g. 2013.12.04
+   :$from         # most likely "perl6"
+ );
 
 Install a compilation unit in the appropriate way for this object.  May cause
 a fatal exception if this repository does not support installing.  The first
 parameter contains the actual source-code of the compilation unit to be
-installed.  The optional second parameter specifies the slang in which the
-compunit is written.  It defaults to "perl6".  Returns whether compilation
-unit was installed.
+installed.  The named parameters indicate the other meta-information to be
+associated with the compunit.  Returns whether compilation unit was installed.
+
+Of course, any implementation of L<CompUnitRepo>'s C<install> interface, may
+decide to accept additional meta-information and store this and make available
+for later introspection.
 
 =head2 candidates
 
@@ -819,7 +838,10 @@ Return L<CompUnit> candidates given the matching credentials.
 
 =head1 CompUnit
 
-The object that describes a compilation unit.
+The object that describes a compilation unit.  Is expected to have the
+following attributes/methods: longname, auth, ver, emulates, excludes, created
+and from, corresponding to the parameters as specified in L<CompUnitRepo>'s
+C<install> interface.
 
 =head2 load
 
