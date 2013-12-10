@@ -13,8 +13,8 @@ RE-DRAFT: Synopsis 17: Concurrency
 
     Created: 3 Nov 2013
 
-    Last Modified: 22 Nov 2013
-    Version: 12
+    Last Modified: 10 December 2013
+    Version: 13
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on the JVM.  It covers both things that are
@@ -494,12 +494,10 @@ arguments, the optional ones expresses as named arguments:
         }
 
 The first, known as C<more>, is invoked whenever a value is produced by the
-thing that has been tapped. The second, known as C<done>, is invoked
-when all expected values have been produced and no more will be. The final one, known
-as C<quit>, is invoked if there is an error. This also means there will be no
-further values. Expressing the possible invocations as a grammar:
-
-    more* [ done | quit ]?  # invocations
+thing that has been tapped. The optional named parameter C<done> specifies
+the code to be invoked when all expected values have been produced and no more
+will be. The optional named parameter C<quit> specifies the code to be invoked
+if there is an error. This also means there will be no further values.
 
 The simplest Supply is a C<Supply> class, which is punned from the role.
 On the "pumping" end, this has corresponding methods C<more>, C<done>, and
@@ -525,10 +523,9 @@ subscribing, call C<close> on it.
 This doesn't introduce any asynchrony directly. However, it is possible for
 values to be pumped by a C<Supply> from an asynchronous worker.
 
-The C<Supply> class (punned from the C<Supply> role) has various methods
-that produce more interesting kinds of C<Supply>. These default to working
-asynchronously. Furthermore, they start producing values upon the point of
-the tap.
+The C<Supply> class has various methods that produce more interesting kinds of
+C<Supply>. These default to working asynchronously. Furthermore, they start
+producing values upon the point of the tap.
 
 C<Supply.for> takes a (potentially lazy) list of values, and returns a
 C<Supply> that, when tapped, will iterate over the values and invoke the
