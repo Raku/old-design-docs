@@ -126,10 +126,10 @@ All four of NFC, NFD, NFKC, and NFKD can be considered valid "codepoint views",
 though each differ in their exact formulation of the contents of a string:
 
     say "ẛ̣".chars;               # OUTPUT: 1 (NFG, ẛ̣)
-    say "ẛ̣".compose.chars;       # OUTPUT: 2 (NFC, ẛ + ̣)
-    say "ẛ̣".decompose.chars;     # OUTPUT: 3 (NFD, ſ + ̣+ ̇)
-    say "ẛ̣".compose(:k).chars;   # OUTPUT: 1 (NFKC, ṩ)
-    say "ẛ̣".decompose(:k).chars; # OUTPUT: 3 (NFKD, s + ̣+ ̇)
+    say "ẛ̣".NFC.chars;           # OUTPUT: 2 (NFC, ẛ + ̣)
+    say "ẛ̣".NFD.chars;           # OUTPUT: 3 (NFD, ſ + ̣+ ̇)
+    say "ẛ̣".NFKC.chars;          # OUTPUT: 1 (NFKC, ṩ)
+    say "ẛ̣".NFKD.chars;          # OUTPUT: 3 (NFKD, s + ̣+ ̇)
 
 Those who wish to operate with strings on the codepoint level may wish to use
 NFC, as it is the least different from NFG, as well as Perl 6's default form for
@@ -154,7 +154,7 @@ These give you the numeric values of the characters in a string. C<ord> only
 works on the first character, while C<ords> works on every character.
 
 Some the values returned may be negative numbers, and are useless outside that
-specific string. You must convert to one of the codepoint-based types for an
+specific string. You must convert to one of the codepoint-based types for a
 to-Standard list of numbers.
 
 =head2 Length Methods
