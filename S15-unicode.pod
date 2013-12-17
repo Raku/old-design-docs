@@ -542,11 +542,13 @@ C<NFKC>, and C<NFKD> contents without normalizing.
 
 The inclusion of ropey types will most directly impact C<Uni>.
 
-The interplay between conflicting types on string operators, such as
+Operators between various string types need defining. The general rule should be
+"most specialized type wins" for the return value.
 
-    NFC ~ NFD
-
-is not defined, and for now considered an error in mismatching types.
+    NFD ~ NFD   -->  NFD
+    NFC ~ NFKD  -->  Uni
+        (UAX#15 says concat of mismatched NFs results in a non-NF string, which
+        is our Uni type.)
 
 Regexes likely need more work, though I don't see anything immediate.
 
