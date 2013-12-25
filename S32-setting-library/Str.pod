@@ -150,62 +150,6 @@ is C<&tcuc>, in which case the exception will be forced to uppercase.
 There is no provision for an alternate regex; if you need a custom
 word recognizer, you can write your own C<.subst> as above.
 
-=item normalize
-
- multi method normalize ( Str $string: Bool :$canonical = Bool::True, Bool :$recompose = Bool::False --> Str ) is export
-
-Performs a Unicode "normalization" operation on the string. This involves
-decomposing the string into its most basic combining elements, and potentially
-re-composing it. Full detail on the process of decomposing and
-re-composing strings in a normalized form is covered in the Unicode
-specification Sections 3.7, Decomposition and 3.11,
-Canonical Ordering Behavior of the Unicode Standard, 4.0.
-Additional named parameters are reserved for future Unicode expansion.
-
-For everyday use there are aliases that map to the
-I<Unicode Standard Annex #15: Unicode Normalization Forms> document's
-names for the various modes of normalization:
-
- multi method nfd ( Str $string: --> Str ) is export {
-   $string.normalize(:canonical, :!recompose);
- }
- multi method nfc ( Str $string: --> Str ) is export {
-   $string.normalize(:canonical, :recompose);
- }
- multi method nfkd ( Str $string: --> Str ) is export {
-   $string.normalize(:!canonical, :!recompose);
- }
- multi method nfkc ( Str $string: --> Str ) is export {
-   $string.normalize(:!canonical, :recompose);
- }
-
-Decomposing a string can be used to compare
-Unicode strings in a binary form, providing that they use the same
-encoding. Without decomposing first, two
-Unicode strings may contain the same text, but not the same byte-for-byte
-data, even in the same encoding.
-The decomposition of a string is performed according to tables
-in the Unicode standard, and should be compatible with decompositions
-performed by any system.
-
-The C<:canonical> flag controls the use of "compatibility decompositions".
-For example, in canonical mode, "ﬁ" is left unaffected because it is
-not a composition. However, in compatibility mode, it will be replaced
-with "fi". Decomposed sequences will be ordered in a canonical way
-in either mode.
-
-The C<:recompose> flag controls the re-composition of decomposed forms.
-That is, a combining sequence will be re-composed into the canonical
-composite where possible.
-
-These de-compositions and re-compositions are performed recursively,
-until there is no further work to be done.
-
-Note that this function is really only applicable when dealing with codepoint
-strings.  Grapheme strings are normally processed at a higher abstraction level
-that is independent of normalization, and are lazily normalized into the
-desired normalization when transferred to lexical scopes or handles that care.
-
 =item samecase
 
  multi method samecase ( Str $string: Str $pattern --> Str ) is export
