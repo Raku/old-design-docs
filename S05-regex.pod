@@ -1283,7 +1283,7 @@ An interpolated array:
 is matched as if it were an alternation of its literal elements.  Ordinarily it
 matches using junctive semantics:
 
-     / [ @cmds[0] | @cmds[1] | @cmds[2] | ... ] /
+     / [ $(@cmds[0]) | $(@cmds[1]) | $(@cmds[2]) | ... ] /
 
 
 However, if it is a direct member of a C<||> list, it uses sequential
@@ -1294,13 +1294,16 @@ you can put C<||> before the first member of an alternation, hence
 
 is equivalent to
 
-     / [ @cmds[0] || @cmds[1] || @cmds[2] || ... ] /
+     / [ $(@cmds[0]) || $(@cmds[1]) || $(@cmds[2]) || ... ] /
 
 Or course, you can also
 
      / | @cmds /
 
 to be clear that you mean junctive semantics.
+
+Note the usage of $(...) to prevent the subscripts from being parsed as
+regex syntax rather than an actual subscript.
 
 Since C<$x> is interpolated as if you'd said C<"$x">, if C<$x> contains
 a list, it is stringified first.  To get alternation you must use the
