@@ -14,7 +14,7 @@ Synopsis 2: Bits and Pieces
     Created: 10 Aug 2004
 
     Last Modified: 28 Dec 2013
-    Version: 279
+    Version: 280
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -735,7 +735,7 @@ normal object types.  Common roles include:
     Buf
     Blob
 
-=head2 The C<Num> and C<Rat> Types
+=head2 C<Numeric> Types
 
 Perl 6 intrinsically supports big integers and rationals through its
 system of type declarations.  C<Int> automatically supports promotion
@@ -764,10 +764,31 @@ larger representations are always allowed for temporary values.
 Unless qualified with a number of bits, C<int> and C<num> types represent
 the largest native integer and floating-point types that run at full speed.
 
-Numeric values in untyped variables use C<Int> and C<Num> semantics
-rather than C<int> and C<num>.
+Because temporary values are biased in favor of correct semantics over
+compact storage, native numeric operators that might overflow must come
+in two variants, one which returns a guaranteed correct boxed value,
+and one of which returns a guaranteed fast native value.  By default
+the boxing variant is selected (probably by virtue of hiding the
+native variants), but within a given lexical scope, the C<use native>
+pragma will allow use of the dangerous but fast variants instead.
+Arguments to the pragma can be more specific about what types of
+return values are allowed, e.g. C<use native 'int';> and such.
+(The optimizer is also allowed to substitute such variants when it
+can determine that the final destination would store natively in
+any case, or that the variant could not possibly malfunction given
+the arguments.)  [Conjecture: we could allow an 'N' metoperator to
+select the native variant on a case by case basis.]
 
-However, for pragmatic reasons, C<Rat> values are guaranteed to be
+Numeric values in untyped variables use C<Int> and C<Num> semantics
+rather than C<int> and C<num>.  Literals, on the other hand, may
+default to native storage formats if they reasonably can.  We rely
+on the semantics of boxing temporary values by default (see above)
+to maintain correct semantics; the optimizer is of course allowed
+to box or unbox a literal at compile time (or cache a boxed/unboxed
+version of the value) whenever it seems appropriate.  In any case,
+native literals should be preferred under C<use native> semantics.
+
+For pragmatic reasons, C<Rat> values are guaranteed to be
 exact only up to a certain point.  By default, this is the precision
 that would be represented by the C<Rat64> type, which is an alias for
 C<Rational[Int,Uint64]>, which has a numerator
