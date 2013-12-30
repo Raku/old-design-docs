@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 28 Dec 2013
-    Version: 132
+    Last Modified: 30 Dec 2013
+    Version: 133
 
 =head1 Overview
 
@@ -1616,6 +1616,16 @@ preferred if the constraint matches; otherwise the second is preferred.
 To export a subset type, put the export trait just before the C<where>:
 
     subset Positive of Int is export where * > 0;
+
+Note that the declaration of the C<of> type for a subset doesn't
+really mean what an C<of> type means elsewhere in the language.  It is
+merely declaring the universe of input values for a boolean function.
+In fact, when used as a coercion, a subset type returns a C<Bool>
+based on its condition, so it can be used directly as a predicate
+the overhead of smartmatching:
+
+    if Even($x) { ... }
+    .say if .Even for 1..10;
 
 =head2 Abstract vs Concrete types
 
