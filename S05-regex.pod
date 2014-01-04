@@ -2134,13 +2134,12 @@ Inverse of <?>, viz., always returns false.
 
 =item *
 
-The C<\p> and C<\P> properties become intrinsic grammar rules such as
-(C<< <alpha> >> and C<< <-alpha> >>).  They may be combined using the
-above-mentioned character class notation: C<< <[_]+alpha+digit> >>.
-Regardless of the higher-level character class names, low-level
-Unicode properties are always available with a prefix of colon, that is,
-in pair notation within the angle brackets.
-Hence, C<< <+:Lu+:Lt> >> is equivalent to C<< <+upper+title> >>.
+Many C<\p> and C<\P> properties become intrinsic grammar rules such as (C<<
+<alpha> >> and C<< <-alpha> >>).  They may be combined using the above-mentioned
+character class notation: C<< <[-]+alpha+digit> >>.  Regardless of the
+higher-level character class names, all low-level Unicode properties are always
+available with a prefix of colon, that is, in pair notation within the angle
+brackets.  Hence, C<< <+:Lu+:Lt> >> is equivalent to C<< <+upper+title> >>.
 
 =item *
 
@@ -2381,12 +2380,12 @@ C<token> and C<rule>.
 
 A token declaration:
 
-    token ident { [ <alpha> | _ ] \w* }
+    token ident { [ <alpha> | \- ] \w* }
 
 never backtracks by default.  That is, it likes to commit to whatever
 it has scanned so far.  The above is equivalent to
 
-    regex ident { [ <alpha>: | _: ]: \w*: }
+    regex ident { [ <alpha>: | \-: ]: \w*: }
 
 but rather easier to read.  The bare C<*>, C<+>, and C<?> quantifiers
 never backtrack in a C<token>.
@@ -2522,8 +2521,8 @@ the current regex was entered.  Backtracking to (or past) this point
 will fail the rule outright (no matter where in the regex it occurs):
 
      regex ident {
-           ( [<alpha>|_] \w* ) ::: { fail if %reserved{$0} }
-         || " [<alpha>|_] \w* "
+           ( [<alpha>|\-] \w* ) ::: { fail if %reserved{$0} }
+         || " [<alpha>|\-] \w* "
      }
 
      ms/ get <ident>? /
@@ -2538,7 +2537,7 @@ this point will fail the entire match, no matter how many subrules
 down it happens:
 
      regex subname {
-         ([<alpha>|_] \w*) <commit> { fail if %reserved{$0} }
+         ([<alpha>|\-] \w*) <commit> { fail if %reserved{$0} }
      }
      ms/ sub <subname>? <block> /
 
@@ -2585,7 +2584,7 @@ Just as you can have anonymous subs and named subs...
 ...so too you can have anonymous regexes and I<named> regexes (and tokens,
 and rules):
 
-     token ident { [<alpha>|_] \w* }
+     token ident { [<alpha>|\-] \w* }
 
      # and later...
 
