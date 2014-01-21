@@ -16,8 +16,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 28 Dec 2013
-    Version: 169
+    Last Modified: 21 Jan 2014
+    Version: 170
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -1775,6 +1775,24 @@ via intersection.  Any quoted characters will be treated as "longest tokens"
 when appropriate.  Here 'll' would be recognized in preference to 'l':
 
     / <[ a..z ] | 'ñ' | 'ch' | 'll' | 'rr'>
+
+Note that a negated character class containing "long characters"
+always advances by a single character.
+
+=item *
+
+When any character constructor such as C<\c>, C<\x>, or C<\o> contains
+multiple values separated by commas, these are treated as "long characters".
+So you could add a C<\c[13,10]> to the list above to match CRLF as a long
+character.
+
+A consequence of this is that the negated form advances by a single
+position (matching as C<.> does) when the long character doesn't
+match as a whole.  Hence, this matches:
+
+    "\c[13,13,10,10]" ~~ /\C[13,10]* \c[13,10] \C[13,10]/;
+
+If you want it to mean \C13\C10 instead, then you can just write it that way.
 
 =item *
 
