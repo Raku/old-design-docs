@@ -17,8 +17,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 27 Jan 2014
-    Version: 172
+    Last Modified: 31 Jan 2014
+    Version: 173
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -2982,6 +2982,25 @@ This puts the new abstract node into C<$/.ast>.  An AST node
 may be of any type.
 This makes it convenient to build up an abstract syntax tree of
 arbitrary node types.
+
+The C<make> function does not impose any item or list context onto its argument,
+so if you say something ambiguously listy like
+
+    make ()
+    make @array
+    make foo()
+
+the value returned from C<.ast> will interpolate into a list.  To suppress this, use
+one of these:
+
+    make ().item
+    make []
+    make $@array
+    make [@array]
+    make foo().item
+    make $(foo())
+
+or use C<.ast.item> or a C<$> variable on the receiving end.
 
 =item *
 
