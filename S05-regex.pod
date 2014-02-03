@@ -967,7 +967,7 @@ string, instead of the string.  The C<Remainder> part is matched and
 returned as part of the C<Match> object but is not returned
 as part of the abstract object.  Since the abstract object usually
 represents the top node of an abstract syntax tree, the abstract object
-may be extracted from the C<Match> object by use of the C<.ast> method.
+may be extracted from the C<Match> object by use of the C<.made> method.
 
 A second call to C<make> overrides any previous call to C<make>.
 C<make> is also available as a method on each match object.
@@ -2966,8 +2966,8 @@ However, sometimes you would like an alternate scalar value to
 ride along with the match.  The C<Match> object itself describes
 a concrete parse tree, so this extra value is called an I<abstract>
 object; it rides along as an attribute of the C<Match> object.
-The C<.ast> method by default returns an undefined value.
-C<$()> is a shorthand for C<$($/.ast // ~$/)>.
+The C<.made> method by default returns an undefined value.
+C<$()> is a shorthand for C<$($/.made // ~$/)>.
 
 Therefore C<$()> is usually just the entire match string, but
 you can override that by calling C<make> inside a regex:
@@ -2978,20 +2978,22 @@ you can override that by calling C<make> inside a regex:
         # match succeeds -- ignore the rest of the regex
     ]);
 
-This puts the new abstract node into C<$/.ast>.  An AST node
-may be of any type.
-This makes it convenient to build up an abstract syntax tree of
-arbitrary node types.
+This puts the new abstract node into C<$/.made>.  An AST node may be of any
+type.  Using the make/.made mechanism, it is convenient to build up an
+abstract syntax tree of arbitrary node types.
 
-The C<make> function does not impose any item or list context onto its argument,
-so if you say something ambiguously listy like
+However, the C<make> function is not limited to be used for storing AST
+nodes and building abstract syntax trees only.  This is just a specific Perl 6
+internal use of this functionality.  Nor does the C<make> function impose any
+item or list context onto its argument, so if you say something ambiguously
+listy like
 
     make ()
     make @array
     make foo()
 
-the value returned from C<.ast> will interpolate into a list.  To suppress this, use
-one of these:
+the value returned from C<.made> will interpolate into a list.  To suppress
+this, use one of these:
 
     make ().item
     make []
@@ -3000,7 +3002,7 @@ one of these:
     make foo().item
     make $(foo())
 
-or use C<.ast.item> or a C<$> variable on the receiving end.
+or use C<.made.item> or a C<$> variable on the receiving end.
 
 =item *
 
@@ -3011,7 +3013,7 @@ You may also capture a subset of the match using the C<< <(...)> >> construct:
 
 In this case C<$()> is always a string when doing string
 matching, and a list of one or more elements when doing list matching.
-This construct does not set the C<.ast> attribute.
+This construct does not set the C<.made> attribute.
 
 =item *
 
@@ -3097,7 +3099,7 @@ The currently defined methods are
     $/.chars     # $/.to - $/.from
     $/.orig      # the original match string
     $/.Str       # substr($/.orig, $/.from, $/.chars)
-    $/.ast       # the abstract result associated with this node
+    $/.made      # the abstract result associated with this node (from make)
     $/.caps      # sequential captures
     $/.chunks    # sequential tokenization
     $/.prematch  # $/.orig.substr(0, $/.from)
@@ -3130,7 +3132,7 @@ they were originally in the text.  The interleaved bits are also
 returned as pairs, where the key is '~' and the value
 is a simple C<Match> object containing only the string, even if unbound
 subrules such as C<.ws> were called to traverse the text in the first
-place.  Calling C<.ast> on such a C<Match> object always returns a C<Str>.
+place.  Calling C<.made> on such a C<Match> object always returns a C<Str>.
 
 A warning will be issued if either C<.caps> or C<.chunks> discovers
 that it has overlapping bindings.  In the absence of such overlap,
@@ -3181,8 +3183,8 @@ like a C<return>, but doesn't clobber the match state:
              /;
     say $();                      # says 'bar'
 
-The abstract object of any C<Match> object is available via the
-C<< .ast >> method.  Hence these abstract objects can be managed
+The value of any C<Match> object (such as an abstract object) is available via
+the C<< .made >> method.  Hence these abstract objects can be managed
 independently of the returned cursor objects.
 
 The current cursor object must always be derived from C<Cursor>, or the
