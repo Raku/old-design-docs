@@ -13,8 +13,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 28 Dec 2013
-    Version: 281
+    Last Modified: 4 Jan 2014
+    Version: 282
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -1647,7 +1647,6 @@ even if the object's contents change.  (Routines are considered mutable
 because they can be wrapped in place.)
 
     Iterator    Perl list
-    SeqIter     Iterator over a Seq
     RangeIter   Iterator over a Range
     Scalar      Perl scalar
     Array       Perl array
@@ -3593,7 +3592,7 @@ constructor or composer for clarity as well as correctness:
 
     $a = (< a >,);
     $a = ('a',);
-    $a = Seq.new('a');
+    $a = Parcel.new('a');
     $a = ['a'];
 
 =head3 Disallowed forms
@@ -4722,12 +4721,12 @@ To reform a list so that sub-parcels turn into tree nodes, use the C<.tree>
 method, which is essentially a level-sensitive C<map>, with one closure provided
 for remapping the parcels at each level:
 
-    $p.tree(*.Seq)        # force level 1 parcels to Seq
-    $p.tree(1)            # same thing
-    $p.tree               # same thing, defaults to 1 level
-    $p.tree(*.Seq,*.list) # force level 1 parcels to Seq, level 2 to list
-    $p.tree(*.Seq xx *)   # Turn all subparcels into Seq recursively
-    $p.tree(*)            # same thing
+    $p.tree                # recursively set all levels to item
+    $p.tree(*)             # same thing
+    $p.tree(*.item)        # force level 1 parcels to item
+    $p.tree(1)             # same thing
+    $p.tree(*.item,*.list) # force level 1 parcels to item, level 2 to list
+    $p.tree(*.Array,*)     # Turn all subparcels into item recursively
 
 When bound to a slice parameter (indicated with C<**>), a capture reforms the rest of its
 positional arguments with one level of "treeness", equivalent to
@@ -4735,12 +4734,6 @@ C<@args.tree(1)>, that is, a list of lists, or C<LoL>.  The sublists are not
 automatically flattened; that is, if a sublist is a C<Parcel>, it
 remains a list until subsequent processing decides how flat or
 treelike the sublist should be.
-
-When bound to an item parameter that is not an invocant, a list is
-turned into a lazy C<Seq> object, that is, an array that can
-extend itself on demand, use the iterators of the list as its new values.
-(Once determined, the values are readonly, however.  To create an anonymous
-mutable array, use explicit square brackets around the list.)
 
 To force a non-flattening item context, use the "C<item>" operator.
 
