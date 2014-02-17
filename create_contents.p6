@@ -10,8 +10,11 @@ my $str = '';
 my $lvl;
 my @opt;
 
+@opt.push: "=begin pod";
+
 for (IO::Path.new('.').contents, IO::Path.new('S32-setting-library').contents).sort -> $f {
-  next unless $f ~~ m:i / .*\.pod /;
+  next unless $f ~~ m/ .*\.pod /;
+  next if $f ~~ "contents.pod";
   $f.basename.say;
   for open($f).lines { 
 	if m/ <?hs> / {
@@ -21,10 +24,10 @@ for (IO::Path.new('.').contents, IO::Path.new('S32-setting-library').contents).s
 		given $<head><label> {
 		  when m:i / TITLE / { 
 			@opt.push: '' if +@opt; 
-			@opt.push: trim($str) ; 
+			@opt.push: "=head1 " ~ trim($str) ; 
 			succeed 
 		  }
-		  when m:i / Document\ Description / { 
+		  when m:i / Document " " Description / { 
 			@opt.push: trim($str) ; 
 			@opt.push: "Chapter contents:" ;
 			succeed 
@@ -40,5 +43,7 @@ for (IO::Path.new('.').contents, IO::Path.new('S32-setting-library').contents).s
 	$str ~= "$_\n"
   }
 }
+
+@opt.push: "=end pod";
 
 spurt('contents.pod', join("\n",@opt) );
