@@ -12,9 +12,7 @@ my @opt;
 
 @opt.push: "=begin pod";
 
-for (IO::Path.new('.').contents, IO::Path.new('S32-setting-library').contents).sort -> $f {
-  next unless $f ~~ m/ .*\.pod /;
-  next if $f ~~ "contents.pod";
+for <. S32-setting-library>.map( { IO::Path.new($_).contents } ).grep( { m/ .*\.pod / and !m/ contents\.pod / } ).sort -> $f {
   $f.basename.say;
   for open($f).lines { 
 	if m/ <?hs> / {
