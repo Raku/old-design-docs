@@ -886,7 +886,13 @@ It's the programmer's duty to ensure that the original data structure is never
 mutated and that the block has no side-effects (since it may be run any number
 of times).
 
-=head1 Locks
+=head1 Low-level primitives
+
+Perl6 offers high-level concurrency methods, but in extreme cases, like if you
+need to implement a fundamentally different mechanism, these primitives are
+available.
+
+=head2 Locks
 
 Locks are unpleasant to work with, and users are pushed towards higher level
 synchronization primitives. However, those need to be implemented via lower
@@ -920,5 +926,19 @@ When using the C<lock> and C<unlock> methods, the programmer must ensure that
 the lock is unlocked. C<Lock> is reentrant. Naturally, it's easy to
 introduce deadlocks. Again, this is a last resort, intended for those who are
 building first resorts.
+
+=head2 Semaphore
+
+The C<Semaphore> class implements traditional semaphores that can be initiated
+with a fixed number of permits and offers the operations C<acquire> to block
+on a positive number of permits to become available and then reduce that number
+by one, C<tryacquire> to try to acquire a permit, but return C<False> instead
+of blocking if there are no permits available yet. The last operation is
+C<release>, which will increase the number of permits by one.
+
+The initial number of permits may be negative, positive or 0.
+
+Some implementations allow for race-free acquisition and release of multiple
+permits at once, but this primitive does not offer that capability.
 
 =for vim:set expandtab sw=4:
