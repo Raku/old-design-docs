@@ -519,12 +519,20 @@ The C<encoding> pragma changes the default encoding for situations where that's
 necessary, e.g. for the default C<Str.encode> or C<Buf.decode>. C<Str>s
 themselves don't store encoding information.
 
+=for code :allow<R>
+    use unicode :v(R<version>);
+
+Specifies what version of Unicode you want to use. The C<$*UNICODE> variable
+will tell you what version of Unicode is currently in use. This is useful if you
+need to work on data created for much older Unicode versions, or if you're doing
+work with properites known to be highly volatile between versions.
+
 Pragmas are of course localize-able:
 
     my $first = "hello"; # NFG string
     {
-        use NF :c;
-        my $second = "world"; # NFC string
+        use unicode :v(3.2);
+        ⋮
     }
 
     my $buffer = "foobar".encode; # object of type utf8 in $buffer
