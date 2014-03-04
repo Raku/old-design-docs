@@ -266,31 +266,51 @@ on the first codepoint of the string. Various array-based operations would be
 needed to gain information on every character in the string.
 
 [Note: If adding additional methods to access Unicode information, priority
-should be placed on info that can't be accessed through the C<uniprops> hash.]
+should be placed on info that can't be accessed as a Unicode property.]
 
 =head2 Information Hash
 
-    uniprops(Str $char) --> Hash
-    Str.uniprops(Str $char) --> Hash
+    uniprop(Int $codepoint, Stringy $property)
+    Int.uniprop(Str $property)
 
-This function returns a C<Hash> of all the properties associated with the first
-codepoint in the string.
+    uniprop(Unicodey $char, Stringy $property)
+    Unicodey.uniprop(Stringy $property)
+
+    uniprops(Unicodey $str, Stringy $property)
+    Unicodey.uniprops(String $property)
+
+This function returns the value of C<$property> for the given C<$codepoint> or
+C<$char>, or an array of values of the property of each character in C<$str> .
 
 All official spellings of a property name are supported.
 
-    uniprops("a")<ASCII_Hex_Digit> # is this character an ASCII hex digit?
-    uniprops("a")<AHex>            # ditto
+    uniprops("a", "ASCII_Hex_Digit") # is this character an ASCII hex digit?
+    uniprops("a", "AHex")            # ditto
 
-Accessing non-existent properties causes the same behavior as with any other
-C<Hash>.
+Values returned for properties may be C<Bool> for binary ("Yes"/"No") values, a
+C<Rat> for numeric values, and C<Str> objects for all other types of values.
 
-Values for properties may be C<Bool> for binary ("Yes"/"No") values, a C<Rat>
-for numeric values, and C<Str> objects for all other types of values.
+Note there is no version of C<uniprops> for integers, while there is one for
+strings. To achieve the same thing, use normal array operations:
 
-[Conjecture: Should we define enumerations for Enumeration (but I<not> Catalog)
-values, or is that unnecessary fluff? See
-L<http://www.unicode.org/reports/tr44/tr44-12.html#About_Property_Table|this
-section of UAX#44> for details on prop value types.]
+    my @isws = (32,42,43)».uniprop("White_Space");
+
+Note that the integer-based lookup is the fundamental version; the string-based
+versions are convenience functions. These two are nearly equivalent:
+
+    uniprop("0".ord, "Numeric_Value");  # integer lookup
+    uniprop("0", "Numeric_Value");      # stringy lookup
+
+However, the string-based version will convert NFG strings to NFC before sending
+either the first or all characters through the lookup. This is because Unicode
+property lookup is considered an NFG-less environment (see L<NFC and NFD|#NFC
+and NFD>).
+
+Integer-based lookup should die on negative integers, or integers greater than
+C<0x10_FFFF>.
+
+[Conjecture: would versions of uniprop with a slurpy instead of a single string
+property be useful? Or is C<uniprop(0x20, $_) for @props> good enough?]
 
 =head2 Numeric Codepoint
 
