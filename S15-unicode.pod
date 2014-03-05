@@ -268,7 +268,7 @@ needed to gain information on every character in the string.
 [Note: If adding additional methods to access Unicode information, priority
 should be placed on info that can't be accessed as a Unicode property.]
 
-=head2 Information Hash
+=head2 Property Lookup
 
     uniprop(Int $codepoint, Stringy $property)
     Int.uniprop(Str $property)
@@ -287,8 +287,10 @@ All official spellings of a property name are supported.
     uniprops("a", "ASCII_Hex_Digit") # is this character an ASCII hex digit?
     uniprops("a", "AHex")            # ditto
 
-Values returned for properties may be C<Bool> for binary ("Yes"/"No") values, a
-C<Rat> for numeric values, and C<Str> objects for all other types of values.
+Values returned for properties may be the narrowest possible type for numeric
+and boolean values (widest C<Rat>), and C<Str> objects for all other types of
+values. (To treat boolean values as boolean, see L<C<unibool>|#Binary Property
+Lookup>.)
 
 Note there is no version of C<uniprops> for integers, while there is one for
 strings. To achieve the same thing, use normal array operations:
@@ -311,6 +313,48 @@ C<0x10_FFFF>.
 
 [Conjecture: would versions of uniprop with a slurpy instead of a single string
 property be useful? Or is C<uniprop(0x20, $_) for @props> good enough?]
+
+=head3 Binary Property Lookup
+
+    unibool(Int $codepoint, Stringy $property)
+    Int.unibool(Str $property)
+
+    unibool(Unicodey $char, Stringy $property)
+    Unicodey.unibool(Stringy $property)
+
+    unibools(Unicodey $str, Stringy $property)
+    Unicodey.unibools(String $property)
+
+Looks up a boolean Unicode property (such as C<Case_Ignorable>) and returns a
+boolean. Throws an error on non-boolean properties.
+
+    unibool(0x41, "Case_Ignorable");   # OK
+    unibool(0x41, "General_Category"); # dies
+
+As with C<uniprop>, the string version converts NFG strings to NFC, but
+otherwise is equivalent to feeding the result of C<.ord> through the base
+integer version.
+
+=head3 Binary Category Check
+
+    unimatch(Int $codepoint, Stringy $category)
+    Int.unimatch(Str $category)
+
+    unimatch(Unicodey $char, Stringy $category)
+    Unicodey.unimatch(Stringy $category)
+
+    unimatches(Unicodey $str, Stringy $category)
+    Unicodey.unimatches(String $category)
+
+Checks to see if the character(s) given are in the given C<$category>. The
+string-based versions are conveniences that convert any NFG input to NFC, and
+then pass it along to the integer version.
+
+    unimatch("A", "Lu"); # True
+    unimatch("A", "L");  # True
+    unimatch("A", "Sc"); # False
+
+An error may be issued if the given category name is not valid.
 
 =head2 Numeric Codepoint
 
@@ -436,6 +480,32 @@ from the C<uniprops> hash.
 If a strict adherence to the values in those properties is desired (i.e. return
 null strings instead of code-point labels), the C<Name> and C<Unicode_1_Name>
 properties of the C<uniprops> hash may be used.
+
+=head2 Numeric Value
+
+    unival(Int $codepoint)
+    Int.unival
+
+    unival(Unicodey $char)
+    Unicodey.unival
+
+    univals(Unicodey $str)
+    Unicodey.univals
+
+Returns a C<Rat> (or C<Int> if the denominator is 1) of the given character's
+numeric value. Returns C<NaN> if the character is not a number.
+
+    say unival("0"); # output: 0
+    say unival("½"); # output: .5
+    say unival("."); # output: NaN
+    say univals("½¾"); # output: .5 .75 (array of Rats and/or Ints)
+
+Note that this will not convert a multi-digit string into one numeral; use the
+normal string-to-numeral coercers for that.
+
+[Conjecture: should C<val()> use C<unival> on one-character strings as part of
+its allomorphic type process? E.g. K<./fractionmagic.p6 ¾> takes the one
+positional argument as a C<RatStr>.]
 
 =head1 Regexes
 
