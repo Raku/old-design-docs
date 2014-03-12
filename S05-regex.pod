@@ -2981,7 +2981,7 @@ you can override that by calling C<make> inside a regex:
     ]);
 
 This puts the new abstract node into C<$/.made>.  An AST node may be of any
-type.  Using the make/.made mechanism, it is convenient to build up an
+type.  Using the C<make>/C<.made> mechanism, it is convenient to build up an
 abstract syntax tree of arbitrary node types.
 
 However, the C<make> function is not limited to be used for storing AST
@@ -3005,6 +3005,10 @@ this, use one of these:
     make $(foo())
 
 or use C<.made.item> or a C<$> variable on the receiving end.
+
+The C<.ast> method is a synonym C<.made> with no differing behavior. It exists
+both for historical reasons and as a way to indicate to those reading your code
+a more AST-like use of the C<made>/C<.make> mechanism.
 
 =item *
 
@@ -3102,6 +3106,7 @@ The currently defined methods are
     $/.orig      # the original match string
     $/.Str       # substr($/.orig, $/.from, $/.chars)
     $/.made      # the abstract result associated with this node (from make)
+    $/.ast       # same as $/.made
     $/.caps      # sequential captures
     $/.chunks    # sequential tokenization
     $/.prematch  # $/.orig.substr(0, $/.from)
