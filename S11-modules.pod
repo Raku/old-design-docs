@@ -3,7 +3,7 @@
 
 =head1 TITLE
 
-Synopsis 11: Units, Modules and Packaging
+Synopsis 11: Units, Modules and Distributions
 
 =head1 AUTHORS
 
@@ -14,8 +14,8 @@ Synopsis 11: Units, Modules and Packaging
 
     Created: 27 Oct 2004
 
-    Last Modified: 28 Dec 2013
-    Version: 40
+    Last Modified: 13 Mar 2014
+    Version: 41
 
 =head1 Overview
 
@@ -64,47 +64,6 @@ Perl 6.  The second is always used when searched for locally installed
 compunits as files in directories.  Of course, one is free to devise any
 other way of storing and searching for compunits, as long as C<API> is the
 same.
-
-Some of Perl 6 Pod's uppercase block typenames may be used to indicate
-meta-information that is needed to add a compunit to a given Perl 6
-installation (for instance with L<CompUnitRepo::Local::Installation>, as well
-as being able to load the compunit at a later time.  These are:
-
-=over 4
-
-=item =NAME
-
-This is the (long) name of the compunit, which with the compunit can be found
-with C<use>, C<need> or C<require>.  To keep this compatible with older uses
-of NAME, only the first \S+ of the string will actually be used. So:
-
-  =NAME Foo::Bar - making Bar out of Foo
-
-would only use "Foo::Bar" for the (long) name of the compunit.
-
-=item =AUTHOR
-
-This is the I<auth> of the compunit.  It is supposed to be a URI identifying the
-author or authorizing authority. Only the first \S+ of the string will actually
-be used.  For example:
-
- =AUTHOR cpan:JRANDOM - Joe Random
-
-would only use I<cpan:JRANDOM> as the I<auth>.
-
-=item =VERSION
-
-This is the I<ver> of the compunit.  Also, only the first \S+ of the string will
-actually be used.  For example:
-
- =VERSION 2013.06 - Poznan
-
-would only use I<2013.06> as the I<ver>.
-
-=back
-
-The combination of (long) NAME, AUTHOR (auth) and VERSION (ver), we call the
-I<credentials> of a compunit.
 
 =head1 Modules
 
@@ -613,36 +572,6 @@ but each gets a view that is consistent with the version it thinks it is
 using.  Of course, this depends crucially on how well the new version
 actually emulates the old version.
 
-To declare that a compunit emulates an older version, you can declare it
-with the uppercase block typename EMULATES.  For instance:
-
- =NAME     Dog - man's best friend
- =AUTHOR   cpan:JRANDOM - Joe Random
- =VERSION  1.2.1
- =EMULATES 1.2.0
-
-would indicate this compunit emulates version 1.2.0 itself.
-
-Or to simply exclude use of the older module and (presumably) force
-the user to upgrade, you can say:
-
- =EXCLUDES 1.2.0
-
-The string is parsed like a C<use> wildcard, and you can have more than one,
-so you can say things like:
-
- =NAME     Dog - man's best friend
- =AUTHOR   cpan:JRANDOM - Joe Random
- =VERSION  1.2.1
- =EMULATES Dog:auth(DCONWAY|JCONWAY|TCONWAY):ver<1.0+>
- =EXCLUDES Fox:<http://oreillymedia.com 3.14159>
- =EMULATES Wolf:from<C# 0.8..^1.0>;
-
-Please note that all of these are only potential default values for installing
-a compunit with the L<CompUnitRepo>'s C<install> interface.  Any CompUnitRepo
-implementation may choose to ignore these hints in favor of other explicit or
-implicit information.
-
 =head1 Forcing Perl 6
 
 To get Perl 6 parsing rather than the default Perl 5 parsing,
@@ -807,16 +736,7 @@ CPAN mirror or github repository.  Returns the instantiated object.
 
 =head2 install
 
- my $installed = $repo.install(
-   $source,       # actual source
-   :$longname,    # e.g. Dog
-   :$auth,        # e.g. cpan:JRANDOM
-   :$ver,         # e.g. 1.0.3
-   :$emulates,    # e.g. 1.0.2
-   :$excludes,    # e.g. 1.2.0
-   :$created,     # e.g. 2013.12.04
-   :$from         # most likely "perl6"
- );
+ my $installed = $repo.install(...);
 
 Install a compilation unit in the appropriate way for this object.  May cause
 a fatal exception if this repository does not support installing.  The first
@@ -836,13 +756,158 @@ Return L<CompUnit> candidates given the matching credentials.
 
 =head1 CompUnit
 
-The object that describes a compilation unit.  Is expected to have the
-following attributes/methods: longname, auth, ver, emulates, excludes, created
-and from, corresponding to the parameters as specified in L<CompUnitRepo>'s
-C<install> interface.
+The object that describes a compilation unit.
 
 =head2 load
 
  my $loaded = @candidates[0].load;
+
+=head1 Distribution
+
+A Perl 6 distribution consists of an archive of some form (presumably a
+.tar.gz, .tar.bz2 or .zip file) which is expected to at least contain a file
+called "META.info".  The existence of this file indicates that this
+distribution is a Perl 6 distribution.  This is important for those archive
+networks that also serve as a content-distribution system for other types
+of distributions (such as PAUSE / CPAN), so that they can adapt the processing
+of the contents, or decide to ignore any processing at all (such as CPAN-testers
+not being able to test Perl 6 distributions (yet)).
+
+=head2 META.info
+
+The META.info file is a JSON-file that must at least contain a C<name>,
+C<version> and C<description> section.
+
+=head3 name
+
+Mandatory.  The name identifying this distribution.  This is usually the name
+of the main module that this distribution provides.  An example of this would
+be:
+
+  "name" : "Dog"
+
+=head3 version
+
+Mandatory.  The version literal for this distribution.  An example of this
+would be:
+
+  "version" : "v1.0"
+
+=head3 author
+
+Mandatory.  An authoritative string indicating the person(s) currently
+responsible for this distribution.  For example:
+
+  "author" : "cpan:JRANDOM"
+
+=head3 description
+
+Mandatory.  A one line description of this distribution.  So, for instance:
+
+  "description" : "Adding bite to your programs"
+
+=head3 provides
+
+Optional.  A list of module - filename pairs that this distribution makes
+available to be C<use>d.  For example:
+
+  "provides" : {
+    "Dog" : "lib/Dog.pm6"
+  }
+
+=head3 emulates
+
+Optional.  A hash of modules with C<use> string values, that will be
+aliased to the given module.  An example of this would be:
+
+  "emulates" : {
+    "Dog" : "Wolf:auth<cpan:JRANDOM>:ver<1.0>"
+  }
+
+Which would mean that after loading this distribution, there is a pre-defined
+alias for C<Dog> called C<Wolf>, which will become available if a C<use>
+statement is executed that matches the C<use> string given.
+
+=head2 excludes
+
+Optional.  A list of modules to be disallowed, specified as C<use> strings.
+An example of this would be:
+
+  "excludes" : [
+    "Tiger:auth<cpan:*>:ver(1..*)"
+  ]
+
+Trying to load a module that matches the C<use> string, will cause a failure.
+
+=head3 depends
+
+Optional.  A list of run-time dependencies, specified as C<use> strings.  An
+example of this would be:
+
+  "depends" : [
+    "Canine:auth<cpan:*>:ver(1..*)"
+  ]
+
+=head3 build-depends
+
+Optional.  A list of build-time dependencies, specified as C<use> strings.  An
+example of this would be:
+
+  "build-depends" : [
+    "Archive::Zip"
+  ]
+
+=head3 test-depends
+
+Optional.  A list of test-time dependencies, specified as C<use> strings.  An
+example of this would be:
+
+  "test-depends" : [
+    "Test:auth<cpan:OVID>"
+  ]
+
+=head3 resource
+
+Optional.  A hash of resource groups, each of them corresponding to a
+directory in the "resource" directory in the distribution.  Each resource
+group has a name and a list of files that are provided.  During installation
+the installer will install these into a location, and make the files available
+through the %?RESOURCE hash.  So, for example:
+
+  "resource" : {
+    "images" : {
+      "fido.png"
+    }
+  }
+
+would assume there is a file C<resource/images/fido.png>.  After installation,
+the path of that file would be available through
+
+  %?RESOURCE<images><fido.png>.path
+
+and a handle could be obtained with:
+
+  %?RESOURCE<images><fido.png>.IO
+
+=head3 support
+
+Optional.  A hash of key-value pairs regarding support for this distribution.
+Possible names are: C<email>, C<mailinglist>, C<bugtracker>, C<source>,
+C<irc>, C<phone>.
+
+=head2 Special directories
+
+A distribution may contain several directories that will be handled
+specially.
+
+=head3 bin
+
+Any file inside this directory, will be installed as a callable shell
+application.
+
+=head3 t
+
+All C<.t> files in this directory, will be tested in alphabatical order,
+possibly in parallel.  Any files in this directory will never be installed.
 
 =for vim:set expandtab sw=4:
