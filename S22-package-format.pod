@@ -15,25 +15,23 @@ Synopsis 22: Distributions, Recommendations, Delivery and Installation
     Last Modified: 15 March 2014
     Version: 1
 
-=head1 Overview
-
-=head2 Terminology
+=head1 Terminology
 
 Because many of the concepts used in this document, may be overloaded by
 other concepts in the mind of the reader, it seems like a good idea to define
 some terminology first.  Please note that these definitions only apply within
 the context of Perl 6.
 
-=head3 compilation unit
+=head2 compilation unit
 
 A piece of code that can be compiled as a unit.  It can either exist in a
-file (and be compiled using C<use> or C<require>, or be presented as a stream
-of characters for complation with C<EVAL>.  An example of a compilation unit
+file (and be compiled using C<use> or C<require>), or be presented as a stream
+of characters for compilation with C<EVAL>.  An example of a compilation unit
 in a file:
 
   lib/JSON/Fast.pm6
 
-=head3 distribution
+=head2 distribution
 
 A distribution is an archive of some form that can be used to install zero
 or more compilation units (each stored in a separate file), with any possibly
@@ -60,7 +58,7 @@ instance:
 A Perl 6 distribution B<must> contain a configuration file named C<META6.json>
 and contain JSON encoded information about the contents of the distribution.
 
-=head3 owner
+=head2 owner
 
 The owner of a distribution is responsible for the development of a
 distribution.  This can either be a single person, or a (semi-)official
@@ -71,7 +69,7 @@ organisation.  The owner of a distribution has a (mnemonic) name, e.g.:
 Please note that the owner is not necessarily the developer of a distribution,
 although if the owner is a single individual, this is pretty likely.
 
-=head3 content storage
+=head2 content storage
 
 A service to which an owner can upload a distribution to and other people can
 download B<specific> distributions from.  This is most likely some online
@@ -80,10 +78,10 @@ essentially a URL.  An example would be:
 
   cpan
 
-The name of the owner usually coincides with the userid or login name used
-to upload distributions, but does not need to be.
+The (mnemonic) name of the owner usually coincides with the userid or login
+name used to upload distributions, but does not need to be.
 
-=head3 auth
+=head2 auth
 
 The C<auth> of a distribution, is the combination of the content storage name
 with the name of the owner, separated by a colon.  For example:
@@ -97,18 +95,18 @@ installed distributions, such as in:
 
   use JSON::Fast:auth<cpan:JRANDOM>;
 
-=head3 identity
+=head2 identity
 
 The identity of a distribution, is the combination of name of the content
-storage, the owner, name and version of a distribution, separated by colons.
-For example:
+storage, the name of the owner, name and version of a distribution, separated
+by colons.  For example:
 
  cpan:JRANDOM:JSON-Fast:1.23
 
 There should really be only one unique distribution for a given identity in the
 world.
 
-=head3 recommendation manager
+=head2 recommendation manager
 
 A service that will translate a request for a compilation unit (with optional
 owner and/or version and/or content storage specification, like a C<use>
@@ -176,20 +174,20 @@ Mandatory.  The name identifying this distribution.  This is usually the name
 of the main module that this distribution provides.  An example of this would
 be:
 
-  "name" : "Dog"
+  "name" : "JSON::Fast"
 
 =head3 version
 
 Mandatory.  The version literal for this distribution.  An example of this
 would be:
 
-  "version" : "v1.0"
+  "version" : "v1.23"
 
 =head3 description
 
 Mandatory.  A one line description of this distribution.  So, for instance:
 
-  "description" : "Adding bite to your programs"
+  "description" : "Providing fast JSON encoding/decoding"
 
 =head3 provides
 
@@ -197,7 +195,8 @@ Optional.  A list of module - filename pairs that this distribution makes
 available to be C<use>d.  For example:
 
   "provides" : {
-    "Dog" : "lib/Dog.pm6"
+    "JSON::Fast"     : "lib/JSON/Fast.pm6"
+    "JSON::PurePerl" : "lib/JSON/PurePerl.pm6"
   }
 
 =head3 depends
@@ -206,11 +205,11 @@ Optional.  A list of run-time dependencies, specified as C<use> strings.  An
 example of this would be:
 
   "depends" : [
-    "Canine:auth<cpan:*>:ver(1..*)"
+    "Sereal:auth<cpan:*>:ver(1..*)"
   ]
 
 An installer has the option to automatically install any dependencies, if the
-use has so indicated.
+user has so indicated.
 
 =head3 emulates
 
@@ -219,41 +218,41 @@ distribution) to be aliased, and the value is the use string that should match
 to get that compilation unit.  An example of this would be:
 
   "emulates" : {
-    "Dog" : "Wolf:auth<cpan:JRANDOM>:ver<1.0>"
+    "JSON::Fast" : "JSON::XS:auth<cpan:MLEHMANN>"
   }
 
 If then later, a program would say:
 
-  use Wolf:auth<cpan:JRANDOM>:ver<1.0>;
+  use JSON::XS;
 
-it would in fact load the C<Dog> compunit, but make it appear as a C<Wolf>
-compunit, but only if there was no "real" C<Wolf> compunit installed that would
-match the C<use> specification.  In other words: if the real thing is available,
-then it will be used.  If it is not, it will fall back to the indicated
-compilation unit.
+it would in fact load the C<JSON::Fast> compunit, but make it appear as a
+C<JSON::XS> compunit, but only if there was no "real" C<JSON::XS> compunit
+installed that would match the C<use> specification.  In other words: if the
+real thing is available, then it will be used.  If it is not, it will fall back
+to the indicated compilation unit.
 
 =head3 supersedes
 
-Optional.  Has the same meaning as "emulates" for the L<CompUnitRepo>.
+Optional.  Has the same meaning as "emulates" for the L</CompUnitRepo>.
 But has additional meaning for external packagers: it indicates a potential
 superseding of the indicated compilation unit from the packagers point of
-view.  See L<superseded_by>.
+view.  See L</superseded_by>.
 
 =head3 superseded_by
 
-Optional.  Has the reverse meaning of "emulates" for the L<CompUnitRepo>.
+Optional.  Has the reverse meaning of "emulates" for the L</CompUnitRepo>.
 It is a hash in which the key is compunit provided by the distribution, and
 the value is the C<use> string of the compunit it should be aliased to if
 that compunit is available.  So in this case:
 
   "superseded_by" : {
-    "Dog" : "SuperDog:ver(v1.0 .. *)"
+    "JSON::Fast" : "SuperJSON:ver(v1.0 .. *)"
   }
 
-it would mean that if a program attempts to load the C<Dog> compunit of this
-distribution, it should instead use any C<SuperDog> compunit that is installed
-that has a version of 1.0 or higher.  In other words: please don't use my
-compunit, unless you really have to.
+it would mean that if a program attempts to load the C<JSON::Fast> compunit
+of this distribution, it should instead use any C<SuperJSON> compunit that is
+installed that has a version of 1.0 or higher.  In other words: please don't
+use my compunit, unless you really have to.
 
 This tag has additional meaning for packagers: if a packager detects a valid
 C<supersedes> and C<superseded_by> pair in its collection of distributions to
@@ -270,7 +269,7 @@ Optional.  A list of modules to be disallowed, specified as C<use> strings.
 An example of this would be:
 
   "excludes" : [
-    "Tiger:auth<cpan:*>:ver(1..*)"
+    "JSON::Slow:auth<cpan:*>:ver(1..*)"
   ]
 
 Trying to load a module that matches the C<use> string, will cause a failure.
@@ -315,6 +314,9 @@ the path of that file would be available through
 and a handle could be obtained with:
 
   %?RESOURCE<images><fido.png>.IO
+
+without there being any guarantee that this path has anything to do with the
+path as specified in the distribution.
 
 =head3 support
 
