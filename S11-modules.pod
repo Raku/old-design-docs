@@ -64,6 +64,9 @@ compunits as files in directories.  Of course, one is free to devise any
 other way of storing and searching for compunits, as long as C<API> is the
 same.
 
+See L<S22/"Distributions, Recommendations, Delivery and Installation"> for
+more information about the C<CompUnitRepo> interface.
+
 =head1 Modules
 
 As in Perl 5, a C<module> is just a kind of package.  Unlike in Perl 5, modules
@@ -713,51 +716,5 @@ embedded, and this separate compilation must be able to produce a deterministic
 profile of the interface.  It must be possible to extract out the
 language tweaking part of this profile for use in tools that wish to
 know how to parse the current language variant deterministically.
-
-=head1 CompUnitRepo
-
-Base class (interface, really) for the object living in the @*INC array.  Used
-both for installing compunits, as well as finding a certain compunit by way
-of its from, longname, auth and ver information.
-
-=head2 new
-
- my $repo = CompUnitRepo.new( $location );
-
-Create a new CompUnitRepo object, either for inclusion in C<@*INC>, or to
-install a compilation unit..  The parameter indicates the location in
-which compunits are supposed to be located for this object.  This could be a
-local directory (as in the case of L<CompUnitRepo::Local::File> and
-L<CompUnitRepo::Local::Installation>).  Or it could be anything that indicates
-a remote repository, such as a connect string to a database, or a URL to a
-an authority (such as CPAN or Github).  Returns the instantiated object.
-
-=head2 install
-
- my $installed = $repo.install(...);
-
-Install a compilation unit in the appropriate way for this object.  May cause
-a fatal exception if this repository does not support installing.  The first
-parameter contains the actual source-code of the compilation unit to be
-installed.  The named parameters indicate the other meta-information to be
-associated with the compunit.  Returns whether compilation unit was installed.
-
-Of course, any implementation of L<CompUnitRepo>'s C<install> interface, may
-decide to accept additional meta-information and store this and make available
-for later introspection.
-
-=head2 candidates
-
- my @candidates = $repo.candidates( $longname, $auth?, $ver?, $from? );
-
-Return L<CompUnit> candidates given the matching credentials.
-
-=head1 CompUnit
-
-The object that describes a compilation unit.
-
-=head2 load
-
- my $loaded = @candidates[0].load;
 
 =for vim:set expandtab sw=4:
