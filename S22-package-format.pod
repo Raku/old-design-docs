@@ -55,6 +55,11 @@ instance:
 
   JSON-Fast.1.23.tar.gz
 
+Please note that by changing the C<::> from the module specification to a
+C<-> for the filename of the archive, we are effectively disallowing an owner
+to upload a distribution for "JSON-Fast" and "JSON::Fast" at the same time.
+This seems like not a likely thing to become a problem.
+
 A Perl 6 distribution B<must> contain a configuration file named C<META6.json>
 and contain JSON encoded information about the contents of the distribution.
 
@@ -106,6 +111,10 @@ by colons.  For example:
 There should really be only one unique distribution for a given identity in the
 world.
 
+The content storage should accept an identity and either directly return the
+archive for that distribution, or return a URL from which that distribution
+can be downloaded.
+
 =head2 recommendation manager
 
 A service that will translate a request for a compilation unit (with optional
@@ -141,9 +150,9 @@ would not find anything, because it has the wrong content storage specification.
 
 Please note that a recommendation manager does not need to be bound to a single
 content storage.  In fact, a recommendation manager would be best if being able
-to supply recommendations from the best of B<all> worlds.  And potentially be
-able to recommend from more natural language queries, but that is probably
-outside the scope of this specification.
+to supply identities from the best of B<all> worlds.  And potentially be
+able to recommend identities responding to more natural language queries, but
+that is probably outside the scope of this specification.
 
 =head1 Distribution
 
@@ -206,7 +215,7 @@ the distribution to the content storage) should be used.
 
 =head3 provides
 
-Optional.  A list of module - filename pairs that this distribution makes
+Optional.  A list of module - local filename pairs that this distribution makes
 available to be C<use>d.  For example:
 
   "provides" : {
@@ -216,23 +225,28 @@ available to be C<use>d.  For example:
 
 =head3 depends
 
-Optional.  A list of run-time dependencies, specified as C<use> strings.  An
-example of this would be:
+Optional.  A list of run-time dependencies, specified as C<use> strings.  To
+indicate alternatives, it is possible to specify a list of C<use> strings,
+instead of just a single use string.  So:
 
   "depends" : [
-    "Sereal:auth<cpan:*>:ver(1..*)"
-  ]
-
-To indicate alternatives, it is possible to specify a list of C<use> strings,
-instead of just a single use string:
-
-  "depends" : [
+    "Sereal:auth<cpan:*>:ver(1..*)",
     [ "Archive::Compress", "Archive::Zlib" ]
   ]
 
+would indicate a dependency on Sereal, and either Archive::Compress or
+Archive::Zlib.
+
 An installer has the option to automatically install any dependencies, if the
-user has so indicated.  Alternatives should be tried in order.  The first one
-for which the recommendation manager returns an identity, should be used.
+user has so indicated.  Dependencies and alternatives should be tried in the
+order they are specified.  In the case of alternatives, The first one
+for which the recommendation manager returns an identity, should be installed.
+Failure of installation an alternative, may allow automatic attempts on other
+alternatives.
+
+Please note that the C<use> strings of compilation units are specified.  It
+is the responsibility of the recommendation manager to turn these into
+identities of distributions that can be downloaded.
 
 =head3 emulates
 
@@ -288,15 +302,17 @@ compunits.
 
 =head3 excludes
 
-Optional.  A list of modules to be disallowed, specified as C<use> strings.
+Optional.  A hash in which the key is a compilation unit provided by this
+distribution, and the value is a C<use> string of all compilation units that
+will be disallowed when attempted to be loaded in the same lexical scope.
 An example of this would be:
 
-  "excludes" : [
-    "JSON::Slow:auth<cpan:*>:ver(1..*)"
-  ]
+  "excludes" : {
+    "JSON::PurePerl" : "JSON::Slow:auth<cpan:*>:ver(1..*)"
+  }
 
-After installation of this distribution, trying to load a module that matches
-the C<use> string, will cause a Failure.
+So, if a lexical scope loads C<JSON::PurePerl> from this distribution, then
+attempting to load C<JSON::Slow> will cause a Failure.
 
 =head3 build-depends
 
