@@ -224,6 +224,13 @@ available to be C<use>d.  For example:
     "JSON::PurePerl" : "lib/JSON/PurePerl.pm6"
   }
 
+Please note that the filenames specified only indicate the names of the files
+in the B<distribution>.  The installer may need to mangle filenames to be able
+support file systems that do not support the file names given (e.g. when they
+contain unicode characters where the file system does not support them).  This
+also implies that any installer needs to keep a local database that is able to
+convert from the module names given, to the actual associated file).
+
 =head3 depends
 
 Optional.  A list of run-time dependencies, specified as C<use> strings.  To
@@ -267,7 +274,8 @@ it would in fact load the C<JSON::Fast> compunit, but make it appear as a
 C<JSON::XS> compunit, but only if there was no "real" C<JSON::XS> compunit
 installed that would match the C<use> specification.  In other words: if the
 real thing is available, then it will be used.  If it is not, it will fall back
-to the indicated compilation unit.
+to the indicated compilation unit.  And it will look like you are using the
+thing you asked for.
 
 =head3 supersedes
 
@@ -313,7 +321,10 @@ An example of this would be:
   }
 
 So, if a lexical scope loads C<JSON::PurePerl> from this distribution, then
-attempting to load C<JSON::Slow> will cause a Failure.
+attempting to load C<JSON::Slow> will cause a Failure.  Please note that this
+has B<no> meaning for packagers: it is simply a way to provide a better error
+message if a collision of some sort will occur when both modules are loaded
+in the same lexical scope.
 
 =head3 build-depends
 
@@ -357,7 +368,8 @@ and a handle could be obtained with:
   %?RESOURCE<images><fido.png>.IO
 
 without there being any guarantee that this path has anything to do with the
-path as specified in the distribution.
+path as specified in the distribution.  Please also note that the installer
+may mangle filenames of actually installed files.
 
 =head3 support
 
@@ -420,6 +432,8 @@ Optional.  A list of general purpose tags.  For instance:
     "json",
     "perl6"
   ]
+
+It has no meaning other than the meaning B<you> assign to it.
 
 =head2 Special directories
 
