@@ -282,6 +282,20 @@ real thing is available, then it will be used.  If it is not, it will fall back
 to the indicated compilation unit.  And it will look like you are using the
 thing you asked for.
 
+Conversely, if one would do a:
+
+  use JSON::Fast;
+
+then later doing a:
+
+  use JSON::XS:auth<cpan:MLEHMANN>;
+
+in the same scope would become a no-op, just as if the compunit had already
+been loaded.
+
+Please note that it is responsibility of the emulating compunit to actually
+provide a compatible interface with emulated compunit.
+
 =head3 supersedes
 
 Optional.  Has the same meaning as "emulates" for the L</CompUnitRepo>.
@@ -420,6 +434,10 @@ to be used in production.  For instance:
 
 By default, a distribution is not ready for production.  If a distribution
 is not ready for production, then it will never be recommended.
+
+Please note that this section is only to be used by B<installers>, giving them
+the opportunity to decide whether or not to install that distribution.  Once
+a distribution is installed, it can be loaded just like any other distribution.
 
 =head3 license
 
