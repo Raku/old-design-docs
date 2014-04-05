@@ -379,45 +379,83 @@ result.
     my ($a, $b) = await $p1, $p2;
 
 This simply calls C<result> on each of the C<Promise>s, so any exception will
-be thrown. There is also a C<winner> statement [keywords still negotiable]:
+be thrown.
 
-    winner * {
-        done $p1 { say "First promise got a value" }
-        done $p2 { say "Second promise got a value" }
+There is also an C<outcome> statement [keywords still negotiable].  In its
+simplest form it just takes a list of C<Promise>s and C<Channel>s and returns
+a lazy list of all the values returned by all Promises and Channels specified:
+
+    my @values = outcome @p, @c;
+
+If a C<Promise> is broken, then the value returned is a C<Failure> object
+with the C<.excuse>.  Please note that this simple form will block until all
+values have been found.  You can also put this simple form in a loop for
+processing:
+
+    for outcome( @p, @c ) -> $value {
+        # process $value
     }
 
-That will invoke the closure associated with the first promise that
-produces a result, either kept or broken.
+in which case values will be processed as they become available.
 
-It's possible to add a timer using the keyword C<wait> followed
-by the number of seconds to wait (which may be fractional).  As a
-degenerate case, in order to avoid blocking at all you may use a
-C<wait 0>.  The timeout is always checked last, to guarantee that
-the other entries are all tried at least once before timing out.
+For more control, one can also specify a closure, in which there is more
+control over how a C<Promise> and / or a C<Channel> are being processed.
+In such a case, the returned lazy list with values is generally not needed:
 
-    my $gotone = winner * {
-        done $p1 { say "First promise got a value"; $p1 }
-        done $p2 { say "Second promise got a value"; $p2 }
-        wait 0   { say "Not done yet"; Nil }
+    my @values;
+    outcome {
+        whenever $p1   { say "p1 fired"; @values.push: $_ }
+        whenever @p,@c { @values.push: $_ }
     }
 
-The construct as a whole returns the result of whichever block was selected.
+Please note that for C<Promise>s, the C<whenever> will only be called once.
+For C<Channel>s, it will be called as soon as a value is present on the
+Channel until the Channel is C<.closed>.
 
-It's also possible to process a variadic list of promises together,
-using generic code that works over some set of the promises (use C<*>
-to represent any of them).  The index and promise are passed to the
-code as named arguments C<$:v> and <$:k> (possibly via priming if
-the code is instantiated ahead of time).
+There is also a C<done> keyword that can be used to specify code to be run
+when a C<Channel> has closed:
 
-    winner * {
-        done @promises { say "Promise $:k was kept, result was: ", $:v.result }
+    outcome {
+        ...
+        done @c { say "Channel $_ has closed" }
     }
 
-In this case C<$:k> returns the index of the promise, base 0.
-Likewise C<$:v> returns the promise object itself.  Conjecture: the result
-should be bound to C<$_> to make it work more like channels below.
+It's possible to add a timer using the keyword C<wait> followed by the
+number of seconds to wait (which may be fractional) since the last value
+found by a C<whenever> has been seen.  The timeout is always checked last,
+to guarantee that the other entries are all tried at least once before
+timing out.
 
-[Conjecture: we should allow different cases for success or failure.]
+    outcome {
+        ...
+        wait 5 { say "Not done yet" }
+    }
+
+
+As a degenerate case, in order to avoid blocking at all you may use a
+C<wait 0>.  Together with C<last>, this allows one to exit the C<outcome>
+prematurely whenever there is nothing happening:
+
+    loop {
+        outcome {
+            ...
+            wait 0 { say "Giving up for now"; last }
+        }
+        # do other stuff
+    }
+
+Please note that you will need to C<.redeem> any C<Promise> that has been
+kept or broken, to prevent it from being seen again in the next loop
+iteration.  Something like this:
+
+    my @values;
+    loop {
+        outcome {
+            whenever @p { $:promise.redeem; @values.push: $_ }
+            wait 0 { say "Giving up for now"; last }
+        }
+        # do other stuff
+    }
 
 =head1 Channels
 
@@ -453,21 +491,13 @@ calls to a channel return the same promise, not a new one.
 While C<receive> blocks until it can read, C<poll> takes a message from the
 channel if one is there or immediately returns C<Nil> if nothing is there.
 
-The C<winner> construct also works on channels, and will try to receive a value
-from the first C<Channel> that has one available. It also automatically checks
-the C<.done> promise corresponding to the channel, so it can also be used in order
-to write a loop to receive from a channel until it is closed:
+The C<outcome> construct also works on channels, and will try to receive
+values from the any C<Channel> that has value(s) available until they are
+all closed.
 
-    gather loop {
-        winner $channel {
-            more * { take $_ }
-            done * { last }
-        }
+    outcome {
+        whenever $channel { take $_ }
     }
-
-This works because C<more> only ever works on channels, while C<done>
-only ever works on promises, so it knows to check the promise of
-channel C<$c> rather than C<$c> itself.
 
 This is such a common pattern that we make a channel in list context behave
 that way:
