@@ -373,45 +373,7 @@ result.
     my ($a, $b) = await $p1, $p2;
 
 This simply calls C<result> on each of the C<Promise>s, so any exception will
-be thrown. There is also a C<winner> statement [keywords still negotiable]:
-
-    winner * {
-        done $p1 { say "First promise got a value" }
-        done $p2 { say "Second promise got a value" }
-    }
-
-That will invoke the closure associated with the first promise that
-produces a result, either kept or broken.
-
-It's possible to add a timer using the keyword C<wait> followed
-by the number of seconds to wait (which may be fractional).  As a
-degenerate case, in order to avoid blocking at all you may use a
-C<wait 0>.  The timeout is always checked last, to guarantee that
-the other entries are all tried at least once before timing out.
-
-    my $gotone = winner * {
-        done $p1 { say "First promise got a value"; $p1 }
-        done $p2 { say "Second promise got a value"; $p2 }
-        wait 0   { say "Not done yet"; Nil }
-    }
-
-The construct as a whole returns the result of whichever block was selected.
-
-It's also possible to process a variadic list of promises together,
-using generic code that works over some set of the promises (use C<*>
-to represent any of them).  The index and promise are passed to the
-code as named arguments C<$:v> and <$:k> (possibly via priming if
-the code is instantiated ahead of time).
-
-    winner * {
-        done @promises { say "Promise $:k was kept, result was: ", $:v.result }
-    }
-
-In this case C<$:k> returns the index of the promise, base 0.
-Likewise C<$:v> returns the promise object itself.  Conjecture: the result
-should be bound to C<$_> to make it work more like channels below.
-
-[Conjecture: we should allow different cases for success or failure.]
+be thrown.
 
 =head1 Channels
 
@@ -447,9 +409,45 @@ calls to a channel return the same promise, not a new one.
 While C<receive> blocks until it can read, C<poll> takes a message from the
 channel if one is there or immediately returns C<Nil> if nothing is there.
 
-The C<winner> construct also works on channels, and will try to receive a value
-from the first C<Channel> that has one available. It also automatically checks
-the C<.done> promise corresponding to the channel, so it can also be used in order
+There is also a C<winner> statement [keywords still negotiable]:
+
+    winner * {
+        more $c1 { say "First channel got a value" }
+        more $c2 { say "Second channel got a value" }
+    }
+
+That will invoke the closure associated with the first channel that
+receives a value.
+
+It's possible to add a timer using the keyword C<wait> followed
+by the number of seconds to wait (which may be fractional).  As a
+degenerate case, in order to avoid blocking at all you may use a
+C<wait 0>.  The timeout is always checked last, to guarantee that
+the other entries are all tried at least once before timing out.
+
+    my $gotone = winner * {
+        more $c1 { say "First channel got a value" }
+        more $c2 { say "Second channel got a value" }
+        wait 0   { say "Not done yet"; Nil }
+    }
+
+The construct as a whole returns the result of whichever block was selected.
+
+It's also possible to process a variadic list of channels together,
+using generic code that works over some set of the channels (use C<*>
+to represent any of them).  The index and the received value are passed to
+the code as named arguments C<$:k> and <$:v> (possibly via priming if
+the code is instantiated ahead of time).
+
+    winner * {
+        more @channels { say "Channel $:k received, result was: ", $:v }
+    }
+
+In this case C<$:k> returns the index of the channel, base 0.
+Likewise C<$:v> returns the value.
+
+The C<winner> construct also automatically checks the C<.done> promise
+corresponding to the channel, so it can also be used in order
 to write a loop to receive from a channel until it is closed:
 
     gather loop {
@@ -458,11 +456,6 @@ to write a loop to receive from a channel until it is closed:
             done * { last }
         }
     }
-
-This works because C<more> only ever works on channels, while C<done>
-only ever works on promises, so it knows to check the promise of
-channel C<$c> rather than C<$c> itself.
-
 This is such a common pattern that we make a channel in list context behave
 that way:
 
