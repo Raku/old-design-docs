@@ -844,6 +844,29 @@ code to L</DWIM> or from an interrupted thought process.
 
 =head2 thread
 
+=head2 thunk
+
+A piece of code that isn't immediately executed, but doesn't have an
+independent scope.
+
+Examples for thunks:
+
+    my $a;
+    $a = 1 if 1;
+ #  ^^^^^^ thunk
+
+    class MyClass {
+        has $.attr = 42 + 23;
+        #            ^^^^^^^ thunk
+
+        method x($attr = say 42) {
+            #            ^^^^^^ thunk
+        }
+    }
+
+    $a = 1 || say 2;
+    #         ^^^^^ thunk
+
 =head2 TimToady
 
 L</IRC> screen name for Larry Wall, creator of Perl. The name comes from the
