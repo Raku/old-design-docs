@@ -4324,23 +4324,22 @@ so too a grammar can collect a set of named rules together:
 
 Like classes, grammars can inherit:
 
+
      grammar Letter {
-         rule text     { <greet> <body> <close> }
+         rule text     { <greet> $<body>=<line>+? <close> }
 
-         rule greet { [Hi|Hey|Yo] $<to>=(\S+?) , $$}
+         rule greet    { [Hi|Hey|Yo] $<to>=\S+? ',' }
 
-         rule body     { <line>+? }   # note: backtracks forwards via +?
+         rule close    { Later dude ',' $<from>=.+ }
 
-         rule close { Later dude, $<from>=(.+) }
-
-         # etc.
+         token line    { \N* \n}
      }
 
      grammar FormalLetter is Letter {
 
-         rule greet { Dear $<to>=(\S+?) , $$}
+         rule greet { Dear $<to>=\S+? ',' }
 
-         rule close { Yours sincerely, $<from>=(.+) }
+         rule close { Yours sincerely ',' $<from>=.+ }
 
      }
 
