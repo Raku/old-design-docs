@@ -595,6 +595,76 @@ The typical C<:nf> adverbs are in use here.
     :nfkd   NFKD literal
     :nfkc   NFKC literal
 
+=head1 Unicode Literals
+
+=head2 Identifiers
+
+Identifiers in Perl 6 can start with any alphabetic character (those characters
+in the C<L> category, as well as underscore), followed by any number of
+alphanumeric characters (those characters in the C<L> or C<N> category, as well
+as underscore). Dashes (C<->) and apostrophes (C<'>) may also appear, provided
+that they are followed by an alphabetic character.
+
+    my $foo;     # OK
+    my $ｆｏｏ;     # also OK
+    my $১০kinds; # not ok (১০ are digits)
+
+Combining marks (characters in the C<M> category) may not be the first character
+in an identifier, but they may appear at any time afterwards.
+
+Perl 6 internally stores all identifiers in NFG form, so these two lines create
+the same variable (and throw a redeclaration warning if used like this in code):
+
+    my $ä; # precomposed
+    my $ä; # not precomposed
+
+=head2 Numbers
+
+Similar to its support for any kind of Unicode in identifiers, Perl 6 allows any
+kind of character with a specified integral Numeric Value to act as a number in
+the appropriate situations. The only systemic limitation is that Perl 6 only
+understand place-value number systems.
+
+Any character with a Numeric Value of C<0..9> can be used literally as decimal
+numbers, even if that is not the radix for which the number is designed:
+
+    say 5 + ➀➈; # arabic digits + circled dingbat digits
+    say ꩑Ⅳ; # cham digit & roman numeral (꩑Ⅳ == 14)
+
+Certain prefixes to numbers allow you to use a different range of Numeric
+Values:
+
+    0o    octal          0..7
+    0x    hexadecimal    0..15
+    0b    binary         0..1
+    0d    decimal        0..9
+
+These also work inside strings coerced to some numeric type, e.g. C<"0x➈1".Int>
+is equivalent to C<"0x91".Int>.
+
+General radices can handle any character with a numeric value of C<0..^$n>,
+where C<$n> is the radix.
+
+    say :51<㊿00>; # AKA 130050
+
+Note that for digits C<10..36>, the letters C<'A'..'Z'> and/or C<'a'..'z'> can
+be used, respectively. This only applies to those specific codepoints, and not
+to anything similar:
+
+    say 0xDEAD_BEEF; # OK
+    say 0xⒹⒺⒶⒹ_ⒷⒺⒺⒻ; # not ok
+
+Perl 6 by default outputs numbers in decimal using the characters C<0 1 2 3 4 5
+6 7 8 9>, regardless of the radix or script used.
+
+[Conjecture: should we provide something like C<.script(@chars)> for specifying
+alternate digits, like C<.base($radix)> ? If so, what of the case where a
+different radix I<and> a different set of numerals is desired? Would we enforce
+use of characters with the right numeric values?]
+
+[Conjecture: what to do about non-integral NVs? Would we ever allow something
+like :3.14<> ?]
+
 =head1 Pragmas
 
 [ the NF* pragmas have been removed, as they no longer are attributes of a Str
@@ -660,11 +730,8 @@ casing.
 =item Those who realize the superiority of a capital ẞ and would rather ß not be
 capitalized to SS C<:D>.
 
-Also, what happens when someone does
-
-    use EBCDIC;
-
-?
+How would a hypothetical C<EBCDIC> string type be implemented by some module
+writer?
 
 Other areas to consider, surely.
 
