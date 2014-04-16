@@ -13,8 +13,8 @@ Synopsis 17: Concurrency
 
     Created: 3 Nov 2013
 
-    Last Modified: 4 Apr 2014
-    Version: 15
+    Last Modified: 16 Apr 2014
+    Version: 16
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on MoarVM and the JVM.  It covers both things
@@ -850,15 +850,6 @@ So, atomically incrementing a variable is done thusly:
 or more generally for all assignment meta-operators:
 
     cas $a, { $_ * 5 };     # $a *= 5
-
-However, in concurrent programming, you want to make sure that B<all> updates
-to a variable being accessed from multiple concurrent tasks, are wrapped in a
-C<cas>.  To mark accesses to a variable thusly, you can use the C<is cas>
-trait.
-
-    my $count is cas;       # $a++, $a ~= "foo", $a += 5, etc.
-    my @done is cas;        # @done.push, @done.pop, etc.
-    my %objects is cas;     # %objects{.WHAT}.push($_), etc.
 
 Another  example, implementing a top-5 news headlines list to be accessed and
 updated without ever locking, as:
