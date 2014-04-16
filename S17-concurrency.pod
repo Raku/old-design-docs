@@ -472,11 +472,17 @@ Channels are good for producer/consumer scenarios, but because each worker
 blocks on receive, it is not such an ideal construct for doing fine-grained
 processing of asynchronously produced streams of values. Additionally, there
 can only be one receiver for each value. Supplies exist to address both
-of these issues.  A C<Supply> pushes or pumps values to one or more receivers
-who have registered their interest.
+of these issues.
 
-Anything that does the C<Supply> role can be tapped (that is, subscribed to) by calling
-the C<tap> method on it. This takes up to three callables as
+A C<Supply> pushes or pumps values to one or more receivers who have registered
+their interest.  There are two types of Supplies: C<live> and C<on demand>.
+When tapping into a C<live> supply, the tap will only see values that have
+been pumped B<after> the tap has been created.  A tap on an C<on demand>
+supply will always see B<all> values that have been / will be pumped into the
+supply, regardless of when the tap is created.
+
+Anything that does the C<Supply> role can be tapped (that is, subscribed to)
+by calling the C<tap> method on it. This takes up to three callables as
 arguments, the optional ones expresses as named arguments:
 
     $supply.tap: -> $value { say "Got a $value" },
@@ -493,8 +499,8 @@ will be. The optional named parameter C<quit> specifies the code to be invoked
 if there is an error. This also means there will be no further values.
 
 The simplest Supply is a C<Supply> class, which is punned from the role.
-On the "pumping" end, this has corresponding methods C<more>, C<done>, and
-C<quit>, which notify all current taps.
+It creates a C<live> supply.  On the "pumping" end, this has corresponding
+methods C<more>, C<done>, and C<quit>, which notify all current taps.
 
     my $s = Supply.new;
     
@@ -514,19 +520,18 @@ subscribing, call C<close> on it.
     $s.done;                                 # End\n
 
 This doesn't introduce any asynchrony directly. However, it is possible for
-values to be pumped by a C<Supply> from an asynchronous worker.
+values to be pumped into a C<Supply> from an asynchronous worker.
 
 The C<Supply> class has various methods that produce more interesting kinds of
-C<Supply>. These default to working asynchronously. Furthermore, they start
-producing values upon the point of the tap.
+C<Supply>.  These default to working asynchronously.
 
-C<Supply.for> takes a (potentially lazy) list of values, and returns a
-C<Supply> that, when tapped, will iterate over the values and invoke the
-C<more> callable for each of them, and any C<done> callable at the end.
+C<Supply.for> takes a (potentially lazy) list of values, and returns an
+on demand C<Supply> that, when tapped, will iterate over the values and invoke
+the C<more> callable for each of them, and any C<done> callable at the end.
 If the iteration at some point produces an exception, then the C<quit>
 callable will be invoked to pass along the exception.
 
-C<Supply.interval> produces a C<Supply> that, when tapped, will produce an
+C<Supply.interval> produces a live C<Supply> that, when tapped, will produce an
 ascending value at a regular time interval.
 
     Supply.interval(1).tap(&say);     # Once a second, starting now
