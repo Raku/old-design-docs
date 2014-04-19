@@ -547,19 +547,55 @@ process, working synchronously, C<grep> on a Supply has values I<pushed>
 through it, and pushes those that match the filter onwards to anything that
 taps it.
 
-The following methods are available on a C<Supply>:
+The following methods are available on an instantiated C<Supply> (C<$s> in
+these examples):
 
 =over
 
 =item flat
 
+  my $f = $s.flat;
+
+Produces a C<Supply> in which all values of the original supply are flattened.
+
+=item do
+
+  my $seen;
+  my $d = $s.do( {$seen++} );
+
+Produces a C<Supply> that is identical to the original supply, but will execute
+the given code for its side-effects.
+
 =item grep
+
+  my $g = $s.grep( * > 5 );
+
+Produces a C<Supply> that only provides values that are greater than 5.
 
 =item map
 
+  my $m = $s.map( * * 5 );
+
+Produces a C<Supply> that provides its original's Supply values multiplied by 5.
+
+  my $m2 = $s.map( { $_ xx 2 } );
+
+Produces a C<Supply> that provides its original's Supply values twice.
+
 =item uniq
 
+  my $u = $s.uniq( :as( {$_} ), :with( &[===] ) );
+
+Produces a C<Supply> that only provides unique values, as defined by the
+optional C<as> and C<with> named parameters (same as L<List.uniq>).
+
 =item squish
+
+  my $q = $s.squish( :as( {$_} ), :with( &[===] ) );
+
+Produces a C<Supply> that only provides sequentially different values, as
+defined by the optional C<as> and C<with> named parameters (same as
+L<List.squish>).
 
 =back
 
