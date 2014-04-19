@@ -627,15 +627,19 @@ together:
 
 =item C<merge>
 
-produces a supply containing the values produced by two
-other supplies, and triggering C<done> once both of the supplies have
+  my $m = $s1.merge($s2);
+
+Produces a C<Supply> containing the values produced by given and the specified
+supply, and triggering C<done> once both of the supplies have
 done so. 
 
 =item C<zip>
 
-produces a supply that pairs together items from two other
-supplies, using C<< infix:<,> >> by default or any other user-supplied
-function.
+  my $z = $s1.zip($s2, :with( &[,] ) )
+
+Produces a C<Supply> that pairs together items from the given and the specified
+supply, using C<< infix:<,> >> by default or any other user-supplied function
+with the C<with> named parameter..
 
 =back
 
@@ -668,7 +672,6 @@ synchronization issues. Here is how C<zip> is implemented:
     }
 
 Conjecture: this is going to end up looking more like:
-
 
     method zip(Supply $a, Supply $b, &with = &infix:<,>) {
         my @as;
