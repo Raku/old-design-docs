@@ -629,17 +629,21 @@ together:
 
   my $m = $s1.merge($s2);
 
+  my $m = Supply.merge(@s);  # also as class method
+
 Produces a C<Supply> containing the values produced by given and the specified
-supply, and triggering C<done> once both of the supplies have
-done so. 
+supply or supplies, and triggering C<done> once all of the supplies have done
+so. 
 
 =item C<zip>
 
-  my $z = $s1.zip($s2, :with( &[,] ) )
+  my $z = $s1.zip($s2);                   # defaults to :with( &[,] )
+
+  my $z = Supply.zip(@s, :with( &[,] ));  # also as class method
 
 Produces a C<Supply> that pairs together items from the given and the specified
-supply, using C<< infix:<,> >> by default or any other user-supplied function
-with the C<with> named parameter..
+supply or supplies, using C<< infix:<,> >> by default or any other
+user-supplied function with the C<with> named parameter.
 
 =back
 
