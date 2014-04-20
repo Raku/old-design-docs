@@ -13,8 +13,8 @@ Synopsis 17: Concurrency
 
     Created: 3 Nov 2013
 
-    Last Modified: 16 Apr 2014
-    Version: 16
+    Last Modified: 20 Apr 2014
+    Version: 17
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on MoarVM and the JVM.  It covers both things
@@ -596,6 +596,22 @@ optional C<as> and C<with> named parameters (same as L<List.uniq>).
 Produces a C<Supply> that only provides sequentially different values, as
 defined by the optional C<as> and C<with> named parameters (same as
 L<List.squish>).
+
+=item buffering
+
+  my $b = $s.buffering( :elems(100), :seconds(1) );
+
+Produces a C<Supply> that buffers the values of the given Supply by either
+the number of elements (using the C<elems> named parameter) or the maximum
+number of seconds (using the C<seconds> named parameter) or both.  Values
+are grouped in a single array element when flushed.
+
+=item delayed
+
+  my $d = $s.delayed( 3.5 );  # delay supply 3.5 seconds
+
+Produces a C<Supply> that passes on the values of the given Supply with the
+given delay (in seconds).
 
 =back
 
