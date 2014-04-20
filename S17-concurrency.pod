@@ -601,10 +601,16 @@ L<List.squish>).
 
   my $b = $s.buffering( :elems(100), :seconds(1) );
 
+  my $b = $s.buffering( :elems(2), :overlap(1) );
+
 Produces a C<Supply> that buffers the values of the given Supply by either
 the number of elements (using the C<elems> named parameter) or the maximum
-number of seconds (using the C<seconds> named parameter) or both.  Values
-are grouped in a single array element when flushed.
+number of seconds (using the C<seconds> named parameter) or both.
+
+Or produces a "rotoring" C<Supply> where the last elements (as specified by
+the C<overlap> named parameter) are kept when the buffer is flushed.
+
+Values are grouped in a single array element when flushed.
 
 =item delayed
 
