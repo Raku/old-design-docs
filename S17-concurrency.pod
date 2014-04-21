@@ -476,10 +476,15 @@ of these issues.
 
 A C<Supply> pushes or pumps values to one or more receivers who have registered
 their interest.  There are two types of Supplies: C<live> and C<on demand>.
-When tapping into a C<live> supply, the tap will only see values that have
-been pumped B<after> the tap has been created.  A tap on an C<on demand>
-supply will always see B<all> values that have been / will be pumped into the
-supply, regardless of when the tap is created.
+When tapping into a C<live> supply, the tap will only see values that are
+pumped B<after> the tap has been created. Such supplies are normally infinite
+in nature, such as mouse movements. Closing the tap does not stop events from
+occurring, it just means nobody is listening. All tappers see the same stream. 
+A tap on an C<on demand> supply will initiate the production of values, and
+tapping the supply again may result in a new set of values. For example,
+C<Supply.interval> produces a fresh timer with the appropriate interval each
+time it is tapped. If the tap is closed, the timer stops pushing out new
+values.
 
 Anything that does the C<Supply> role can be tapped (that is, subscribed to)
 by calling the C<tap> method on it. This takes up to three callables as
@@ -520,7 +525,10 @@ subscribing, call C<close> on it.
     $s.done;                                 # End\n
 
 This doesn't introduce any asynchrony directly. However, it is possible for
-values to be pumped into a C<Supply> from an asynchronous worker.
+values to be pumped into a C<Supply> from an asynchronous worker. In fact,
+it is possible for many threads to safely pump values into a supply. In the
+event this happens, the callback to more may be executed on many threads
+at the same time.
 
 The C<Supply> class has various methods that produce more interesting kinds of
 C<Supply>.  These default to working asynchronously.
@@ -531,11 +539,17 @@ the C<more> callable for each of them, and any C<done> callable at the end.
 If the iteration at some point produces an exception, then the C<quit>
 callable will be invoked to pass along the exception.
 
-C<Supply.interval> produces a live C<Supply> that, when tapped, will produce an
-ascending value at a regular time interval.
+C<Supply.interval> produces an on demand C<Supply> that, when tapped, will
+produce an ascending value at a regular time interval.
 
     Supply.interval(1).tap(&say);     # Once a second, starting now
     Supply.interval(5, 10).tap(&say); # Each 5 seconds, starting in 10 seconds
+
+Take the returned tap object and close it to stop the ticks:
+
+    my $t = Supply.interval(1).tap(&say);
+    # ...later...
+    $t.close();
 
 [TODO: many more of these, including ones for publishing a Channel and a
 Promise.]
@@ -564,7 +578,8 @@ Produces a C<Supply> in which all values of the original supply are flattened.
   my $d = $s.do( {$seen++} );
 
 Produces a C<Supply> that is identical to the original supply, but will execute
-the given code for its side-effects.
+the given code for its side-effects. It promises that only one thread will ever
+be executing the code object passed to it at a time; others will block behind it.
 
 =item grep
 
@@ -756,6 +771,37 @@ it will not be passed.
 A C<quit> handler can be provided in a similar way, although the default -
 convey the failure to the result supply - is normally what is wanted. The
 exception is writing combinators related to error handling.
+
+Various I/O-related things are also exposed as supplies. For example, it
+is possible to get notifications on changes to files or files (directly)
+in a directory, using:
+
+    IO::Notification.watch_path('.').tap(-> $file {
+        say "$file changed";
+    });
+
+Note that since I/O callbacks are, by default, scheduled on the thread pool,
+then it's possible that your callback will be executing twice on the same
+thread. One way to cope is with C<do>, and then a tap at the end:
+
+    IO::Notification.watch_path('.').do(-> $file {
+        state %changes;
+        say "$file changed (change {++%changes{$file}})";
+    }).tap();
+
+Here, we are tapping it purely for the side-effects, and C<do> promises we
+will only be in that code block one thread at a time. To make this more
+convenient, there is also a C<act>:
+
+    IO::Notification.watch_path('.').act(-> $file {
+        state %changes;
+        say "$file changed (change {++%changes{$file}})";
+    });
+
+It can also take C<done> and C<quit> named parameters; these go to the tap,
+while the C<more> closure is put in a C<do>. A C<Tap> is returned, which
+may be closed in the usual way. (Note that the name C<act> is also a subtle
+reference to actor semantics.)
 
 =head1 The Event Loop
 
