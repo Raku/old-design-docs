@@ -595,7 +595,16 @@ Produces a C<Supply> in which all values of the original supply are flattened.
 
 Produces a C<Supply> that is identical to the original supply, but will execute
 the given code for its side-effects. It promises that only one thread will ever
-be executing the code object passed to it at a time; others will block behind it.
+be executing the code object passed to it at a time; others will block behind
+it.
+
+=item act
+
+  my $seen;
+  $s->act( {$seen++} );
+
+A special case of C<Supply>.do, that will also create a tap on the given
+C<Supply>, so that you only need to worry about writing the side-effect code.
 
 =item grep
 
