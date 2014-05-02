@@ -682,26 +682,9 @@ Produces a C<Supply> that only passes on a value if it wasn't superseded by
 another value in the given time (in seconds).  Optionally uses another
 scheduler than the default scheduler, using the C<scheduler> named parameter.
 
-=item migrate
-
-  my $m = $s.migrate;
-
-Produces a continuous C<Supply> from a C<Supply>, in which each value is a
-C<Supply>.  As soon a new C<Supply> appears, it will close the current
-C<Supply> and provide values from the new C<Supply>.
-
-=item schedule_on
-
-  my $o = $s.schedule_on( $scheduler );
-
-This allows a supply's more/done/quit to be scheduled on another
-scheduler. Useful in GUI situations, for example, where the final
-stage of some work needs to be done on some UI scheduler in order to
-have UI updates run on the UI thread.
-
 =item start
 
-  my $s = $s.start( {...} );
+  my $t = $s.start( {...} );
 
 Takes a closure and, for each supplied value, schedules the closure to
 run on another thread. It then more's a Supply (resulting in us having
@@ -710,6 +693,25 @@ then be done if the async work completes successfully, or quit if the
 work fails. Useful for kicking off work on the thread pool if you do
 not want to block up the thread pushing values at you (maybe 'cus you
 are reacting to UI events, but have some long-running work to kick off).
+Usually used in combination with C<migrate>.
+
+=item migrate
+
+  my $m = $t.migrate;
+
+Produces a continuous C<Supply> from a C<Supply>, in which each value is a
+C<Supply>.  As soon a new C<Supply> appears, it will close the current
+C<Supply> and provide values from the new C<Supply>.  Can be used in combination
+with C<schedule_on>.
+
+=item schedule_on
+
+  my $o = $m.schedule_on( $scheduler );
+
+This allows a supply's more/done/quit to be scheduled on another
+scheduler. Useful in GUI situations, for example, where the final
+stage of some work needs to be done on some UI scheduler in order to
+have UI updates run on the UI thread.
 
 =back
 
