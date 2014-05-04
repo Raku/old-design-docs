@@ -801,11 +801,11 @@ synchronization issues.
 
 The C<on> combinator takes a block that receives the C<Supply> it will generate
 (and return) as the parameter.  That block is supposed to return list of
-C<Pairs>, in which the keys are one or more C<Supply>s.  And the values are
+C<Pairs>, in which the keys are one or more Supplies.  And the values are
 either a C<Block> (to be called for each value for that C<Supply>), or a
 hash with Pairs for C<more>, C<done> and C<quit>.
 
-A simple combinator for C<Pair>ing values from two C<Supply>s ($a and $b),
+A simple combinator for C<Pair>ing values from two Supplies ($a and $b),
 would look like this:
 
   my $result = on -> $res {
@@ -833,7 +833,7 @@ specified along with the supply, is to use it for C<more> and provide
 a default C<done> and C<quit>. The default C<done> triggers C<done> on the
 result C<Supply>.
 
-Note that the code blocks for both C<Supply>s are identical.  There must be
+Note that the code blocks for both Supplies are identical.  There must be
 a better way of doing this.  And indeed, there is: you can also specify more
 than one C<Supply> per block.  The same as above implemented using that:
 
@@ -848,14 +848,14 @@ than one C<Supply> per block.  The same as above implemented using that:
   }
 
 Note that the block that is being called for each value from any of the
-C<Supply>s also receives an index value to be able to group the values
+Supplies also receives an index value to be able to group the values
 received.  By default, any C<done> or C<quit> will be immediately propagated.
 This is basically how C<zip> is implemented.
 
 Sometimes, we want the resulting C<Supply> to be C<done> only when all
-specified C<Supply>s are done.  This is possible by specifying a hash with
+specified Supplies are done.  This is possible by specifying a hash with
 keys for C<more>, C<done> and/or C<quit>, instead of just a C<Callable>.
-Given an array @s with C<Supply>s:
+Given an array @s with Supplies:
 
   my $done = 0;
   my $result = on -> $res {
