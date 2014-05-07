@@ -772,6 +772,18 @@ have UI updates run on the UI thread.
 Produces a C<Supply> that will C<more> each reduction from the given C<Supply>,
 just like C<reduce> on C<List>s.
 
+=item classify
+
+  my $c = $s.classify( &mapper );
+  my $h = $s.classify( %mapper );
+  my $a = $s.classify( @mapper );
+
+Produces a C<Supply> of Supplies.  Each C<more>'d C<Supply> corresponds to the
+(single-value) mapping that was found for values C<more>'d on the given
+C<Supply>.  Each C<more>'d value on the given C<Supply> is then C<more>'d on
+the C<Supply> associated with the mapping.  Similar to C<List.classify>, but
+does not support multi-level classification.
+
 =item reverse
 
   my $r = $s.reverse;
