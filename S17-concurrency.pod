@@ -13,8 +13,8 @@ Synopsis 17: Concurrency
 
     Created: 3 Nov 2013
 
-    Last Modified: 21 Apr 2014
-    Version: 18
+    Last Modified: 10 May 2014
+    Version: 19
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on MoarVM and the JVM.  It covers both things
@@ -921,6 +921,24 @@ A C<quit> handler can be provided in a similar way, although the default -
 convey the failure to the result supply - is normally what is wanted. The
 exception is writing combinators related to error handling.
 
+=head1 System events exposed as Supplies
+
+System events, such as signals, or mouse events, can be exposed as Supplies.
+Because of lack of portability, these will most likely be implemented as
+third-party modules.
+
+Basic signal support is offered by the C<signal> function, which takes one or
+more C<Signal> enums, and an optional C<scheduler> named parameter.  It
+produces a C<Supply> which, when tapped, will C<more> any signal coming in.
+For example:
+
+  signal(SIGINT).tap( { say "Thank you for your attention"; exit 0 } );
+
+would catch Control-C, thank you, and then exit.  The list of supported
+C<Signals> can be found by checking C<Signal::.keys>, as you would any enum.
+
+=head1 I/O features exposed as Supplies
+
 Various I/O-related things are also exposed as supplies. For example, it
 is possible to get notifications on changes to files or files (directly)
 in a directory, using:
@@ -957,12 +975,6 @@ reference to actor semantics.)
 There is no event loop.  Previous versions of this synopsis mentioned an event
 loop that would be underlying all concurrency.  In this version, this is not
 the case.
-
-Instead, most system level events, be they POSIX signals, or specific OS events
-such as file updates, will be exposed as a C<Supply>.  For instance,
-$*POSIX is a Supply in which POSIX signals received by the running
-process, will appear as C<POSIX::Signal> objects to taps.  On
-non-POSIX systems, a similar Supply will exist to handle system events.
 
 =head2 Threads
 
