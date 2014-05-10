@@ -17,8 +17,8 @@ Synopsis 32: Setting Library - Temporal
 
     Created: 19 Mar 2009
 
-    Last Modified: 24 Jan 2013
-    Version: 22
+    Last Modified: 10 May 2014
+    Version: 23
 
 =head1 Time and time again
 
@@ -143,10 +143,9 @@ The C<truncated-to> constructor allows you to "clear" a number of time values
 below a given resolution:
 
     my $dt = DateTime.new('2005-02-01T15:20:35Z');
-    say $dt.truncated-to(hour); # 2005-02-01T15:00:00Z
+    say $dt.truncated-to('hour'); # 2005-02-01T15:00:00Z
 
-Arguments to C<truncated-to> belong to the enum C<TimeUnit>, which encompasses
-these values:
+Arguments to C<truncated-to> is one of the following string values:
 
     second  seconds
     minute  minutes
@@ -156,17 +155,20 @@ these values:
     month   months
     year    years
 
-An argument of C<week> to C<truncated-to> yields an object with the date of the last Monday
+An argument of C<'week'> to C<truncated-to> yields an object with the date of the last Monday
 (or the same date, if it already is a Monday) and with hours, minutes, and
 seconds all set to zero:
 
-    say $dt.truncated-to(week); # 2005-01-31T00:00:00Z
+    say $dt.truncated-to('week'); # 2005-01-31T00:00:00Z
 
-The C<delta> constructor allows you to move a number of C<TimeUnit>s forward or
-backward in time.
+The C<later> and C<earlier> constructors allows you to move a number of time
+units forward or backward in time.
 
-    $dt.delta(44, minutes);
-    $dt.delta(-1, week);
+    $dt.later(minutes => 44);
+    $dt.earlier(week => 1);
+
+(Both C<later> and C<earlier> accept zero or negative integers, with the obvious
+extended semantics.)
 
 There's one additional constructor: C<now>. It works just like
 C<DateTime.new(now)> except that there is no positional parameter and the
@@ -231,8 +233,8 @@ Days, Months and days of week are 1-based.
     Date.new(:year(2010), :month(12), :day(20));
     Date.new(2010, 12, 20);
     Date.new(2010, 1, 20).clone(month => 12);
-    Date.new(2010, 12, 24).truncated-to(week);
-    Date.new(2010, 12, 24).delta(10, weeks);
+    Date.new(2010, 12, 24).truncated-to('week');
+    Date.new(2010, 12, 24).later(weeks => 10);
 
 The constructors die with a helpful error message if month or day are out of
 range.
