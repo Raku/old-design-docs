@@ -934,8 +934,22 @@ For example:
 
   signal(SIGINT).tap( { say "Thank you for your attention"; exit 0 } );
 
-would catch Control-C, thank you, and then exit.  The list of supported
-C<Signals> can be found by checking C<Signal::.keys>, as you would any enum.
+would catch Control-C, thank you, and then exit.  Of course, you don't need to
+exit immediately.  Here's an example of how you would make sure that an
+iteration in a loop is completed before exiting:
+
+  for @todo {
+      state $quitting;
+      state $tap = signal(SIGINT).tap( { $quitting = True } );
+      LAST  $tap.close;
+      LEAVE exit(0) if $quitting;
+      ... # code to protect
+  }
+
+This probably could use some syntactic sugar.
+
+The list of supported C<Signals> can be found by checking C<Signal::.keys>,
+as you would any enum.
 
 =head1 I/O features exposed as Supplies
 
