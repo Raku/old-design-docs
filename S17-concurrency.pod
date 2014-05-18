@@ -654,9 +654,10 @@ Produces a C<Supply> that provides its original's Supply values twice.
   my $u = $s.uniq( :as( {$_} ), :with( &[===] ), :expires(1) );
 
 Produces a C<Supply> that only provides unique values, as defined by the
-optional C<as> and C<with> named parameters (same as L<List.uniq>).  Optionally
-takes an C<expires> named parameter to specify how long a value seen should
-remain considered to have been seen (in seconds).
+optional C<as> and C<with> named parameters (same as L<List.uniq>). The
+optional C<expires> parameter specifies how long to wait (in seconds) before
+"resetting" and not considering a value to have been seen, even if it's the
+same as an old value.
 
 =item squish
 
@@ -664,7 +665,9 @@ remain considered to have been seen (in seconds).
 
 Produces a C<Supply> that only provides sequentially different values, as
 defined by the optional C<as> and C<with> named parameters (same as
-L<List.squish>).
+L<List.squish>). The optional C<expires> parameter specifies how long to wait
+(in seconds) before "resetting" and not squishing a new value with an old one,
+even if they are the same.
 
 =item max
 
