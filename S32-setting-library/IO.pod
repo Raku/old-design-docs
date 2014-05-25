@@ -543,33 +543,36 @@ to obtain the path to test.  Stringification must return C<Str:D> here.
 The methods are typically only one letter long (for now; Perl 5 tradition
 strikes) and are summarized in the following table:
 
-    M  Test performed
-    =  ==============
-    r  Path is readable by effective uid/gid.
-    w  Path is writable by effective uid/gid.
-    x  Path is executable by effective uid/gid.
-    o  Path is owned by effective uid.
+    M  Test performed                              Returns
+    =  ==============                              =======
+    r  Path is readable by effective uid/gid.      Bool:D
+    w  Path is writable by effective uid/gid.      Bool:D
+    x  Path is executable by effective uid/gid.    Bool:D
+    o  Path is owned by effective uid.             Bool:D
 
-    R  Path is readable by real uid/gid.
-    W  Path is writable by real uid/gid.
-    X  Path is executable by real uid/gid.
-    O  Path is owned by real uid.
+    R  Path is readable by real uid/gid.           Bool:D
+    W  Path is writable by real uid/gid.           Bool:D
+    X  Path is executable by real uid/gid.         Bool:D
+    O  Path is owned by real uid.                  Bool:D
 
-    e  Path exists.
-    s  Size of the path in bytes.
-    z  Path has zero size (an empty file).
+    e  Path exists.                                Bool:D
+    s  Size of the path in bytes.                  Int
+    z  Path has zero size (an empty file).         Bool:D
 
-    f  Path is a plain file.
-    d  Path is a directory.
-    l  Path is a symbolic link.
-    p  Path is a named pipe (FIFO)
-    S  Path is a socket.
-    b  Path is a block special file.
-    c  Path is a character special file.
+    f  Path is a plain file.                       Bool:D
+    d  Path is a directory.                        Bool:D
+    l  Path is a symbolic link.                    Bool:D
+    p  Path is a named pipe (FIFO)                 Bool:D
+    S  Path is a socket.                           Bool:D
+    b  Path is a block special file.               Bool:D
+    c  Path is a character special file.           Bool:D
 
-    u  Path has setuid bit set.
-    g  Path has setgid bit set.
-    k  Path has sticky bit set.
+    u  Path has setuid bit set.                    Bool:D
+    g  Path has setgid bit set.                    Bool:D
+    k  Path has sticky bit set.                    Bool:D
+
+All methods (except for C<e>) return Nil if a path has been specified that does
+not exist.
 
 =over 4
 X<stattimes>
