@@ -844,7 +844,20 @@ user-supplied function with the C<with> named parameter.
 
 =back
 
-[TODO: plenty more of these: combine_latest, while, until...]
+=item C<zip-latest>
+
+  my $z = $s1.zip-latest($s2);                  # like zip, defaults to :with( &[,] )
+
+  my $z = Supply.zip-latest(@s, :with( &[,] )); # also a method on Supply.
+
+Produces a C<Supply> that will emit tuples of values as soon as any combined
+Supply produces a value. Before any tuples are emitted, all supplies have to
+have produced at least one value. By default, it uses C<< infix:<,> >> to
+produce the tuples, but the named parameter C<with> can override that.
+
+=back
+
+[TODO: plenty more of these: while, until...]
 
 These combinators that involve multiple supplies need care in their
 implementation, since values may arrive at any point on each, and possibly at
