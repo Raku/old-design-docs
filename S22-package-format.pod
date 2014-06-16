@@ -369,26 +369,7 @@ Optional.  A hash of resource groups, each of them corresponding to a
 directory in the "resource" directory in the distribution.  Each resource
 group has a name and a list of files that are provided.  During installation
 the installer will install these into a location, and make the files available
-through the %?RESOURCE hash.  So, for example:
-
-  "resource" : {
-    "images" : {
-      "fido.png"
-    }
-  }
-
-would assume there is a file C<resource/images/fido.png>.  After installation,
-the path of that file would be available through
-
-  %?RESOURCE<images><fido.png>.path
-
-and a handle could be obtained with:
-
-  %?RESOURCE<images><fido.png>.IO
-
-without there being any guarantee that this path has anything to do with the
-path as specified in the distribution.  Please also note that the installer
-may mangle filenames of actually installed files.
+through the L</%?RESOURCE> hash.
 
 =head3 support
 
@@ -524,7 +505,15 @@ will be assumed.  So:
   inst:/installed,/also       both use CURL::Installation
   /foo/bar,inst:/installed    first CURL::File, second CURL::Installation
 
-=head2 new
+=head3 parse-spec
+
+  my @repo-specs = CompUnitRepo.parse-spec( $string );
+
+This helper method returns a C<List> of C<Parcel>s, in which the first element
+contains the L</short-id>, the second contains a C<Hash> of the optional
+named parameters, and the third contains the location string.
+
+=head3 new
 
   my $repo = CompUnitRepo.new( $specification );
 
@@ -544,7 +533,7 @@ The following C<short-id>'s are pre-defined:
   file   CompUnitRepo::Local::File
   inst   CompUnitRepo::Local::Installation
 
-=head2 install
+=head3 install
 
   my $installed = $repo.install( $something );
 
@@ -598,9 +587,9 @@ the C<META6.json> file of a distribution.
 
 =head3 new
 
-  my $dist = Distribution( 'HTML-Template-1.20.tar.gz' );
+  my $dist = Distribution.new( 'HTML-Template-1.20.tar.gz' );
 
-  my $dist = Distribution( '.unpacked/HTML-Template-1.20' );
+  my $dist = Distribution.new( '.unpacked/HTML-Template-1.20' );
 
 Create object from distribution file, or from an already unpacked distribution.
 
@@ -619,6 +608,37 @@ if something went wrong.
 =head1 SYSTEM VARIABLES
 
 Several dynamic variables are available.
+
+=head2 %?RESOURCE
+
+This hash provides compile and runtime access to files associated with the
+L</Distribution> of the current compilation unit.
+
+So, if the C<META6.json> file contains this C<resource> section:
+
+  "resource" : {
+    "images" : {
+      "fido.png"
+    }
+  }
+
+then the C<Distribution> is supposed to contain a file
+C<resource/images/fido.png>.  After installation, the path of that file would
+be available through
+
+  %?RESOURCE<images><fido.png>.path
+
+and a handle could be obtained with:
+
+  %?RESOURCE<images><fido.png>.IO
+
+without there being any guarantee that this path has anything to do with the
+path as specified in the distribution.  Please also note that the installer
+may mangle filenames of actually installed files.
+
+This means you can have files with unicode characters in upper/lower case,
+and still be able to access them when installed on a file system that does
+not support unicode.
 
 =head2 %*CUSTOM_LIB
 
