@@ -12,8 +12,8 @@ Synopsis 22: Distributions, Recommendations, Delivery and Installation
 
     Created: 15 March 2014
 
-    Last Modified: 16 June 2014
-    Version: 2
+    Last Modified: 22 June 2014
+    Version: 3
 
 =head1 TERMINOLOGY
 
@@ -522,6 +522,9 @@ Create a new CompUnitRepo-like object with the given specification, either
 for inclusion in L</<@*INC>, or to install a distribution.  Returns the
 instantiated object.
 
+Please note that for a given C<specification>, there should always only be
+one C<CompUnitRepo> object in a process.
+
 =head3 short-id
 
   say CompUnitRepo::Local::File.short-id;   # "file"
@@ -599,12 +602,29 @@ Create object from distribution file, or from an already unpacked distribution.
 The object that describes a compilation unit.  Contains as much meta-data
 as possible, e.g. from the C<Distribution> object it came from.
 
+=head3 new
+
+  my $compunit = CompUnit.new( $path );
+
+Create a new CompUnit object with the given specification.  Returns the
+instantiated object, or C<Failure> if it could not find the C<path>.
+
+Please note that for a given C<path>, there should always only be one
+C<CompUnit> object in a process.  This to prevent reloading the same
+compilation unit more than once.
+
 =head3 load
 
   my $loaded = @candidates[0].load(...);
 
 Returns True if loading of the C<CompUnit> was successful, or a C<Failure>
 if something went wrong.
+
+=head3 loaded
+
+  my $loaded = $compunit.loaded;
+
+Return whether the compunit has been loaded.
 
 =head1 SYSTEM VARIABLES
 
