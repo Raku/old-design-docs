@@ -539,14 +539,13 @@ The following C<short-id>'s are pre-defined:
 
 =head3 install
 
-  my $installed = $repo.install( $something );
+  my $installed = $repo.install( $dist );
 
-Install a compilation unit in the appropriate way for this object.  May cause
-a fatal exception if this repository does not support installing.  The first
-parameter contains some specification of the compilation unit to be
-installed.  The named parameters indicate the other meta-information to be
-associated with the compunit.  Returns True if the compilation unit was
-installed, or a C<Failure> if it didn't.
+Install the compilation units of a L</Distribution> in the appropriate way
+for this CompUnitRepo-like object.  May cause a fatal exception if this
+repository does not support installing.  The parameter contains the
+L</Distribution> object to be installed.  Returns True if the distribution
+was installed, or a C<Failure> if it didn't.
 
 Of course, any implementation of L<CompUnitRepo>'s C<install> interface, may
 decide to accept additional meta-information and store this and make available
@@ -579,7 +578,7 @@ in a C<packlist>.  This should be used by installers such as C<panda>.
 
 =head3 install
 
-  my $installed = $repo.install( $distribution );
+  my $installed = $repo.install( $dist );
 
 Install the given L</Distribution> object in this repo.
 
@@ -587,15 +586,29 @@ Install the given L</Distribution> object in this repo.
 
 The class for installing distributions using
 L</CompUnitRepo::Local::Installation>.  Basically provides the API to access
-the C<META6.json> file of a distribution.
+the C<META6.json> file of a distribution.  It should at least contain the
+following methods:
 
-=head3 new
+=head3 meta
 
-  my $dist = Distribution.new( 'HTML-Template-1.20.tar.gz' );
+  my $meta = $dist.meta;
 
-  my $dist = Distribution.new( '.unpacked/HTML-Template-1.20' );
+Return a Hash with the representation of the meta-data, constructed the same
+way as in the C<META6.json> specification.  Please note that an actual
+META6.json file does not need to exist, just a representation in that format.
 
-Create object from distribution file, or from an already unpacked distribution.
+=head3 content
+
+  my $content = $dist.content( <provides JSON::Fast lib/JSON/Fast.pm6> );
+
+  my $content = $dist.content( <resource images fido.png> );
+
+Return the octet-stream as specified by the given keys, navigating through
+the C<META6.json> hash.
+
+=head2 Distribution::Local::Tar
+
+An implementation of the C<Distribution> API for locally stored C<.tar> files.
 
 =head2 CompUnit
 
