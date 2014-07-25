@@ -13,7 +13,7 @@ Damian Conway <L<C<damian@conway.org>|mailto:damian@conway.org>>
     =table
         Maintainer:     Damian Conway
         Date:           9 Apr 2005
-        Last Modified:  3 Mar 2014
+        Last Modified:  25 Jul 2014
 =end VERSION
 
 =head1
@@ -335,22 +335,25 @@ For example:
           ]
 =end code
 
-A declarator can have both a leading and a trailing Pod comment, in
+A declarator can have multiple leading and/or trailing Pod comments, in
 which case they are concatenated with an intermediate newline when
 their object's C<.WHY> return value is stringified:
 
    #| This is a special chainsaw
-   my SwissArmy $chainsaw    #= (It has a rocket launcher)
+   #| (Why, you ask?)
+   my SwissArmy $chainsaw    #= (It has a rocket launcher!)
 
    say $chainsaw.WHY;    # prints: This is a special chainsaw
-                         #         (It has a rocket launcher)
+			 #         (Why, you ask?)
+                         #         (It has a rocket launcher!)
 
 The individual leading and trailing Pod comments can be retrieved
 via the returned Pod object's C<.leading> and C<.trailing> methods:
 
    say $chainsaw.WHY.leading;    # prints: This is a special chainsaw
+                                           (Why, you ask?)
 
-   say $chainsaw.WHY.trailing;   # prints: (It has a rocket launcher)
+   say $chainsaw.WHY.trailing;   # prints: (It has a rocket launcher!)
 
 The Pod object representing each Declarator block is still appended to
 the current surrounding Pod object (e.g. to C<$=pod> at the top level).
