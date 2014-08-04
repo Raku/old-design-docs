@@ -120,6 +120,7 @@
 		Radix interpolation
 		Angle quotes (quote words)
 			Explicit Parcel construction
+			Empty Parcel
 			Disallowed forms
 			Relationship between <> and «»
 		Adverbial Pair forms
@@ -173,7 +174,7 @@
 	Grammatical Categories
 	Deprecations
 
-=head1 Synopsis 3: Perl 6 Operators
+=head1 Synopsis 3: Operators
 	Overview
 	Operator precedence
 		Term precedence
@@ -233,6 +234,7 @@
 	Traversing arrays in parallel
 	Minimal whitespace DWIMmery
 	Sequence points
+	Non-declarative metaoperator names
 
 =head1 Synopsis 4: Blocks and Statements
 	The Relationship of Lexical and Dynamic Scopes
@@ -431,7 +433,7 @@
 	Package nesting
 	Autoloading
 
-=head1 Synopsis 11: Units and Modules
+=head1 Synopsis 11: Compilation Units
 	Overview
 	Units
 	Modules
@@ -443,12 +445,6 @@
 	Runtime Importation
 	Forcing Perl 6
 	Tool use vs language changes
-	CompUnitRepo
-		new
-		install
-		candidates
-	CompUnit
-		load
 
 =head1 Synopsis 12: Objects
 	Overview
@@ -552,13 +548,19 @@
 	C<Buf> methods
 		Decoding buffers
 	Unicode Information
-		Information Hash
+		Property Lookup
+			Binary Property Lookup
+			Binary Category Check
 		Numeric Codepoint
 		Character Representation
 		Character Name
+		Numeric Value
 	Regexes
 		Grapheme Explosion
 	Quoting Constructs
+	Unicode Literals
+		Identifiers
+		Numbers
 	Pragmas
 	Final Considerations
 
@@ -585,42 +587,7 @@
 		OS::Unix::NameServices role
 	Additions
 
-=head1 DRAFT: Synopsis 17: Processes and Concurrency
-	Overview
-	The Event Loop
-	POSIX Signals
-		Signal defaults
-		Signal exceptions
-	Alarm
-		Multiple and Lexical Alarms
-		Repeated Alarms
-		Callbacks in Alarms
-	IPC
-	Concurrency
-		Overview
-			Processes, threads, fibers?
-			Variables
-		Contend/Maybe/Defer
-			No user accessible locks
-			Atomic Code blocks
-				defer
-				maybe
-				limitations
-				Critical Code blocks
-				Mixing Atomic and Critical
-		Coroutines
-		Threads
-			Thread creation
-			Thread status and attributes
-			Thread operators
-			Thread methods
-			Continuations
-			Junctive Autothreading and Hyper Operations
-			Still more or less unorganized stuff
-			See also
-	Additions
-
-=head1 RE-DRAFT: Synopsis 17: Concurrency
+=head1 Synopsis 17: Concurrency
 	Design Philosophy
 		Focus on composability
 		Boundaries between synchronous and asynchronous should be explicit
@@ -630,10 +597,14 @@
 	Promises
 	Channels
 	Supplies
+	System events exposed as Supplies
+	I/O features exposed as Supplies
 	The Event Loop
 		Threads
 		Atomic Compare and Swap
-	Locks
+	Low-level primitives
+		Locks
+		Semaphore
 
 =head1 DRAFT: Synopsis 19: Command Line Interface
 	Command Line Elements
@@ -687,6 +658,63 @@
 			Basic notation:
 			More complex examples:
 			Serialization Examples
+
+=head1 Synopsis 22: Distributions, Recommendations, Delivery and Installation
+	TERMINOLOGY
+		compilation unit
+		distribution
+		owner
+		content storage
+		auth
+		identity
+		recommendation manager
+	DISTRIBUTION
+		META6.json
+			perl
+			name
+			description
+			provides
+			depends
+			emulates
+			supersedes
+			superseded_by
+			excludes
+			build-depends
+			test-depends
+			resource
+			support
+			production
+			license
+			tags
+		Special directories
+			bin
+			t
+			hooks
+		Installation
+	CLASSES
+		CompUnitRepo
+			Specifying a CompUnitRepo
+			parse-spec
+			new
+			short-id
+			install
+			candidates
+		CompUnitRepo::Local::File
+			install
+		CompUnitRepo::Local::Installation
+			install
+		Distribution
+			meta
+			content
+		Distribution::Local::Tar
+		CompUnit
+			new
+			load
+			loaded
+	SYSTEM VARIABLES
+		%?RESOURCE
+		%*CUSTOM_LIB
+		@*INC
 
 =head1 Synopsis 24: Testing
 	SYNOPSIS
@@ -755,6 +783,11 @@
 			Secondary Sigils (also known as "twigils")
 			Named variables
 			Perl5 to Perl6 special variable translation
+		SPECIAL VARIABLES MORE IN DEPTH
+			$?KERNEL / $*KERNEL
+			$?DISTRO / $*DISTRO
+			$?VM / $*VM
+			$?PERL / $*PERL
 		NOT YET DEFINED
 			Form.pm
 			S15-unicode.pod
@@ -819,6 +852,7 @@
 		Hash
 	Classes and Roles
 		Range
+			Methods
 		Buf
 			Methods
 			C<Buf> Operators
@@ -1054,19 +1088,25 @@
 		circularity saw
 		circumfix
 		class
+		CLI
 		clog
 		CLR
 		compilation unit
 		compile time
 		compunit
 		concurrency
+		CPAN
 		credentials
+		CUR
+		CURL
 	D
 		dalek
+		DarkPAN
 		dead code
 		debugger
 		dev
 		dies_ok
+		diffy
 		DIHWIDT
 		dispatcher
 		distribution
@@ -1082,8 +1122,12 @@
 		EXPORT::
 	F
 		FAIL
+		fiddly
+		flap
 		fork
 		fossil
+		FSVO
+		FTFY
 		fudge
 	G
 		gimme
@@ -1092,6 +1136,8 @@
 		git submodule
 		github
 		GLOBAL::
+		golf
+		golfing
 		good *
 		grammar
 		green threads
@@ -1103,6 +1149,7 @@
 		hyper
 	I
 		IC
+		iffy
 		IIRC
 		IIUC
 		import
@@ -1120,7 +1167,7 @@
 	J
 		jakudo
 		JAST
-		junction
+		Junction
 		JVM
 	K
 		karma
@@ -1139,6 +1186,7 @@
 		match
 		metamodel
 		method
+		mischan
 		MMD
 		MoarVM
 		module
@@ -1158,6 +1206,7 @@
 		need
 		NFG
 		Niecza
+		NST
 		nom
 		null-PMC access
 		Num
@@ -1179,6 +1228,7 @@
 		Parrot
 		parse
 		PAST
+		PAUSE
 		pb
 		PDD
 		Perlito
@@ -1220,6 +1270,8 @@
 		roast
 		role
 		RPA
+		RC
+		RT
 		runtime
 	S
 		sanity test
@@ -1234,6 +1286,8 @@
 		slurpy
 		slushy
 		spectest
+		spesh
+		splat
 		star
 		STM
 		Str
@@ -1244,18 +1298,20 @@
 		TheDamian
 		thinko
 		thread
+		thunk
 		TimToady
 		TIMTOWTDI
+		TMTOWTDI
 		token
 		topic
 		trait
 		TTIAR
-		TMTOWTDI
 		tpyo
 		tuit
 		twigil
 	U
 		ufo
+		UGT
 		unit
 		UNIT::
 		unslushing
@@ -1268,7 +1324,7 @@
 		warnocked
 		WAT
 		wfm
-		whatever
+		Whatever
 		whitespace
 		ww
 	X
