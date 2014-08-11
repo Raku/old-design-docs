@@ -14,13 +14,14 @@ Synopsis 29: Builtin Functions
     Moritz Lenz <moritz@faui2k3.org>
     Tim Nelson <wayland@wayland.id.au>
     Carlin Bingham <carlin@theintersect.org>
+    Elizabeth Mattijsen <liz@dijkmat.nl>
 
 =head1 Version
 
     Created: 12 Mar 2005
 
-    Last Modified: 4 Feb 2014
-    Version: 61
+    Last Modified: 11 August 2014
+    Version: 62
 
 The document is a draft.
 
@@ -238,7 +239,6 @@ exceptions.
 Behaves like, and replaces Perl 5 C<do EXPR>, with optional C<$lang>
 support.
 
-
 =item exit
 
  multi exit (Int $status = 0)
@@ -250,7 +250,14 @@ and C<UNDO>, followed by all C<END> blocks, and so cannot be skipped because
 they may have side effects visible outside the process.  If run from
 an embedded interpreter, all memory must also be reclaimed.
 
-[TBD: thread termination policy]
+Exit can also be called from an C<END> block: in that case only the C<$status>
+to be returned to the calling environment, is changed.  This does end the
+execution of the END block in question, but will still execute any remaining
+C<END> blocks.
+
+Any threads started with the C<:app_lifetime> parameter (which is basically
+any asynchronous action started with primitives other than C<Thread.new>),
+will be terminated on exit.
 
 =item sleep
 
