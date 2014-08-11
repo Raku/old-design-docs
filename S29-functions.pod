@@ -365,12 +365,12 @@ character values as integers.  The definition of character is pragma dependent.
 Normally it's a grapheme id, but under codepoints or bytes scopes,
 the string is coerced to the appropriate low-level view and interpreted
 as codepoints or bytes.  Hence, under "use bytes" you will never see a
-value larger than 256, and under "use codepoints" you will never see a
+value larger than 256, and under "use codepoints" you will probably never see a
 value larger than 0x10ffff.  The only guarantee under "use graphemes"
 (the default) is that the number returned will correspond to the
 codepoint of the precomposed codepoint representing the grapheme, if
 there is such a codepoint.  Otherwise, the implementation is free to
-return any unique id that larger than 0x10ffff.  (The C<chr> function
+return any negative unique 32-bit id.  (The C<chr> function
 will know how to backtranslate such ids properly to codepoints or
 bytes in any context.  Note that we are assuming that every codepoint's
 context knows its normalization preferences, and every byte's context
