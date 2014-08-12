@@ -628,9 +628,9 @@ a .path method, or you can construct it directly:
 
         "my/path".path
         $filehandle.path
-	IO::Path.new( $full-path );
-	IO::Path.new( :$volume, :$directory, :$basename);
-	
+        IO::Path.new( $full-path );
+        IO::Path.new( :$volume, :$directory, :$basename);
+
 =over 4
 
 =item Str
@@ -659,7 +659,7 @@ Returns the entire IO::Path object (a no-op).
 
 =item contents
 
-	method contents( Mu :$test = none('.', '..') )
+    method contents( Mu :$test = none('.', '..') )
 
 Returns a lazy list of file names in the path, if it is a directory. The
 current and the parent directory are excluded, which can be controlled with
@@ -733,13 +733,13 @@ cleanup or resolve first.
 
 On a Unix/POSIX filesystem, if called recursively, it will work like so:
 
-	parent level          relative       absolute
-	Starting Path (0)     foo/bar        /foo/bar
-	1                       foo            /foo
-	2                        .              /
-	3                        ..             /
-	4                      ../..            /
-	5                     ../../..          /
+    parent level          relative       absolute
+    Starting Path (0)     foo/bar        /foo/bar
+    1                       foo            /foo
+    2                        .              /
+    3                        ..             /
+    4                      ../..            /
+    5                     ../../..          /
 
 =item child
 
@@ -811,7 +811,7 @@ on the current system.
 
 Each class can (and should) be used in its undefined form:
 
-	my $cleanpath = IO::Spec.canonpath("a/.//b/")  # gives "a/b"
+    my $cleanpath = IO::Spec.canonpath("a/.//b/")  # gives "a/b"
 
 Although we inherit a lot from Perl 5's File::Spec, some things have changed:
 C<no_updirs> has been removed (but see C<no-parent-or-current-test>) and
@@ -828,12 +828,12 @@ exception of C<os>.
 The os method takes a single argument, an operating system string, and returns
 an IO::Spec object for the appropriate OS.
 
-	my $mac_os_x_spec = File::Spec.os('darwin');
-		# returns a File::Spec::Unix object
-	my $windows_spec = File::Spec.os('MSWin32');
-		#returns File::Spec::Win32
-	say File::Spec.os('Win32').canonpath('C:\\foo\\.\\bar\\');
-		# prints "C:\foo\bar"
+    my $mac_os_x_spec = File::Spec.os('darwin');
+    # returns a File::Spec::Unix object
+    my $windows_spec = File::Spec.os('MSWin32');
+    #returns File::Spec::Win32
+    say File::Spec.os('Win32').canonpath('C:\\foo\\.\\bar\\');
+    # prints "C:\foo\bar"
 
 The parameter can be either an operating system string, or the last part of
 the name of a subclass ('Win32', 'Mac').  The default is `$*OS`, which gives
@@ -912,12 +912,12 @@ all of the characters involved, use `.splitdir` instead.
 
 =item Comparison of splitpath and split
 
-	OS      Path       splitpath               split (.values)
-	linux   /a/b/c     ("", "/a/b/", "c")      ("", "/a/b", "c")
-	linux   /a/b//c/   ("", "/a/b//c/", "")    ("", "/a/b", "c")
-	linux   /a/b/.     ("", "/a/b/.", "")      ("", "/a/b", ".")
-	Win32   C:\a\b\    ("C:", "\\a\\b\\", "")  ("C:", "\\a", "b")
-	VMS     A:[b.c]    ("A:", "[b.c]", "")     ("A:", "[b]", "[c]")
+    OS      Path       splitpath               split (.values)
+    linux   /a/b/c     ("", "/a/b/", "c")      ("", "/a/b", "c")
+    linux   /a/b//c/   ("", "/a/b//c/", "")    ("", "/a/b", "c")
+    linux   /a/b/.     ("", "/a/b/.", "")      ("", "/a/b", ".")
+    Win32   C:\a\b\    ("C:", "\\a\\b\\", "")  ("C:", "\\a", "b")
+    VMS     A:[b.c]    ("A:", "[b.c]", "")     ("A:", "[b]", "[c]")
 
 * The VMS section is still speculative, and not yet supported.
 
@@ -939,7 +939,7 @@ the functionality of dirname and basename.
 
     $full-path = IO::Spec.join(:$volume, :$directory, :$basename);
     say IO::Spec::Unix.join( directory => '/hobbit', basename => 'frodo' );
-        # "/hobbit/frodo"	
+        # "/hobbit/frodo"
 
 Directory separators are inserted if necessary.  Under Unix, $volume is
 ignored, and only directory and basename are concatenated.  On other OSes,
@@ -951,12 +951,12 @@ to get the volume, dirname, and basename portions back.
 
 =item Comparison of catpath and join
 
-	OS     Components            catpath        join
-	linux  ("", "/a/b", "c")     /a/b/c         /a/b/c
-	linux  ("", ".", "foo")      ./foo          foo
-	linux  ("", "/", "/")        //             /
-	Win32  ("C:", "\a", "b")     C:\a\b         C:\a\b
-	VMS    ("A:", "[b]", "[c]")  A:[b][c]       A:[b.c]
+    OS     Components            catpath        join
+    linux  ("", "/a/b", "c")     /a/b/c         /a/b/c
+    linux  ("", ".", "foo")      ./foo          foo
+    linux  ("", "/", "/")        //             /
+    Win32  ("C:", "\a", "b")     C:\a\b         C:\a\b
+    VMS    ("A:", "[b]", "[c]")  A:[b][c]       A:[b.c]
 
 * The VMS section is still speculative, and not yet supported.
 
@@ -1099,14 +1099,14 @@ current directory.  On Linux, this is simply C<none('.', '..')>.  The L</Functio
 function automatically removes these for you in directory listings, so under
 normal circumstances you shouldn't need to use it directly.
 
-	'file' ~~ IO::Spec.no-parent-or-current-test    #False
-	'.'    ~~ IO::Spec.no-parent-or-current-test    #True
-	'..'   ~~ IO::Spec.no-parent-or-current-test    #True
+    'file' ~~ IO::Spec.no-parent-or-current-test    #False
+    '.'    ~~ IO::Spec.no-parent-or-current-test    #True
+    '..'   ~~ IO::Spec.no-parent-or-current-test    #True
 
 This can, however, be used to extend C<dir()> through its `$test` parameter:
 
-	dir( "my/directory", test=>
-		all(IO::Spec.no-parent-or-current-test, /^ '.' /));
+    dir( "my/directory", test=>
+      all(IO::Spec.no-parent-or-current-test, /^ '.' /));
 
 This example would return all files beginning with a period that are
 not `.` or `..` directories.  This would work similarly with IO::Path.contents.
