@@ -2959,7 +2959,7 @@ to be able to handle various unforeseen conditions (perhaps).
 
 Note that all routines are (by default) considered to be candidates
 for inlining and constant folding.  The optimizer is allowed to start
-making these optimizations after the main program's C<FINAL> time,
+making these optimizations after the main program's C<LINK> time,
 but not before.  After any routine is "hard" inlined or constant
 folded, it is explicitly retyped as immutable; any attempt to
 wrap an immutable routine will result in failure of the wrap call.
@@ -2968,14 +2968,14 @@ a subclass of C<Routine>.
 
 On the other hand, it is also possible to explicitly mark a routine
 as mutable, and then the ability to wrap it must be preserved even
-after C<FINAL> time.  This is done by recasting to C<SoftRoutine>.
+after C<LINK> time.  This is done by recasting to C<SoftRoutine>.
 Explicitly marking a routine as either mutable or immutable should
 be considered permanent.  It is still possible to inline soft
 routines, but only if the possibility of indirection is detected
 inline as well, and provision made (either inline or via external
 rewriting) for dealing with any wrappers.
 
-Hence, any routine marked as soft before C<FINAL> time is exempt
+Hence, any routine marked as soft before C<LINK> time is exempt
 from hard inlining or folding.  There are several methods of
 marking a routine as soft, however no method is provided for marking
 routines as hard, since that is the job of the optimizer.
@@ -3009,7 +3009,7 @@ your optimizer into more of a "pessimizer".
 
 For any normal standalone application, any C<use soft> pragma applies
 to the entire program in which it participates, provided it is
-performed before C<FINAL> time.  The optimizer may then harden
+performed before C<LINK> time.  The optimizer may then harden
 anything that was not requested to remain soft.
 
 A plug-in system, such as for a web server, may choose either to allow
@@ -3018,9 +3018,9 @@ optimizer harden individual plug-ins independently, or treat all
 plug-ins as a part of the same program by softening all plug-ins.
 (Similar considerations apply to optimizing classes to closed/final.)
 
-Note that installing a wrapper before C<FINAL> time is specifically
+Note that installing a wrapper before C<LINK> time is specifically
 I<not> one of the ways to mark a routine as soft.  Such a routine
-may still be hardened at C<FINAL> time despite being wrapped during
+may still be hardened at C<LINK> time despite being wrapped during
 compile time.
 
 =head2 The C<&?ROUTINE> object

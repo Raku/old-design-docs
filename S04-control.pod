@@ -1398,7 +1398,7 @@ Phasers marked with a C<*> can be used for their return value.
 
       BEGIN {...}*      at compile time, ASAP, only ever runs once
       CHECK {...}*      at compile time, ALAP, only ever runs once
-      FINAL {...}*      at link time, ALAP, only ever runs once
+       LINK {...}*      at link time, ALAP, only ever runs once
        INIT {...}*      at run time, ASAP, only ever runs once
         END {...}       at run time, ALAP, only ever runs once
 
@@ -1484,7 +1484,7 @@ Code that is generated at run time can still fire off C<CHECK>
 and C<INIT> phasers, though of course those phasers can't do things that
 would require travel back in time.  You need a wormhole for that.
 
-The compiler is free to ignore C<FINAL> phasers compiled at run time
+The compiler is free to ignore C<LINK> phasers compiled at run time
 since they're too late for the application-wide linking decisions.
 
 Some of these phasers also have corresponding traits that can be set on variables.
@@ -1580,7 +1580,7 @@ any C<CATCH> and C<CONTROL> phasers.  This includes
 the C<LEAVE> variants, C<KEEP> and C<UNDO>.  C<POST> phasers are evaluated after
 everything else, to guarantee that even C<LEAVE> phasers can't violate postconditions.
 Likewise C<PRE> phasers fire off before any C<ENTER> or C<FIRST> (though not
-before C<BEGIN>, C<CHECK>, C<FINAL>, or C<INIT>, since those are done at compile or
+before C<BEGIN>, C<CHECK>, C<LINK>, or C<INIT>, since those are done at compile or
 process initialization time).
 
 The C<POST> block can be defined in one of two ways.  Either the
@@ -1897,7 +1897,7 @@ that can carry the info lazily.  Neither approach is pretty.]
 
 Some closures produce C<Block> objects at compile time that cannot be
 cloned, because they're not attached to any runtime code that can
-actually clone them.  C<BEGIN>, C<CHECK>, C<FINAL>, C<INIT>, and C<END> blocks
+actually clone them.  C<BEGIN>, C<CHECK>, C<LINK>, C<INIT>, and C<END> blocks
 fall into this category.  Therefore you can't reliably refer to
 run-time variables from these closures even if they appear to be in the
 scope.  (The compile-time closure may, in fact, see some kind of permanent
