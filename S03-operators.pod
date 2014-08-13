@@ -14,8 +14,8 @@ Synopsis 3: Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 24 Jul 2014
-    Version: 277
+    Last Modified: 13 Aug 2014
+    Version: 278
 
 =head1 Overview
 
@@ -3656,81 +3656,67 @@ The C<Any> entries in the first column indicate a pattern that either
 doesn't care about the type of the topic, or that picks that entry
 as a default because the more specific types listed above it didn't match.
 
-    $_        X         Type of Match Implied   Match if (given $_)
-    ======    =====     =====================   ===================
-    Any       True      ~~ True                 (parsewarn on literal token)
-    Any       False     ~~ False match          (parsewarn on literal token)
-    Any       Match     ~~ Successful match     (parsewarn on literal token)
-    Any       Nil       ~~ Benign failure       (parsewarn on literal token)
-    Any       Failure   Failure type check      (okay, matches against type)
-    Any       *         block signature match   block successfully binds to |$_
+    $_          X         Type of Match Implied   Match if (given $_)
+    ======      =====     =====================   ===================
+    Any         True      ~~ True                 (parsewarn on literal token)
+    Any         False     ~~ False match          (parsewarn on literal token)
+    Any         Match     ~~ Successful match     (parsewarn on literal token)
+    Any         Nil       ~~ Benign failure       (parsewarn on literal token)
+    Any         Failure   Failure type check      (okay, matches against type)
+    Any         *         block signature match   block successfully binds to |$_
 
-    Any       Callable:($)  item sub truth          X($_)
-    Any       Callable:()   simple closure truth    X() (ignoring $_)
-    Any       Bool      simple truth            X (treats Bool value as success/failure)
-    Any       Match     match success           X (treats Match value as success)
-    Any       Nil       benign failure          X (treats Nil value as failure)
-    Any       Failure   malign failure          X (passes Failure object through)
-    Any       Numeric   numeric equality        +$_ == X
-    Any       Stringy   string equality         ~$_ eq X
-    Any       Whatever  always matches          True
+    Any         Callable:($)  item sub truth          X($_)
+    Any         Callable:()   simple closure truth    X() (ignoring $_)
+    Any         Bool      simple truth            X (treats Bool value as success/failure)
+    Any         Match     match success           X (treats Match value as success)
+    Any         Nil       benign failure          X (treats Nil value as failure)
+    Any         Failure   malign failure          X (passes Failure object through)
+    Any         Numeric   numeric equality        +$_ == X
+    Any         Stringy   string equality         ~$_ eq X
+    Any         Whatever  always matches          True
 
-    Hash      Pair      test hash mapping       $_{X.key} ~~ X.value
-    Any       Pair      test object attribute   ?."{X.key}" === ?X.value (e.g. filetests)
+    Associative Pair      test hash mapping       $_{X.key} ~~ X.value
+    Any         Pair      test object attribute   ?."{X.key}" === ?X.value (e.g. filetests)
 
-    Set       Set       identical sets          $_ === X
-    Set       SetHash   hash keys same set      $_.keys === X
-    Hash      Setty     hash keys same set      $_.keys === X
-    Any       Set       force set comparison    $_.Set === X
-    Any       SetHash   hash keys same set      $_.Set.keys === X
+    Set         Set       identical sets          $_ === X
+    Any         Setty     force set comparison    $_.Set === X.Set
 
-    Bag       Bag       identical bags          $_ === X
-    Bag       BagHash   hash key/values same    $_.pairs === X
-    Hash      Baggy     hash key/values same    $_.pairs === X
-    Any       Bag       force bag comparison    $_.Bag === X
-    Any       BagHash   hash key/values same    $_.Bag.pairs === X
+    Bag         Bag       identical bags          $_ === X
+    Any         Baggy     force bag comparison    $_.Bag === X.Bag
 
-    Mix       Mix       identical bags          $_ === X
-    Mix       MixHash   hash key/values same    $_.pairs === X
-    Hash      Mixy      hash key/values same    $_.pairs === X
-    Any       Mix       force mix comparison    $_.Mix === X
-    Any       MixHash   hash key/values same    $_.Mix.pairs === X
+    Mix         Mix       identical bags          $_ === X
+    Any         Mixy      force mix comparison    $_.Mix === X.Mix
 
-    Array     Array     arrays are comparable   $_ «===» X (dwims * wildcards!)
-    Setty     Array     array equiv to set      $_ === X.Set
-    Baggy     Array     array equiv to bag      $_ === X.Bag
-    Mixy      Array     array equiv to mix      $_ === X.Mix
-    Any       Array     lists are comparable    @$_ «===» X
+    Positional  Array     arrays are comparable   $_ «===» X (dwims * wildcards!)
+    Associative Array     keys/list are comparable +X == +$_ and $_{X.all}:exists
+    Callable    Positional list vs predicate      so $_(X)
+    Any         Positional lists are comparable   $_[] «===» X[]
 
-    Hash      Hash      hash keys same set      $_.keys === X.keys
-    Setty     Hash      hash keys same set      $_ === X.keys
-    Baggy     Hash      hash key/values same    $_ === X.pairs
-    Mixy      Hash      hash key/values same    $_ === X.pairs
-    Array     Hash      hash slice existence    X.{any @$_}:exists
-    Regex     Hash      hash key grep           any(X.keys).match($_)
-    Cool      Hash      hash entry existence    X.{$_}:exists
-    Any       Hash      hash slice existence    X.{any @$_}:exists
+    Hash        Hash      hash mapping equivalent $_ eqv X
+    Associative Hash      force hash comparison   $_.Hash eqv X
+    Callable    Hash      hash vs predicate       so $_(X)
+    Any         Hash      hash slice existence    X.{$_.any}:exists
 
-    Str       Regex     string pattern match    .match(X)
-    Hash      Regex     hash key "boolean grep" .any.match(X)
-    Array     Regex     array "boolean grep"    .any.match(X)
-    Any       Regex     pattern match           .match(X)
+    Str         Regex     string pattern match    .match(X)
+    Associative Regex     hash key "boolean grep" .keys.any.match(X)
+    Positional  Regex     array "boolean grep"    .Cat.match(X)
+    Any         Regex     pattern match           .match(X)
 
-    Range     Range     subset range            !$_ or .bounds.all ~~ X (mod ^'s)
-    Any       Range     in real range           X.min <= $_ <= X.max (mod ^'s)
-    Any       Range     in stringy range        X.min le $_ le X.max (mod ^'s)
-    Any       Range     in generic range        [!after] X.min,$_,X.max (etc.)
+    Range       Range     subset range            !$_ or .bounds.all ~~ X (mod ^'s)
+    Any         Range     in real range           X.min <= $_ <= X.max (mod ^'s)
+    Any         Range     in stringy range        X.min le $_ le X.max (mod ^'s)
+    Any         Range     in generic range        [!after] X.min,$_,X.max (etc.)
 
-    Any       Type      type membership         $_.does(X)
+    Any         Type      type membership         $_.does(X)
 
-    Signature Signature sig compatibility       $_ is a subset of X      ???
-    Callable  Signature sig compatibility       $_.sig is a subset of X  ???
-    Capture   Signature parameters bindable     $_ could bind to X (doesn't!)
-    Any       Signature parameters bindable     |$_ could bind to X (doesn't!)
+    Signature   Signature sig compatibility       $_ is a subset of X      ???
+    Callable    Signature sig compatibility       $_.sig is a subset of X  ???
+    Capture     Signature parameters bindable     $_ could bind to X (doesn't!)
+    Any         Signature parameters bindable     |$_ could bind to X (doesn't!)
 
-    Signature Capture   parameters bindable     X could bind to $_
+    Signature   Capture   parameters bindable     X could bind to $_
 
-    Any       Any       scalars are identical   $_ === X
+    Any         Any       scalars are identical   $_ === X
 
 The final rule is applied only if no other pattern type claims X.
 
@@ -3762,8 +3748,7 @@ the table assumes the following types will behave similarly:
 
     Actual type                 Use entries for
     ===========                 ===============
-    Iterator Seq                Array
-    SetHash BagHash MixHash     Hash
+    Iterator Array              List
     named values created with
       Class, Enum, or Role,
       or generic type binding   Type
