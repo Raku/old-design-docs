@@ -3695,12 +3695,13 @@ as a default because the more specific types listed above it didn't match.
     Hash        Hash      hash mapping equivalent $_ eqv X
     Associative Hash      force hash comparison   $_.Hash eqv X
     Callable    Hash      hash vs predicate       so $_(X)
+    Positional  Hash      attempted any/all       FAIL, point user to [].any and [].all for LHS
     Pair        Hash      hash does mapping       X{.key} ~~ .value
     Any         Hash      hash contains object    X{$_}:exists
 
     Str         Regex     string pattern match    .match(X)
-    Associative Regex     hash key "boolean grep" .keys.any.match(X)
-    Positional  Regex     implied cat             .Cat.match(X)
+    Associative Regex     attempted reverse dwim  FAIL, point user to any/all vs keys/values/pairs
+    Positional  Regex     attempted any/all/cat   FAIL, point user to any/all/cat/join for LHS
     Any         Regex     pattern match           .match(X)
 
     Range       Range     subset range            !$_ or .bounds.all ~~ X (mod ^'s)
