@@ -8,27 +8,30 @@ Synopsis 24: Testing
 
     Moritz Lenz <moritz@faui2k3.org>
     Carl Mäsak <cmasak@gmail.com>
+    Elizabeth Mattijsen <liz@dijkmat.nl>
 
 =head1 VERSION
 
     Created: 30 Dec 2010
 
-    Last Modified: 17 Oct 2011
-    Version: 7
+    Last Modified: 14 August 2014
+    Version: 8
 
 =head1 SYNOPSIS
 
     use Test;
 
-    plan 6;
+    plan 6; # not needed when using "done"
 
     ok True, 'True is a true value';
     nok False, 'False is a false value';
     is 'ab'.uc, 'AB', 'successful string comparison';
-    is_approx 2.sqrt, 1.4142135623, 'Approximate numeric comparison';
+    diag "we may have some mathematical issues"
+      if !is_approx 2.sqrt, 1.4142135623, 'Approximate numeric comparison';
     dies_ok { die "yes"}, 'exceptions';
-    eval_dies_ok '1 1', 'two terms in a row are a parse error';
+    dies_ok '1 1', 'two terms in a row are a parse error';
 
+    done;  # not needed when doing "plan"
 
 =head1 DESCRIPTION
 
@@ -41,7 +44,44 @@ Protocol. See L<http://testanything.org>.
 For the purposes of this document, a I<test file> is a file that does
 C<use Test>.
 
-=head2 Test plans
+All of the following functions are exported by default:
+
+    # planning number of tests
+    plan($number_of_tests)
+    done()
+
+    # unconditional passing/failing/notification
+    pass($desc?)
+    flunk($desc?)
+    diag($desc)
+
+    # evaluates $cond in boolean context
+    ok(Mu $cond, $desc?)
+    nok(Mu $cond, $desc?)
+
+    # comparisons
+    is(Mu $got, Mu $expected, $desc?)
+    isnt(Mu $got, Mu $expected, $desc?)
+    cmp_ok(Mu $got, $op, Mu $expected, $desc?)
+
+    # structural comparison with infix:<eqv>
+    is_deeply(Mu $got, Mu $expected, $desc?)
+
+    # numeric comparison with 1e-5
+    is_approx(Mu $got, Mu $expected, $desc?)
+
+    # class membership testing
+    isa_ok(Mu $var, Mu $type, $desc?)
+
+    # grouping of tests, ok only if all ok
+    subtest(&subtests, $desc?)
+
+    # exception testing
+    dies_ok($code, $desc?)
+    lives_ok($code, $desc?)
+    throws_like($code, $exception_type, *%matcher)
+
+=head1 Test plans
 
     sub plan($number_of_tests) is export { ... };
     sub done() is export { ... };
@@ -59,7 +99,7 @@ C<done> was called, or if there was more than one call in the test
 file, or if the call occurred between calling two test functions
 (rather than at the beginning or at the end).
 
-=head2 Test functions
+=head1 Test functions
 
 All test functions take an optional description argument, which
 will be printed along with the C<ok> or C<not ok> result and the test
@@ -70,53 +110,111 @@ several C<multi sub>s. Such details are left as implementation-dependent.
 The names of positional parameters are non-normative, so supplying the
 positional arguments to these test files by name is discouraged.
 
-All of the following functions are exported by default:
+=head2 pass(), flunk()
 
-    # unconditional passing/failing
-    pass($desc?)
-    flunk($desc?)
+    sub pass($desc?) is export { ... }
+    sub flunk($desc?) is export { ... }
 
-    # evaluates $cond in boolean context
-    ok(Mu $cond, $desc?)
-    nok(Mu $cond, $desc?)
+The C<pass> function marks a test as passed.  The C<flunk> function marks a
+test as B<not> passed.
 
-    # string comparison
-    is(Mu $got, Mu $expected, $desc?)
-    isnt(Mu $got, Mu $expected, $desc?)
+=head2 diag()
 
-    # structural comparison with infix:<eqv>
-    is_deeply(Mu $got, Mu $expected, $desc?)
+    sub diag($message) is export { ... }
 
-    # numeric comparison with 1e-5
-    is_approx(Mu $got, Mu $expected, $desc?)
+The C<diag()> function allows specific diagnostic information to be printed
+in a TAP-compatible manner on C<$*ERR>.  It is usually used when a particular
+test has failed to provide information that the test itself did not provide.
+Or it can be used to provide visual markers on how the testing of a test-file
+is progressing (which can be important when doing stresstesting).
 
-    # class membership testing
-    # converts the type name to an actual type object
-    # if $type ~~ Str
-    isa_ok(Mu $var, Mu $type, $desc?)
+=head2 todo(), skip(), skip_rest()
 
-    # exception testing
-    lives_ok(Callable $code, $desc?)
-    dies_ok(Callable $code, $desc?)
-
-    # eval + exception testing
-    eval_lives_ok(Str $code, $desc?)
-    eval_dies_ok(Str $code, $desc?)
-
-These functions work roughly the same way as the functions of the same
-name from Perl 5's L<Test::More> and L<Test::Exception> modules.
-
-TODO: more precise explanation
-
-=head2 todo() and skip() 
-
-    todo($reason, $count = 1)
-    skip($reason, $count = 1)
+    sub todo($reason, $count = 1) is export { ... }
+    sub skip($reason, $count = 1) is export { ... }
+    sub skip_rest($reason?) is export { ... }
 
 The C<todo()> function can be called before running other test functions, and
 marks the next C<$count> tests as TODO.
 
 The C<skip()> function is called I<instead> of the some tests (usually because
 they would die), and emits C<$count> SKIP markers in the TAP output.
+
+The C<skip_rest()> function can be called conditionally to C<skip($remaining)>
+all of the remaining tests.
+
+=head2 ok(), nok()
+
+    sub ok(Mu $cond, $desc?) is export { ... }
+    sub nok(Mu $cond, $desc?) is export { ... }
+
+The C<ok()> function marks a test as passed if the given condition evaluates
+to C<True>.  The C<nok()> function marks a test as passed if the given
+condition evaluates to C<False>.
+
+=head2 is(), isnt(), cmp_ok()
+
+    sub is(Mu $got, Mu $expected, $desc?) is export { ... }
+    sub isnt(Mu $got, Mu $expected, $desc?) is export { ... }
+    sub cmp_ok(Mu $got, $op, Mu $expected, $desc?) is export { ... }
+
+The C<is()> function marks a test as passed if the obtained and expected values
+are C<eq>: as such it is a shortcut for C<cmp_ok> with the C<'eq'> operator.
+The C<isnt> function marks a test as passed if the obtained and expected values
+are B<not> C<eq>.  These are typically used to check scalar values.
+
+The C<cmp_ok()> function compares two values with the given operator and passes
+the test if the comparison yields a C<True> value.  For ease of use, operators
+may be passed as strings, such as C<'=='> or C<'~~'>.
+
+=head2 is_deeply()
+
+    sub is_deeply(Mu $got, Mu $expected, $desc?) is export { ... }
+
+The C<is_deeply()> function marks a test as passed if the obtained and expected
+values are C<eqv>.  This is the best way to check for equality of (deep) data
+structures.
+
+=head2 is approx()
+
+    sub is_approx(Mu $got, Mu $expected, $desc?) is export { ... }
+
+The C<is_approx()> function marks a test as passed if the obtained and
+expected numerical values are within C<1e-5> of each other.
+
+=head2 isa_ok()
+
+    sub isa_ok(Mu $object, Mu $type, $desc?) is export { ... }
+
+The C<isa_ok()> function marks a test as passed if the given object is, or
+inherits from the given type.  For convenience, types may also be specified
+as a string.
+
+=head2 subtest()
+
+    sub subtest(&subtests, $desc?) is export { ... }
+
+The C<subtest()> function executes the given block, consisting of usually more
+than one test, possibly including a C<plan()> or C<done>.  It will pass the
+test only if B<all> tests in the block, pass.
+
+=head2 dies_ok(), lives_ok(), throws_like()
+
+    sub dies_ok($code, $desc?) is export { ... }
+    sub lives_ok($code, $desc?) is export { ... }
+    sub throws_like($code, $exception_type, *%matcher) is export { ... }
+
+These three functions accept a first parameter that is either something
+C<Callable>, or something that can be C<EVAL>led.
+
+The C<dies_ok()> passes the test if the given code throws an exception.
+The C<lives_ok()> passes the test if the given code B<does not> throw an
+exception.
+
+The C<throws_like> function checks whether the given code throws a specific
+exception (either specified as a Type object, or as a string).  If an
+exception was thrown, it will also try to match the matcher hash, in which
+the key is the name of the method to be called on the exception, and the
+value is the value it should have to pass.
 
 =for vim:set expandtab sw=4:
