@@ -208,18 +208,16 @@ test only if B<all> tests in the block, pass.
 
 =head2 dies_ok(), lives_ok(), throws_like()
 
-    sub dies_ok($code, $desc?) is export { ... }
-    sub lives_ok($code, $desc?) is export { ... }
+    sub dies_ok(Callable $code, $desc?) is export { ... }
+    sub lives_ok(Callable $code, $desc?) is export { ... }
     sub throws_like($code, $exception_type, *%matcher) is export { ... }
-
-These three functions accept a first parameter that is either something
-C<Callable>, or something that can be C<EVAL>led.
 
 The C<dies_ok()> passes the test if the given code throws an exception.
 The C<lives_ok()> passes the test if the given code B<does not> throw an
 exception.
 
-The C<throws_like> function checks whether the given code throws a specific
+The C<throws_like> function checks whether the given code (specified as either
+something C<Callable>, or as a something to be C<EVAL>led) throws a specific
 exception (either specified as a Type object, or as a string).  If an
 exception was thrown, it will also try to match the matcher hash, in which
 the key is the name of the method to be called on the exception, and the
