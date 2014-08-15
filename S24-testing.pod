@@ -223,4 +223,10 @@ exception was thrown, it will also try to match the matcher hash, in which
 the key is the name of the method to be called on the exception, and the
 value is the value it should have to pass.
 
+Please note that you can only use the C<EVAL> form if you are not referencing
+any symbols in the surrounding scope.  If you are, you should encapsulate
+your string with a block and an EVAL.  For instance:
+
+    throws_like { EVAL q[ fac("foo") ] }, X::TypeCheck::Argument;
+
 =for vim:set expandtab sw=4:
