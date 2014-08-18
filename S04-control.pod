@@ -12,8 +12,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 30 July 2014
-    Version: 134
+    Last Modified: 18 Aug 2014
+    Version: 135
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -326,8 +326,7 @@ invocant to the C<.haste> method.)
 
 Conditional statement modifiers work as in Perl 5.  So do the
 implicit conditionals implied by short-circuit operators.  Note though that
-the contents of parens or brackets is parsed as a semicolon-separated list of 
-I<statements>,
+the contents of parens or brackets is parsed as a statement,
 so you can say:
 
     @x = 41, (42 if $answer), 43;
@@ -335,6 +334,10 @@ so you can say:
 and that is equivalent to:
 
     @x = 41, ($answer ?? 42 !! ()), 43
+
+(Only a single statement is allowed inside parens or brackets; otherwise
+it will be interpreted as a LoL composer.
+See L<S02/"Multidimensional slices and parcels">.)
 
 =head1 Loop statements
 
@@ -627,7 +630,7 @@ left parenthesis, much like the C<$> operator in Haskell.  That is,
 precedence decisions do not cross a C<do> boundary, and the missing
 "right paren" is assumed at the next statement terminator or unmatched
 bracket.  A C<do> is unnecessary immediately after any opening bracket as
-the syntax inside brackets is a semicolon-separated list of statements,
+the syntax inside brackets expects a statements,
 so the above can in fact be written:
 
     @primesquares = ($_ if .is-prime for 1..100) »**» 2;
