@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 28 Dec 2013
-    Version: 161
+    Last Modified: 17 Aug 2014
+    Version: 162
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -1576,16 +1576,6 @@ is equivalent to
     my (@a,@b,@c) := |$foo;
     zip(@a; @b; @c)
 
-A semicolon inside brackets is equivalent to stacked feeds.  The code above
-could be rewritten as:
-
-    (0..*; 'a'..*; pidigits()) ==> my $foo;
-    for $foo.zip { .say }
-
-which is in turn equivalent to
-
-    for zip(0..*; 'a'..*; pidigits()) { .say }
-
 A named receiver array is useful when you wish to feed into an
 expression that is not an ordinary list operator, and you wish to be
 clear where the feed's destination is supposed to be:
@@ -1597,19 +1587,19 @@ Various contexts may or may not be expecting multi-dimensional slices
 or feeds.  By default, ordinary arrays are flattened in slurpy context, that is, they
 have "list" semantics.  If you say
 
-    (0..2; 'a'..'c') ==> my @tmp;
+    zip(0..2; 'a'..'c') ==> my @tmp;
     for @tmp { .say }
 
 then you get 0,1,2,'a','b','c'.  If you have a multidimensional array, you
 can ask for flattening semantics explicitly with C<flat>:
 
-    (0..2; 'a'..'c') ==> my $tmp;
+    zip(0..2; 'a'..'c') ==> my $tmp;
     for $tmp.flat { .say }
 
 As we saw earlier, "zip" produces an interleaved result by taking one element
 from each list in turn, so
 
-    (0..2; 'a'..'c') ==> my $tmp;
+    zip(0..2; 'a'..'c') ==> my $tmp;
     for $tmp.zip { .say }
 
 produces 0,'a',1,'b',2,'c'.
@@ -1617,7 +1607,7 @@ produces 0,'a',1,'b',2,'c'.
 If you want the zip's result as a list of subarrays, then you need to put
 the zip itself into a "chunky" C<LoL> context instead:
 
-    (0..2; 'a'..'c') ==> my $tmp;
+    zip(0..2; 'a'..'c') ==> my $tmp;
     for $tmp.zip.lol { .say }
 
 This produces two values on each line.  But usually you want the flat
@@ -1628,18 +1618,6 @@ form so you can just bind it directly to a signature:
 Otherwise you'd have to say this:
 
     for $tmp.zip.lol -> [$i, $a] { say "$i: $a" }
-
-Conjectural: To interpolate a feed into a subscript such that the
-slice turns into multiple subscripts, you need to use C<< prefix:<||> >>,
-which works just like prefix:<|> except that it interpolates at the slice
-level rather than the flat list level:
-
-    (0..10; 0..10).zip
-    zip(0..10; 0..10)
-    (0..10; 0..10) ==> zip( ||@(*) )
-    (0..10; 0..10) ==> $feed; zip( ||$feed )
-
-Usually it's better to just use the method form.
 
 Note that with the current definition, the order of feeds is preserved
 left to right in general regardless of the position of the receiver.
