@@ -12,8 +12,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 4 Feb 2014
-    Version: 282
+    Last Modified: 18 Aug 2014
+    Version: 283
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -2451,9 +2451,35 @@ when you say
 
 really means
 
-    @matrix[LoL( (1..*), 0 )]
+    @matrix[LoL.new( (1..*), 0 )]
+
+or more briefly,
+
+    @matrix[lol (1..*), 0]
 
 Each such slice sub-parcel is evaluated lazily.
+
+Just as parens and brackets can be used to compose parcels and arrays,
+if you put any semicolons into either form, it becomes a multi-dimensional
+composer:
+
+    (1..*; 0)   # same as (lol (1..*), 0), that is LoL.new($(1..*), 0)
+    [1..*; 0]   # same as [lol (1..*), 0], that is Array.new($(1..*), 0)
+
+A consequence of this is that you may not put more than one statement
+inside parens or brackets expecting sequence semantics, that is, the way
+a normal block evaluates all but the final statement for declarations or
+side effects, then returns the value of the final statement.  In order
+to do that in Perl 6, you need to use one of these constructs:
+
+    do { my $x = 42; $x }
+    SEQ( my $x = 42; $x )
+    $( my $x = 42; $x )
+    @( my @x = 42,43; @x )
+    %( my %x = a => 42; %x )
+
+Note that the first one limits the scope of the declaration to the block,
+while the parenthesized form are parasitic on the outer lexical scope.
 
 =head2 Subscript adverbs
 
