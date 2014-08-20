@@ -136,6 +136,8 @@ L<http://irc.perl6.org> to see what has been logged for you.
 
 =head2 backtrack
 
+=head2 backend
+
 =head2 Bailador
 
 Spanish for "dancer", The Bailador module (L<https://github.com/tadzik/Bailador/>)
@@ -229,6 +231,11 @@ access.
 
 See L</operator>
 
+=head2 CFG
+
+1) Context Free Grammar.
+2) see L</Control Flow Graph>. 
+
 =head2 circularity saw
 
 A pun on "circular saw".  When bootstrapping a language in terms
@@ -304,7 +311,18 @@ See L</compilation unit>.
 
 =head2 container
 
+=head2 context
+
 =head2 control flow
+
+Without control flow statements, a program execution would be purely sequential.
+Control flow statement generally uses a predicate and branches to one of its
+subtatement according to the predicate value.
+
+=head2 Control Flow Graph
+
+in L</spesh>, a L</dominance> graph generated from L</bytecode> analysis so that L</Single Static Assignment>
+can be done.
 
 =head2 constant
 
@@ -406,6 +424,10 @@ L</Domain Specific Language>. See L</slang>.
 
 =head2 Domain specific language.
 
+=head2 Dominance
+
+See </Control Flow Graph>
+
 =head2 dynamic
 
 =head2 dynamic language
@@ -444,6 +466,7 @@ document for reference.  See also L</Synopsis>.
 
 An expression is a part of a statement that is constituted of operators and their operands
 and gives a value. The semantic of an expression may depend on its L</context>.
+An expression is all or part of a L</statement>.
 
 =head2 Extop
 
@@ -642,6 +665,17 @@ A built-in arbitrary-sized integer type. See L<http://doc.perl6.org/type/Int>.
 
 =head2 int
 
+=head2 Intermediate Representation
+
+In a compiler, Intermediate data structures that are generated from
+the L</source code> to generate L</object code> or L</bytecode>.
+In L</rakudo> : L</parse tree>, and L<Abstract Syntax Tree>.
+The L</parser> generates a  that is transformeed to an </AST>s
+Sometimes the information can be regenerated from the bytecode.
+In rakudo the Single Static Assignment form is inferred from the bytecode
+to 
+
+
 =head2 interface
 
 =head2 interpreter
@@ -652,6 +686,10 @@ A built-in arbitrary-sized integer type. See L<http://doc.perl6.org/type/Int>.
 
 A L</opcode> that makes possible the support of C</dynamic language>s in L</JVM>.
 A L<presentation|http://www.infoq.com/presentations/invokedynamic> about invokedynamic.
+
+=head2 IR
+
+See L</Intermediate Representation>
 
 =head2 IRC
 
@@ -907,12 +945,15 @@ See L</operator>
 
 =head2 operator
 
-An expression is constituted of operators and operands. More precisely it is made of an operator and
+An expression is made of operators and operands. More precisely it is made of an operator and
 operands that can be subexpressions or L</values>.
 Operators are an alternative syntax for a L<multi method>. With that syntax, what would be the L</argument>s of the function
-are named operands instead. Operators are classified into categories.
-L<List|http://perlcabal.org/syn/S02.html#Grammatical_Categories> of categories.
-A category has a precedence, an arity, can be L</fidly>, L</iffy>, L</diffy>
+are named operands instead. Operators are classified into L<categories|http://perlcabal.org/syn/S02.html#Grammatical_Categories> of categories.
+A category has a precedence, an arity, can be L</fidly>, L</iffy>, L</diffy>.
+Perl 6 is very creative as to what is an operator so they are many categories which operators are amde
+of many tokens, possibly with a subexpression.  For example,  L<@a[0]> belongs to the
+postcircumfix category is broken in the operand C<@a> and the 
+postcircumfix operator L<[0]> where C<0> is postcircumfixed subexpression.
 
 The C<< <O(I<...>)>  >> construction gives information about an operator that completes the
 information provided by its category.
@@ -941,6 +982,8 @@ an interpreted (or less optimized) stack frame into a compiled (or more optimize
 
 =head2 package
 
+=head2 package manager
+
 =head2 pad
 
 See L</lexical pad>.
@@ -958,7 +1001,14 @@ object, for instance:
 
 =head2 Panda
 
-A Perl 6 program designed to make it easier to install L</module>s.
+A Perl 6 program designed to make it easier to download, compile and install L</module>s
+according to the transitive dependencies specified in the C<META.info> medadata files
+of said modules.
+Unlike other L</package manager>s, panda supports many L</VM>s,
+that is the three VMs supported by the L</rakudo> compiler: L</MoarVM>, L</Parrot> and L</JVM>.
+The official set of modules is called the L</ecosystem> according to the L</github> repository
+name that contains the module list pointing to their respective repositories.
+
 
 =head2 panda bootstrap script
 
@@ -1069,6 +1119,10 @@ An operator that comes before the term it belongs to, for example
 
     say ?42;    # True
     #   ^ prefix operator
+    
+=head2 predicate
+
+L</expression> used in a L</boolean context> by a L</control flow> L</statement>.
 
 =head2 private
 
@@ -1139,11 +1193,11 @@ contexts.
 =head2 reification
 
 Certain composite objects like L</range> are defined in the abstract. 
-They are partially or totally reified on demand, that is their composant objects
+They are partially or totally reified on demand, that is, their composant objects
 are created only when they are needed.
 Without that lazyness, some objects would consume too much L</memory> or would not
 even fit in memory like the infinite L</range>: C<1..Inf>
-See also L</lazyness>
+See also L</lazyness>.
 
 
 =head2 reify
@@ -1154,6 +1208,14 @@ Read Eval Print Loop.  Read a line of code, evaluate, print, wait for new line
 of code.
 
 =head2 repository
+
+A repository contains the information pertaining to a software or its L</module>s.
+That is the source code, its history and ancillary information like a wiki, a bug tracking system, 
+a static web site, depending on the hosting service containing the repository.
+Usuallly Perl 6 related information are stored in L</github> repositories.
+The official list of Perl 6 modules is the L</ecosystem> is also stored in a repository.
+When installing a module, the L</panda> L</package manager> uses the ecosystem to
+fetch the appropriate repositories for transitive dependancies.
 
 =head2 REPR
 
@@ -1264,7 +1326,13 @@ array, hash, or code variable.  See also L</twigil> and L</role>.
 Also sigilled variables allow short conventions for L<variable interpolation> in a double quoted string,
 or even C<postcircumfix> L</expression> starting with such a variable.
 
+=head Single Static Assignment
+
+
+
 =head2 sink context
+
+L</Context> of an expression which value is ignored.
 
 =head2 sixplanet
 
@@ -1302,6 +1370,10 @@ improve commonly used pieces of L</bytecode>. It is much like a L</JIT Compiler>
 except that those usually output L</machine code> rather than bytecode.
 
 =head2 splat
+
+=head2 SSA
+
+See L</Single Static Assignment>.
 
 =head2 STable
 
