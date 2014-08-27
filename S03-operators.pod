@@ -14,8 +14,8 @@ Synopsis 3: Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 18 Aug 2014
-    Version: 279
+    Last Modified: 27 Aug 2014
+    Version: 280
 
 =head1 Overview
 
@@ -791,6 +791,11 @@ should try to do so rather than simply throwing an exception.  (And in
 general, other operators that might fail should also consider their
 use in hyperops and junctions, and whether they can profitably benefit
 from a lazy exception model.)
+
+On the other hand, C<div> wants to be very efficient and jittable when used
+as a low-level operation, so when you use C<div> on two native ints, it relies on
+hardware to detect division by 0.  Hence, it will always throw an exception
+rather than return a C<Failure>.
 
 In general, C<div> should give the same result as
 
