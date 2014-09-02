@@ -183,12 +183,12 @@ L</Value> of type L</Bool>. Apart the class itself, can be either <True> or <Fal
 =head2 boolean context
 
 A L</context> that forces an L</expression> to give a L</boolean> value.
-The L</prefix> L</operators> C<so>, C<not> and their
+The L</prefix> L</operator>s C<so>, C<not> and their
 repective higher L</precedence> C<?> and C<!> forms force a boolean context with <!> and C<not> doing
 a negation. 
 The L</predicate> part of a L</control flow> L</statement> forces a boolean context.
 A class can define a C<Bool> method to handle the boolean context.
-For L</native>s, within L</MoarVM>, it is handled by L</MVMBoolificationSpec> member
+For L</native>s, within L</MoarVM>, it is handled by C</MVMBoolificationSpec> member
 of the L</stable> structure.
 
 =head2 bootstrap
@@ -236,7 +236,7 @@ Perl 5, Perl 6 and NQP.
 
 =head2 capture
 
-A regex can record text that are matched by a certain part of the regex. That
+A regex can record substrings of the L</match>ed string that are matched capturing parts of the regex. That
 part (and the matched text) is a capture.
 
 For example
@@ -246,6 +246,8 @@ For example
         say $0;
         #   ^^ capture variable
     }
+    
+C<(I<...>)> is the capture syntax while its non capturing counterpard is the grouping syntax : C<[I<...>]>.
 
 =head2 CAS
 
@@ -254,7 +256,14 @@ access.
 
 =head2 Category
 
-See L</operator>.
+In L</grammar>s, regex of a L</multi> form a category that are distinguished
+by their L</long name>. That includes the L<signature> but also the value
+of the L<:sym> adverb. An L</expression> is constituted of tokens that belongs
+either in the category L</term> or one of the L</operator>s categories.
+
+A regex definition for one of the term kinds :
+
+    token term:sym<name> { ... }
 
 =head2 CFG
 
@@ -346,6 +355,11 @@ See L</compilation unit>.
 =head2 container
 
 =head2 context
+
+A context specifies the kind of value expected from an L</expression>.
+A context may be L</boolean|boolean context>, L</numeric context|numeric>, L</item|item context>,
+L<list|list context L<hash|hash context>. 
+Some L</prefix> L</operator>s are used to force the context;  
 
 =head2 control flow
 
@@ -485,6 +499,10 @@ by L</Panda>. L</Rakudo *> include a tested subset of the ecosystem.
 
 Something that intends to please everyone by catering for everybody's taste,
 yet in the end pleasing nobody, because nobody is catered for enough.
+
+=head2 empty list
+
+A list which contains no value. Noted C<()>.
 
 =head2 EPIC FAIL
 
@@ -747,6 +765,11 @@ In rakudo the Single Static Assignment form is inferred from the bytecode.
 
 =head2 invocant
 
+As a L<parameter>, 
+As a L<argument>, 
+In the L</expression> C<42.say>, C<42> is the invocant. 
+When missing, like in C<.say>, the invocant is C<$_>.
+
 =head2 invokedynamic
 
 A L</opcode> that makes possible the support of C</dynamic language>s in L</JVM>.
@@ -867,11 +890,41 @@ See L<Longest Token Matching|http://perlcabal.org/syn/S05.html#Longest-token_mat
 
 =head2 Machine code
 
+=head2 magic variable
+
+L</Variable> that has a behavior of its own and that is denoted by
+a sigiless name with a non alphanumeric character.
+Unlike Perl 5 that has a profusion of magic variables, Perl 6 includes only the 
+magic variables L</$_>, L</$/> and L<$!>. They are L</block> L</scope>d and implicitely
+defined at the beginning of each block.
+
+=head2 Match
+
+L</Value> resulting from a L</match>.
+In L</list context>, gives the positional L</capture>s list.
+In L</hash context>, gives the named L</capture> hash.
+In L</numeric context>, gives the matched string length.
+In L</boolean context>, gives L</True> like any non class object.
+
 =head2 match
+
+A match is an operation that tests a L</string> against a L</grammar> or a L</regex>.
+and returns an L</object> of L<Match> type in case of success, otherwise a L</Nil>
+
+Matching against a C<regex> is a special case of L</smartmatching>.
+
+See also L</parse>.
 
 =head2 metamodel
 
+The metamodel describe some L<OO> behaviors, like where to find a L</method>.
+This permits to implement differnent OO behaviors in the same L</VM>.
+The Perl 6 implementation of the metamodel is called L</6model>.
+The metamodel should not be confused with the L</representation>.
+
 =head2 method
+
+methods are L</sub>s that are called with an L</invocant>.
 
 =head2 MI
 
@@ -965,6 +1018,10 @@ Documentation for this can hypothetically be found in L<S15>.
 =head2 Niecza
 
 An implementation of Perl 6 targeting the .NET platform.
+
+=head2 Nil
+
+Means there is no value there which is different from C<()>, the L</empty list>.
 
 =head2 NST
 
@@ -1404,8 +1461,6 @@ or even C<postcircumfix> L</expression> starting with such a variable.
 
 =head2 Single Static Assignment
 
-
-
 =head2 sink context
 
 L</Context> of an expression which value is ignored.
@@ -1422,6 +1477,8 @@ can be seen as the combination of many slangs (the regex slang, the quotation sl
 Defining a slang has a cost because it usually involves generating new C</NFA>s table but except for
 the space taken by the said tables, it is compilation time cost.
 Slang is a principled way to create Domain Specific Languages (DSLs).
+
+=head2 smart match
 
 =head2 slurpy
 
@@ -1764,6 +1821,12 @@ Oh, um... L</Whatever>.
 Everybody wants the colon.
 
 =head2 ?
+
+=head2 (
+    
+=head3 ()
+
+L</Empty List>
 
 =head2 *
 
