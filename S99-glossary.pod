@@ -80,6 +80,7 @@ As Late As Possible
 =head2 Any
 
 The class from which most things derive, except for L</Junction>s.
+Any is derived from L</Mu>.
 
 =head2 any()
 
@@ -140,12 +141,23 @@ L<http://irc.perl6.org> to see what has been logged for you.
 
 =head2 backtrack
 
+Feature of a combinatorial algorithm which goes back one step toward the trunk
+after failing exploring a branch of the potential solution space.
+A string match is such a algorithm. Here, backtracking usually meains moving
+back the L</cursor>. In a non greedy match, it means moving the cursor forward.
+
 =head2 backend
+
+Denote a VM targetted by L</rakudo>. Can be </MoarVM>, L</JVM> or L</Parrot>.
 
 =head2 Bailador
 
 Spanish for "dancer", The Bailador module (L<https://github.com/tadzik/Bailador/>)
 is a port of Perl 5's Dancer web framework (L<http://perldancer.org/>).
+
+=head2 bare string
+
+An non quoted alphanumeric string. In Perl 6, only allowd at the left of a L</fat comma>.
 
 =head2 biab
 
@@ -339,7 +351,7 @@ In simpler dynamic languages like
 Perl 5, the interpreter does not go through conceptual phases similar to the one for a compiler
 of non dynamic language, the term compiler is rarely used.
 
-When transforming L</concrete> to L</bytecode>, the first conceptual phase is called L<parsing|/parse>
+When transforming L</concrete syntax> to L</bytecode>, the first conceptual phase is called L<parsing|/parse>
 and generate a L</parse tree>. Next the parse tree is transformed into an abstract syntax tree which is a form
 that can be optimised. Next the abstract tree is transformed to L</bytecode> in an L</compilation unit>.
 Then, this bytecode is executed. Depending on the type of the data manipulated by the L</program>
@@ -356,6 +368,10 @@ of a L</constructor> L</expression>.
 See L</compilation unit>.
 
 =head2 concurrency
+
+=head2 concrete
+
+An L</object> L</value> is concrete when it is not the L</class> itself
 
 =head2 concrete syntax
 
@@ -536,10 +552,19 @@ An expression is all or part of a L</statement>.
 =head2 Extop
 
 An extension to the default L</bytecode> L</instruction set> in L</Parrot> or L</MoarVM>.
+Used to support L</opcode>s specific to a language.
 
 =head1 F
 
 =head2 FAIL
+
+=head fat comma
+
+Contrary to Perl 5, C<< => >>, the fat comma does not simply separate two values but makes
+a L</Pair> out of them. The left value can be a L</bare string>. This is the only
+place where Perl 6 accepts a bare string. Example:
+    
+      foo => bar
 
 =head2 fiddly
 
@@ -554,7 +579,7 @@ cross, zip, hyperify or assignify fiddly operators.
 
 =head2 FIFO
 
-First In First Out
+First In First Out. Denote the behavior an array used as a L</stack>
 
 =head2 flap
 
@@ -887,7 +912,7 @@ results in a library.
 
 =head2 LIFO
 
-Last In First Out
+Last In First Out. Denote the behavior of an array used as L</queue>.
 
 =head2 List
 
@@ -910,6 +935,8 @@ See L<Longest Token Matching|http://perlcabal.org/syn/S05.html#Longest-token_mat
 =head1 M
 
 =head2 Machine code
+
+Code specific to the L</instruction set> of an hardware architecture. Compare with L</bytecode>.
 
 =head2 magic variable
 
@@ -1082,7 +1109,7 @@ the linking phase is more complex and involves the deL</serialization> of inform
 =head2 On Stack Replacement
 
 According to the hotspot L</glossary|http://openjdk.java.net/groups/hotspot/docs/HotSpotGlossary.html> :  The process of converting
-an interpreted (or less optimized) stack frame into a compiled (or more optimized) stack frame.
+an interpreted (or less optimized) L</stack frame> into a compiled (or more optimized) stack frame.
 
 =head2 our
 
@@ -1147,6 +1174,7 @@ See L</lexical pad>.
 
 The simplest object containing a key and value pair.
 
+
 =head2 pair notation
 
 Way of expressing key/value pairs, using the L</fat comma>, creating a L</Pair>
@@ -1184,7 +1212,7 @@ See L</parakudo>.
 
 =head2 Parrot
 
-A virtual machine designed to run Perl 6 and other L</dynamic language>s.
+A virtual machine designed to run Perl 6 and other L</dynamic language>s. Mostly historic.
 
 =head2 parser
 
@@ -1289,6 +1317,8 @@ L</expression> used in a L</boolean context> by a L</control flow> L</statement>
 
 =head2 private
 
+=head2 process
+
 =head2 PROCESS::
 
 =head2 producer
@@ -1304,9 +1334,13 @@ made changes to it that they wish to have in the main project.
 
 =head2 pugs
 
-A Perl 6 implemetation in Haskell, led by the efforts of Audrey Tang.
+A Perl 6 implementation in Haskell, led by the efforts of Audrey Tang.
 The first truly usable Perl 6 implementation, it was actively developed 2005
 through 2007.  Currently on life support.
+
+=head2 pure
+
+A function or method is pure if it has no side effect
 
 =head2 p5
 
@@ -1472,11 +1506,16 @@ Something that should never, ever happen.  Complain on #perl6 if you see one.
 
 =head2 serialization
 
+The serialization saves information obtained at compilation time from a L</compulation unit>
+to be deserialized at load time to perform various initialization tasks.
+The saved information  involves named constants, strings, among many other things.
+
 =head2 serialization context
 
 =head2 setting
 
 Library set that is loaded by default.
+When possible, the setting is loaded lazily to optimize loading time.
 
 =head2 shared library
 
@@ -1537,6 +1576,10 @@ except that those usually output L</machine code> rather than bytecode.
 
 See L</Single Static Assignment>.
 
+=head2 stack frame
+
+See L</frame>
+
 =head2 STable
 
 Representation independant datastructure associated to the
@@ -1551,15 +1594,23 @@ See L</Rakudo *>.
 
 =head2 Statement
 
+=head2 Static frame
+
+Data pertaining to a L</frame> gathered at compile time.
+
 =head2 STM
 
 Software Transactional Memory
 
 =head2 Str
 
+Name of the string type.
+
 =head2 sub
 
-=head2 subroutine
+Short forsubroutine
+
+=head2 Subroutine
 
 =head2 symbol
 
@@ -1595,6 +1646,13 @@ A thinkographical error; i.e. a small mistake made by improperly expecting
 code to L</DWIM> or from an interrupted thought process.
 
 =head2 thread
+
+An execution unit more lightweight than a L</process>.
+Threads allow to parallelize code for concurrent performance
+but it is tricky to modify information shared by the different threads
+of a process.
+Perl 6 provides many primitives that create threads when needed so direct
+thread use is possible but should be done only when necessary.
 
 =head2 thunk
 
@@ -1716,7 +1774,7 @@ See also L</NFG> for an encoding specific to Perl 6.
 
 It consists of a number of data files listing Unicode character properties and related data.
 It also includes data files containing test data for conformance to several important Unicode algorithms.
-See L<also|http://www.unicode.org/ucd/>. For a given character, many of these properties can
+See L<also|http://www.unicode.org/ucd/>.
 
 =head2 Unicode Normalization Form
 
