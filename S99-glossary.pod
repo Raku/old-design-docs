@@ -39,7 +39,8 @@ Also used by old folks to indicated acknowledgement.
 =head2 actions
 
 A class used to generate an L</AST> from the results of parsing text with a
-L</grammar>.
+L</grammar>. The method to attach a generated AST is called "make", the one
+to retrieve an AST is called "made".
 
 =head2 adverb
 
@@ -148,7 +149,7 @@ back the L</cursor>. In a non greedy match, it means moving the cursor forward.
 
 =head2 backend
 
-Denote a VM targetted by L</rakudo>. Can be </MoarVM>, L</JVM> or L</Parrot>.
+Denote a VM targetted by L</rakudo>. Can be L</MoarVM>, L</JVM> or L</Parrot>.
 
 =head2 Bailador
 
@@ -231,6 +232,8 @@ Bounded Serialization.
 The way to report problems to the implementors.
 For the interpretors themselves, use L</RT>.
 It is good practice to include the interpreter L</version> in a bug report.
+A short piece of example code that demonstrates the bug without requiring any
+further set-up is usually very well received, too - see also L</golfing>
 For the user packages hosted on L</github>, you can report issues.
 
 =head1 C
@@ -365,7 +368,7 @@ A L</pseudo-scope> to access lexical L</symbol>s in the L</scope> being compiled
 =head2 composer
 
 A composer is a syntax for defining L</values>. When values are L</object>s, their composer is a L</Huffmanization>
-of a L</constructor> L</expression>.
+of a L</constructor> L</expression>. For an example, see the L</Fat comma>.
 
 =head2 compunit
 
@@ -410,8 +413,7 @@ the most common types like L</pairs>s
 
 =head2 CORE::
 
-A </pseudo-scope> to access L</symbol>s of the outermost lexical L</scope>, definition of standard Perl.
-    
+A L</pseudo-scope> to access L</symbol>s of the outermost lexical L</scope>, definition of standard Perl.
 
 =head2 CPAN
 
@@ -529,7 +531,7 @@ One of the opposites of L</lazy>.
 =head2 ecosystem
 
 The L<ecosystem|https://github.com/perl6/ecosystem> is a repository of Perl 6 modules installable
-by L</Panda>. L</Rakudo *> include a tested subset of the ecosystem.
+by L</Panda>. L</Rakudo *> releases include a tested subset of the ecosystem.
 
 =head2 edsel
 
@@ -849,9 +851,9 @@ I Seem To Remember.
 =head2 iteration
 
 A way to go thru all the values of an L</Iterable> object like a L</list> or a L</hash>.
-Generally, iterators L</object>s are invisible from user code because syntactical forms iterate
+Generally, iterator L</object>s are invisible from user code because syntactical forms iterate
 for the user and pass the resulting value to the expression or the block acting on the value.
-Example :
+Example:
 
    for 1..20 { .say }
    .say for 1..20
@@ -1110,8 +1112,7 @@ Originally named so for its "new object model".
 =head2 NQP
 
 Short for B<N>ot B<Q>uite B<P>erl, a subset of Perl 6 suitable for tasks such as
-implementing L</Rakudo>. Targets L</Parrot> and the L</JVM>, with work underway
-on targeting L</MoarVM>.
+implementing L</Rakudo>. Targets L</Parrot>, the L</JVM> and L</MoarVM>.
 
 =head1 O
 
@@ -1206,6 +1207,8 @@ Way of expressing key/value pairs, using the L</fat comma>, creating a L</Pair>
 object, for instance:
 
   foo => 1
+
+In contrast with the L</adverbial pair> notation.
 
 =head2 Panda
 
@@ -1323,6 +1326,13 @@ A L</role> denoting an linearly ordered composite datastructure that can be iter
 
 =head2 postcircumfix
 
+An operator that follows a term directly and encloses another term inside it.
+For example:
+
+    my $friend = @names[15];
+    #                  ^--^ circumfix
+    #            post--^
+
 =head2 postfix
 
 An operator that comes after the term it belongs to.
@@ -1369,7 +1379,7 @@ made changes to it that they wish to have in the main project.
 
 A Perl 6 implementation in Haskell, led by the efforts of Audrey Tang.
 The first truly usable Perl 6 implementation, it was actively developed 2005
-through 2007.  Currently on life support.
+through 2007.
 
 =head2 pure
 
@@ -1399,12 +1409,12 @@ result data is returned.
 =head2 Rakudo
 
 An implementation of Perl 6 originally targeting L</Parrot>, it now targets
-Parrot, the L</JVM>, and (soon) L</MoarVM> through L</NQP>.
+Parrot, the L</JVM>, and L</MoarVM> through L</NQP>.
 
 =head2 Rakudo *
 
-Rakudo Star, a useful and supposedly monthly distribution of Rakudo which
-includes modules and L</Panda>.
+Rakudo Star, a useful and at most monthly, at least quarterly distribution of
+Rakudo which includes modules and L</Panda>.
 
 =head2 rakudobug
 
@@ -1434,7 +1444,8 @@ See also L</laziness>.
 =head2 REPL
 
 Read Eval Print Loop.  Read a line of code, evaluate, print, wait for new line
-of code.
+of code. Commonly used to experiment with code and get results whenever a line
+is finished.
 
 =head2 repository
 
@@ -1521,7 +1532,8 @@ fact that it doesn't work goes unnoticed.
 
 =head2 SC
 
-L<serialization context>
+A L</serialization context> groups together things, usually from the same
+L</compilation Unit>
 
 =head2 scalar
 
@@ -1539,7 +1551,7 @@ Something that should never, ever happen.  Complain on #perl6 if you see one.
 
 =head2 serialization
 
-The serialization saves information obtained at compilation time from a L</compulation unit>
+The serialization saves information obtained at compilation time from a L</compilation unit>
 to be deserialized at load time to perform various initialization tasks.
 The saved information  involves named constants, strings, among many other things.
 
@@ -1573,6 +1585,7 @@ L</Context> of an expression which value is ignored.
 =head2 sixplanet
 
 L<sixplanet|http://planeteria.org/perl6/> is a collation of blogs related to Perl 6.
+If planeteria.org is down, a replacement can be found on L<http://pl6anet.org/>.
 
 =head2 slang
 
@@ -1586,6 +1599,9 @@ Slang is a principled way to create Domain Specific Languages (DSLs).
 =head2 smart match
 
 =head2 slurpy
+
+A parameter that will "slurp up" any excess named or positional parameters
+and present them as a hash or list respectively.
 
 =head2 slushy
 
@@ -1645,7 +1661,7 @@ Name of the string type.
 
 =head2 sub
 
-Short forsubroutine
+Short for subroutine
 
 =head2 Subroutine
 
@@ -1745,14 +1761,14 @@ conceptual phases are defined by the L</grammar>
 
 =head2 topic
 
-Expression which value is aliased to L<$/>
+Expression which value is aliased to L<$_>
 
 =head2 trait
 
 =head2 TTIAR
 
 Two Terms In A Row. A common error message often resulting from a missing L</semicolon>
-between two L</statement>s
+between two L</statement>s or putting an operator directly after a L</sub>.
 
 =head2 tpyo
 
@@ -1787,6 +1803,11 @@ See L</Unicode Character Database>
 =head2 unboxing
 
 See L</boxing>.
+
+=head2 unspace
+
+A way to put L</whitespace> in your code that is ignored by the parser. Introduced
+with a backslash.
 
 =head2 ufo
 
@@ -1891,7 +1912,7 @@ This lemma will never be explained.
 
 =head2 WAT
 
-L<https://www.destroyallsoftware.com/talks/wat>.
+L<https://www.destroyallsoftware.com/talks/wat>. Often used as the opposite of L</DWIM>
 
 =head2 Weekly Changes
 
@@ -1911,7 +1932,7 @@ L<http://doc.perl6.org/type/Whatever>.
 The negative space between syntactic constructs within a language.
 Typically consists of spaces, tabs, newlines, form feeds, and other
 "invisible" characters. For the purposes of parsing Perl 6, L</comment>s
-are also considered whitespace.
+are also considered whitespace. See also L</unspace>.
 
 =head2 WIP
 
@@ -1938,7 +1959,7 @@ problem.
 =head2 yoleaux
 
 The IRC-bot on #perl6 that is your personal assistant.
-See L<https://github.com/dpk/yoleaux>.
+See L<https://github.com/dpk/yoleaux> and L<http://dpk.io/yoleaux>.
 
 =head1 Z
 
@@ -1976,6 +1997,9 @@ Something you should stop using, and use subroutine signatures instead.
 
 =head2 $_
 
+The "topic variable". Set by any construct that's a "topicalizer", like the
+L</given> statement or a for loop.
+
 =head2 %_
 
 =head2 ++
@@ -1992,6 +2016,7 @@ For instance:
 
 =head2 6model
 
-The "new object model"/L</MOP> that's currently in rakudo.
+The "new object model"/L</MOP> that's currently in rakudo. L</MoarVM> uses this
+internally. On Parrot and JVM, it sits on top of the native object model.
 
 =for vim:set expandtab sw=4:
