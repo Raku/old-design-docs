@@ -1006,6 +1006,65 @@ while the C<more> closure is put in a C<do>. A C<Tap> is returned, which
 may be closed in the usual way. (Note that the name C<act> is also a subtle
 reference to actor semantics.)
 
+=head1 Inter-Process Communication exposed as Promises and Supplies
+
+Starting external processes is rather easy: C<shell()>, C<run()> and C<qx//>.
+Having external processes run asynchronously, is slightly more involved.
+But not much.  The workhorse of asynchronous IPC in Perl 6 is C<Proc::Async>:
+
+    my $proc = Proc::Async.new( $path, *@args );
+
+[Note: feels more natural to use positionals, rather than the current
+ implementation using named :$path and :@args, EM]
+
+The returned object can then be called whenever needed to start the external
+process.  However, before you do that, one needs to be clear what to do about
+the output of the external process.  Getting information back from the external
+process's C<STDOUT> or C<STDERR>, is done by a C<Supply> that either gets
+characters or bytes.
+
+    $proc.stdout_chars.act(&say);   # simply pass it on to our $*OUT
+    $proc.stderr_chars.act(&note);  # and $*ERR, but could be any code
+
+or:
+
+    my $stdout_bytes = $proc.stdout_bytes;
+    my $stderr_bytes = $proc.stderr_bytes;
+
+So, to make sure no information will be lost, you need to create and tap the
+supplies B<before> the process is started.
+
+To start the external process, you need to call the C<.start> method.  It
+returns a C<Promise> that becomes C<Kept> (and True) if the process concludes
+successfully, or C<Broken> (and False) if the process failed for some reason.
+
+    my $done = $proc.start( :$scheduler = $*SCHEDULER );
+
+To send data to the running process, you can use the C<.print>, C<.say> and
+C<.write> methods on the C<Proc::Async> object:
+
+    my $printed = $proc.print( "Hello world\n", :$scheduler = $*SCHEDULER );
+    my $said    = $proc.say(   "Hello world",   :$scheduler = $*SCHEDULER );
+    my $written = $proc.write( $buffer,         :$scheduler = $*SCHEDULER );
+
+They all also return a C<Promise> that is C<Kept> when communication with the
+process was successful.
+
+Some programs expect their C<STDIN> to be closed to signify the end of their
+processing.  This can be achieved with the C<.close_stdin> method:
+
+    $proc.close_stdin;
+
+Finally, if your process as gong awry, you can stop it with the C<.kill>
+method:
+
+    $proc.kill;            # sends HUP signal to process
+
+    $proc.kill("SIGINT");  # send INT signal
+
+The parameter should be something that is acceptable to the Kernel.signal
+method.
+
 =head1 The Event Loop
 
 There is no event loop.  Previous versions of this synopsis mentioned an event
