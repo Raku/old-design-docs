@@ -1023,13 +1023,13 @@ the output of the external process.  Getting information back from the external
 process's C<STDOUT> or C<STDERR>, is done by a C<Supply> that either gets
 characters or bytes.
 
-    $proc.stdout_chars.act(&say);   # simply pass it on to our $*OUT
-    $proc.stderr_chars.act(&note);  # and $*ERR, but could be any code
+    $proc.stdout-chars.act(&say);   # simply pass it on to our $*OUT
+    $proc.stderr-chars.act(&note);  # and $*ERR, but could be any code
 
 or:
 
-    my $stdout_bytes = $proc.stdout_bytes;
-    my $stderr_bytes = $proc.stderr_bytes;
+    my $stdout-bytes = $proc.stdout-bytes;
+    my $stderr-bytes = $proc.stderr-bytes;
 
 So, to make sure no information will be lost, you need to create and tap the
 supplies B<before> the process is started.
@@ -1051,11 +1051,11 @@ They all also return a C<Promise> that is C<Kept> when communication with the
 process was successful.
 
 Some programs expect their C<STDIN> to be closed to signify the end of their
-processing.  This can be achieved with the C<.close_stdin> method:
+processing.  This can be achieved with the C<.close-stdin> method:
 
-    $proc.close_stdin;
+    $proc.close-stdin;
 
-Finally, if your process as gong awry, you can stop it with the C<.kill>
+Finally, if your process as going awry, you can stop it with the C<.kill>
 method:
 
     $proc.kill;            # sends HUP signal to process
