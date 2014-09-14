@@ -579,8 +579,8 @@ signal at all, and is used to determine if processes are still running:
 =item shell
 
 
- multi shell ( $expression,   :$bg,  :%env = %*ENV --> Proc::Status )
- multi run   ( *$cmd, *@args, :$bg,  :%env = %*ENV --> Proc::Status )
+ multi shell ( $expression,   :%env = %*ENV --> Proc::Status )
+ multi run   ( *$cmd, *@args, :%env = %*ENV --> Proc::Status )
 
 C<shell> and C<run> execute an external program, and return control to
 the caller once the program has exited.
@@ -607,18 +607,12 @@ is used.
 
 On failure to execute, the routines C<fail()>.
 
-If the C<:bg> named parameter is passed, the program will be executed
-in the background, and the run command will return as soon as the
-child process is created. This means that the object returned is
-actually a C<Proc>, which represents the created process.
-
-[ Note: should the :bg form take rw filehandles or is that over-overloading
-        the functionality of run? Should run be the new open with
-        respect to executing external code? -ajs ]
+If you want to execute an external program asynchronously (as in, not waiting
+for it to be finished), you will need C<Proc::Async>, as specced in
+L<S17-concurrency>.
 
 [ Conjecture: maybe shell() and run() should support a C<:$cwd = $*CWD>
 parameter -moritz ]
-
 
 =item runinstead
 
