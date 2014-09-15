@@ -1017,7 +1017,17 @@ Starting external processes is rather easy: C<shell()>, C<run()> and C<qx//>.
 Having external processes run asynchronously, is slightly more involved.
 But not much.  The workhorse of asynchronous IPC in Perl 6 is C<Proc::Async>:
 
-    my $proc = Proc::Async.new( $path, *@args, :%ENV = %*ENV );
+    my $proc = Proc::Async.new( $path, @args );
+
+If you like to B<send> data to the process, you need to open it with the
+C<:w> named parameter.
+
+    my $proc = Proc::Async.new( $path, @args, :w );
+
+By default, the current environment (as available in C<%*ENV>) will be set
+for the external process.  You can override this with the :ENV named parameter:
+
+    my $proc = Proc::Async.new( $path, @args, :ENV(%hash) );
 
 The returned object can then be called whenever needed to start the external
 process.  However, before you do that, one needs to be clear what to do about
