@@ -1025,13 +1025,13 @@ the output of the external process.  Getting information back from the external
 process's C<STDOUT> or C<STDERR>, is done by a C<Supply> that either gets
 characters or bytes.
 
-    $proc.stdout-chars.act(&say);   # simply pass it on to our $*OUT
-    $proc.stderr-chars.act(&note);  # and $*ERR, but could be any code
+    $proc.stdout.act(&say);   # simply pass it on to our $*OUT as chars
+    $proc.stderr.act(&note);  # and $*ERR as chars, but could be any code
 
 or:
 
-    my $stdout-bytes = $proc.stdout-bytes;
-    my $stderr-bytes = $proc.stderr-bytes;
+    $proc.stdout(:bytes).act: { # process STDOUT bytes };
+    $proc.stderr(:bytes).act: { # process STDERR bytes };
 
 So, to make sure no information will be lost, you need to create and tap the
 supplies B<before> the process is started.
