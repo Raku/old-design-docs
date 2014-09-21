@@ -2465,7 +2465,7 @@ The new name for Perl 5's C<scalar> contextualizer.  Equivalent to C<$(...)>
 We still call the values scalars, and talk about "scalar operators", but
 scalar operators are those that put their arguments into item context.
 
-If given a list, this function makes a C<Seq> object from it.  The function
+If given a list, this function makes a C<Parcel> object from it.  The function
 is agnostic about any C<Parcel> embedded in such a sequence, and any contextual
 decisions will be deferred until subsequent use of the contents.
 
@@ -2906,8 +2906,8 @@ written: C<<< << ... >> >>>.
 
 =item *
 
-Comma C<,> now constructs a C<Parcel> object from its
-operands.  In item context this turns into a C<Seq> object.  You have to use a C<[*-1]> subscript to get the last one.
+Comma C<,> now constructs a C<Parcel> object from its operands.  You have to
+use a C<[*-1]> subscript to get the last one.
 (Note the C<*>.  Negative subscripts no longer implicitly count from
 the end; in fact, the compiler may complain if you use C<[-1]> on an
 object known at compile time not to have negative subscripts.)
@@ -3845,9 +3845,9 @@ Various proposed-but-deprecated smartmatch behaviors may be easily
     Array   Num    array element truth    .[X]
     Array   Num    array contains number  *,X,*
     Array   Str    array contains string  *,X,*
-    Array   Seq    array begins with seq  X,*
-    Array   Seq    array contains seq     *,X,*
-    Array   Seq    array ends with seq    *,X
+    Array   Parcel array begins /w Parcel X,*
+    Array   Parcel array contains Parcel  *,X,*
+    Array   Parcel array ends with Parcel *,X
     Hash    Str    hash element truth     .{X}
     Hash    Str    hash key existence     .{X}:exists
     Hash    Num    hash element truth     .{X}
@@ -4412,8 +4412,8 @@ More generally, a dwimmy hyper operator works recursively for any object
 matching the C<Iterable> role even if the object itself doesn't support
 the operator in question:
 
-    Bag(3,8,[2,Seq(9,3)],8) >>->> 1;         # Bag(2,7,[1,Seq(8,2)],7)
-    Seq(3,8,[2,Seq(9,3)],8) >>->> (1,1,2,1); # Seq(2,7,[0,Seq(7,1)],7)
+    Bag(3,8,[2,(9,3)],8) >>->> 1;      # Bag(2,7,[1,(8,2)],7)
+    (3,8,[2,(9,3)],8) >>->> (1,1,2,1); # (2,7,[0,(7,1)],7)
 
 In particular, tree node types with C<Iterable> semantics enable visitation:
 
@@ -5293,7 +5293,7 @@ its bits at once using the C<< prefix:<|> >> operator:
 =head1 Traversing arrays in parallel
 
 In order to support parallel iteration over multiple arrays, Perl 6
-has a C<zip> function that builds a list of C<Seq> objects from the
+has a C<zip> function that builds a list of C<Parcel> objects from the
 elements of two or more arrays.  In ordinary list context this behaves
 as a list of C<Captures> and automatically flattens.
 
