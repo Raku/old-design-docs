@@ -3,7 +3,7 @@
 
 =head1 TITLE
 
-DRAFT: Synopsis 16: IO / Name Services
+Synopsis 16: I/O
 
 =head1 AUTHORS
 
@@ -12,16 +12,16 @@ DRAFT: Synopsis 16: IO / Name Services
     Mark Stosberg <mark@summersault.com>
     Tim Nelson <wayland@wayland.id.au>
     Daniel Ruoso <daniel@ruoso.com>
+    Elizabeth Mattijsen <liz@dijkmat.nl>
 
 =head1 VERSION
 
     Created: 12 Sep 2006
 
-    Last Modified: 19 Nov 2009
-    Version: 23
+    Last Modified: 22 Sep 2014
+    Version: 24
 
-This is a draft document. Many of these functions will work as in Perl
-5, except we're trying to rationalize everything into roles.  For
+Many of these functions will work as in Perl 5, except we're trying to rationalize everything into roles.  For
 now you can assume most of the important functions will automatically
 be in the * namespace.  However, with IO operations in particular,
 many of them are really methods on an IO handle, and if there is a
@@ -45,8 +45,8 @@ namespace, which is more global than the per-interpreter C<GLOBAL::>
 namespace.
 
 When no explicit filehandle is used, the standard IO operators are
-defined in terms of the dynamic variables.  So the C<print> function
-prints to C<$*OUT>, while C<warn> warns to C<$*ERR>.  The C<< lines() >>
+defined in terms of the dynamic variables.  So the C<say> function
+prints to C<$*OUT>, while C<note> prints to C<$*ERR>.  The C<< lines() >>
 term inputs from C<$*ARGFILES> which defaults to C<$*IN> in the absence of any
 filenames.  So any given dynamic scope (interpreter,
 thread, function or method call) may redefine the current meaning of
@@ -55,7 +55,7 @@ its called routines.
 
 So to put it another way, when you write something like
 
-    say "Howdy, world!"
+  say "Howdy, world!"
 
 the C<say> function looks for the current meaning of C<$*OUT>, and
 takes the closest definition it can find in its callers.  If none
@@ -66,233 +66,202 @@ dynamic scope in Perl 6 is allowed to do IO redirection much like
 a Unix shell does with its subprocesses, albeit with a different
 syntax:
 
-    {
-        temp $*OUT = open $newfile, :w;
-        foo() # all stdout goes to $newfile
-    }
-    # stdout reverts to outer scope's definition
+  {
+      my $*OUT will leave *.close = open $newfile, :w;
+      say "Written to $newfile";
+  }
+  # stdout reverts to outer scope's definition, and closed the file
 
-=head2 Roles and Classes
+=head2 Path Names and the .IO coercer
 
-The roles and classes that define most of the functionality for IO are defined in
-S32-setting-library/IO.pod.  The main functions used are listed in S29 with references to
-S32-setting-library/IO.pod.
+Path names are just strings (C<Str>).  Methods that return path names, will
+just return strings.  As soon as you need to do manipulation on the path name
+(e.g. to find out its C<basename> or C<extension>), you can create an
+C<IO::Path> object out of the string by applying the C<.IO> coercer:
 
-=head2 Special Quoting Syntax
+  my $path = $filename.IO;
 
-The use of filenames requires a special quoting syntax.  It works as follows:
+Then you can use any of the C<IO::Path> methods, such as C<open>:
 
-    qp{/path/to/file}
-    q:p{/path/to/file}
+  my $handle = $newfile.IO.open(:w);
 
-Both of the above result in the same C<IO::Path> object.
+Note that the C<open()> sub, is just really syntactic sugar for the above:
 
-The quote characters can be any of the usual ones, although / is probably a bad choice
-for filenames.  
+  my $handle = open $newfile, :w;
 
-The code shown above returns a Path object (or a descendant thereof).  
+=head2 $*SPEC
 
-Naturally you can also ask for interpolation in filenames:
+The current system's path semantics are encapsulated in C<$*SPEC> dynamic
+variable.  It adhers to the C<IO::Spec> interface, and is automatically
+initialized for the current environment.  But like any dynamic variable,
+can be overridden in a scope:
 
-    qp:qq{$directory/$file}
-    qq:p{$directory/$file}
+  { # Win32 path semantics in here
+      my $*SPEC = IO::Spec::Win32.new;
+      ...  # your code
+  }
+  # original path semantics here again
 
-There are a number of special adverbs that can be applied to the file quoting 
-operator.  Most of these are filesystem-specific.  They confine what can be
-included in a filename.  
+=head2 $*CWD and chdir()
 
-Any path that starts with a "/" is considered an absolute path, otherwise
-the path is considered relative.  
+The dynamic variable $*CWD is an C<IO::Path> object of the current working
+directory.  It is normally set with the C<chdir()> function, which will check
+whether the specified path exists as a directory.  To facilitate setting a
+locally scoped version of $*CWD, you can specify the variable to be set as
+a second parameter to C<chdir()>.
 
-When creating a path with qp{}, the Path.Encoding attribute is set to $?ENC, unless
-the :bin modifier (see below) is used.  
+  chdir($dir);   # sets $*CWD of outer scope, usually PROCESS::<$*CWD>
 
-=head3 Default constraints
+  {
+      chdir($dir, my $*CWD);  # set $*CWD in this scope
+  }
 
-The default constraints can be set with the "use path" pragma, for example:
+The C<chdir()> function returns a C<X::IO::Chdir> Failure if the path does
+not exist, is not accessible, or is not a directory.  Otherwise it will
+return C<True>.  Any C<Failure> generally will be thrown immediately if
+called like above.
 
-    use path :posix;
-    use path :modern;
-    use path :local;
+Please note that the path in C<$*CWD> does not have any bearing on what the
+underlying operating system's concept of a "current directory".  It is simply
+the path that will prepended before any implicit or explicit relative paths,
+and the default path that will be used when executing a sub-process.
 
-The default when in strict mode is "use path :posix", whereas the default in 
-lax mode is "use path :local".  
+=head2 $*TMPDIR and chtmpdir()
 
-=head3 :posix constraints
+The dynamic variable C<$*TMPDIR> is an C<IO::Path> object which points to the
+system's temporary directory.  It is normally set with the C<chtmpdir()>,
+which will check whether the specified path exists as a directory and is
+writable.  To facilitate setting a locally scoped version of $*TMPDIR, you
+can specify the variable to be set as the second parameter, just as with
+C<chdir()>:
 
-The :modern set of constraints paths are portable POSIX paths (see POSIX.1-2008 sections
-4.7 and 3.276).  If platform/filesystem specific behavior is needed,
-specific constraints should be applied as needed (see below).  
+  chtmpdir($dir);   # sets $*TMPDIR of outer scope, usually PROCESS::<$*TMPDIR>
 
-The default constraints are to only allow "/" as separator and only allows 
-portable POSIX filenames.  That means A-Z, a-z, 0-9, <period>, <underscore>,
-and <hyphen>.  Additionally, hyphen may not be the first character in the path.  
+  {
+      chtmpdir($dir, my $*TMPDIR);  # set $*TMPDIR in this scope
+  }
 
-Any path that starts with a "/" is considered an absolute path, otherwise
-the path is considered relative.  
+The C<chtmpdir()> function returns a C<X::IO::Chtmpdir> Failure if the path
+does not exist, is not accessible, is not a directory or isn't writable.
+Otherwise it will return C<True>.
 
-=head3 :portable
+The initialization of C<$*TMPDIR> at startup, is delegated to the C<.tmpdir>
+method of the C<$*SPEC> setting that is set at startup.
 
-In addition to the POSIX constraints above, the path should fit into 8 
-characters, followed by a full stop, and then three more characters.  Only 
-the one full stop should appear in the filename.  Additionally, no path
-may be longer than 64 characters.  
+=head2 $*HOME and chhomedir()
 
-=head3 :local
+The dynamic variable C<$*HOME> is an C<IO::Path> object which points to the
+user's home directory.  It is normally set with the C<chhomedir()>, which will
+check whether the specified path exists as a directory and is writable.  To
+facilitate setting a locally scoped version of $*HOME, you can specify the
+variable to be set as the second parameter, just as with C<chdir()>:
 
-This is :win on a Windows platform, :unix on a Unix platform, etc.  Note 
-that this is specifically not portable between platforms with different
-constraint sets.  
+  chhomedir($dir);   # sets $*HOME of outer scope, usually PROCESS::<$*HOME>
 
-=head3 :modern constraints
+  {
+      chhomedir($dir, my $*HOME);  # set $*HOME in this scope
+  }
 
-The :modern set of constraints are the same as :posix, except that they
-may contain any UTF-8 character, rather than just those listed.  
+The C<chhomedir()> function returns a C<X::IO::Chhomedir> Failure if the path
+does not exist, is not accessible, is not a directory or isn't writable.
+Otherwise it will return C<True>.
 
-=head3 :win constraints
+The initialization of C<$*HOME> at startup, is delegated to the C<.homedir>
+method of the C<$*SPEC> setting that is set at startup.
 
-We allow Windows style paths so converting and maintaining code on this
-platform is not a pain.
+=head2 System dependent path semantics and IO::Spec
 
-my Path $path = p:win{C:\Program Files\MS Access\file.file};
+Each time an C<IO::Path> object is created, the current C<$*SPEC> will be
+encapsulated in the object, to be used for all path related operations.
 
-Note that this specifically excludes the backslash quoting usually used with 
-q{}.  
+Of course, it is also possible to specify a specify a specific system's
+path semantics module when creating an C<IO::Path> object with the C<:SPEC>
+named parameter:
 
-=head3 :unix constraints
+  my $SPEC = IO::Spec::Win32.new;
+  my $path = $fileonNTFS.IO(:$SPEC);
 
-For Unix specific behavior we have a p:unix{} literal.  Here the only
-limits are what is defined by the locale and the filesystem type. So we won't 
-be able to write full Unicode if locale is set to Latin1. 
+or:
 
-my Path $path = p:unix{/usr/src/bla/myfile?:%.file};
+  my $path = $fileonNTFS.IO(:SPEC<Win32>); # auto-expand to IO::Spec::Win32.new
 
-=head3 :bin constraints (no constraints at all)
+=head2 Functions, Roles and Classes
 
-If the above are causing problems, p:bin{} can be used as no checking is
-done here.  However, this leaves the Path.Encoding attribute undefined, which 
-means that certain features of Path will remain unavailable unless this 
-attribute is set.  
+The roles and classes that define most of the functionality for IO are defined
+in S32-setting-library/IO.pod.  The main functions used are listed in S29 with
+references to S32-setting-library/IO.pod.  An overview:
 
-=head3 Other constraints
+=head3 Functions
 
-It is expected that other sets of constraints, such as VMS, DOS, and old-style
-Mac will be provided by modules.  
+  $handle = open($path);        # open a file, return IO::Handle
 
-=head2 $*CWD
+  chdir($dir);                  # set $*CWD
+  chdir($dir, my $*CWD);        # set $*CWD for the current scope
 
-The global variable $*CWD is a C<IO::Path> object with certain special
-properties, mainly:
+  chtmpdir($dir);               # set $*TMPDIR
+  chtmpdir($dir, my $*TMPDIR);  # set $*TMPDIR for the current scope
 
- * It must check whether the path exists before changing its value
- * It can only be assigned an absolute path; if you want to make relative 
-   changes, use the Array interface with .push and .pop
+  chhomedir($dir);              # set $*HOME
+  chhomedir($dir, my $*HOME);   # set $*HOME for the current scope
 
-$*CWD is specific to the current thread, unlike C<< %*ENVZ<><PATH> >> or the
-native getcwd/chdir path, which are both usually process-wide.
+  @relpaths = dir;              # paths (as Str) in $*CWD
+  @relpaths = dir($dir);        # paths (as Str) in $dir
 
-The variable is used in at least these cases:
+  @relpaths = glob($pattern);   # paths (as Str) matching $pattern
 
- * When a IO::Path object is created, if the string it is given is not an
-   absolute path, then $*CWD is prepended to it.
- * When a subprocess is executed, it is executed with the current
-   thread's $*CWD as its working directory.
+  $contents = slurp($handle);   # read all that's left of an opened filehandle
+  $contents = slurp($filename); # read all from given filename
 
-=head2 $*TMPDIR
+  spurt($handle,$contents);     # write $contents to $handle
+  spurt($filename,$contents);   # write $contents to $filename
 
-The global variable $*TMPDIR is an IO::Path object which points to the system's
-temporary directory.  It will check the usual places such a C<< %*ENVZ<><TMPDIR> >>, 
-C</tmp>, C<C:\Windows\temp>, etc (depending on the OS) for a writable directory.
-If a writable directory isn't found, it is set to $*CWD.
+  mkdir($dir);                  # create a directory
+  rmdir($dir);                  # remove a directory
 
-=head1 Name Services
+  unlink($filename);            # remove a file
 
-=head2 User role
+=head3 IO::Testable Role
 
-    role User {
-        has $username; # Username (some descendants(?) may want to implement a real $name)
-        has $id;  # User ID
-        has $dir; # Home directory for files
-    }
+Role to be consumed by both C<IO::Path> as well as C<IO::Handle>.
 
-=over
+  $io.r          $!path of $io is readable by effective uid/gid
+  $io.w          $!path of $io is writable by effective uid/gid
+  $io.x          $!path of $io is executable by effective uid/gid
+  $io.o          $!path of $io is owned by effective uid
 
-=item new
+  $io.R          $!path of $io is readable by real uid/gid
+  $io.W          $!path of $io is writable by real uid/gid
+  $io.X          $!path of $io is executable by real uid/gid
+  $io.O          $!path of $io is owned by real uid
 
-    method User new($Username?, $UID?) {...}
+  $io.e          $!path of $io exists
+  $io.s          Size of the $!path of $io in bytes
+  $io.z          $!path of $io has zero size (an empty file)
 
-Creates a new User object, fetching the information either by username or user ID.
+  $io.f          $!path of $io is a plain file
+  $io.d          $!path of $io is a directory
+  $io.l          $!path of $io is a symbolic link
+  $io.p          $!path of $io is a named pipe (FIFO)
+  $io.S          $!path of $io is a socket
+  $io.b          $!path of $io is a block special file
+  $io.c          $!path of $io is a character special file
 
-=item write
+  $io.u          $!path of $io has setuid bit set
+  $io.g          $!path of $io has setgid bit set
+  $io.k          $!path of $io has sticky bit set
 
-    method write() {...}
+  $io.accessed   last access time of $!path of $io (if available)
+  $io.modified   last modified time of $!path of $io
+  $io.changed    last (metadata) changed time of $!path of $io
 
-Tries to write the current User object to the user database.  This may well fail.
+=head3 IO::Spec Class
 
-=item Str
+=head3 IO::Path Class
 
-When converted to a Str, returns $username.
+  class IO::Path is Cool does IO::FileTestable { }
 
-=item Num
+=head3 IO::Handle Class
 
-When converted to a Num, returns $uid.
-
-=back
-
-=head2 OS::Unix::User role
-
-    role OS::Unix::User does User {
-        has $password;
-        has $gid;
-        has $gecos;
-        has $shell;
-    }
-
-All the information is naturally fetched from the system via getpwuid, getpwnam, or the
-like.
-
-=head2 Group role
-
-    role Group {
-        has $name;
-        has $id;
-        has @members;
-    }
-
-=over
-
-=item new
-
-    method Group new(:$Name, :$ID);
-
-=item write
-
-    method write();
-
-Tries to write the group entry into the system group database.
-
-=back
-
-=head2 OS::Unix::NameServices role
-
-The NameServices role has a bunch of functions that between them will return the whole
-Name Services database between them, as lists of objects.  The lists are specifically
-intended to be lazy.
-
-    role NameServices {
-        method List of User     users()     {...} # getpwent, setpwent, endpwent
-        method List of Group    groups()    {...} # getgrent, setgrent, endgrent
-        method List of Service  services()  {...} # getservent, setservent, endservent
-        method List of Protocol protocols() {...} # getprotoent, setprotoent, endprotoent
-        method List of Network  networks()  {...} # getnetent, setnetent, endnetent
-        method List of Host     hosts()     {...} # gethostent, sethostent, endhostent
-    }
-
-=head1 Additions
-
-Please post errors and feedback to perl6-language.  If you are making
-a general laundry list, please separate messages by topic.
-
-=cut
+  class IO::Path does IO::FileTestable { }
 
 =for vim:set expandtab sw=4:
