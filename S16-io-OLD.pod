@@ -1,0 +1,298 @@
+
+=encoding utf8
+
+=head1 TITLE
+
+DRAFT: Synopsis 16: IO / Name Services
+
+=head1 AUTHORS
+
+    Largely, the authors of the related Perl 5 docs.
+    Larry Wall <larry@wall.org>
+    Mark Stosberg <mark@summersault.com>
+    Tim Nelson <wayland@wayland.id.au>
+    Daniel Ruoso <daniel@ruoso.com>
+
+=head1 VERSION
+
+    Created: 12 Sep 2006
+
+    Last Modified: 19 Nov 2009
+    Version: 23
+
+This is a draft document. Many of these functions will work as in Perl
+5, except we're trying to rationalize everything into roles.  For
+now you can assume most of the important functions will automatically
+be in the * namespace.  However, with IO operations in particular,
+many of them are really methods on an IO handle, and if there is a
+corresponding global function, it's merely an exported version of
+the method.
+
+=head1 IO
+
+=head2 Overridable IO handles
+
+In Perl 6, there are the I<standard> IO handles, and any number of overriding
+inner filehandles for the same symbol.
+
+The I<standard> handles are our old familiar friends (with new names).
+Standard input changed from STDIN to C<$*IN>, standard output changed
+from STDOUT to C<$*OUT>, and standard error changed from STDERR to
+C<$*ERR>.  In Perl 6 these symbols represent more of a concept than
+a given filehandle, since the meaning is contextually determined.
+The process's version of these handles live in the C<PROCESS::>
+namespace, which is more global than the per-interpreter C<GLOBAL::>
+namespace.
+
+When no explicit filehandle is used, the standard IO operators are
+defined in terms of the dynamic variables.  So the C<print> function
+prints to C<$*OUT>, while C<warn> warns to C<$*ERR>.  The C<< lines() >>
+term inputs from C<$*ARGFILES> which defaults to C<$*IN> in the absence of any
+filenames.  So any given dynamic scope (interpreter,
+thread, function or method call) may redefine the current meaning of
+any of those filehandles within the dynamic scope of itself and of
+its called routines.
+
+So to put it another way, when you write something like
+
+    say "Howdy, world!"
+
+the C<say> function looks for the current meaning of C<$*OUT>, and
+takes the closest definition it can find in its callers.  If none
+of the callers have overridden the definition, it looks in the
+interpreter's C<GLOBAL> namespace.  If the interpreter hasn't overridden
+the meaning, it takes the meaning from C<PROCESS>.  In essence, any
+dynamic scope in Perl 6 is allowed to do IO redirection much like
+a Unix shell does with its subprocesses, albeit with a different
+syntax:
+
+    {
+        temp $*OUT = open $newfile, :w;
+        foo() # all stdout goes to $newfile
+    }
+    # stdout reverts to outer scope's definition
+
+=head2 Roles and Classes
+
+The roles and classes that define most of the functionality for IO are defined in
+S32-setting-library/IO.pod.  The main functions used are listed in S29 with references to
+S32-setting-library/IO.pod.
+
+=head2 Special Quoting Syntax
+
+The use of filenames requires a special quoting syntax.  It works as follows:
+
+    qp{/path/to/file}
+    q:p{/path/to/file}
+
+Both of the above result in the same C<IO::Path> object.
+
+The quote characters can be any of the usual ones, although / is probably a bad choice
+for filenames.  
+
+The code shown above returns a Path object (or a descendant thereof).  
+
+Naturally you can also ask for interpolation in filenames:
+
+    qp:qq{$directory/$file}
+    qq:p{$directory/$file}
+
+There are a number of special adverbs that can be applied to the file quoting 
+operator.  Most of these are filesystem-specific.  They confine what can be
+included in a filename.  
+
+Any path that starts with a "/" is considered an absolute path, otherwise
+the path is considered relative.  
+
+When creating a path with qp{}, the Path.Encoding attribute is set to $?ENC, unless
+the :bin modifier (see below) is used.  
+
+=head3 Default constraints
+
+The default constraints can be set with the "use path" pragma, for example:
+
+    use path :posix;
+    use path :modern;
+    use path :local;
+
+The default when in strict mode is "use path :posix", whereas the default in 
+lax mode is "use path :local".  
+
+=head3 :posix constraints
+
+The :modern set of constraints paths are portable POSIX paths (see POSIX.1-2008 sections
+4.7 and 3.276).  If platform/filesystem specific behavior is needed,
+specific constraints should be applied as needed (see below).  
+
+The default constraints are to only allow "/" as separator and only allows 
+portable POSIX filenames.  That means A-Z, a-z, 0-9, <period>, <underscore>,
+and <hyphen>.  Additionally, hyphen may not be the first character in the path.  
+
+Any path that starts with a "/" is considered an absolute path, otherwise
+the path is considered relative.  
+
+=head3 :portable
+
+In addition to the POSIX constraints above, the path should fit into 8 
+characters, followed by a full stop, and then three more characters.  Only 
+the one full stop should appear in the filename.  Additionally, no path
+may be longer than 64 characters.  
+
+=head3 :local
+
+This is :win on a Windows platform, :unix on a Unix platform, etc.  Note 
+that this is specifically not portable between platforms with different
+constraint sets.  
+
+=head3 :modern constraints
+
+The :modern set of constraints are the same as :posix, except that they
+may contain any UTF-8 character, rather than just those listed.  
+
+=head3 :win constraints
+
+We allow Windows style paths so converting and maintaining code on this
+platform is not a pain.
+
+my Path $path = p:win{C:\Program Files\MS Access\file.file};
+
+Note that this specifically excludes the backslash quoting usually used with 
+q{}.  
+
+=head3 :unix constraints
+
+For Unix specific behavior we have a p:unix{} literal.  Here the only
+limits are what is defined by the locale and the filesystem type. So we won't 
+be able to write full Unicode if locale is set to Latin1. 
+
+my Path $path = p:unix{/usr/src/bla/myfile?:%.file};
+
+=head3 :bin constraints (no constraints at all)
+
+If the above are causing problems, p:bin{} can be used as no checking is
+done here.  However, this leaves the Path.Encoding attribute undefined, which 
+means that certain features of Path will remain unavailable unless this 
+attribute is set.  
+
+=head3 Other constraints
+
+It is expected that other sets of constraints, such as VMS, DOS, and old-style
+Mac will be provided by modules.  
+
+=head2 $*CWD
+
+The global variable $*CWD is a C<IO::Path> object with certain special
+properties, mainly:
+
+ * It must check whether the path exists before changing its value
+ * It can only be assigned an absolute path; if you want to make relative 
+   changes, use the Array interface with .push and .pop
+
+$*CWD is specific to the current thread, unlike C<< %*ENVZ<><PATH> >> or the
+native getcwd/chdir path, which are both usually process-wide.
+
+The variable is used in at least these cases:
+
+ * When a IO::Path object is created, if the string it is given is not an
+   absolute path, then $*CWD is prepended to it.
+ * When a subprocess is executed, it is executed with the current
+   thread's $*CWD as its working directory.
+
+=head2 $*TMPDIR
+
+The global variable $*TMPDIR is an IO::Path object which points to the system's
+temporary directory.  It will check the usual places such a C<< %*ENVZ<><TMPDIR> >>, 
+C</tmp>, C<C:\Windows\temp>, etc (depending on the OS) for a writable directory.
+If a writable directory isn't found, it is set to $*CWD.
+
+=head1 Name Services
+
+=head2 User role
+
+    role User {
+        has $username; # Username (some descendants(?) may want to implement a real $name)
+        has $id;  # User ID
+        has $dir; # Home directory for files
+    }
+
+=over
+
+=item new
+
+    method User new($Username?, $UID?) {...}
+
+Creates a new User object, fetching the information either by username or user ID.
+
+=item write
+
+    method write() {...}
+
+Tries to write the current User object to the user database.  This may well fail.
+
+=item Str
+
+When converted to a Str, returns $username.
+
+=item Num
+
+When converted to a Num, returns $uid.
+
+=back
+
+=head2 OS::Unix::User role
+
+    role OS::Unix::User does User {
+        has $password;
+        has $gid;
+        has $gecos;
+        has $shell;
+    }
+
+All the information is naturally fetched from the system via getpwuid, getpwnam, or the
+like.
+
+=head2 Group role
+
+    role Group {
+        has $name;
+        has $id;
+        has @members;
+    }
+
+=over
+
+=item new
+
+    method Group new(:$Name, :$ID);
+
+=item write
+
+    method write();
+
+Tries to write the group entry into the system group database.
+
+=back
+
+=head2 OS::Unix::NameServices role
+
+The NameServices role has a bunch of functions that between them will return the whole
+Name Services database between them, as lists of objects.  The lists are specifically
+intended to be lazy.
+
+    role NameServices {
+        method List of User     users()     {...} # getpwent, setpwent, endpwent
+        method List of Group    groups()    {...} # getgrent, setgrent, endgrent
+        method List of Service  services()  {...} # getservent, setservent, endservent
+        method List of Protocol protocols() {...} # getprotoent, setprotoent, endprotoent
+        method List of Network  networks()  {...} # getnetent, setnetent, endnetent
+        method List of Host     hosts()     {...} # gethostent, sethostent, endhostent
+    }
+
+=head1 Additions
+
+Please post errors and feedback to perl6-language.  If you are making
+a general laundry list, please separate messages by topic.
+
+=cut
+
+=for vim:set expandtab sw=4:
