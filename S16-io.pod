@@ -203,11 +203,12 @@ or:
 
   my $path = $fileonNTFS.IO(:SPEC<Win32>); # auto-expand to IO::Spec::Win32
 
-=head2 Functions, Roles and Classes
+=head2 Functions and Classes
 
-The roles and classes that define most of the functionality for IO are defined
-in S32-setting-library/IO.pod.  The main functions used are listed in S29 with
-references to S32-setting-library/IO.pod.  An overview:
+The functions and classes that define most of the functionality for IO are
+more thoroughly defined in S32-setting-library/IO.pod.  The main functions
+used are listed in S29 with references to S32-setting-library/IO.pod.
+An overview:
 
 =head3 Functions
 
@@ -250,50 +251,6 @@ references to S32-setting-library/IO.pod.  An overview:
   islink($target);              # is the file a symbolic link?
   readlink($target);            # the destination of the symlink ($source)
 
-=head3 IO::FileTestable Role
-
-Role to be consumed by both C<IO::Path> as well as C<IO::Handle>.
-
-  $io.r          $!path of $io is readable by effective uid/gid
-  $io.w          $!path of $io is writable by effective uid/gid
-  $io.x          $!path of $io is executable by effective uid/gid
-  $io.o          $!path of $io is owned by effective uid
-
-  $io.R          $!path of $io is readable by real uid/gid
-  $io.W          $!path of $io is writable by real uid/gid
-  $io.X          $!path of $io is executable by real uid/gid
-  $io.O          $!path of $io is owned by real uid
-
-  $io.e          $!path of $io exists
-  $io.s          Size of the $!path of $io in bytes
-  $io.z          $!path of $io has zero size (an empty file)
-
-  $io.f          $!path of $io is a plain file
-  $io.d          $!path of $io is a directory
-  $io.l          $!path of $io is a symbolic link
-  $io.p          $!path of $io is a named pipe (FIFO)
-  $io.S          $!path of $io is a socket
-  $io.b          $!path of $io is a block special file
-  $io.c          $!path of $io is a character special file
-
-  $io.u          $!path of $io has setuid bit set
-  $io.g          $!path of $io has setgid bit set
-  $io.k          $!path of $io has sticky bit set
-
-  $io.accessed   last access time of $!path of $io (if available)
-  $io.modified   last modified time of $!path of $io
-  $io.changed    last (metadata) changed time of $!path of $io
-
-To allow for easy chaining of file tests, there is an C<.all> method that can
-be fed the tests to be tried as a C<Parcel> of strings.  The value returned
-will be the first non-True value, or the final True value.
-
-  say "rwx" if $io.all: <r w x>;
-
-  if $io.all(<r w x s>) -> $size {
-      say "rwx $size bytes";
-  }
-
 =head3 IO::Spec Class
 
 The C<IO::Spec> itself only has one method: C<select>.  It takes an OS
@@ -325,7 +282,7 @@ order):
 
 =head3 IO::Path Class
 
-  class IO::Path is Cool does IO::FileTestable { }
+  class IO::Path is Cool { }
 
 The official way to create an C<IO::Path> object is with the C<new> method.
 Apart from the C<path> positional, it also takes optional C<:SPEC> and
@@ -348,7 +305,49 @@ parameters:
 
   my $path = IO::Path.new( :$volume, :$directory, :$basename );
 
-The following methods are also provided (in alphabetical order):
+The following file test methods are provided:
+
+  r          is readable by effective uid/gid
+  w          is writable by effective uid/gid
+  x          is executable by effective uid/gid
+  o          is owned by effective uid
+
+  R          is readable by real uid/gid
+  W          is writable by real uid/gid
+  X          is executable by real uid/gid
+  O          is owned by real uid
+
+  e          exists
+  s          Size of the $!path of $io in bytes
+  z          has zero size (an empty file)
+
+  f          is a plain file
+  d          is a directory
+  l          is a symbolic link
+  p          is a named pipe (FIFO)
+  S          is a socket
+  b          is a block special file
+  c          is a character special file
+
+  u          has setuid bit set
+  g          has setgid bit set
+  k          has sticky bit set
+
+  accessed   last access time of $!path of $io (if available)
+  modified   last modified time of $!path of $io
+  changed    last (metadata) changed time of $!path of $io
+
+To allow for easy chaining of file tests, there is an C<.all> method that can
+be fed the tests to be tried as a C<Parcel> of strings.  The value returned
+will be the first non-True value, or the final True value.
+
+  say "rwx" if $path.all: <r w x>;
+
+  if $path.all(<f r w x s>) -> $size {
+      say "plain file with rwx of $size bytes";
+  }
+
+These other methods are also provided (in alphabetical order):
 
   absolute       the absolute, canonical path
   basename       the basename of the path
@@ -378,7 +377,7 @@ The following methods are also provided (in alphabetical order):
 
 =head3 IO::Handle Class
 
-  class IO::Handle does IO::FileTestable { }
+  class IO::Handle { }
 
 The C<IO::Handle> object is usually B<not> directly instantiated, but usually
 with C<open()> or C<IO::Path.open>.  Nonetheless, you B<can> create an
@@ -408,7 +407,7 @@ C<.open> has been called succesfully:
   IO             return new IO::Path of path of file
   lines          return rest of contents of file as lines
   opened         is the file open?
-  path           return new IO::Path of path of file
+  path           the IO::Path of path of file, handles file tests
   print          write characters to file
   read           read bytes from file
   say            write characters + newline to file
