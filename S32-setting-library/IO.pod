@@ -2,7 +2,7 @@
 
 =head1 TITLE
 
-DRAFT: Synopsis 32: Setting Library - IO
+Synopsis 32: Setting Library - IO
 
 =head1 AUTHORS
 
@@ -18,54 +18,71 @@ DRAFT: Synopsis 32: Setting Library - IO
     Lyle Hopkins <webmaster@cosmicperl.com>
     Brent Laabs <bslaabs@gmail.com>
     Tobias Leich <email@froggs.de>
+    Elizabeth Mattijsen <liz@dijkmat.nl>
 
 =head1 VERSION
 
-    Created: 19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
+    Created: 19 Feb 2009
 
-    Last Modified: 05 May 2014
-    Version: 23
-
-The document is a draft.
-
-If you read the HTML version, it is generated from the Pod in the specs
-repository under
-L<https://github.com/perl6/specs/blob/master/S32-setting-library/IO.pod>
-so edit it there in the git repository if you would like to make changes.
+    Last Modified: 23 Sep 2014
+    Version: 24
 
 =head1 Overview
 
-The most common IO operations are C<print> and C<say> for writing and
-C<lines> and C<get> for reading. All four are available as subroutines
-(defaulting to the C<$*OUT> and C<$*ARGFILES> file handles) and as
-methods on file handles.
-
-File handles are of type C<IO::Handle>, and can be created with C<&open>.
-Paths are generally passed as strings or C<IO::Path> objects.
-
-C<&dir> returns C<IO::Path> objects.
-
-                      
-              default handle
-    routine   for sub form    purpose
-    =======   ===========     =======
-    print     $*OUT           string-based writing
-    say       $*OUT           string-based writing
-    get       $*ARGFILES      read a line (Str)
-    lines     $*ARGFILES      read all lines (Str)
-    read                      binary reading (Buf)
-    write                     binary writing (Buf)
-
-File tests are performed through C<IO::Path> objects.
+This synopsis describes in depth the subroutines and methods that were
+described broadly in S16.  Please note that any implementation is free
+to use multi-method dispatch on both subroutines as well as methods should
+this increase the performance or maintainability.
 
 =head1 Functions
 
-=over 4
+=head2 print()
+X<print()>
 
-=item open
-X<open>
+    sub print(@text --> Bool) is export
 
-    multi open (Str $name,
+Print the given text on $*OUT.
+
+=head2 say()
+X<say()>
+
+    sub say(@text --> Bool) is export
+
+Print the given text, followed by a new line C<"\n"> on C<$*OUT>.  Before
+printing, call the C<.gist> method on any non-C<Str> objects.
+
+=head2 note()
+X<note()>
+
+    sub note(@text --> Bool) is export
+
+Print the given text, followed by a new line C<"\n"> on C<$*ERR>.  Before
+printing, call the C<.gist> method on any non-C<Str> objects.
+
+=head2 dd()
+X<dd()>
+
+    sub dd(@vars --> Bool) is export
+
+Tiny Data Dumper.  Takes the C<variables> specified and C<note>s them (on
+C<$*ERR>) in an easy to read format, along with the C<name> of the variable.
+So:
+
+  my $a = 42;
+  dd($a);   # notes "$a = 42"
+
+=head2 prompt()
+X<prompt()>
+
+    sub prompt($msg --> Bool) is export
+
+Simple Prompter.  Print message on C<$*OUT> and obtains a single line of
+input from C<$*IN>.
+
+=head2 open()
+X<open()>
+
+    sub open ($name as Str,
       # mode
         Bool :$r  = True,
         Bool :$w  = False,
@@ -73,129 +90,118 @@ X<open>
         Bool :$a  = False,
       # encoding
         Bool :$bin = False,
-        Str  :$enc = "Unicode",
+        Str  :$enc = "Unicode",  # utf-8 unless otherwise
       # newlines
-        Any  :$nl = "\n",
+        Any  :$nl    = "EOL",
         Bool :$chomp = True,
         ...
         --> IO::Handle
     ) is export
 
-A convenience function that hides most of the OO complexity.
-It will only open normal files.  Text is the default.  Note that
-the "Unicode" encoding implies figuring out which actual UTF is
+A convenience function for opening normal files as text (by default) as
+specified by its (first) parameter.  It returns an instantiated L</IO::Handle>
+object.  The following named parameters may also be specified:
+
+=over 4
+
+=item :r
+
+Open file for reading.  Default is C<True>.
+
+=item :w
+
+Open file for writing by creating an empty file with the given name.  The
+original contents of an existing file with that name, will be B<lost>.
+Default is C<False>.
+
+=item :rw
+
+Open file for reading and writing with the given name.  The original contents
+of an existing file with that name, will be B<lost>.  Default is C<False>.
+
+=item :a
+
+Open file for appending, create one if it didn't exist yet.  This may or may
+not inhibit overwriting the original contents when moving the file pointer.
+Default is C<False>.
+
+=item :bin
+
+Open file in binary mode (byte mode).  A file opened with C<:bin> may still be
+processed line-by-line, but IO will be in terms of C<Buf> rather than C<Str>
+types.  Default is C<False>, implying text semantics.
+
+=item :enc
+
+Encoding to use if opened in text mode.  Defaults to "Unicode", which 
+implies figuring out which actual UTF is
 in use, either from a BOM or other heuristics.  If heuristics are
 inconclusive, UTF-8 will be assumed.  (No 8-bit encoding will ever
-be picked implicitly.)  A file opened with C<:bin> may still be
-processed line-by-line, but IO will be in terms of C<Buf> rather
-than C<Str> types.
+be picked implicitly.)
 
-For a discussion of the read/write/append modes (:r, :w, :a), see
-L</IO::Handle/open> under IO::Handle.
+=item :nl
 
-=item dir
-X<dir>
+The marker used to indicate the end of a line of text.  Only used in text
+mode.  Defaults to "EOL", which implies accepting any combination of C<"\n">,
+C<"\r\n"> or C<"\r"> or any other Unicode character that has the C<ZI>
+(Seperator, Line) property.
 
-    multi dir($directory = '.', Mu :$test = none('.', '..')) { ... }
+=item :chomp
 
-Returns a lazy list of file names in the C<$directory>. By default the current
-and the parent directory are excluded, which can be controlled with the
-C<$test> named parameter. Only items that smart-match against this test are
-returned.
+Whether or not to remove new line characters from text obtained with
+C<.lines> and C<.get>.  Defaults to C<True>.
 
-The return value is a list of C<IO::Path> objects.  Because of this, you may
-want use the C<basename> method on the results to get the just the file name,
-without its full path.  If dir() fails, it returns an
-L<X::IO::Dir|S32::Exception/X::IO::Dir> failure.
+=back
 
-=item glob
+=head2 dir()
+X<dir()>
 
-    multi glob(Str $pattern --> Array[Str])
+    sub dir($directory as Str = $*CWD,
+        Mu       :$test = none(curdir,updir),
+        Bool     :$absolute = False,
+        IO::Path :$CWD = $*CWD,
+        ...
+        --> List[Str]) is export
 
-Accepts a pattern that will then be expanded into a array of filenames (the
-creation of C<IO> objects from this list is left to the user).
+Returns a lazy list of (relative) file names in the C<$directory> as strings,
+by default from the directory pointed to by C<$*CWD>.  If dir() fails, it
+returns an L<X::IO::Dir|S32::Exception/X::IO::Dir> failure.  The following
+named parameters are optional:
 
-The default C<glob> function operates on POSIX rules, which may be read in more
-detail in the glob(7) manpage, however an overview is presented below.
+=over 4
 
-The C<glob> function understands a few metacharacters:
+=item :test
 
-    \    Escape metacharacter
-    ~    Home directory
-    ?    Match exactly one character
-    *    Match zero or more characters
-    [    Start of character class (ends with ])
+Expression against which to smart-match for inclusion in result list.  By
+default excludes C<curdir> (usually ".") and C<updir> (usually "..") only.
 
-Note that this is not a regex-like syntax, so the C<?> and C<*> are not
-quantifiers.
+=item :absolute
 
-    glob("foo?");  # roughly equivalent to /^ foo. $/, NOT /^ foo? $/
-    glob("*bar");  # valid syntax; roughly equivalent to /^ .* bar $/
+Boolean indicating to return absolute file names, rather than relative ones.
+False by default.
 
-The character class construct C<[...]> matches all characters specified. It has
-a few metacharacters of its own:
+=item :CWD
 
-    glob("[]]");     # matches the ] character
-    glob("[!abc]");  # matches all but 'a', 'b', or 'c' (negation)
-    glob("[a-z]");   # matches all lowercase letters from a to z (range)
-    glob("[a-]");    # matches 'a' and '-'
-    glob("[[:xdigit:]]"); # matches hexadecimal digit (named character class)
+Only important if C<:absolute> is specified with a True value.  The directory
+to pre-pend to the relative file names.  Defaults to C<$*CWD>.
 
-Ranges matches all the characters that fall between and the startpoint and
-endpoint, inclusively. Note that the C</> character can never be matched by a
-range. If contained within the a range (such as C<[--0]>), the C</> is
-skipped. If explicitly specified as the start- or endpoint, it's considered a
-syntax error.
+=back
 
-    glob("[--0]");   # matches '-', '.', or '0' (skips '/')
-    glob("[a/b]");   # matches 'a', '/', or 'b'
-    glob("[/-0]");   # syntax error
+=head2 slurp()
+X<slurp()>
 
-There are some notable departures from POSIX in terms of what the Perl 6
-C<&glob> function allows with character classes. Namely, neither the C<[[.ch.]]>
-nor C<[[=ch=]]> forms are supported, and the C<[^...]> form is not undefined,
-but rather matches the C<^> character among other things.
-
-Glob metacharacters that must be escaped outside character classes aren't
-within.
-
-    glob('\[\*\?\~');    # Matches the filename "[*?~"
-    glob("[[*?~]");      # Matches the filenames "[", "*", "?", and "~"
-
-Unlike Perl 5, no special attention is given to the interpolation rules of
-strings, particularly braces.
-
-=item note
-
-    multi note (*@LIST --> Bool)
-
-Does a "say" to C<$*ERR>, more or less.  Like C<warn>, it adds a
-newline only if the message does not already end in newline.  Unlike
-C<warn>, it is not trappable as a resumable exception because it
-outputs directly to C<$*ERR>.  You can suppress notes in a lexical
-scope by declaring:
-
-    only note(*@) {}
-
-=item slurp
-
-    multi slurp (IO::Handle $fh = $*ARGFILES,
+    sub slurp ($what = $*ARGFILES,
         Bool :$bin = False,
         Str  :$enc = "Unicode",
-        --> Str|Buf
-    )
-    multi slurp (Str $filename,
-        Bool :$bin = False,
-        Str  :$enc = "Unicode",
-        --> Str|Buf
-    )
+        ...
+        --> Str|Buf ) is export
 
-Slurps the entire file into a C<Str> (or C<Buf> if C<:bin>) regardless of context.
-(See also C<lines>.)
+Slurps the contents of the entire file into a C<Str> (or C<Buf> if C<:bin>).
+Accepts C<:bin> and C<:enc> optional named parameters, with the same meaning
+as L</open()>.  The routine will C<fail> if the file does not exist, or is a
+directory.
 
-The routine will C<fail> if the file does not exist, or is a directory.
-
-=item spurt
+=head2 spurt
 
     multi spurt (IO::Handle $fh,
         Str   $contents,
@@ -230,7 +236,7 @@ string will be appended.
 The routine will also C<fail> with the corresponding exception if there was any
 other error in opening, writing, or closing.
 
-=item chdir
+=head2 chdir
 
     multi sub chdir(Str:D)
     multi sub chdir(IO::Path:D)
@@ -249,18 +255,7 @@ foreign function, only one thread can safely use it; in general it's
 better to pass absolute paths to foreign functions that don't allow
 you to set the working directory as a parameter.
 
-=item visitdir
-
-    multi sub visitdir(Str:D)
-    multi sub visitdir(IO::Path:D)
-
-Changes the current (emulated) working directory to the new
-value, scoped to the current dynamic scope just as C<temp $*CWD = newdir();>
-would. Fails (X::IO::Chdir) on error.  Since C<$*CWD> is dynamically scoped,
-leaving the current dynamic scope automatically restores the current (emulated)
-working directory.
-
-=item unlink
+=head2 unlink
 
     sub unlink(Cool:D $path)
 
@@ -268,22 +263,19 @@ Unlinks an ordinary file, link, or symbolic link from disk -- that is, it is
 deleted.  Returns True on success; otherwise returns an L<S32::Exception/X::IO::Unlink>
 failure.
 
-=item rmdir
+=head2 rmdir
 
     sub rmdir(Cool:D $directory)
 
 Removes the directory given from disk.  Returns True on success, or an 
 L<X::IO::Rmdir|S32::Exception/X::IO::Rmdir> failure.
 
-=item mkdir
+=head2 mkdir
 
     sub mkdir(Cool:D $directory)
 
 Makes (creates) the directory represented by the IO::Path. Returns True on success,
 or an L<X::IO::Mkdir|S32::Exception/X::IO::Mkdir> failure.
-
-
-=back
 
 =head1 IO Types
 
@@ -293,7 +285,6 @@ or an L<X::IO::Mkdir|S32::Exception/X::IO::Mkdir> failure.
 
 The base role only tags that this is an C<IO> object for more generic
 purposes. It doesn't specify any methods or attributes.
-
 
 =head2 IO::Handle
 
