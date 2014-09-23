@@ -18,8 +18,8 @@ Synopsis 16: I/O
 
     Created: 12 Sep 2006
 
-    Last Modified: 22 Sep 2014
-    Version: 24
+    Last Modified: 23 Sep 2014
+    Version: 25
 
 Many of these functions will work as in Perl 5, except we're trying to rationalize everything into roles.  For
 now you can assume most of the important functions will automatically
@@ -223,12 +223,20 @@ references to S32-setting-library/IO.pod.  An overview:
   mkdir($dir);                  # create a directory
   rmdir($dir);                  # remove a directory
 
+  copy                          # copy a file
+  rename($from,$to);            # rename (move) a file on same physical storage
+  move($from,$to);              # move (rename) a file to other storage
   unlink($filename);            # remove a file
 
   link($target,$source);        # create a hard-link to a file
   symlink($target,$source);     # create a symbolic link to a file
   islink($target);              # is the file a symbolic link?
   readlink($target);            # the destination of the symlink ($source)
+
+  print(@text);                 # print text on $*OUT
+  say(@text);                   # print text + newline on $*OUT
+  note(@text);                  # print text + newline on $*ERR
+  $line = prompt($message);     # print message on $*OUT, obtain next line
 
 =head3 IO::Testable Role
 
@@ -341,10 +349,12 @@ The following methods are also provided (in alphabetical order):
   is-relative    is the (original) path relative
   lines          contents of file as lines
   mkdir          create directory
+  move           move (rename) to other storage
   open           attempt to open file, return IO::Handle
   parent         remove last portion of path, return new object for that
   pred           previous logical path, return new object for that
   relative       the relative path against CWD
+  rename         rename (move) to other name
   resolve        follow symlinks to the real path, return new object for that
   rmdir          remove directory if empty directory
   succ           next logical path, return new object for that
