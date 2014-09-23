@@ -72,6 +72,19 @@ syntax:
   }
   # stdout reverts to outer scope's definition, and closed the file
 
+In short:
+
+              default handle
+    routine   for sub form    purpose
+    =======   ===========     =======
+    print     $*OUT           string-based writing
+    say       $*OUT           string-based writing
+    get       $*ARGFILES      read a line (Str)
+    lines     $*ARGFILES      read all lines (Str)
+    words     $*ARGFILES      read all words (Str)
+    read                      binary reading (Buf)
+    write                     binary writing (Buf)
+
 =head2 Path Names and the .IO coercer
 
 Path names are just strings (C<Str>).  Methods that return path names, will
@@ -198,20 +211,16 @@ references to S32-setting-library/IO.pod.  An overview:
 
 =head3 Functions
 
+  print(@text);                 # print text on $*OUT
+  say(@text);                   # print text + newline on $*OUT
+  note(@text);                  # print text + newline on $*ERR
+  dd($a,$b,$c);                 # tiny data dumper on $*ERR
+  $line = prompt($message);     # print message on $*OUT, obtain next line
+
   $handle = open($path);        # open a file, return IO::Handle
-
-  chdir($dir);                  # set $*CWD
-  chdir($dir, my $*CWD);        # set $*CWD for the current scope
-
-  chtmpdir($dir);               # set $*TMPDIR
-  chtmpdir($dir, my $*TMPDIR);  # set $*TMPDIR for the current scope
-
-  chhomedir($dir);              # set $*HOME
-  chhomedir($dir, my $*HOME);   # set $*HOME for the current scope
 
   @relpaths = dir;              # paths (as Str) in $*CWD
   @relpaths = dir($dir);        # paths (as Str) in $dir
-
   @relpaths = glob($pattern);   # paths (as Str) matching $pattern
 
   $contents = slurp($handle);   # read all that's left of an opened filehandle
@@ -223,6 +232,15 @@ references to S32-setting-library/IO.pod.  An overview:
   mkdir($dir);                  # create a directory
   rmdir($dir);                  # remove a directory
 
+  chdir($dir);                  # set $*CWD
+  chdir($dir, my $*CWD);        # set $*CWD for the current scope
+
+  chtmpdir($dir);               # set $*TMPDIR
+  chtmpdir($dir, my $*TMPDIR);  # set $*TMPDIR for the current scope
+
+  chhomedir($dir);              # set $*HOME
+  chhomedir($dir, my $*HOME);   # set $*HOME for the current scope
+
   copy                          # copy a file
   rename($from,$to);            # rename (move) a file on same physical storage
   move($from,$to);              # move (rename) a file to other storage
@@ -232,11 +250,6 @@ references to S32-setting-library/IO.pod.  An overview:
   symlink($target,$source);     # create a symbolic link to a file
   islink($target);              # is the file a symbolic link?
   readlink($target);            # the destination of the symlink ($source)
-
-  print(@text);                 # print text on $*OUT
-  say(@text);                   # print text + newline on $*OUT
-  note(@text);                  # print text + newline on $*ERR
-  $line = prompt($message);     # print message on $*OUT, obtain next line
 
 =head3 IO::Testable Role
 
