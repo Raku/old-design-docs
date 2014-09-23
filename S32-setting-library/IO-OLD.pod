@@ -1,0 +1,1660 @@
+﻿=encoding utf8
+
+=head1 TITLE
+
+DRAFT: Synopsis 32: Setting Library - IO
+
+=head1 AUTHORS
+
+    The authors of the related Perl 5 docs
+    Rod Adams <rod@rodadams.net>
+    Larry Wall <larry@wall.org>
+    Aaron Sherman <ajs@ajs.com>
+    Mark Stosberg <mark@summersault.com>
+    Carl Mäsak <cmasak@gmail.com>
+    Moritz Lenz <moritz@faui2k3.org>
+    Tim Nelson <wayland@wayland.id.au>
+    Daniel Ruoso <daniel@ruoso.com>
+    Lyle Hopkins <webmaster@cosmicperl.com>
+    Brent Laabs <bslaabs@gmail.com>
+    Tobias Leich <email@froggs.de>
+
+=head1 VERSION
+
+    Created: 19 Feb 2009 extracted from S29-functions.pod; added stuff from S16-IO later
+
+    Last Modified: 05 May 2014
+    Version: 23
+
+The document is a draft.
+
+If you read the HTML version, it is generated from the Pod in the specs
+repository under
+L<https://github.com/perl6/specs/blob/master/S32-setting-library/IO.pod>
+so edit it there in the git repository if you would like to make changes.
+
+=head1 Overview
+
+The most common IO operations are C<print> and C<say> for writing and
+C<lines> and C<get> for reading. All four are available as subroutines
+(defaulting to the C<$*OUT> and C<$*ARGFILES> file handles) and as
+methods on file handles.
+
+File handles are of type C<IO::Handle>, and can be created with C<&open>.
+Paths are generally passed as strings or C<IO::Path> objects.
+
+C<&dir> returns C<IO::Path> objects.
+
+                      
+              default handle
+    routine   for sub form    purpose
+    =======   ===========     =======
+    print     $*OUT           string-based writing
+    say       $*OUT           string-based writing
+    get       $*ARGFILES      read a line (Str)
+    lines     $*ARGFILES      read all lines (Str)
+    read                      binary reading (Buf)
+    write                     binary writing (Buf)
+
+File tests are performed through C<IO::Path> objects.
+
+=head1 Functions
+
+=over 4
+
+=item open
+X<open>
+
+    multi open (Str $name,
+      # mode
+        Bool :$r  = True,
+        Bool :$w  = False,
+        Bool :$rw = False,
+        Bool :$a  = False,
+      # encoding
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+      # newlines
+        Any  :$nl = "\n",
+        Bool :$chomp = True,
+        ...
+        --> IO::Handle
+    ) is export
+
+A convenience function that hides most of the OO complexity.
+It will only open normal files.  Text is the default.  Note that
+the "Unicode" encoding implies figuring out which actual UTF is
+in use, either from a BOM or other heuristics.  If heuristics are
+inconclusive, UTF-8 will be assumed.  (No 8-bit encoding will ever
+be picked implicitly.)  A file opened with C<:bin> may still be
+processed line-by-line, but IO will be in terms of C<Buf> rather
+than C<Str> types.
+
+For a discussion of the read/write/append modes (:r, :w, :a), see
+L</IO::Handle/open> under IO::Handle.
+
+=item dir
+X<dir>
+
+    multi dir($directory = '.', Mu :$test = none('.', '..')) { ... }
+
+Returns a lazy list of file names in the C<$directory>. By default the current
+and the parent directory are excluded, which can be controlled with the
+C<$test> named parameter. Only items that smart-match against this test are
+returned.
+
+The return value is a list of C<IO::Path> objects.  Because of this, you may
+want use the C<basename> method on the results to get the just the file name,
+without its full path.  If dir() fails, it returns an
+L<X::IO::Dir|S32::Exception/X::IO::Dir> failure.
+
+=item glob
+
+    multi glob(Str $pattern --> Array[Str])
+
+Accepts a pattern that will then be expanded into a array of filenames (the
+creation of C<IO> objects from this list is left to the user).
+
+The default C<glob> function operates on POSIX rules, which may be read in more
+detail in the glob(7) manpage, however an overview is presented below.
+
+The C<glob> function understands a few metacharacters:
+
+    \    Escape metacharacter
+    ~    Home directory
+    ?    Match exactly one character
+    *    Match zero or more characters
+    [    Start of character class (ends with ])
+
+Note that this is not a regex-like syntax, so the C<?> and C<*> are not
+quantifiers.
+
+    glob("foo?");  # roughly equivalent to /^ foo. $/, NOT /^ foo? $/
+    glob("*bar");  # valid syntax; roughly equivalent to /^ .* bar $/
+
+The character class construct C<[...]> matches all characters specified. It has
+a few metacharacters of its own:
+
+    glob("[]]");     # matches the ] character
+    glob("[!abc]");  # matches all but 'a', 'b', or 'c' (negation)
+    glob("[a-z]");   # matches all lowercase letters from a to z (range)
+    glob("[a-]");    # matches 'a' and '-'
+    glob("[[:xdigit:]]"); # matches hexadecimal digit (named character class)
+
+Ranges matches all the characters that fall between and the startpoint and
+endpoint, inclusively. Note that the C</> character can never be matched by a
+range. If contained within the a range (such as C<[--0]>), the C</> is
+skipped. If explicitly specified as the start- or endpoint, it's considered a
+syntax error.
+
+    glob("[--0]");   # matches '-', '.', or '0' (skips '/')
+    glob("[a/b]");   # matches 'a', '/', or 'b'
+    glob("[/-0]");   # syntax error
+
+There are some notable departures from POSIX in terms of what the Perl 6
+C<&glob> function allows with character classes. Namely, neither the C<[[.ch.]]>
+nor C<[[=ch=]]> forms are supported, and the C<[^...]> form is not undefined,
+but rather matches the C<^> character among other things.
+
+Glob metacharacters that must be escaped outside character classes aren't
+within.
+
+    glob('\[\*\?\~');    # Matches the filename "[*?~"
+    glob("[[*?~]");      # Matches the filenames "[", "*", "?", and "~"
+
+Unlike Perl 5, no special attention is given to the interpolation rules of
+strings, particularly braces.
+
+=item note
+
+    multi note (*@LIST --> Bool)
+
+Does a "say" to C<$*ERR>, more or less.  Like C<warn>, it adds a
+newline only if the message does not already end in newline.  Unlike
+C<warn>, it is not trappable as a resumable exception because it
+outputs directly to C<$*ERR>.  You can suppress notes in a lexical
+scope by declaring:
+
+    only note(*@) {}
+
+=item slurp
+
+    multi slurp (IO::Handle $fh = $*ARGFILES,
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+        --> Str|Buf
+    )
+    multi slurp (Str $filename,
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+        --> Str|Buf
+    )
+
+Slurps the entire file into a C<Str> (or C<Buf> if C<:bin>) regardless of context.
+(See also C<lines>.)
+
+The routine will C<fail> if the file does not exist, or is a directory.
+
+=item spurt
+
+    multi spurt (IO::Handle $fh,
+        Str   $contents,
+        Str  :$enc = $?ENC,
+        Bool :append = False,
+        Bool :$createonly = False,
+    )
+    multi spurt (IO::Handle $fh,
+        Buf   $contents,
+        Bool :append = False,
+        Bool :$createonly = False,
+    )
+    multi spurt (Str $filename,
+        Str   $contents,
+        Str  :$enc = $?ENC,
+        Bool :append = False,
+        Bool :$createonly = False,
+    )
+    multi spurt (Str $filename,
+        Buf   $contents,
+        Bool :append = False,
+        Bool :$createonly = False,
+    )
+
+Opens the file for writing, dumps the contents, and closes the file.
+
+This routine will C<fail> if the file exists and C<:createonly> is set.
+
+If C<:append> is provided, an existing file will not be clobbered, but the
+string will be appended.
+
+The routine will also C<fail> with the corresponding exception if there was any
+other error in opening, writing, or closing.
+
+=item chdir
+
+    multi sub chdir(Str:D)
+    multi sub chdir(IO::Path:D)
+
+Changes the current (emulated) working directory to the new value, scoped to the current scope of C<$*CWD> (usually thread-local at worst, or the scope of a C<visitdir> inside the current thread). Fails (X::IO::Chdir) on error.
+If C<$*CWD> is not scoped to the current dynamic scope, you must call C<chdir> again when exiting the
+dynamic scope to get back to the original directly, just as you would with a real C<chdir>.  In this case
+you would probably be better off using C<visitdir> instead, which will automatically scope C<$*CWD> to the current
+dynamic scope.
+
+Note that actually changing the process's working directory requires
+a call to C<PROCESS::chdir> (which will inform the chdir emulation
+that the process's actual current working directory has changed).
+This function is not threadsafe, however.  And if calling out to a
+foreign function, only one thread can safely use it; in general it's
+better to pass absolute paths to foreign functions that don't allow
+you to set the working directory as a parameter.
+
+=item visitdir
+
+    multi sub visitdir(Str:D)
+    multi sub visitdir(IO::Path:D)
+
+Changes the current (emulated) working directory to the new
+value, scoped to the current dynamic scope just as C<temp $*CWD = newdir();>
+would. Fails (X::IO::Chdir) on error.  Since C<$*CWD> is dynamically scoped,
+leaving the current dynamic scope automatically restores the current (emulated)
+working directory.
+
+=item unlink
+
+    sub unlink(Cool:D $path)
+
+Unlinks an ordinary file, link, or symbolic link from disk -- that is, it is
+deleted.  Returns True on success; otherwise returns an L<S32::Exception/X::IO::Unlink>
+failure.
+
+=item rmdir
+
+    sub rmdir(Cool:D $directory)
+
+Removes the directory given from disk.  Returns True on success, or an 
+L<X::IO::Rmdir|S32::Exception/X::IO::Rmdir> failure.
+
+=item mkdir
+
+    sub mkdir(Cool:D $directory)
+
+Makes (creates) the directory represented by the IO::Path. Returns True on success,
+or an L<X::IO::Mkdir|S32::Exception/X::IO::Mkdir> failure.
+
+
+=back
+
+=head1 IO Types
+
+=head2 IO
+
+    role IO { };
+
+The base role only tags that this is an C<IO> object for more generic
+purposes. It doesn't specify any methods or attributes.
+
+
+=head2 IO::Handle
+
+    class IO::Handle does IO { ... }
+
+A handle of a file, pipe or anything else that supports reading or
+writing like a file.
+
+=over 4
+
+=item open
+
+    multi method open (
+      # mode
+        Bool :$r  = True,
+        Bool :$w  = False,
+        Bool :$rw = False,
+        Bool :$a  = False,
+      # encoding
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+      # newlines
+        Any  :$nl = "\n",
+        Bool :$chomp = True,
+        --> IO::Handle
+    ) is export
+
+Open the handle for reading or writing (or both).  Specifying C<:r>, the default,
+opens the handle as read-only, C<:w> is write-only, C<:rw> is read-write, and
+C<:a> appends writes to the file.
+
+The C<:enc> parameter controls which text encoding the file is interpreted as.
+Unicode is the default encoding.  See L</encoding> for encoding options.
+
+The C<:nl> option sets L</input-line-separator>, and C<:chomp> determines if
+the new line separator will be chopped removed by C<get> and C<lines>.
+
+Conjectural: The <:p> parameter opens a pipe, which is readable with C<:r>
+(default) and writable with C<:w>.
+
+=item get
+
+    method get() returns Str:D
+
+Reads and returns one line from the handle. Uses C<input-line-separator>
+to determine where a line ends.
+
+=item lines
+
+    method lines($limit = Inf)
+
+Returns a lazy list of lines read via the C<get> method, limited to C<$limit>
+lines.
+
+=item getc
+X<getc>
+
+    method getc (IO::Handle:D: Int $chars = 1 --> Str)
+
+Reads C<$chars> and returns them
+
+=item print
+X<print>
+
+    method print (IO::Handle:D: *@LIST --> Bool)
+    multi print (*@LIST --> Bool)
+
+Stringifies each element, concatenates those strings, and sends the
+result to the output.
+Returns C<Bool::True> if successful, C<Failure> otherwise.
+
+The compiler will warn you if use a bare sub C<print> without arguments.
+(However, it's fine if you have an explicit argument list that evaluates to
+the empty list at runtime.)
+
+    print;             # warns
+    if $_ { print }    # warns
+    if $_ { print() }  # ok, but does nothing
+    if $_ { print () } # ok, but does nothing
+
+=item say
+X<say>
+
+    method say (IO::Handle:D: *@LIST --> Bool)
+    multi say (*@LIST --> Bool)
+
+This is identical to print() except that it stringifies its arguments by calling
+C<.gist> on them and auto-appends a newline after the final argument.
+
+    Was:    print "Hello, world!\n";
+    Now:    say   "Hello, world!";
+
+As with C<print>, the compiler will warn you if you use a bare sub C<say>
+without arguments.
+
+=item printf
+X<printf>
+
+    method printf (Str $fmt, *@LIST --> Bool)
+    multi printf (IO::Handle:D: Str $fmt, *@LIST --> Bool)
+
+Output through C<Str.sprintf>. See L<S32::Str> for details.
+
+=item  write
+
+    method write(IO::Handle:D: Buf $buf --> Int)
+
+Tries to write C<$buf>. The actual number of bytes
+written is returned. It might return unthrown failures, to be
+specified by each C<IO> implementation.
+
+This is "raw" write. C<$buf> contains plain octets. If you want to C<write>
+a C<Str>, you should C<.encode> it first, or use "print" or other
+C<IO::Writeable::Encoded> methods.
+
+=item slurp
+
+    method slurp(
+        Bool :$bin = False,
+        Str  :$enc = "Unicode",
+        --> Str|Buf)
+
+Opens the handle if necessary, slurps the entire file into a C<Str>
+(or C<Buf> if C<:bin> parameter is given) regardless of context.  Closes the
+handle after it is done, and returns the contents of the file.
+(See also L</lines>.)
+
+The routine will C<fail> if the file does not exist, or is a directory.
+
+=item spurt
+
+    multi method spurt (
+        Str   $contents,
+        Str  :$enc = $?ENC,
+        Bool :append = False,
+        Bool :$createonly = False)
+    
+    multi method spurt (
+        Buf   $contents,
+        Bool :append = False,
+        Bool :$createonly = False)
+
+Opens the file for writing, dumps the contents, and closes the file.
+
+This routine will C<fail> if the file exists and C<:createonly> is set.
+
+If C<:append> is provided, an existing file will not be clobbered, but the
+string will be appended.
+
+The routine will also C<fail> with the corresponding exception if there was any
+other error in opening, writing, or closing.
+
+=item t
+
+    method t() returns Bool:D
+
+Returns C<True> if the handle is opened to a tty.
+
+=item p
+
+    method p() returns Bool:D
+
+Returns C<True> if the handle is opened to a pipe.
+
+=item eof
+
+    method eof() returns Bool:D
+
+Returns C<True> if the handle is exhausted.
+
+=item seek
+
+method seek(Int $position, Int $whence --> Bool)
+
+Position this stream into C<$position>. The meaning of this position is
+always in "octets".
+
+Fails if the handle is not seekable.
+
+TODO: make $whence an Enum
+
+=item tell
+
+    method tell() returns Int:D:
+
+Returns the current raw position in the stream in number of "octets".
+
+=item ins
+
+    method ins( --> Int)
+
+Returns the number of lines that have been read with C<get>.
+
+=item input-line-separator
+
+    method input-line-separator( --> Str) is rw
+
+This regulates how C<get> and C<lines> behave.
+
+The input line (record) separator, newline by default.
+This influences Perl's idea of what a ``line'' is.
+Works like awk's RS variable, including treating empty lines
+as a terminator if set to the null string.
+(An empty line cannot contain any spaces or tabs.)
+You may set it to a multi-character string to match a multi-character
+terminator, or to Nil to read through the end of file.
+Setting it to "\n\n" means something slightly different
+than setting to "", if the file contains consecutive empty lines.
+Setting to "" will treat two or more consecutive empty lines
+as a single empty line. Setting to "\n\n" will blindly assume
+that the next input character belongs to the next paragraph,
+even if it's a newline.
+
+You may also set it to a regular expression.  The value of C<$/>
+will be (temporarily) set to the matched separator upon input,
+if you care about the contents of the separator.
+
+=item encoding
+
+    multi method encoding($enc?)
+
+With no arguments, simply returns the current encoding used on the handle.
+If supplied a string identifying a valid encoding, change the handle to read
+with that encoding.  Options include C<binary>, C<utf8>, and
+other text encodings.  An invalid encoding causes the method to fail.
+
+=item IO
+
+Returns the handle itself (no-op).
+
+=item close
+
+Closes the handle. Fails on error.
+
+=back
+
+=head2 IO::FileTestable
+
+    role IO::FileTestable does IO { ... }
+
+Provides ways to inspect a file or path without opening it.
+
+If you apply that role to a class, that class must provide a C<Str> method
+which returns the full path.  C<IO::FileTestable> will call this method
+to obtain the path to test.  Stringification must return C<Str:D> here.
+
+The methods are typically only one letter long (for now; Perl 5 tradition
+strikes) and are summarized in the following table:
+
+    M  Test performed                              Returns
+    =  ==============                              =======
+    r  Path is readable by effective uid/gid.      Bool:D
+    w  Path is writable by effective uid/gid.      Bool:D
+    x  Path is executable by effective uid/gid.    Bool:D
+    o  Path is owned by effective uid.             Bool:D
+
+    R  Path is readable by real uid/gid.           Bool:D
+    W  Path is writable by real uid/gid.           Bool:D
+    X  Path is executable by real uid/gid.         Bool:D
+    O  Path is owned by real uid.                  Bool:D
+
+    e  Path exists.                                Bool:D
+    s  Size of the path in bytes.                  Int:D
+    z  Path has zero size (an empty file).         Bool:D
+
+    f  Path is a plain file.                       Bool:D
+    d  Path is a directory.                        Bool:D
+    l  Path is a symbolic link.                    Bool:D
+    p  Path is a named pipe (FIFO)                 Bool:D
+    S  Path is a socket.                           Bool:D
+    b  Path is a block special file.               Bool:D
+    c  Path is a character special file.           Bool:D
+
+    u  Path has setuid bit set.                    Bool:D
+    g  Path has setgid bit set.                    Bool:D
+    k  Path has sticky bit set.                    Bool:D
+
+All methods (except for C<e>) return the appropriate type object if a path
+has been specified that does not exist.
+
+=over 4
+
+=item accessed
+X<stattimes>
+
+Returns the last access time (C<atime>) of the path, to the degree that it is
+updated on that system.
+
+=item modified
+
+Returns the time that the path was last modified (C<mtime>).
+
+=item changed
+
+Returns the time that the path was last changed (modified or a metadata change).
+
+=item stat
+
+Returns a stat buffer for the path.
+
+=back
+
+TODO: methods created, accessed, modified: return format, failure
+
+=head2 IO::Path
+
+    class IO::Path is Cool does IO::FileTestable { }
+
+Holds a path of a file or directory. The path is generally divided
+into three parts, the I<volume>, I<directory> and I<base name>.
+
+On Windows, the volume is a drive letter like C<C:>, or a UNC network volume
+like C<\\share\>. On UNIX-based systems, the volume part is empty.
+
+The base name is name of the file or directory that the IO::Path object
+represents, and the directory is the part of the path leading up to the base
+name.
+
+    path              volume         directory  base name
+    /usr/bin/gvim                    /usr/bin   gvim   
+    /usr/bin/                        /usr       bin
+    foo/bar.txt                      foo        bar.txt
+    C:\temp\f.txt     C:             \temp      f.txt
+    \\server\share\a  \\server\share \          a
+
+IO::Path uses the syntax for the current operating system.  If
+you want to work paths as if you were using another OS, use the OS-specific
+subclasses such as IO::Path::Cygwin.
+
+There are several ways of creating an IO::Path.  Both IO::Handle and Cool have
+a .path method, or you can construct it directly:
+
+        "my/path".path
+        $filehandle.path
+        IO::Path.new( $full-path );
+        IO::Path.new( :$volume, :$directory, :$basename);
+
+=over 4
+
+=item Str
+
+Stringification returns the path (volume, directory and base name joined
+together) as a string.
+
+=item volume
+
+Returns the volume part of the path.  On Unix-like OSes or systems without a
+concept of volume in the path, returns the empty string.
+
+=item directory
+
+Returns the directory part of the path, not including the last item.  Functions
+equivalently to the C<dirname> shell program on Unix-like systems. 
+
+=item basename
+
+Returns the base name part of the path -- that is, the last portion.  Functions
+equivalently to the C<basename> shell program on Unix-like systems. 
+
+=item path
+
+Returns the entire IO::Path object (a no-op).
+
+=item contents
+
+    method contents( Mu :$test = none('.', '..') )
+
+Returns a lazy list of file names in the path, if it is a directory. The
+current and the parent directory are excluded, which can be controlled with
+the C<$test> named parameter. Only items that smart-match against this test
+are returned.
+
+The return value is a list of C<IO::Path> objects.  Because of this, you may
+want use the C<basename> method on the results to get the just the file name,
+without its full path.
+
+=item cleanup
+
+        method cleanup( :$parent = False )
+
+Returns a new IO::Path object with the canonical path.  This eliminates extra
+slashes and C<'.'> directories, but leaves C<'..'> in (or whatever the parent
+directory is called on that platform).
+
+With C<:parent>, cleanup will logically remove references to the parent
+directory without I<checking the filesystem>.  That is, the parent of a
+symbolic link will remove the symlink itself, not the parent of the symlink's
+destination.
+
+=item resolve
+
+Returns a new IO::Path object that is cleaned-up (as above), and all symbolic
+links and references to the parent directory (C<..>) are physically resolved.
+This means that the filesystem is examined for each directory in the path,
+and any symlinks found are followed.  Identical to C<.cleanup(:parent)> on systems
+where symbolic links are not supported.
+
+   # bar is a symlink pointing to "/baz"
+   my $path = "foo/./bar///..".path;
+   $path.=cleanup;  # now "foo/bar/.."
+   $path.cleanup(:parent); # yields "foo"
+   $path.=resolve;  # now "/" (the parent of "/baz")
+
+=item is-relative
+
+Returns True if the path is a relative path (like C<foo/bar>), False
+otherwise.
+
+=item is-absolute
+
+Returns True if the path is an absolute path (like C</usr/bin>), False
+otherwise.
+
+=item absolute
+
+    method absolute ( Str $base = $*CWD )
+
+Transforms the path into an absolute form, and returns the result as a new
+IO::Path.  If C<$base> is supplied, transforms it relative to that base
+directory; otherwise the current working directory is used.  Paths that are
+already absolute are returned unchanged.
+
+=item relative
+
+    method relative ( Str $base = $*CWD )
+
+Transforms the path into an relative form, and returns the result as a new
+IO::Path.  If C<$base> is supplied, transforms it relative to that base
+directory; otherwise the current working directory is used.  Paths that are
+already relative are returned unchanged.
+
+=item parent
+
+Removes the last portion the given path, and returns a new IO::Path.  This does
+not remove C<.>, C<..>, or symbolic links, so you may want to consider calling
+cleanup or resolve first.
+
+On a Unix/POSIX filesystem, if called recursively, it will work like so:
+
+    parent level          relative       absolute
+    Starting Path (0)     foo/bar        /foo/bar
+    1                       foo            /foo
+    2                        .              /
+    3                        ..             /
+    4                      ../..            /
+    5                     ../../..          /
+
+=item child
+
+    method child ( Str $childname )
+
+Appends C<$childname> to the end of the path, adding path separators where
+needed and returns the result as a new IO::Path.
+
+=item succ
+
+Increments the basename portion of the string, as Str.succ does, and returns
+that successor as an IO::Path.
+
+This is useful for getting all the parts of say, a multi-part archive, but
+does not always return the next item in the folder.  To crawl a folder, you
+probably want to iterate on the parent directory's contents.
+
+=item pred
+
+Decrements the basename portion of the string, as Str.pred does, and returns
+that predecessor as an IO::Path.
+
+=item copy
+
+    method copy ($dest, :$createonly = False )
+
+Copies a file from the path, to the destination specified.  If :createonly is
+set to True, copy fails when a file already exists in the destination.  If the
+operation cannot be completed, fails as X::IO::Copy.
+
+=item unlink
+
+Unlinks (deletes) the ordinary file, link, or symbolic link represented by the
+IO::Path.  Returns True on success; on error, fails with an X::IO::Unlink.
+
+=item rmdir
+
+Removes (deletes) the directory represented by the IO::Path.  Typically fails
+unless the directory is empty.  Returns True on success; fails with an X::IO::Rmdir
+on error.
+
+=item mkdir
+
+Makes (creates) the directory represented by the IO::Path. Returns True on success.
+The method will C<fail> with L<X::IO::Mkdir|S32::Exception/X::IO::Mkdir> if it 
+can not create the directory, if file or directory already exists or if the parent
+directory of the path does not exist.
+
+=back
+
+=head3 OS Specific subclasses.
+
+IO::Path::Unix, IO::Path::Win32, and IO::Path::Cygwin subclasses are available
+for manipulating paths from different operating systems than the one you're
+currently using.  Unix works with any POSIX-like operating system, such as Linux
+or Darwin.  Win32 works for paths from Windows, DOS, OS/2, NetWare, and Symbian.
+
+=head2 IO::Spec
+
+This class is a collection of methods dealing with file specifications (commonly
+known as file names, though it can include the entire directory path).
+Most of the methods are less convenient than in IO::Path, but it allows access
+to lower-level operations on file path strings.
+
+As with IO::Path, these operations are significantly different on some operating
+systems, so we have the following subclasses: IO::Spec::Unix, IO::Spec::Win32, 
+and IO::Spec::Cygwin.  IO::Spec automatically loads the correct module for use
+on the current system.
+
+Each class can (and should) be used in its undefined form:
+
+    my $cleanpath = IO::Spec.canonpath("a/.//b/")  # gives "a/b"
+
+Although we inherit a lot from Perl 5's File::Spec, some things have changed:
+C<no_updirs> has been removed (but see C<no-parent-or-current-test>) and
+C<case_tolerant> has also been removed (and put in a module).  Method C<join>
+is no longer an alias for catfile, but is now a function similar to C<catpath>.
+
+Each of the following methods are available under the subclasses, with the
+exception of C<os>.
+
+=over
+
+=item os
+
+The os method takes a single argument, an operating system string, and returns
+an IO::Spec object for the appropriate OS.
+
+    my $mac_os_x_spec = File::Spec.os('darwin');
+    # returns a File::Spec::Unix object
+    my $windows_spec = File::Spec.os('MSWin32');
+    #returns File::Spec::Win32
+    say File::Spec.os('Win32').canonpath('C:\\foo\\.\\bar\\');
+    # prints "C:\foo\bar"
+
+The parameter can be either an operating system string, or the last part of
+the name of a subclass ('Win32', 'Mac').  The default is `$*OS`, which gives
+you the same subclass that IO::Spec already uses for your system.
+
+This is only implemented by the IO::Spec class, and not its subclasses.
+
+
+=item canonpath
+X<canonpath>
+
+No physical check on the filesystem, but a logical cleanup of a
+path.
+
+    $cpath = IO::Spec.canonpath( $path ) ;
+
+Note that this does *not* collapse F<x/../y> sections into F<y>.  This
+is by design.  If F</foo> on your system is a symlink to F</bar/baz>,
+then F</foo/../quux> is actually F</bar/quux>, not F</quux> as a naive
+F<../>-removal would give you.  If you want to do this kind of
+processing, you probably want IO::Path's C<resolve> method to
+actually traverse the filesystem cleaning up paths like this.
+
+=item is-absolute
+
+Takes as its argument a path, and returns True if it is an absolute path,
+False otherwise.  For File::Spec::Win32, it returns 1 if it's an absolute
+path with no volume, and 2 if it's absolute with a volume.
+
+    $is_absolute = IO::Spec.is-absolute( $path );
+
+
+=item splitpath
+X<splitpath>
+
+    method splitpath( $path, $nofile = False )
+
+Splits a path in to volume, directory, and filename portions. On systems
+with no concept of volume, returns '' for volume. 
+
+    my ($volume,$directories,$file) = IO::Spec.splitpath( $path );
+    my ($volume,$directories,$file) = IO::Spec.splitpath( $path, $no_file );
+
+For systems with no syntax differentiating filenames from directories, 
+assumes that the last file is a path unless C<$no_file> is true or a
+trailing separator or F</.> or F</..> is present. On Unix, this means that C<$no_file>
+true makes this return ( '', $path, '' ).
+
+The directory portion may or may not be returned with a trailing '/'.
+
+The results can be passed to L</catpath()> to get back a path equivalent to
+(usually identical to) the original path.
+
+=item split
+
+A close relative of `splitdir`, this function also splits a path into
+volume, directory, and filename portions.  Unlike splitdir, split returns
+paths compatible with dirname and basename I<and> returns it arguments as
+a hash of C<volume>, C<directory>, and C<basename>.
+
+This means that trailing slashes will be eliminated from the directory
+and basename components, in Win32 and Unix-like environments.  The basename
+component will always contain the last part of the path, even if it is a
+directory, C<'.'>, or C<'..'>.  If a relative path's directory portion would
+otherwise be empty, the directory is set to C<'.'> (or whatever C<curdir> is).
+
+On systems with no concept of volume, returns C<''> (the empty string) for volume.
+
+    my %splitfile = IO::Spec.split( $path );
+    say IO::Spec::Win32( "C:\\saga\\waffo\\" );
+        # ("volume" => "C:", "directory" => "\\saga", "basename" => "waffo")
+
+The results can be passed to `.join` to get back a path equivalent to
+(but not necessarily identical to) the original path.  If you want to keep
+all of the characters involved, use `.splitdir` instead.
+
+=item Comparison of splitpath and split
+
+    OS      Path       splitpath               split (.values)
+    linux   /a/b/c     ("", "/a/b/", "c")      ("", "/a/b", "c")
+    linux   /a/b//c/   ("", "/a/b//c/", "")    ("", "/a/b", "c")
+    linux   /a/b/.     ("", "/a/b/.", "")      ("", "/a/b", ".")
+    Win32   C:\a\b\    ("C:", "\\a\\b\\", "")  ("C:", "\\a", "b")
+    VMS     A:[b.c]    ("A:", "[b.c]", "")     ("A:", "[b]", "[c]")
+
+* The VMS section is still speculative, and not yet supported.
+
+=item catpath()
+
+Takes volume, directory and file portions and returns an entire path string.
+Under Unix, C<$volume> is ignored, and directory and file are concatenated.
+On other OSes, C<$volume> is significant.    Directory separators like slashes
+are inserted if need be.
+
+    $full_path = IO::Spec.catpath( $volume, $directory, $file );
+
+=item join
+
+A close relative of `.catpath`, this function takes volume, directory and
+basename portions and returns an entire path string.  If the dirname is `'.'`,
+it is removed from the (relative) path output, because this function inverts
+the functionality of dirname and basename.
+
+    $full-path = IO::Spec.join(:$volume, :$directory, :$basename);
+    say IO::Spec::Unix.join( directory => '/hobbit', basename => 'frodo' );
+        # "/hobbit/frodo"
+
+Directory separators are inserted if necessary.  Under Unix, $volume is
+ignored, and only directory and basename are concatenated.  On other OSes,
+$volume is significant.
+
+This method is the inverse of `.split`; the results can be passed to it
+to get the volume, dirname, and basename portions back.
+
+
+=item Comparison of catpath and join
+
+    OS     Components            catpath        join
+    linux  ("", "/a/b", "c")     /a/b/c         /a/b/c
+    linux  ("", ".", "foo")      ./foo          foo
+    linux  ("", "/", "/")        //             /
+    Win32  ("C:", "\a", "b")     C:\a\b         C:\a\b
+    VMS    ("A:", "[b]", "[c]")  A:[b][c]       A:[b.c]
+
+* The VMS section is still speculative, and not yet supported.
+
+=item splitdir
+X<splitdir>
+
+The opposite of L</catdir>.
+
+    @dirs = IO::Spec.splitdir( $directories );
+
+C<$directories> must be only the directory portion of the path on systems 
+that have the concept of a volume or that have path syntax that differentiates
+files from directories.
+
+Unlike just splitting the directories on the separator, empty
+directory names (C<''>) can be returned, because these are significant
+on some OSes.
+
+=item catdir
+X<catdir>
+
+Concatenate two or more directory names to form a complete path ending
+with a directory.  Removes any trailing slashes from the resulting
+string, unless it's the root directory.
+
+    $path = IO::Spec.catdir( @directories );
+
+=item catfile
+X<catfile>
+
+Concatenate one or more directory names and a filename to form a
+complete path ending with a filename
+
+    $path = IO::Spec.catfile( @directories, $filename );
+
+=item abs2rel
+X<abs2rel>
+
+Takes a destination path and an optional base path returns a relative path
+from the base path to the destination path:
+
+    $rel_path = IO::Spec.abs2rel( $path ) ;
+    $rel_path = IO::Spec.abs2rel( $path, $base ) ;
+
+If C<$base> is not present or '', then C<$*CWD> is used. If C<$base> is
+relative, then it is converted to absolute form using
+L</IO::Spec/rel2abs>. This means that it is taken to be relative to
+C<$*CWD>.
+
+On systems with the concept of volume, if C<$path> and C<$base> appear to be
+on two different volumes, we will not attempt to resolve the two
+paths, and we will instead simply return C<$path>.
+
+On systems that have a grammar that indicates filenames, this ignores the 
+C<$base> filename as well. Otherwise all path components are assumed to be
+directories.
+
+If C<$path> is relative, it is converted to absolute form using L</IO::Spec/rel2abs>.
+This means that it is taken to be relative to C<$*CWD>.
+
+No checks against the filesystem are made.
+
+=item rel2abs
+X<rel2abs>
+
+Converts a relative path to an absolute path. 
+
+    $abs_path = IO::Spec.rel2abs( $path ) ;
+    $abs_path = IO::Spec.rel2abs( $path, $base ) ;
+
+If C<$base> is not present or '', then C<$*CWD> is used. If C<$base> is also 
+relative, then it is first converted to absolute form, relative to C<$*CWD>.
+
+On systems with the concept of volume, if C<$path> and C<$base> appear to be
+on two different volumes, IO::Spec will not attempt to resolve the two
+paths, and will instead simply return C<$path>.
+
+On systems that have a grammar that indicates filenames (like VMS), this
+ignores the C<$base> filename as well. Otherwise all path components are
+assumed to be directories.
+
+If C<$path> is absolute, it is cleaned up and returned using L</canonpath>.
+
+No checks against the filesystem are made.
+
+=item curdir
+X<curdir>
+
+Returns a string representation of the current directory (C<.> on Linux and Windows).
+
+    my $curdir = IO::Spec.curdir;
+
+=item updir
+X<updir>
+
+Returns a string representation of the parent directory (C<..> on Linux and Windows).
+
+    my $updir = IO::Spec.updir;
+
+=item rootdir
+X<rootdir>
+
+Returns a string representation of the root directory (C</> on Linux).
+
+    my $rootdir = IO::Spec.rootdir;
+
+=item devnull
+X<devnull>
+
+Returns a string representation of the null device (C</dev/null> on Linux).
+
+    my $devnull = IO::Spec.devnull;
+
+=item path
+X<path>
+
+Takes no argument.  Returns the environment variable C<PATH> (or the local
+platform's equivalent) as a list.
+
+    my @PATH = IO::Spec.path;
+
+=item tmpdir
+X<tmpdir>
+
+Returns a string representation of the first writable directory from a
+list of possible temporary directories.  Returns the current directory
+if no writable temporary directories are found.  The list of directories
+checked depends on the platform; e.g. IO::Spec::Unix checks C<%*ENVE<lt>TMPDIRE<gt>>
+and F</tmp>.
+
+    $tmpdir = IO::Spec.tmpdir;
+
+=for comment
+(sorry about the ugly E<> escapes above, Pod::To::* seems to misinterpret it otherwise)
+
+=item no-parent-or-current-test
+
+Returns a test as to whether a given path is identical to the parent or the
+current directory.  On Linux, this is simply C<none('.', '..')>.  The L</Functions/dir>
+function automatically removes these for you in directory listings, so under
+normal circumstances you shouldn't need to use it directly.
+
+    'file' ~~ IO::Spec.no-parent-or-current-test    #False
+    '.'    ~~ IO::Spec.no-parent-or-current-test    #True
+    '..'   ~~ IO::Spec.no-parent-or-current-test    #True
+
+This can, however, be used to extend C<dir()> through its `$test` parameter:
+
+    dir( "my/directory", test=>
+      all(IO::Spec.no-parent-or-current-test, /^ '.' /));
+
+This example would return all files beginning with a period that are
+not `.` or `..` directories.  This would work similarly with IO::Path.contents.
+
+This method replaces the functionality of the Perl 5 C<no_updirs> method.
+
+=back
+
+=head1 Here Be Dragons
+
+Everything below this point hasn't been reviewed properly
+
+=head2 IO::Socket
+
+    role IO::Socket {
+        has %.options;
+        has Bool $.Listener;
+        ...
+    }
+
+Accessing the C<%.options> would on Unix be done with I<getsockopt(2)>/I<setsockopt(2)>.
+
+The $.Listener attribute indicates whether the socket will be a listening socket when
+opened, rather than indicating whether it is currently listening.
+
+=over
+
+=item new
+
+    method new(
+        :$Listener, # initializes $.Listener
+    )
+
+The initial value of the $.Listener attribute is defined according to the following rules:
+
+ * If $Listener is passed to .new(), then that value is used
+ * If neither a local address nor a remote address are passed in, throw an exception
+ * If no remote address is passed, then $.Listener is set to SOMAXCONN
+ * If no local address is used, then $Listener is set to 0
+ * If both local and remote addresses are used, throw an exception that asks people to
+   specify $Listener
+
+=item open
+
+    method open()
+
+If $.Listener is true, does a I<bind(2)> and a I<listen(2)>, otherwise does a
+I<connect(2)>.
+
+It's end-user use case is intended for the case where NoOpen is passed to .new().  .new()
+itself will presumably also call it.
+
+=item close
+
+    method close()
+
+Implements the close() function from IO::Closeable by doing a shutdown on the connection
+(see below) with @how set to ('Readable', 'Writeable').
+
+=item shutdown
+
+    method shutdown(Str @how)
+
+Does a I<shutdown(2)> on the connection.  See also IO::Readable.isReadable and
+IO::Writeable.isWriteable.
+
+$how can contain 1 or more of the strings 'Readable' and 'Writeable'.
+
+=item accept
+
+    method accept( --> IO::Socket)
+
+=item method read(Int $bytes --> Buf)
+
+Reads and returns C<$bytes> bytes from the handle
+
+=item method write(Buf $buf --> Int)
+
+Implements the IO::Writeable interface by doing  a I<send(2)>.
+
+=back
+
+=head2 IO::Socket::INET
+
+    class IO::Socket::INET does IO::Socket {
+        has Str $.proto = 'TCP';
+        has Str $.host;
+        has Int $.port;
+        has Str $.localhost;
+        has Int $.localport;
+        ...
+    }
+
+=over
+
+=item new
+
+    multi method new(:$host!, :$port, *%attributes) { ... }
+    multi method new(:$localhost!, :$localport, :$listen! *%attributes) { ... }
+
+Creates a new socket and opens it.
+
+=back
+
+=head2 IO::Handle (opened version)
+
+This role indicates that this object actually represents an open file
+descriptor in the os level.
+
+=over
+
+=item method int fileno()
+
+File descriptors are always native integers, conforming to C89.
+
+=back
+
+
+=head1 Conjectural Stuff
+
+Everything below this point should be considered as mere ideas for
+future evolution, not as things that a compiler write should implement
+unquestioningly.
+
+=head2 IO::ACL
+
+This is a basic abstraction; for better control, use the operating-system specific
+interfaces, over which this is a thin veneer.
+
+    class IO::ACL {
+        has Str $.type; # "User", "Group", "Everyone", ???
+        has Str $.id; # username or groupname; unused for $type eq "Everyone"
+        has %.permissions;
+                # Unsupported values may (or may not) throw
+                # UnsupportedPermission when set or read
+        has Path $.owningObject;
+        ...
+    }
+
+The permissions used in C<%permissions> are:
+
+=over
+
+=item Readable
+
+Should be supported by all filesystems as an item to read from the hash for the group
+"Everyone".
+
+=item Writeable
+
+Should be supported by all filesystems as an item to read from the hash for the group
+"Everyone".
+
+=item Executable
+
+Supported on most Unix systems, anyway.  Windows should be able to guess when this is
+read, and throw an exception if written to.
+
+=item Default
+
+An ACL of User,fred,Default sets the user "fred" to be the owner of the file.  This can be
+done with groups too.  Works on Unix, at least.
+
+=back
+
+The C<$.owningObject> attribute of C<ACL> shows what the ACL is set on.  On a
+Windows system, this can be a parent directory, as permissions are inherited.
+
+
+=head2 IO::Pipe
+
+    class IO::Pipe does IO::Streamable does IO::Readable does IO::Writable {
+        ...
+    }
+
+Will need to set IO::Readable.isReadable and IO::Writable.isWriteable depending on opening
+method.
+
+=over
+
+=item close()
+
+If the file handle came from a piped open, C<close> will additionally
+return C<Failure> (aliased to C<$!>) if one of the other system calls involved fails, or if the
+program exits with non-zero status.  The exception object will contain any
+pertinent information.  Closing a pipe
+also waits for the process executing on the pipe to complete, in case you
+want to look at the output of the pipe afterwards, and
+implicitly puts the exit status value into the C<Failure> object if necessary.
+
+=item IO::Pipe.to
+
+    method to(Str $command, *%opts --> Bool)
+    method to(Str *@command, *%opts --> Bool)
+
+Opens a one-way pipe writing to C<$command>.  C<IO> redirection for
+stderr is specified with C<:err(IO)> or C<< :err<Str> >>.  Other C<IO> redirection
+is done with feed operators. XXX how to specify "2>&1"?
+
+=item IO::Pipe.from
+
+    method from(Str $command, *%opts --> Bool)
+    method from(Str *@command, *%opts --> Bool)
+
+Opens a one-way pipe reading from $command.  C<IO> redirection for
+stderr is specified with C<:err(IO)> or C<< :err<Str> >>.  Other C<IO> redirection
+is done with feed operators. XXX how to specify "2>&1"?
+
+=item IO::Pipe.pair
+
+    method pair(--> List of IO::Pipe)
+
+A wrapper for I<pipe(2)>, returns a pair of C<IO> objects representing the
+reader and writer ends of the pipe.
+
+   ($r, $w) = IO::Pipe.pair;
+
+=back
+
+=head2 OS-specific classes
+
+=head3 Unix
+
+=head3 Path::Unix
+
+=over
+
+=item chown
+
+    multi chown ($uid = -1, $gid = -1, *@files --> Int)
+
+Changes the owner (and group) of a list of files.  The first
+two elements of the list must be the numeric uid and gid, in
+that order.  A value of -1 in either position is interpreted by
+most systems to leave that value unchanged.  Returns the number
+of files successfully changed.
+
+    $count = chown $uid, $gid, 'foo', 'bar';
+    chown $uid, $gid, @filenames;
+
+On systems that support C<fchown>, you might pass file handles
+among the files.  On systems that don't support C<fchown>, passing
+file handles produces a fatal error at run time.
+
+Here's an example that looks up nonnumeric uids in the passwd
+file:
+
+   $user = prompt "User: ";
+   $pattern = prompt "Files: ";
+
+   ($login,$pass,$uid,$gid) = getpwnam($user)
+       or die "$user not in passwd file";
+
+   @ary = glob($pattern);      # expand filenames
+   chown $uid, $gid, @ary;
+
+On most systems, you are not allowed to change the ownership of
+the file unless you're the superuser, although you should be
+able to change the group to any of your secondary groups.  On
+insecure systems, these restrictions may be relaxed, but this
+is not a portable assumption.  On POSIX systems, you can detect
+this condition this way:
+
+    use POSIX qw(sysconf _PC_CHOWN_RESTRICTED);
+    $can-chown-giveaway = not sysconf(_PC_CHOWN_RESTRICTED);
+
+=item chmod LIST
+X<chmod> X<permission> X<mode>
+
+Changes the permissions of a list of files.  The first element of the
+list must be the numerical mode, which should probably be an octal
+number, and which definitely should I<not> be a string of octal digits:
+C<0o644> is okay, C<0644> is not.  Returns the number of files
+successfully changed.
+
+    $count = chmod 0o755, 'foo', 'bar';
+    chmod 0o755, @executables;
+    $mode = '0644'; chmod $mode, 'foo';      # !!! sets mode to --w----r-T
+    $mode = '0o644'; chmod $mode, 'foo';     # this is better
+    $mode = 0o644;   chmod $mode, 'foo';     # this is best
+
+=item stat
+
+=item IO.stat
+
+    $node.stat(Bool :$link); # :link does an lstat instead
+
+Returns a stat buffer.  If the lstat succeeds, the stat buffer evaluates
+to true, and additional file tests may be performed on the value.  If
+the stat fails, all subsequent tests on the stat buffer also evaluate
+to false.
+
+=back
+
+=head3 IO::Socket::Unix
+
+    role IO::Socket::Unix does IO::Socket {
+        has Str $.RemoteAddr, # Remote Address
+        has Str $.LocalAddr,  # Local Address
+    }
+
+=over
+
+=item new
+
+    method new(
+        Str  :$RemoteAddr,
+        Str  :$LocalAddr,
+
+        Bool :$Listener,   # Passed to IO::Socket.new()
+
+        Bool :$Blocking,   # Passed to IO::Streamable.new()
+        Bool :$NoOpen,     # Passed to IO::Streamable.new()
+
+        --> IO::Socket::Unix
+    ) {...}
+
+=item pair
+
+    method pair(Int $domain, Int $type, Int $protocol --> List of IO)
+
+A wrapper for I<socketpair(2)>, returns a pair of C<IO> objects representing the
+reader and writer ends of the socket.
+
+   use IO::Socket;
+   ($r, $w) = IO::Socket::Unix.pair(AF_UNIX, SOCK_STREAM, PF_UNSPEC);
+
+
+=back
+
+
+=head3 IO::POSIX
+
+Indicates that this object can perform standard posix C<IO>
+operations. It implies C<IO::Readable> and C<IO::Writeable>.
+
+=over
+
+=item method dup( --> IO)
+
+=item has Bool $.blocking is rw
+
+=item method flock(:$r,:$w --> Bool)
+
+=item method funlock( --> Bool)
+
+=item ...
+
+=back
+
+=head1 Unfilled
+
+=over 4
+
+=item IO.ioctl
+
+Available only as a handle method.
+
+=item alarm
+
+=item prompt
+
+    multi prompt (Str $prompt --> Str)
+
+Should there be an IO::Interactive role?
+
+=item Str.readpipe
+
+=item sysopen
+
+=item IO.sysseek
+
+=item umask
+
+=back
+
+=head1 Removed functions
+
+=over
+
+=item IO.eof
+
+Gone, see eoi C<IO::Seekable>.
+
+=item IO.fileno
+
+See C<IO::Handle>.
+
+=item /(get|set)(host|net|proto|serv|sock).*/
+
+Should be implemented by an external library.
+
+=item lstat
+
+Use C<stat> with the C<:link> option.
+
+=item IO.name
+
+Changed to C<.path>, but we haven't gotten around to specifying this on all of them.
+
+The C<.name> method returns the name of the file/socket/uri the handle
+was opened with, if known.  Returns Nil otherwise.  There is no
+corresponding C<name()> function.
+
+=item pipe
+
+Gone, see Pipe.pair
+
+=item select(both)
+
+Gone.  (Note: for sub-second sleep, just use sleep with a fractional argument.)
+
+=item IO.shutdown()
+
+Gone, see C<IO::Socket.close()>, C<$IO::Readable.isReadable>, and C<$IO::Writeable.isWriteable>
+
+=item socketpair
+
+Gone, see Socket.pair
+
+=item IO.sysread
+
+Gone, see C<IO::Readable.read()>.
+
+=item IO.syswrite
+
+Gone, see C<IO::Writeable.read()>.
+
+=item utime
+
+Gone, see C<Path.times>.
+
+=back
+
+=head2 IO::Buffered
+
+Indicates that this object performs buffering. The management of the
+buffer is completely implementation specific.
+
+=over
+
+=item method flush( --> Bool)
+
+Flushes the buffers associated with this object.
+
+=item method autoflush( --> Bool) is rw
+
+Forces this object to keep its buffers empty
+
+If set to nonzero, forces a flush right away and after every write
+or print on the currently selected output channel.
+Default is 0 (regardless of whether the channel is really buffered
+by the system or not;
+C<$OUT_FH.autoflush> tells you only whether you've asked Perl
+explicitly to flush after each write).
+C<$*OUT> will typically be line buffered if output is to the
+terminal and block buffered otherwise.
+Setting this variable is useful primarily when you are
+outputting to a pipe or socket,
+such as when you are running a Perl program under rsh
+and want to see the output as it's happening.
+This has no effect on input buffering.
+
+
+=back
+
+=head2 IO::Streamable
+
+This role represents objects that depend on some external resource,
+which means that data might not be available at request.
+
+    role IO::Streamable does IO {...}
+
+=over
+
+=item new()
+
+    method new(
+        Bool :$NoOpen,
+        Bool :$Blocking,
+        --> IO::Streamable
+    ) {...}
+
+Unless the NoOpen option is passed, an open will be done on the C<IO> object when it is
+created.
+
+If blocking is passed in, .blocking() is called (see below).
+
+=item method blocking( --> Bool) is rw
+
+This allows the user to control whether this object should do a
+blocking wait or immediately return in the case of not having data
+available.
+
+=item uri
+
+    method uri(Str $uri --> IO::Streamable) {...}
+
+This should be callable on the class, and act like a kind of "new()" function.  When given
+a URI, it returns an C<IO::Streamable> of the appropriate type, and throws an error when an
+inappropriate type is passed in.  For example, calling C<IO::File.uri('http://....')> will
+throw an error (but will suggest using just uri('http://...') instead).
+
+=back
+
+=head2 IO::Encoded
+
+This is a generic role for encoded data streams.
+
+=over
+
+=item method encoding( --> Str) is rw
+
+=item method locale( --> Str) is rw
+
+Encoding and locale are required for sane conversions.
+
+=back
+
+=head2 IO::Readable::Encoded
+
+This role provides encoded access to a readable data stream, implies
+C<IO::Encoded>. Might imply C<IO::Buffered>, but that's not a requirement.
+
+=over 4
+
+=item uri
+X<uri>X<ftp>X<http>
+
+    method uri(Str $uri --> IO::Streamable);
+    sub uri(Str $uri --> IO::Streamable);
+
+Returns an appropriate C<IO::Streamable> descendant, with the type depending on the uri
+passed in.  Here are some example mappings:
+
+    URI type IO type
+    ======== =======
+    file:    IO::Path
+    ftp:     IO::Socket::INET (data channel)
+    http:    IO::Socket::INET
+
+These can naturally be overridden or added to by other modules.
+
+=item %*PROTOCOLS dynamic variable
+
+For each protocol, stores a type name that should be instantiated by calling the C<uri>
+constructor on that type, and passing in the appropriate uri.
+
+=back
+
+=for vim:set expandtab sw=4:
