@@ -329,10 +329,27 @@ and if that (silently) fails, do it the hard way.
 =head2 unlink()
 X<unlink()>
 
-    sub unlink($filename as IO --> Bool) is export
+    sub unlink(*@files --> Int) is export
 
-Delete an ordinary file, link, or symbolic link.  Returns True on success,
-or an appropriate C<Failure>.
+Delete all specified ordinary files, links, or symbolic links.  Returns the
+number successfully deleted.
+
+=head3 chmod()
+X<chmod()>
+
+    sub chmod($permission, *@files --> Int) is export
+
+Changes the permissions of a list of files.  The first element of the
+list must be the numerical mode, which should probably be an octal
+number, and which definitely should I<not> be a string of octal digits:
+C<0o644> is okay, C<0644> is not.  Returns the number of files
+successfully changed.
+
+    $count = chmod 0o755, 'foo', 'bar';
+    chmod 0o755, @executables;
+    $mode =  '0644'; chmod $mode, 'foo';  # BAD!!! sets mode to --w----r-T
+    $mode = '0o644'; chmod $mode, 'foo';  # this is better
+    $mode =  0o644 ; chmod $mode, 'foo';  # this is best
 
 =head2 link()
 X<link()>
@@ -640,6 +657,382 @@ Returns a string representation of the parent directory (usually C<"..">).
 
 * The VMS section is still speculative, and not yet supported.
 
+=head2 IO::Path
+
+    class IO::Path is Cool { }
+
+Holds a path of a file or directory. The path is generally divided
+into three parts, the I<volume>, I<directory> and I<base name>.
+
+On Windows, the volume is a drive letter like C<C:>, or a UNC network volume
+like C<\\share\>. On UNIX-based systems, the volume part is empty.
+
+The basename is name of the file or directory that the C<IO::Path> object
+represents, and the directory is the part of the path leading up to the
+basename.
+
+    path              volume         directory  basename
+    /usr/bin/gvim                    /usr/bin   gvim
+    /usr/bin/                        /usr       bin
+    foo/bar.txt                      foo        bar.txt
+    C:\temp\f.txt     C:             \temp      f.txt
+    \\server\share\a  \\server\share \          a
+
+By default, C<IO::Path> uses the C<IO::Spec> setting as found in C<$*SPEC>
+when the object is created.  If you want to work paths as if you were using
+another OS, you can specify another C<IO::Spec> subclass with the optional
+C<:SPEC> named parameter.
+
+There are several ways of creating an C<IO::Path>.  The easiest way is to use
+C<.IO> coercer:
+
+  my $io = "foo/bar".IO;
+
+Of course, you can always call the C<.new> method as well:
+
+  my $io = IO::Path.new( $full-path );
+  my $io = IO::Path.new( :$volume, :$directory, :$basename);
+
+Whenever a new C<IO::Path> is created, an internal absolute and cleaned version
+of the specified path is stored, using the implicitely or explicitely
+specified values for C<$*SPEC> and C<$*CWD>:
+
+  my $io = IO::Path.new( "foo", :SPEC<win32>, :CWD</usr/local/src> );
+
+would create an C<IO::Path> object with C<IO::Spec::Win32> semantics, with an
+absolute path of C</usr/local/src/foo>.  Yes, that would be strange, but it
+B<is> possible.  A shorter way would be:
+
+  my $io = "foo".IO( :SPEC<win32>, :CWD</usr/local/src> );
+
+The (implicit) value of C<:CWD> is only used for creating the absolute path
+at instantiation time.  The (implicit) value of C<:SPEC> is actually saved
+in the object to be able to perform path operations with the correct semantics
+at a later time.
+
+=head3 File test methods
+
+The following (single letter) methods can be used on the C<IO::Path> object:
+
+    M  Test performed                              Returns
+    =  ==============                              =======
+    r  Path is readable by effective uid/gid.      Bool
+    w  Path is writable by effective uid/gid.      Bool
+    x  Path is executable by effective uid/gid.    Bool
+    o  Path is owned by effective uid.             Bool
+
+    R  Path is readable by real uid/gid.           Bool
+    W  Path is writable by real uid/gid.           Bool
+    X  Path is executable by real uid/gid.         Bool
+    O  Path is owned by real uid.                  Bool
+
+    e  Path exists.                                Bool
+    s  Size of the path in bytes.                  Int
+    z  Path has zero size (an empty file).         Bool
+
+    f  Path is a plain file.                       Bool
+    d  Path is a directory.                        Bool
+    l  Path is a symbolic link.                    Bool
+    L  Actual path of symbolic link (readlink)     Str
+    p  Path is a named pipe (FIFO)                 Bool
+    S  Path is a socket.                           Bool
+    b  Path is a block special file.               Bool
+    c  Path is a character special file.           Bool
+
+    u  Path has setuid bit set.                    Bool
+    g  Path has setgid bit set.                    Bool
+    k  Path has sticky bit set.                    Bool
+
+To allow for easy chaining of file tests, there is an C<.all> method that can
+be fed the tests to be tried as a C<Parcel> of strings.  The value returned
+will be the first non-True value, or the final True value.
+
+  say "rwx" if $io.all: <r w x>;
+
+  if $io.all(<f r w x s>) -> $size {
+      say "plain file with rwx of $size bytes";
+  }
+
+Other methods are listed here in alphabetical order:
+
+=head3 .absolute
+X<.absolute>
+
+    method absolute(--> Str)
+
+The absolute path of the path.  Same as the stringification.
+
+=head3 .accessed
+X<.accessed>
+
+    method accessed(--> Instant)
+
+Returns the C<Instant> when the file was last accessed, or C<Failure> if
+this could not be determined.
+
+=head3 .basename
+X<.basename>
+
+    method basename(--> Str)
+
+Returns the base name part of the path -- that is, the last portion.  Functions
+equivalently to the C<basename> shell program on Unix-like systems.
+
+=head3 .changed
+X<.changed>
+
+    method changed(--> Instant)
+
+Returns the C<Instant> when the metadata of the file was last changed, or
+C<Failure> if this could not be determined.
+
+=head3 .chdir
+X<.chdir>
+
+    method chdir(:$CWD = $*CWD --> Bool)
+
+Like L</chdir()>, but with L</.absolute> as the first parameter.
+
+=head3 .child
+X<.child>
+
+    method child($childname --> IO::Path)
+
+Appends C<$childname> to the end of the path, adding path separators where
+needed and returns the result as a new C<IO::Path>.
+
+=head3 .chmod
+X<.chmod>
+
+    method chmod($permissions --> Bool)
+
+Like L</chmod()>, but with L</.absolute> as the second parameter.
+
+=head3 .copy
+X<.copy>
+
+    method copy($dest, :$createonly --> Bool)
+
+Like L</copy()>, but with L</.absolute> as the first parameter.
+
+=head3 .dir
+X<.dir>
+
+    method dir(:$test, :$absolute, :$CWD --> List[Str])
+
+Like L</dir()>, but with L</.absolute> as the first parameter.
+
+=head3 .directory
+X<.directory>
+
+    method directory(-->Str)
+
+Returns the directory part of the path, not including the last item.  Functions
+equivalently to the C<dirname> shell program on Unix-like systems.
+
+=head3 .extension
+X<.extension>
+
+    method extension(--> Str)
+
+Returns the extension of the path, if any.
+
+=head3 .is-absolute
+X<.is-absolute>
+
+    method is-absolute(--> Bool)
+
+Always returns C<True> since internally the path is always stored as an
+absolute path.
+
+=head3 .is-relative
+X<.is-relative>
+
+    method is-relative(--> Bool)
+
+Always returns C<False> since internally the path is always stored as an
+absolute path.
+
+=head3 .lines
+X<.lines>
+
+    method lines($limit = Inf,
+        :$nl    = "EOL",
+        :$eager = (context),
+        --> List[Str] )
+
+    method lines($limit = Inf, :count --> Int)
+
+Returns a (lazy) list of lines of which the file consists, or a C<Failure>
+if something went wrong.  Optionally limits to the number given.  Also takes
+the following optional named parameters:
+
+=over 4
+
+=item :nl
+
+The delimiter between what are to be considered lines.  By default assumes
+C<"EOL">, which indicates any combination of C<"\n">, C<"\r\n">, C<"\r"> or
+any other Unicode that has the C<ZI> (Seperator, Line) property.
+
+=item :eager
+
+If specified with a C<True> value, will generate the list of lines eagerly,
+which may provide a performance benefit.  By default, it takes its cue from the
+context in which the method executes.
+
+=item :count
+
+If specified with a C<True> value, will return a count of the number of lines,
+rather than the lines themselves.  By default, lines will be returned.
+
+=back
+
+=head3 .mkdir
+X<.mkdir>
+
+    method mkdir(--> Bool)
+
+Like L</mkdir()>, but with L</.absolute> as the first parameter.
+
+=head3 .modified
+X<.modified>
+
+    method modified(--> Instant)
+
+Returns the C<Instant> when the contents of the file were last modified, or
+C<Failure> if this could not be determined.
+
+=head3 .move
+X<.move>
+
+    method move($dest as IO, :$createonly --> Bool)
+
+Like L</move()>, but with L</.absolute> as the first parameter.
+
+=head3 .open
+X<.open>
+
+    method open(... --> IO::Handle)
+
+Like L</open()>, but with L</.absolute> as the first parameter.
+
+=head3 .parent
+X<.parent>
+
+    method parent(--> IO::Path)
+
+Removes last portion of the path and returns the result as a new C<IO::Path>.
+
+=head3 .pred
+X<.pred>
+
+    method pred(--> IO::Path)
+
+Create previous logical path and return the result as a new C<IO::Path> or
+returns C<Failure> if that is not possible.
+
+=head3 .relative
+X<.relative>
+
+    method relative ($base as Str = $*CWD --> IO::Path)
+
+Transforms the path into an relative form, and returns the result as a new
+C<IO::Path>.  If C<$base> is supplied, transforms it relative to that base
+directory, otherwise the C<$*CWD>is used.  Paths that are already relative
+are returned unchanged.
+
+=head3 .rename
+X<.rename>
+
+    method rename($dest as IO, :$createonly --> Bool)
+
+Like L</rename()>, but with L</.absolute> as the first parameter.
+
+=head3 .resolve
+X<.resolve>
+
+    method resolve(--> IO::Path)
+
+Returns a new IO::Path object with all symbolic links and references to the
+parent directory (C<..>) are physically resolved.  This means that the
+filesystem is examined for each directory in the path, and any symlinks found
+are followed.
+
+  # bar is a symlink pointing to "/baz"
+  my $io = "foo/./bar/..".IO.resolve;  # now "/" (the parent of "/baz")
+
+=head3 .rmdir
+
+    method rmdir(--> Bool)
+
+Removes (deletes) the directory represented by the C<IO::Path>.  Returns
+C<True> if successful, or a C<Failure> of some kind if not.  Typically fails
+if the path is not a directory or the directory is not empty.
+
+=head3 .slurp
+X<.slurp>
+
+    method slurp(:$bin, :$enc  --> Str|Buf)
+
+Like L</slurp()>, but with L</.absolute> as the first parameter.
+
+=head3 .succ
+X<.succ>
+
+    method succ(--> IO::Path)
+
+Create next logical path and return the result as a new C<IO::Path>.
+
+=head3 .unlink
+
+    method unlink(--> Bool)
+
+Like L</unlink()>, but with L</.absolute> as the first parameter.
+Returns C<True> on success or an appropriate C<Failure>.
+
+=head3 .volume
+X<.volume>
+
+    method volume(-->Str)
+
+Returns the volume part of the path.  On Unix-like OSes or systems without a
+concept of volume in the path, returns the empty string.
+
+=head3 .words
+X<.words>
+
+    method words($limit = Inf,
+        :$nw    = "WS",
+        :$eager = (context),
+        --> List[Str] )
+
+    method words($limit = Inf, :count --> Int)
+
+Returns a (lazy) list of words of which the file consists, or a C<Failure>
+if something went wrong.  Optionally limits to the number given.  Also takes
+the following optional named parameters:
+
+=over 4
+
+=item :nw
+
+The delimiter between what are to be considered words.  By default assumes
+C<"WS">, which indicates any whitespace character.
+
+=item :eager
+
+If specified with a C<True> value, will generate the list of words eagerly,
+which may provide a performance benefit.  By default, it takes its cue from the
+context in which the method executes.
+
+=item :count
+
+If specified with a C<True> value, will return a count of the number of words,
+rather than words themselves.  By default, words will be returned.
+
+=back
+
 =head2 IO::Handle
 
     class IO::Handle does IO { ... }
@@ -888,34 +1281,6 @@ to obtain the path to test.  Stringification must return C<Str:D> here.
 The methods are typically only one letter long (for now; Perl 5 tradition
 strikes) and are summarized in the following table:
 
-    M  Test performed                              Returns
-    =  ==============                              =======
-    r  Path is readable by effective uid/gid.      Bool:D
-    w  Path is writable by effective uid/gid.      Bool:D
-    x  Path is executable by effective uid/gid.    Bool:D
-    o  Path is owned by effective uid.             Bool:D
-
-    R  Path is readable by real uid/gid.           Bool:D
-    W  Path is writable by real uid/gid.           Bool:D
-    X  Path is executable by real uid/gid.         Bool:D
-    O  Path is owned by real uid.                  Bool:D
-
-    e  Path exists.                                Bool:D
-    s  Size of the path in bytes.                  Int:D
-    z  Path has zero size (an empty file).         Bool:D
-
-    f  Path is a plain file.                       Bool:D
-    d  Path is a directory.                        Bool:D
-    l  Path is a symbolic link.                    Bool:D
-    p  Path is a named pipe (FIFO)                 Bool:D
-    S  Path is a socket.                           Bool:D
-    b  Path is a block special file.               Bool:D
-    c  Path is a character special file.           Bool:D
-
-    u  Path has setuid bit set.                    Bool:D
-    g  Path has setgid bit set.                    Bool:D
-    k  Path has sticky bit set.                    Bool:D
-
 All methods (except for C<e>) return the appropriate type object if a path
 has been specified that does not exist.
 
@@ -942,205 +1307,6 @@ Returns a stat buffer for the path.
 =back
 
 TODO: methods created, accessed, modified: return format, failure
-
-=head2 IO::Path
-
-    class IO::Path is Cool does IO::FileTestable { }
-
-Holds a path of a file or directory. The path is generally divided
-into three parts, the I<volume>, I<directory> and I<base name>.
-
-On Windows, the volume is a drive letter like C<C:>, or a UNC network volume
-like C<\\share\>. On UNIX-based systems, the volume part is empty.
-
-The base name is name of the file or directory that the IO::Path object
-represents, and the directory is the part of the path leading up to the base
-name.
-
-    path              volume         directory  base name
-    /usr/bin/gvim                    /usr/bin   gvim
-    /usr/bin/                        /usr       bin
-    foo/bar.txt                      foo        bar.txt
-    C:\temp\f.txt     C:             \temp      f.txt
-    \\server\share\a  \\server\share \          a
-
-IO::Path uses the syntax for the current operating system.  If
-you want to work paths as if you were using another OS, use the OS-specific
-subclasses such as IO::Path::Cygwin.
-
-There are several ways of creating an IO::Path.  Both IO::Handle and Cool have
-a .path method, or you can construct it directly:
-
-        "my/path".path
-        $filehandle.path
-        IO::Path.new( $full-path );
-        IO::Path.new( :$volume, :$directory, :$basename);
-
-=over 4
-
-=item Str
-
-Stringification returns the path (volume, directory and base name joined
-together) as a string.
-
-=item volume
-
-Returns the volume part of the path.  On Unix-like OSes or systems without a
-concept of volume in the path, returns the empty string.
-
-=item directory
-
-Returns the directory part of the path, not including the last item.  Functions
-equivalently to the C<dirname> shell program on Unix-like systems.
-
-=item basename
-
-Returns the base name part of the path -- that is, the last portion.  Functions
-equivalently to the C<basename> shell program on Unix-like systems.
-
-=item path
-
-Returns the entire IO::Path object (a no-op).
-
-=item contents
-
-    method contents( Mu :$test = none('.', '..') )
-
-Returns a lazy list of file names in the path, if it is a directory. The
-current and the parent directory are excluded, which can be controlled with
-the C<$test> named parameter. Only items that smart-match against this test
-are returned.
-
-The return value is a list of C<IO::Path> objects.  Because of this, you may
-want use the C<basename> method on the results to get the just the file name,
-without its full path.
-
-=item cleanup
-
-        method cleanup( :$parent = False )
-
-Returns a new IO::Path object with the canonical path.  This eliminates extra
-slashes and C<'.'> directories, but leaves C<'..'> in (or whatever the parent
-directory is called on that platform).
-
-With C<:parent>, cleanup will logically remove references to the parent
-directory without I<checking the filesystem>.  That is, the parent of a
-symbolic link will remove the symlink itself, not the parent of the symlink's
-destination.
-
-=item resolve
-
-Returns a new IO::Path object that is cleaned-up (as above), and all symbolic
-links and references to the parent directory (C<..>) are physically resolved.
-This means that the filesystem is examined for each directory in the path,
-and any symlinks found are followed.  Identical to C<.cleanup(:parent)> on systems
-where symbolic links are not supported.
-
-   # bar is a symlink pointing to "/baz"
-   my $path = "foo/./bar///..".path;
-   $path.=cleanup;  # now "foo/bar/.."
-   $path.cleanup(:parent); # yields "foo"
-   $path.=resolve;  # now "/" (the parent of "/baz")
-
-=item is-relative
-
-Returns True if the path is a relative path (like C<foo/bar>), False
-otherwise.
-
-=item is-absolute
-
-Returns True if the path is an absolute path (like C</usr/bin>), False
-otherwise.
-
-=item absolute
-
-    method absolute ( Str $base = $*CWD )
-
-Transforms the path into an absolute form, and returns the result as a new
-IO::Path.  If C<$base> is supplied, transforms it relative to that base
-directory; otherwise the current working directory is used.  Paths that are
-already absolute are returned unchanged.
-
-=item relative
-
-    method relative ( Str $base = $*CWD )
-
-Transforms the path into an relative form, and returns the result as a new
-IO::Path.  If C<$base> is supplied, transforms it relative to that base
-directory; otherwise the current working directory is used.  Paths that are
-already relative are returned unchanged.
-
-=item parent
-
-Removes the last portion the given path, and returns a new IO::Path.  This does
-not remove C<.>, C<..>, or symbolic links, so you may want to consider calling
-cleanup or resolve first.
-
-On a Unix/POSIX filesystem, if called recursively, it will work like so:
-
-    parent level          relative       absolute
-    Starting Path (0)     foo/bar        /foo/bar
-    1                       foo            /foo
-    2                        .              /
-    3                        ..             /
-    4                      ../..            /
-    5                     ../../..          /
-
-=item child
-
-    method child ( Str $childname )
-
-Appends C<$childname> to the end of the path, adding path separators where
-needed and returns the result as a new IO::Path.
-
-=item succ
-
-Increments the basename portion of the string, as Str.succ does, and returns
-that successor as an IO::Path.
-
-This is useful for getting all the parts of say, a multi-part archive, but
-does not always return the next item in the folder.  To crawl a folder, you
-probably want to iterate on the parent directory's contents.
-
-=item pred
-
-Decrements the basename portion of the string, as Str.pred does, and returns
-that predecessor as an IO::Path.
-
-=item copy
-
-    method copy ($dest, :$createonly = False )
-
-Copies a file from the path, to the destination specified.  If :createonly is
-set to True, copy fails when a file already exists in the destination.  If the
-operation cannot be completed, fails as X::IO::Copy.
-
-=item unlink
-
-Unlinks (deletes) the ordinary file, link, or symbolic link represented by the
-IO::Path.  Returns True on success; on error, fails with an X::IO::Unlink.
-
-=item rmdir
-
-Removes (deletes) the directory represented by the IO::Path.  Typically fails
-unless the directory is empty.  Returns True on success; fails with an X::IO::Rmdir
-on error.
-
-=item mkdir
-
-Makes (creates) the directory represented by the IO::Path. Returns True on success.
-The method will C<fail> with L<X::IO::Mkdir|S32::Exception/X::IO::Mkdir> if it
-can not create the directory, if file or directory already exists or if the parent
-directory of the path does not exist.
-
-=back
-
-=head3 OS Specific subclasses.
-
-IO::Path::Unix, IO::Path::Win32, and IO::Path::Cygwin subclasses are available
-for manipulating paths from different operating systems than the one you're
-currently using.  Unix works with any POSIX-like operating system, such as Linux
-or Darwin.  Win32 works for paths from Windows, DOS, OS/2, NetWare, and Symbian.
 
 =head1 Here Be Dragons
 
@@ -1399,21 +1565,6 @@ this condition this way:
 
     use POSIX qw(sysconf _PC_CHOWN_RESTRICTED);
     $can-chown-giveaway = not sysconf(_PC_CHOWN_RESTRICTED);
-
-=item chmod LIST
-X<chmod> X<permission> X<mode>
-
-Changes the permissions of a list of files.  The first element of the
-list must be the numerical mode, which should probably be an octal
-number, and which definitely should I<not> be a string of octal digits:
-C<0o644> is okay, C<0644> is not.  Returns the number of files
-successfully changed.
-
-    $count = chmod 0o755, 'foo', 'bar';
-    chmod 0o755, @executables;
-    $mode = '0644'; chmod $mode, 'foo';      # !!! sets mode to --w----r-T
-    $mode = '0o644'; chmod $mode, 'foo';     # this is better
-    $mode = 0o644;   chmod $mode, 'foo';     # this is best
 
 =item stat
 
