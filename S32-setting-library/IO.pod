@@ -837,6 +837,13 @@ X<.extension>
 
 Returns the extension of the path, if any.
 
+=head3 .IO
+X<.IO>
+
+    method IO(--> IO::Path)
+
+Returns itself.
+
 =head3 .is-absolute
 X<.is-absolute>
 
@@ -977,6 +984,21 @@ X<.slurp>
 
 Like L</slurp()>, but with L</.absolute> as the first parameter.
 
+=head3 .SPEC
+X<.SPEC>
+
+    method SPEC(--> IO::Spec)
+
+Returns the L</IO::Spec> object that was (implicitely) specified at object
+creation time.
+
+=head3 .spurt
+X<.spurt>
+
+    method spurt(:$enc, :$append, :$createonly  --> Str|Buf)
+
+Like L</spurt()>, but with L</.absolute> as the first parameter.
+
 =head3 .succ
 X<.succ>
 
@@ -1040,273 +1062,232 @@ rather than words themselves.  By default, words will be returned.
 A handle of a file, pipe or anything else that supports reading or
 writing like a file.
 
-=over 4
+The C<IO::Handle> object is usually B<not> directly instantiated, but with
+L</open()> or L</IO::Path>'sL</.open>.  Nonetheless, you B<can> create an
+C<IO::Handle> object with just a path:
 
-=item open
+  my $handle = IO::Handle.new($filename as Str);
+  my $handle = IO::Handle.new($filename as Str, :SPEC(*$SPEC));
+  my $handle = IO::Handle.new($filename as Str, :SPEC(*$SPEC), :CWD($*CWD));
 
-    multi method open (
-      # mode
-        Bool :$r  = True,
-        Bool :$w  = False,
-        Bool :$rw = False,
-        Bool :$a  = False,
-      # encoding
-        Bool :$bin = False,
-        Str  :$enc = "Unicode",
-      # newlines
-        Any  :$nl = "\n",
-        Bool :$chomp = True,
-        --> IO::Handle
-    ) is export
+This does not interact with anything at all and will appear as if the file
+has been C<.close>d.  From then on, the C<.path> method will return the
+C<IO::Path> object that was created
 
-Open the handle for reading or writing (or both).  Specifying C<:r>, the default,
-opens the handle as read-only, C<:w> is write-only, C<:rw> is read-write, and
-C<:a> appends writes to the file.
+The C<.open> method B<does> interact with the file system:
 
-The C<:enc> parameter controls which text encoding the file is interpreted as.
-Unicode is the default encoding.  See L</encoding> for encoding options.
+  $handle.open;  # same as $handle = $filename.IO.open
 
-The C<:nl> option sets L</input-line-separator>, and C<:chomp> determines if
-the new line separator will be chopped removed by C<get> and C<lines>.
+It has the same optional named parameters as L</open()> and either returns
+B<itself> (for historical reasons), or a C<Failure> with additional information.
 
-Conjectural: The <:p> parameter opens a pipe, which is readable with C<:r>
-(default) and writable with C<:w>.
+=head3 Methods handled by .path
 
-=item get
+The filename specified with C<.new> is internally stored as an L</IO::Path>
+object, obtainable with the C<.path> method.  The following methods are handled
+by C<.path> and work exactly the same:
 
-    method get() returns Str:D
+  absolute       the absolute, canonical path
+  accessed       last access time (if available)
+  basename       the basename of the path
+  changed        last (metadata) changed time
+  chmod          change attributes of path
+  directory      the directory part of the absolute path
+  extension      the extension of the file
+  is-absolute    is the (original) path absolute
+  is-relative    is the (original) path relative
+  modified       last modified time
+  relative       the relative path against CWD
+  SPEC           the :SPEC at instantiation time
+  volume         the volume of the path (if any)
 
-Reads and returns one line from the handle. Uses C<input-line-separator>
-to determine where a line ends.
+The following methods also work the same as with C<IO::Path>, but it may be
+less logical to use these on an C<IO::Handle> object as these return new
+C<IO::Path> objects.
 
-=item lines
+  child          append basename to path
+  IO             same as .path
+  parent         remove last portion of path
+  pred           previous logical path
+  resolve        follow symlinks to the real path
+  succ           next logical path
 
-    method lines($limit = Inf)
+These C<IO::Path> methods seem to only make sense if the C<IO::Handle> object
+is closed.  But there may be some uses for this, but it seems more like extra
+rope for shooting yourself in the foot.
 
-Returns a lazy list of lines read via the C<get> method, limited to C<$limit>
-lines.
+  copy           create a copy of file
+  mkdir          create directory
+  move           move (rename) to other storage
+  rename         rename (move) to other name
+  rmdir          remove directory if empty directory
+  unlink         remove file
 
-=item getc
-X<getc>
+[Conjecture: perhaps the above methods should fail on IO::Handle]
 
-    method getc (IO::Handle:D: Int $chars = 1 --> Str)
+Contrary to the C<IO::Path> methods with the same name, these methods operate
+only from the current file position.  If the file was just opened, it's
+identical as with the C<IO::Path> version.  But if you have done anything
+to the handle that moved the file pointer, you will get a different result.
 
-Reads C<$chars> and returns them
+  lines          contents of file as lines
+  slurp          obtain the contents of the file
+  spurt          write / append contents to file
+  words          contents of file as words
 
-=item print
-X<print>
+The other methods of C<IO::Handle> are:
 
-    method print (IO::Handle:D: *@LIST --> Bool)
-    multi print (*@LIST --> Bool)
+=head3 .close
+X<.close>
 
-Stringifies each element, concatenates those strings, and sends the
-result to the output.
-Returns C<Bool::True> if successful, C<Failure> otherwise.
+    method close(--> Bool)
 
-The compiler will warn you if use a bare sub C<print> without arguments.
-(However, it's fine if you have an explicit argument list that evaluates to
-the empty list at runtime.)
+Closes the handle and returns C<True>, or a C<Failure> if something went wrong.
 
-    print;             # warns
-    if $_ { print }    # warns
-    if $_ { print() }  # ok, but does nothing
-    if $_ { print () } # ok, but does nothing
+=head3 .encoding
+X<.encoding>
 
-=item say
-X<say>
+    method encoding(--> Str)
 
-    method say (IO::Handle:D: *@LIST --> Bool)
-    multi say (*@LIST --> Bool)
+    method encoding($encoding --> Str)
 
-This is identical to print() except that it stringifies its arguments by calling
-C<.gist> on them and auto-appends a newline after the final argument.
+Without arguments, simply returns the current encoding used on the handle.
+If supplied with a string identifying a valid encoding, change the handle
+to read with that encoding from then on.  Options include C<binary>, C<utf8>,
+and other text encodings.  An invalid encoding causes the method to return
+a C<Failure>.
 
-    Was:    print "Hello, world!\n";
-    Now:    say   "Hello, world!";
+=head3 .eof
+X<.eof>
 
-As with C<print>, the compiler will warn you if you use a bare sub C<say>
-without arguments.
+    method eof(--> Bool)
 
-=item printf
-X<printf>
+Returns C<True> if the handle is exhausted, C<False> otherwise.
 
-    method printf (Str $fmt, *@LIST --> Bool)
-    multi printf (IO::Handle:D: Str $fmt, *@LIST --> Bool)
+=head3 .fileno
+X<.fileno>
 
-Output through C<Str.sprintf>. See L<S32::Str> for details.
+    method fileno(--> int)
 
-=item  write
+Returns the file descriptor, which is always a native integer, conforming to
+C89.
 
-    method write(IO::Handle:D: Buf $buf --> Int)
+=head3 .flush
+X</flush>
 
-Tries to write C<$buf>. The actual number of bytes
-written is returned. It might return unthrown failures, to be
-specified by each C<IO> implementation.
+    method flush(--> Bool)
 
-This is "raw" write. C<$buf> contains plain octets. If you want to C<write>
-a C<Str>, you should C<.encode> it first, or use "print" or other
-C<IO::Writeable::Encoded> methods.
+Attempts to flush any buffered data, returns C<True> if successful, an
+appropriate C<Failure> otherwise.
 
-=item slurp
+=head3 .get
+X<.get>
 
-    method slurp(
-        Bool :$bin = False,
-        Str  :$enc = "Unicode",
-        --> Str|Buf)
+    method get(--> Str)
 
-Opens the handle if necessary, slurps the entire file into a C<Str>
-(or C<Buf> if C<:bin> parameter is given) regardless of context.  Closes the
-handle after it is done, and returns the contents of the file.
-(See also L</lines>.)
+Reads the next line and returns it.  Uses the (implicit) specification of
+C<:nl> with L</open> to determine where a line ends.  Returns a C<Str> type
+object if no more lines to be read.
 
-The routine will C<fail> if the file does not exist, or is a directory.
+=head3 .getc
+X<.getc>
 
-=item spurt
+    method getc(Int $chars = 1 --> Str)
 
-    multi method spurt (
-        Str   $contents,
-        Str  :$enc = $?ENC,
-        Bool :append = False,
-        Bool :$createonly = False)
+Tries to read C<$chars> characters and return them concatenated as a string.
+Returns a C<Str> type object if no more lines to be read.
 
-    multi method spurt (
-        Buf   $contents,
-        Bool :append = False,
-        Bool :$createonly = False)
+=head3 .ins
+X<.ins>
 
-Opens the file for writing, dumps the contents, and closes the file.
+    method ins(--> Int)
 
-This routine will C<fail> if the file exists and C<:createonly> is set.
+Returns the number of lines that have been read with L</.get> or L</.lines>.
 
-If C<:append> is provided, an existing file will not be clobbered, but the
-string will be appended.
+=head3 .opened
+X<.opened>
 
-The routine will also C<fail> with the corresponding exception if there was any
-other error in opening, writing, or closing.
+    method opened(--> Bool)
 
-=item t
+Return whether the file is opened.
 
-    method t() returns Bool:D
+=head3 .p
+X<.p>
 
-Returns C<True> if the handle is opened to a tty.
+    method p(--> Bool)
 
-=item p
+Returns whether the handle is opened to a pipe.
 
-    method p() returns Bool:D
+=head3 .print
+X<.print>
 
-Returns C<True> if the handle is opened to a pipe.
+    method print (*@text --> Bool)
 
-=item eof
+Stringifies each element, concatenates those strings, and writes the
+result to the file.  Returns C<True> if successful, a C<Failure> otherwise.
 
-    method eof() returns Bool:D
+=head3 .read
+X<.read>
 
-Returns C<True> if the handle is exhausted.
+    method read(Int $bytes --> Buf)
 
-=item seek
+Reads and returns C<$bytes> bytes from the handle, or as many as are possible.
 
-method seek(Int $position, Int $whence --> Bool)
+=head3 .say
+X<.say>
 
-Position this stream into C<$position>. The meaning of this position is
-always in "octets".
+    method say (*@text --> Bool)
 
-Fails if the handle is not seekable.
+This is identical to L</.print> except that it stringifies its arguments by
+calling C<.gist> on them and auto-appends a newline after the final argument.
 
-TODO: make $whence an Enum
+=head3 .seek
+X<.seek>
 
-=item tell
+    method seek(Int $position, MoveMethod $whence --> Bool)
 
-    method tell() returns Int:D:
+Move the file pointer to C<$position>. The meaning of this position is
+always in "bytes", so you better know what you're doing in a text-file.
 
-Returns the current raw position in the stream in number of "octets".
+The C<$whence> value should be a C<MoveMethod> value, which is one of:
 
-=item ins
+    name        value
+    =========== =====
+    FromStart     0
+    FromCurrent   1
+    FromEnd       2
 
-    method ins( --> Int)
+These numerical values will also be accepted.  Returns C<True> on success,
+or a C<Failure> if something went wrong (e.g. when using C<$*IN> on a terminal
+input).
 
-Returns the number of lines that have been read with C<get>.
+=head3 .t
+X<.t>
 
-=item input-line-separator
+    method t(--> Bool)
 
-    method input-line-separator( --> Str) is rw
+Returns C<True> if the handle is opened to a tty, aka there might actually
+be a person watching.
 
-This regulates how C<get> and C<lines> behave.
+=head3 .tell
+X<.tell>
 
-The input line (record) separator, newline by default.
-This influences Perl's idea of what a ``line'' is.
-Works like awk's RS variable, including treating empty lines
-as a terminator if set to the null string.
-(An empty line cannot contain any spaces or tabs.)
-You may set it to a multi-character string to match a multi-character
-terminator, or to Nil to read through the end of file.
-Setting it to "\n\n" means something slightly different
-than setting to "", if the file contains consecutive empty lines.
-Setting to "" will treat two or more consecutive empty lines
-as a single empty line. Setting to "\n\n" will blindly assume
-that the next input character belongs to the next paragraph,
-even if it's a newline.
+    method tell(--> Int)
 
-You may also set it to a regular expression.  The value of C<$/>
-will be (temporarily) set to the matched separator upon input,
-if you care about the contents of the separator.
+Returns the position of the file pointer in number of "octets".
 
-=item encoding
+=head3  .write
+X<.write>
 
-    multi method encoding($enc?)
+    method write(Buf $buf --> Int)
 
-With no arguments, simply returns the current encoding used on the handle.
-If supplied a string identifying a valid encoding, change the handle to read
-with that encoding.  Options include C<binary>, C<utf8>, and
-other text encodings.  An invalid encoding causes the method to fail.
+Tries to write C<$buf> to the file. The actual number of bytes written is
+returned, or a C<Failure> if something went wrong.
 
-=item IO
-
-Returns the handle itself (no-op).
-
-=item close
-
-Closes the handle. Fails on error.
+This is "raw" write. C<$buf> contains plain bytes. If you want to C<write>
+a C<Str>, you should C<.encode> it first, or use L</.print>.
 
 =back
-
-=head2 IO::FileTestable
-
-    role IO::FileTestable does IO { ... }
-
-Provides ways to inspect a file or path without opening it.
-
-If you apply that role to a class, that class must provide a C<Str> method
-which returns the full path.  C<IO::FileTestable> will call this method
-to obtain the path to test.  Stringification must return C<Str:D> here.
-
-The methods are typically only one letter long (for now; Perl 5 tradition
-strikes) and are summarized in the following table:
-
-All methods (except for C<e>) return the appropriate type object if a path
-has been specified that does not exist.
-
-=over 4
-
-=item accessed
-X<stattimes>
-
-Returns the last access time (C<atime>) of the path, to the degree that it is
-updated on that system.
-
-=item modified
-
-Returns the time that the path was last modified (C<mtime>).
-
-=item changed
-
-Returns the time that the path was last changed (modified or a metadata change).
-
-=item stat
-
-Returns a stat buffer for the path.
-
-=back
-
-TODO: methods created, accessed, modified: return format, failure
 
 =head1 Here Be Dragons
 
@@ -1403,20 +1384,6 @@ Implements the IO::Writeable interface by doing  a I<send(2)>.
 Creates a new socket and opens it.
 
 =back
-
-=head2 IO::Handle (opened version)
-
-This role indicates that this object actually represents an open file
-descriptor in the os level.
-
-=over
-
-=item method int fileno()
-
-File descriptors are always native integers, conforming to C89.
-
-=back
-
 
 =head1 Conjectural Stuff
 
@@ -1725,10 +1692,6 @@ Indicates that this object performs buffering. The management of the
 buffer is completely implementation specific.
 
 =over
-
-=item method flush( --> Bool)
-
-Flushes the buffers associated with this object.
 
 =item method autoflush( --> Bool) is rw
 
