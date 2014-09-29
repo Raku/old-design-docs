@@ -662,7 +662,7 @@ Returns a string representation of the parent directory (usually C<"..">).
     class IO::Path is Cool { }
 
 Holds a path of a file or directory. The path is generally divided
-into three parts, the I<volume>, I<directory> and I<base name>.
+into three parts, the I<volume>, I<dirname> and I<base name>.
 
 On Windows, the volume is a drive letter like C<C:>, or a UNC network volume
 like C<\\share\>. On UNIX-based systems, the volume part is empty.
@@ -671,7 +671,7 @@ The basename is name of the file or directory that the C<IO::Path> object
 represents, and the directory is the part of the path leading up to the
 basename.
 
-    path              volume         directory  basename
+    path              volume         dirname    basename
     /usr/bin/gvim                    /usr/bin   gvim
     /usr/bin/                        /usr       bin
     foo/bar.txt                      foo        bar.txt
@@ -691,7 +691,7 @@ C<.IO> coercer:
 Of course, you can always call the C<.new> method as well:
 
   my $io = IO::Path.new( $full-path );
-  my $io = IO::Path.new( :$volume, :$directory, :$basename);
+  my $io = IO::Path.new( :$volume, :$dirname, :$basename);
 
 Whenever a new C<IO::Path> is created, an internal absolute and cleaned version
 of the specified path is stored, using the implicitely or explicitely
