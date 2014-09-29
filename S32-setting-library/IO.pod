@@ -329,20 +329,20 @@ and if that (silently) fails, do it the hard way.
 =head2 unlink()
 X<unlink()>
 
-    sub unlink(*@files --> Int) is export
+    sub unlink(*@files --> @removed) is export
 
 Delete all specified ordinary files, links, or symbolic links.  Returns the
-number successfully deleted.
+names of the files that were successfully deleted.
 
 =head3 chmod()
 X<chmod()>
 
-    sub chmod($permission, *@files --> Int) is export
+    sub chmod($permission, *@files --> @changed) is export
 
 Changes the permissions of a list of files.  The first element of the
 list must be the numerical mode, which should probably be an octal
 number, and which definitely should I<not> be a string of octal digits:
-C<0o644> is okay, C<0644> is not.  Returns the number of files
+C<0o644> is okay, C<0644> is not.  Returns the names of the files that were
 successfully changed.
 
     $count = chmod 0o755, 'foo', 'bar';
