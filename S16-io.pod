@@ -18,8 +18,8 @@ Synopsis 16: I/O
 
     Created: 12 Sep 2006
 
-    Last Modified: 23 Sep 2014
-    Version: 25
+    Last Modified: 5 Oct 2014
+    Version: 26
 
 Many of these functions will work as in Perl 5, except we're trying to rationalize everything into roles.  For
 now you can assume most of the important functions will automatically
@@ -260,9 +260,21 @@ An overview:
   rmdir($dir)                   # remove a directory
 
   chdir($dir)                   # set $*CWD
-  chdir($dir, my $*CWD)         # set $*CWD for the current scope
-  chdir($dir, my $*TMPDIR, :test<d r w x>)   # set $*TMPDIR, also be +w and +x
-  chdir($dir, my $*HOME)        # set $*HOME for the current scope
+  temp $*CWD = chdir($dir)      # set $*CWD for the current scope
+  chdir($dir, :test<r w x>)     # set $*CWD, must also be +w and +x, default +r
+
+  indir($dir, { ... })          # execute code with temporary $*CWD
+  indir($dir, :test<r w x>, {   # same, must be also +x, default +rw
+      ...
+  };
+
+  tmpdir($dir)                  # set $*TMPDIR
+  temp $*TMPDIR = tmpdir($dir)  # set $*TMPDIR for the current scope
+  tmpdir($dir, :test<r>)        # set $*TMPDIR, must be +r only, default +rwx
+
+  homedir($dir)                 # set $*HOME
+  temp $*HOME = homedir($dir)   # set $*HOME for the current scope
+  homedir($dir, :test<r>)       # set $*HOME, must be +r only, default +rwx
 
   copy($from,$to)               # copy a file
   rename($from,$to)             # rename (move) a file on same physical storage
