@@ -124,62 +124,92 @@ third-party implementation of an C<IO::Spec> class.
 
 The dynamic variable $*CWD is an C<IO::Path> object of the current working
 directory.  It is normally set with the C<chdir()> function, which will check
-whether the specified path exists as a directory.  To facilitate setting a
-locally scoped version of $*CWD, you can specify the variable to be set as
-a second parameter to C<chdir()>.
+whether the specified path exists as a directory.  An optional C<:test>
+parameter will apply the given file tests and fail if any of them is not
+returning a true value.  The default for the file tests is C<< <r> >>.
 
-  chdir($dir);   # sets $*CWD of outer scope, usually PROCESS::<$*CWD>
+  chdir($dir);   # sets $*CWD of scope, usually PROCESS::<$CWD>
 
-  {
-      chdir($dir, my $*CWD);  # set $*CWD in this scope
-  }
+  chdir($dir, :test<r> );  # default is only readable
 
 The C<chdir()> function returns a C<X::IO::Chdir> Failure if the path does
-not exist, is not accessible, or is not a directory.  Otherwise it will
-return C<True>.  Any C<Failure> generally will be thrown immediately if
-called like above.
+not exist, or is not a directory, or fails the given file tests.  Otherwise
+returns a newly created C<IO::Path> object (which will be C<True>).
 
 Please note that the path in C<$*CWD> does not have any bearing on what the
 underlying operating system's concept of a "current directory".  It is simply
 the path that will prepended before any implicit or explicit relative paths,
 and the default path that will be used when executing a sub-process.
 
-=head2 $*TMPDIR and chdir()
+To be changing C<$*CWD> just for a given scope, you can use C<indir()>:
 
-The dynamic variable C<$*TMPDIR> is an C<IO::Path> object which points to the
-system's temporary directory.  It can be set with the C<chdir()> function:
+  indir $dir, {
+      ... your code in $dir ...
+  };
+  ... your code in $*CWD again ...
 
-  chdir($dir, $*TMPDIR, :test<d r w x>);
-
-which will check whether the specified path exists as a directory and is
-readable and writable.  To facilitate setting a locally scoped version of
-$*TMPDIR in the same manner:
+or you can use C<chdir()> with a temporary C<$*CWD>:
 
   {
-      chdir($dir, my $*TMPDIR, :test:<d r w x>);  # set $*TMPDIR in this scope
+      temp $*CWD = chddir($dir);
+      ... your code in $dir ...
   }
+  ... your code in $*CWD again ...
 
-It will return C<True> or an appropriate C<Failure>.
+=head2 $*TMPDIR and tmpdir()
+
+The dynamic variable C<$*TMPDIR> is an C<IO::Path> object which points to the
+system's temporary directory.  It can be set with the C<tmpdir()> function
+which will check whether the specified path exists as a directory.  An
+optional C<:test> parameter will apply the given file tests and fail if any
+of them is not returning a true value.  The default for the file tests is
+C<< <r w x> >>.
+
+  tmpdir($dir);  # sets $*TMPDIR of scope, usually PROCESS::<$TMPDIR>
+
+  tmpdir($dir, :test<r w x>); # default is read/write/executable
+
+which will check whether the specified path exists as a directory and is
+readable/writable/executable.  To set a locally scoped version of C<$*TMPDIR>,
+you can use C<tmpdir()> with a temporary C<$*TMPDIR>:
+
+  {
+      temp $*TMPDIR = $tmpdir($dir);
+      ... your code with $*TMPDIR being $dir ...
+  }
+  ... your code in original $*TMPDIR again ...
+
+It will return a newly created C<IO::Path> object (which is C<True>) or an
+appropriate C<Failure>.
 
 The initialization of C<$*TMPDIR> at startup, is delegated to the C<.tmpdir>
 method of the C<$*SPEC> setting that is set at startup.
 
-=head2 $*HOME and chdir()
+=head2 $*HOME and homedir()
 
 The dynamic variable C<$*HOME> is an C<IO::Path> object which points to the
-user's home directory.  It can be set with the C<chdir()> function:
+user's home directory.  It can be set with the C<homedir()> function
+which will check whether the specified path exists as a directory.  An
+optional C<:test> parameter will apply the given file tests and fail if any
+of them is not returning a true value.  The default for the file tests is
+C<< <r w x> >>.
 
-  chdir($dir, $*HOME, :test<d r w x>);
+  homedir($dir);  # sets $*HOME of scope, usually PROCESS::<$HOME>
+
+  homedir($dir, :test<r w x>); # default is read/write/executable 
 
 which will check whether the specified path exists as a directory and is
-readable and writable.  To facilitate setting a locally scoped version of
-$*HOME in the same manner:
+readable/writable/executable.  To set a locally scoped version of C<$*HOME>,
+you can use C<homedir()> with a temporary C<$*HOME>:
 
   {
-      chdir($dir, my $*HOME, :test<d r w x>);  # set $*HOME in this scope
+      temp $*HOME = homedir($dir);
+      ... your code with $*HOME being $dir ...
   }
+  ... your code in original $*HOME again ...
 
-It will return C<True> or an appropriate C<Failure>.
+It will return a newly created C<IO::Path> object (which is C<True>) or an
+appropriate C<Failure>.
 
 The initialization of C<$*HOME> at startup, is delegated to the C<.homedir>
 method of the C<$*SPEC> setting that is set at startup.
