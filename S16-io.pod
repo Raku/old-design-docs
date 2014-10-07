@@ -324,21 +324,21 @@ Apart from the C<path> positional, it also takes optional C<:SPEC> and
 C<CWD> named parameters.  The C<.IO> coercer (which takes the same parameters
 as C<.new>) is the syntactic sugar that will most likely be used most often.
 
-  my $path = $filename.IO;                  # current $*SPEC/$*CWD
-  my $path = $filename.IO(:SPEC(*$SPEC));   # specific IO::SPEC
-  my $path = $filename.IO(:SPEC(*$SPEC), :CWD($*CWD));
+  my $io = $filename.IO;                  # current $*SPEC/$*CWD
+  my $io = $filename.IO(:SPEC(*$SPEC));   # specific IO::SPEC
+  my $io = $filename.IO(:SPEC(*$SPEC), :CWD($*CWD));
 
 which would be the same as:
 
-  my $path = IO::Path.new($filename);
-  my $path = IO::Path.new($filename, :SPEC(*$SPEC));
-  my $path = IO::Path.new($filename, :SPEC(*$SPEC), :CWD($*CWD));
+  my $io = IO::Path.new($filename);
+  my $io = IO::Path.new($filename, :SPEC(*$SPEC));
+  my $io = IO::Path.new($filename, :SPEC(*$SPEC), :CWD($*CWD));
 
 If you only have filename components to start with, you can also create an
 C<IO::Path> object with the C<:volume>, C<:directory> and C<:basename> named
 parameters:
 
-  my $path = IO::Path.new( :$volume, :$directory, :$basename );
+  my $io = IO::Path.new( :$volume, :$directory, :$basename );
 
 The following file test methods are provided:
 
@@ -373,11 +373,29 @@ To allow for easy chaining of file tests, there is an C<.all> method that can
 be fed the tests to be tried as a C<Parcel> of strings.  The value returned
 will be the first non-True value, or the final True value.
 
-  say "rwx" if $path.all: <r w x>;
+  say "rwx" if $io.all: <r w x>;
 
-  if $path.all(<f r w x s>) -> $size {
+  if $io.all(<f r w x s>) -> $size {
       say "plain file with rwx of $size bytes";
   }
+
+This is mostly handy when passing file tests as parameters between routines
+and methods.  From a performance point of view, direct use of the methods,
+like:
+
+  if $io.f && $io.r && $io.w && $io.x && $io.s -> $size {
+      say "plain file with rwx of $size bytes";
+  }
+
+or the smart match method:
+
+  given $io {
+      when :f :r :w :x {
+          say "plain file with rwx of $_.s() bytes";
+      }
+  }
+
+is probably faster.
 
 These other methods are also provided (in alphabetical order):
 
