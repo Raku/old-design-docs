@@ -9,13 +9,14 @@ Synopsis 3: Operators
     Luke Palmer <luke@luqui.org>
     Larry Wall <larry@wall.org>
     Darren Duncan <darren@darrenduncan.net>
+    Elizabeth Mattijsen <liz@dijkmat.nl>
 
 =head1 VERSION
 
     Created: 8 Mar 2004
 
-    Last Modified: 30 Aug 2014
-    Version: 281
+    Last Modified: 7 Oct 2014
+    Version: 282
 
 =head1 Overview
 
@@ -2781,11 +2782,11 @@ The pair forms are useful only for boolean tests because the method's
 value is evaluated as a Bool, so the
 method form must be used for any numeric-based tests:
 
-    if stat($filename).s > 1024 {...}
+    if $filename.IO.s > 1024 {...}
 
 However, these still work:
 
-    given $fh {
+    given $io {
         when :s  {...} # file has size > 0
         when :!s {...} # file size == 0
     }
@@ -2793,17 +2794,17 @@ However, these still work:
 One advantage of the method form is that it can be used in places that
 require tighter precedence than C<~~> provides:
 
-    sort { $^a.M <=> $^b.M }, @files».IO
+    sort { $^a.modified <=> $^b.modified }, @files».IO
 
 though that's a silly example since you could just write:
 
-    sort { .M }, @files».IO
+    sort { .modified }, @files».IO
 
 But that demonstrates the other advantage of the method form, which is
 that it allows the "unary dot" syntax to test the current topic.
 
 Unlike in earlier versions of Perl 6, these filetest methods do not return
-stat buffers, but simple scalars of type C<Bool>, C<Int>, or C<Num>.
+stat buffers, but simple scalars of type C<Bool>, C<Int>, or C<Instant>.
 
 In general, the user need not worry about caching the stat buffer
 when a filename is queried.  The stat buffer will automatically be
