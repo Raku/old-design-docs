@@ -777,7 +777,7 @@ return values are allowed, e.g. C<use native 'int';> and such.
 (The optimizer is also allowed to substitute such variants when it
 can determine that the final destination would store natively in
 any case, or that the variant could not possibly malfunction given
-the arguments.)  [Conjecture: we could allow an 'N' metoperator to
+the arguments.)  [Conjecture: we could allow an 'N' metaoperator to
 select the native variant on a case by case basis.]
 
 Numeric values in untyped variables use C<Int> and C<Num> semantics
@@ -1693,16 +1693,19 @@ behaves as a C<Set> of its keys.  (Since the only possible value of
 a C<SetHash> is the C<True> value, it need not be represented in
 the actual implementation with any bits at all.)
 
-A C<BagHash> is a C<QuantHash> of C<UInt> with default of 0.  If you
+A C<BagHash> is a C<QuantHash> of C<UInt> with a default of 0.  If you
 use the C<Hash> interface and increment an element of a C<BagHash>
 its value is increased by one (creating the element if it doesn't exist
 already).  If you decrement the element the value is decreased by one;
 if the value goes to 0 the element is automatically deleted.  An attempt
 to decrement a non-existing value returns an undefined value.  When not
 used as a C<Hash> (that is, when used as an C<Array> or list or C<Bag>
-object) a C<BagHash> behaves as a C<Bag> of its keys, with each key
-replicated the number of times specified by its corresponding value.
-(Use C<.kv> or C<.pairs> to suppress this behavior in list context.)
+object) a C<BagHash> behaves as a C<Bag> of its pairs.
+
+A C<MixHash> is a C<QuantHash> of C<Real> with a default of 0.0.  If the
+value goes to 0 the element is automatically deleted.  When not used as a
+C<Hash> (that is, when used as an C<Array> or list or C<Mix> object) a
+C<MixHash> behaves as a C<Mix> of its pairs.
 
 As with C<Hash> types, C<Pair> and C<PairSeq> are mutable in their
 values but not in their keys.  (A key can be a reference to a mutable
@@ -1955,9 +1958,8 @@ C<Range>, C<Buf>, C<Parcel>, or C<Capture>.  The C<Positional>
 role implies the ability to support C<< postcircumfix:<[ ]> >>.
 
 Likewise, C<%x> may be bound to any object that does the C<Associative>
-role, such as C<Pair>, C<PairSet>, C<Set>, C<Bag>, C<Mix>, or
-C<Capture>.  The C<Associative> role implies the ability to support
-C<< postcircumfix:<{ }> >>.
+role, such as C<Pair>, C<Set>, C<Bag>, C<Mix>, or C<Capture>.  The
+C<Associative> role implies the ability to support C<< postcircumfix:<{ }> >>.
 
 C<&x> may be bound to any object that does the C<Callable> role, such
 as any C<Block> or C<Routine>.  The C<Callable> role implies the ability
@@ -2025,14 +2027,12 @@ The C<anon> declarator allows a declaration to provide a name that
 can be used in error messages, but that isn't put into any external symbol table:
 
     my $secret = anon sub marine () {...}
-    $secret(42)  # too many arguments to sub marine
+    $secret(42);  # too many arguments to sub marine
 
 However, the name is introduced into the scope of the declaration itself, so it
 may be used to call itself recursively:
 
-    my $secret =
-        anon sub tract($n) { say $n; tract($n-1) if $n }
-
+    my $secret = anon sub tract($n) { say $n; tract($n-1) if $n };
     $secret(5); # 5 4 3 2 1 0
 
 =head2 Invariant sigils
@@ -2058,7 +2058,8 @@ are any elements in the container.
 To get a Perlish representation of any object, use the C<.perl> method.
 Like the C<Data::Dumper> module in Perl 5, the C<.perl> method will put
 quotes around strings, square brackets around list values, curlies around
-hash values, constructors around objects, etc., so that Perl can evaluate
+hash values, constructors around objects, properly handle circular
+references etc., so that Perl can evaluate
 the result back to the same object.  The C<.perl> method will return
 a representation of the object on the assumption that, if the code is
 reparsed at some point, it will be used to regenerate the object as a
@@ -2477,7 +2478,6 @@ side effects, then returns the value of the final statement.  In order
 to do that in Perl 6, you need to use one of these constructs:
 
     do { my $x = 42; $x }
-    SEQ( my $x = 42; $x )
     $( my $x = 42; $x )
     @( my @x = 42,43; @x )
     %( my %x = a => 42; %x )
@@ -2675,22 +2675,18 @@ operators:
     print $( foo() )    # foo called in item context
     print %( foo() )   # foo called in hash context
 
-In declarative constructs bare sigils may be used as placeholders for
-anonymous variables:
+Bare sigils may be used as placeholders for anonymous variables:
 
     my ($a, $, $c) = 1..3;
     print unless (state $)++;
 
-Outside of declarative constructs you may use C<*> for a placeholder:
+Outside of declarative constructs you may also use C<*> for a placeholder:
 
     ($a, *, $c) = 1..3;
 
-Attempts to say something like:
+Which would be the same as:
 
     ($a, $, $c) = 1..3;
-
-will result in the message, "Anonymous variable requires declarator".
-
 
 =head2 Package-qualified names
 
@@ -3322,7 +3318,7 @@ These name the same module:
     use ThatModule:auth<Somebody>:ver<2.7.18.28.18>
     use ThatModule:ver<2.7.18.28.18>:auth<Somebody>
 
-Adverbial syntax will be described more fully later.
+Adverbial syntax is described in L</Adverbial Pair forms>.
 
 =head1 Literals
 
@@ -4433,7 +4429,7 @@ chunk has a C<.range> property that indicates its line number range
 within the source file.
 
 [Speculative]
-It may also be possible to treat a Pod object as an IO, to read the Pod
+It may also be possible to treat a Pod object as an IO::Handle, to read the Pod
 information line-by-line (like the C<DATA> filehandle in Perl 5, but
 for I<any> Pod block).
 

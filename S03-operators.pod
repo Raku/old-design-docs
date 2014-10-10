@@ -9,13 +9,14 @@ Synopsis 3: Operators
     Luke Palmer <luke@luqui.org>
     Larry Wall <larry@wall.org>
     Darren Duncan <darren@darrenduncan.net>
+    Elizabeth Mattijsen <liz@dijkmat.nl>
 
 =head1 VERSION
 
     Created: 8 Mar 2004
 
-    Last Modified: 30 Aug 2014
-    Version: 281
+    Last Modified: 7 Oct 2014
+    Version: 282
 
 =head1 Overview
 
@@ -361,7 +362,7 @@ Meta-method call
     $obj.^meth
 
 The C<.^> operator calls a class metamethod;
-C<foo.^bar> is short for C<foo.HOW.bar>.
+C<foo.^bar> is short for C<foo.HOW.bar(foo)>.
 
 =item *
 
@@ -2443,7 +2444,7 @@ is processed as a bare C<Parcel> object, not a flattening list:
 
      $(1,2 Z 3,4)      # Scalar((1,3),(2,4))
      @(1,2 Z 3,4)      # ((1,3),(2,4))
-     %(1,2 Z 3,4)      # PairSeq(1 => 3, 2 => 4)
+     %(1,2 Z 3,4)      # (1 => 3, 2 => 4)
 
      $(1,2 X 3,4)      # Scalar((1,3),(1,4),(2,3),(2,4))
      @(1,2 X 3,4)      # ((1,3),(1,4),(2,3),(2,4))
@@ -2465,7 +2466,7 @@ The new name for Perl 5's C<scalar> contextualizer.  Equivalent to C<$(...)>
 We still call the values scalars, and talk about "scalar operators", but
 scalar operators are those that put their arguments into item context.
 
-If given a list, this function makes a C<Seq> object from it.  The function
+If given a list, this function makes a C<Parcel> object from it.  The function
 is agnostic about any C<Parcel> embedded in such a sequence, and any contextual
 decisions will be deferred until subsequent use of the contents.
 
@@ -2761,7 +2762,7 @@ you can test anything for definedness or undefinedness:
 
 Using the pattern form, multiple tests may be combined via junctions:
 
-    given $handle {
+    given $path {
         when :r & :w & :x {...}
         when :!w | :!x    {...}
         when *            {...}
@@ -2781,11 +2782,11 @@ The pair forms are useful only for boolean tests because the method's
 value is evaluated as a Bool, so the
 method form must be used for any numeric-based tests:
 
-    if stat($filename).s > 1024 {...}
+    if $filename.IO.s > 1024 {...}
 
 However, these still work:
 
-    given $fh {
+    given $io {
         when :s  {...} # file has size > 0
         when :!s {...} # file size == 0
     }
@@ -2793,17 +2794,17 @@ However, these still work:
 One advantage of the method form is that it can be used in places that
 require tighter precedence than C<~~> provides:
 
-    sort { $^a.M <=> $^b.M }, @files».IO
+    sort { $^a.modified <=> $^b.modified }, @files».IO
 
 though that's a silly example since you could just write:
 
-    sort { .M }, @files».IO
+    sort { .modified }, @files».IO
 
 But that demonstrates the other advantage of the method form, which is
 that it allows the "unary dot" syntax to test the current topic.
 
 Unlike in earlier versions of Perl 6, these filetest methods do not return
-stat buffers, but simple scalars of type C<Bool>, C<Int>, or C<Num>.
+stat buffers, but simple scalars of type C<Bool>, C<Int>, or C<Instant>.
 
 In general, the user need not worry about caching the stat buffer
 when a filename is queried.  The stat buffer will automatically be
@@ -2906,8 +2907,8 @@ written: C<<< << ... >> >>>.
 
 =item *
 
-Comma C<,> now constructs a C<Parcel> object from its
-operands.  In item context this turns into a C<Seq> object.  You have to use a C<[*-1]> subscript to get the last one.
+Comma C<,> now constructs a C<Parcel> object from its operands.  You have to
+use a C<[*-1]> subscript to get the last one.
 (Note the C<*>.  Negative subscripts no longer implicitly count from
 the end; in fact, the compiler may complain if you use C<[-1]> on an
 object known at compile time not to have negative subscripts.)
@@ -3845,9 +3846,9 @@ Various proposed-but-deprecated smartmatch behaviors may be easily
     Array   Num    array element truth    .[X]
     Array   Num    array contains number  *,X,*
     Array   Str    array contains string  *,X,*
-    Array   Seq    array begins with seq  X,*
-    Array   Seq    array contains seq     *,X,*
-    Array   Seq    array ends with seq    *,X
+    Array   Parcel array begins /w Parcel X,*
+    Array   Parcel array contains Parcel  *,X,*
+    Array   Parcel array ends with Parcel *,X
     Hash    Str    hash element truth     .{X}
     Hash    Str    hash key existence     .{X}:exists
     Hash    Num    hash element truth     .{X}
@@ -4412,8 +4413,8 @@ More generally, a dwimmy hyper operator works recursively for any object
 matching the C<Iterable> role even if the object itself doesn't support
 the operator in question:
 
-    Bag(3,8,[2,Seq(9,3)],8) >>->> 1;         # Bag(2,7,[1,Seq(8,2)],7)
-    Seq(3,8,[2,Seq(9,3)],8) >>->> (1,1,2,1); # Seq(2,7,[0,Seq(7,1)],7)
+    Bag(3,8,[2,(9,3)],8) >>->> 1;      # Bag(2,7,[1,(8,2)],7)
+    (3,8,[2,(9,3)],8) >>->> (1,1,2,1); # (2,7,[0,(7,1)],7)
 
 In particular, tree node types with C<Iterable> semantics enable visitation:
 
@@ -5293,7 +5294,7 @@ its bits at once using the C<< prefix:<|> >> operator:
 =head1 Traversing arrays in parallel
 
 In order to support parallel iteration over multiple arrays, Perl 6
-has a C<zip> function that builds a list of C<Seq> objects from the
+has a C<zip> function that builds a list of C<Parcel> objects from the
 elements of two or more arrays.  In ordinary list context this behaves
 as a list of C<Captures> and automatically flattens.
 

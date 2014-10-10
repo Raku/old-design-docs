@@ -10,9 +10,9 @@ my $str = '';
 my $lvl;
 my @opt;
 
-@opt.push: "=begin pod";
+@opt.push: "=begin pod", "=encoding utf8";
 
-for <. S32-setting-library>.map( { IO::Path.new($_).contents } ).grep( { m/ .*\.pod / and !m/ contents\.pod / } ).sort -> $f {
+for <. S32-setting-library>.map( { IO::Path.new($_).contents } ).grep( { m/ .*\.pod $$ / and !m/ contents\.pod / } ).sort -> $f {
   $f.basename.say;
   for open($f).lines { 
 	if m/ <?hs> / {
@@ -42,6 +42,6 @@ for <. S32-setting-library>.map( { IO::Path.new($_).contents } ).grep( { m/ .*\.
   }
 }
 
-@opt.push: "=end pod";
+@opt.push: '', "=end pod";
 
 spurt('contents.pod', join("\n",@opt) );
