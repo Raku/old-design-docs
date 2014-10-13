@@ -411,9 +411,9 @@ calls to a channel return the same promise, not a new one.
 While C<receive> blocks until it can read, C<poll> takes a message from the
 channel if one is there or immediately returns C<Nil> if nothing is there.
 
-There is also a C<winner> statement [keywords still negotiable]:
+There is also a C<earliest> statement:
 
-    winner * {
+    earliest * {
         more $c1 { say "First channel got a value" }
         more $c2 { say "Second channel got a value" }
     }
@@ -427,7 +427,7 @@ degenerate case, in order to avoid blocking at all you may use a
 C<wait 0>.  The timeout is always checked last, to guarantee that
 the other entries are all tried at least once before timing out.
 
-    my $gotone = winner * {
+    my $gotone = earliest * {
         more $c1 { say "First channel got a value" }
         more $c2 { say "Second channel got a value" }
         wait 0   { say "Not done yet"; Nil }
@@ -441,19 +441,19 @@ to represent any of them).  The index and the received value are passed to
 the code as named arguments C<$:k> and <$:v> (possibly via priming if
 the code is instantiated ahead of time).
 
-    winner * {
+    earliest * {
         more @channels { say "Channel $:k received, result was: ", $:v }
     }
 
 In this case C<$:k> returns the index of the channel, base 0.
 Likewise C<$:v> returns the value.
 
-The C<winner> construct also automatically checks the C<.done> promise
+The C<earliest> construct also automatically checks the C<.done> promise
 corresponding to the channel, so it can also be used in order
 to write a loop to receive from a channel until it is closed:
 
     gather loop {
-        winner $channel {
+        earliest $channel {
             more * { take $_ }
             done * { last }
         }
