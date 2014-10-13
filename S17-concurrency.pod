@@ -14,7 +14,7 @@ Synopsis 17: Concurrency
     Created: 3 Nov 2013
 
     Last Modified: 13 October 2014
-    Version: 21
+    Version: 22
 
 This synopsis is based around the concurrency primitives and tools currently
 being implemented in Rakudo on MoarVM and the JVM.  It covers both things
@@ -500,32 +500,32 @@ arguments, the optional ones expresses as named arguments:
             default        { warn "Supply shut down early: $_" }
         }
 
-The first, known as the C<tap>, is invoked whenever a value is C<drip>ped into
-the thing that has been tapped. The optional named parameter C<done> specifies
+The first, known as the C<emit> closure, is invoked whenever a value is emitted into
+the thing that has been tapped.  The optional named parameter C<done> specifies
 the code to be invoked when all expected values have been produced and no more
-drips will be done. The optional named parameter C<quit> specifies the code
+values will be emitted. The optional named parameter C<quit> specifies the code
 to be invoked if there is an error. This also means there will be no further
 values.
 
 The simplest Supply is a C<Supply> class, which is punned from the role.
 It creates a C<live> supply.  On the "pumping" end, this has corresponding
-methods C<drip>, C<done>, and C<quit>, which notify all current taps.
+methods C<emit>, C<done>, and C<quit>, which notify all current taps.
 
     my $s = Supply.new;
     
     my $t1 = $s.tap({ say $_ });
-    $s.drip(1);                              # 1\n
-    $s.drip(2);                              # 2\n
+    $s.emit(1);                              # 1\n
+    $s.emit(2);                              # 2\n
     
     my $t2 = $s.tap({ say 2 * $_ },
                     { say "End" });
-    $s.drip(3);                              # 3\n6\n
+    $s.emit(3);                              # 3\n6\n
 
 The object returned by C<tap> represents the subscription. To stop
 subscribing, call C<close> on it.
 
     $t1.close;
-    $s.drip(4);                              # 8\n
+    $s.emit(4);                              # 8\n
     $s.done;                                 # End\n
 
 This doesn't introduce any asynchrony directly. However, it is possible for
@@ -539,7 +539,7 @@ C<Supply>.  These default to working asynchronously.
 
 C<Supply.for> takes a (potentially lazy) list of values, and returns an
 on demand C<Supply> that, when tapped, will iterate over the values and invoke
-the C<drip> callable for each of them, and any C<done> callable at the end.
+the C<emit> callable for each of them, and any C<done> callable at the end.
 If the iteration at some point produces an exception, then the C<quit>
 callable will be invoked to pass along the exception.
 
@@ -598,15 +598,15 @@ or will be broken when the C<Supply> is done before a value is produced.
 
   my $l = $s.last(42);  # default: 1
 
-Produces a C<Supply> that will only C<drip> the B<last> given number (default
-1) C<drip>s of the given C<Supply> when it is C<done>.
+Produces a C<Supply> that will only emit the last N values
+of the given C<Supply> when it is C<done>.  Default is the final value.
 
 =item grab
 
   my $g = $s.grab( { .sort } ); # sort the values of a Supply
 
-Produces a C<Supply> will grab all C<drip>s of the given C<Supply> until it
-is done.  It will then call the given closure and then C<drip> each of the
+Produces a C<Supply> will grab all values emitted by the given C<Supply> until it
+is done.  It will then call the given closure and then C<emit> each of the
 return values of the closure, and then C<done> the Supply that was produced.
 
 =item flat
@@ -640,7 +640,7 @@ C<Supply>, so that you only need to worry about writing the side-effect code.
 
 Produces a C<Supply> that only provides values that you want.  Takes either
 a C<Callable> (which is supposed to return a C<True> value to pass on
-C<drip>ped values) or a value to be smartmatched against.
+emitted values) or a value to be smartmatched against.
 
 =item map
 
@@ -748,8 +748,8 @@ scheduler than the default scheduler, using the C<scheduler> named parameter.
   my $t = $s.start( {...} );
 
 Takes a closure and, for each supplied value, schedules the closure to
-run on another thread. It then C<drip>s a Supply (resulting in us having
-a supply of supplies) that will either have a single value C<drip>ped and
+run on another thread. It then emits a Supply (resulting in us having
+a supply of supplies) that will either have a single value emitted and
 then be done if the async work completes successfully, or quit if the
 work fails. Useful for kicking off work on the thread pool if you do
 not want to block up the thread pushing values at you (maybe 'cus you
@@ -769,7 +769,7 @@ with C<schedule_on>.
 
   my $o = $m.schedule_on( $scheduler );
 
-This allows a C<Supply>'s drip/done/quit to be scheduled on another
+This allows a C<Supply>'s emit/done/quit to be scheduled on another
 scheduler. Useful in GUI situations, for example, where the final
 stage of some work needs to be done on some UI scheduler in order to
 have UI updates run on the UI thread.
@@ -778,7 +778,7 @@ have UI updates run on the UI thread.
 
   my $r = $s.reduce( {...} );
 
-Produces a C<Supply> that will C<drip> each reduction from the given C<Supply>,
+Produces a C<Supply> that will emit each reduction from the given C<Supply>,
 just like C<reduce> on C<List>s.
 
 =item lines
@@ -786,7 +786,7 @@ just like C<reduce> on C<List>s.
   my $l = $s.lines;              # chomp lines
   my $l = $s.lines( :!chomp );   # do *not* chomp lines
 
-Produces a C<Supply> that will C<drip> the characters coming in line by line
+Produces a C<Supply> that will emit the characters coming in line by line
 from a C<Supply> that usually created by some asynchronous I/O operation.
 The optional C<:chomp> named parameter indicates whether to remove line
 separators: the default is C<True>.
@@ -795,7 +795,7 @@ separators: the default is C<True>.
 
   my $w = $s.words;
 
-Produces a C<Supply> that will C<drip> the characters coming in word by word
+Produces a C<Supply> that will emit the characters coming in word by word
 from a C<Supply> that usually created by some asynchronous I/O operation.
 
 =item classify
@@ -804,9 +804,9 @@ from a C<Supply> that usually created by some asynchronous I/O operation.
   my $h = $s.classify( %mapper );
   my $a = $s.classify( @mapper );
 
-Produces a C<Supply> in which the C<drip>ped values are C<Pair>s consisting of
+Produces a C<Supply> in which the emit values are C<Pair>s consisting of
 the classification value and the C<Supply> to which values of the given
-C<Supply> will be C<drip>ped.  Similar to C<List.classify>, but does not support
+C<Supply> will be emitted.  Similar to C<List.classify>, but does not support
 multi-level classification.
 
 =item categorize
@@ -815,15 +815,15 @@ multi-level classification.
   my $h = $s.categorize( %mapper );
   my $a = $s.categorize( @mapper );
 
-Produces a C<Supply> in which the C<drip>ped values are C<Pair>s consisting of
+Produces a C<Supply> in which the emitted values are C<Pair>s consisting of
 zero or more classification values and the C<Supply> to which values of the
-given C<Supply> will be C<drip>ped.  Similar to C<List.categorize>.
+given C<Supply> will be emitted.  Similar to C<List.categorize>.
 
 =item reverse
 
   my $r = $s.reverse;
 
-Produces a C<Supply> with the C<drip>s of the given Supply in reverse order.
+Produces a C<Supply> that emits the values of the given Supply in reverse order.
 Please note that this C<Supply> will only start delivering values as soon as
 the given C<Supply> is C<done>.
 
@@ -831,7 +831,7 @@ the given C<Supply> is C<done>.
 
   my $o = $s.sort(&by);  # default &infix:<cmp>
 
-Produces a C<Supply> with the C<drip>s of the given Supply in sorted order.
+Produces a C<Supply> that emits the values of the given Supply in sorted order.
 Please note that this C<Supply> will only start delivering values as soon as
 the given C<Supply> is C<done>.  Optionally accepts a comparator C<Block>.
 
@@ -876,7 +876,7 @@ have produced at least one value. By default, it uses C<< infix:<,> >> to
 produce the tuples, but the named parameter C<with> can override that.
 
 The named parameter C<initial> can optionally be used to indicate the initial
-state of the values to be C<drip>ped.
+state of the values to be emitted.
 
 =back
 
@@ -893,7 +893,7 @@ The C<on> combinator takes a block that receives the C<Supply> it will generate
 (and return) as the parameter.  That block is supposed to return list of
 C<Pairs>, in which the keys are one or more Supplies.  And the values are
 either a C<Block> (to be called for each value for that C<Supply>), or a
-hash with Pairs for C<drip>, C<done> and C<quit>.
+hash with Pairs for C<emit>, C<done> and C<quit>.
 
 A simple combinator for C<Pair>ing values from two Supplies ($a and $b),
 would look like this:
@@ -905,13 +905,13 @@ would look like this:
           $a => sub ($val) {
               @as.push($val);
               if @as && @bs {
-                  $res.drip( @as.shift => @bs.shift );
+                  $res.emit( @as.shift => @bs.shift );
               }
           },
           $b => sub ($val) {
               @bs.push($val);
               if @as && @bs {
-                  $res.drip( @as.shift => @bs.shift );
+                  $res.emit( @as.shift => @bs.shift );
               }
           }
       }
@@ -919,7 +919,7 @@ would look like this:
 
 Thus there is never any race or other thread-safely problems with
 mutating the C<@as> and C<@bs>. The default behaviour, if a C<Callable> is
-specified along with the supply, is to use it for C<drip> and provide
+specified along with the supply, is to use it for C<emit> and provide
 a default C<done> and C<quit>. The default C<done> triggers C<done> on the
 result C<Supply>.
 
@@ -932,7 +932,7 @@ than one C<Supply> per block.  The same as above implemented using that:
       ($a,$b) => sub ($val,$index) {
           @values[$index].push($val);
           if all(@values) {
-              $res.drip( (@values>>.shift) );
+              $res.emit( (@values>>.shift) );
           }
       }
   }
@@ -944,13 +944,13 @@ This is basically how C<zip> is implemented.
 
 Sometimes, we want the resulting C<Supply> to be C<done> only when all
 specified Supplies are done.  This is possible by specifying a hash with
-keys for C<drip>, C<done> and/or C<quit>, instead of just a C<Callable>.
+keys for C<emit>, C<done> and/or C<quit>, instead of just a C<Callable>.
 Given an array @s with Supplies:
 
   my $done = 0;
   my $result = on -> $res {
       @s => {
-          drip => -> \val { $res.more(val) },
+          emit => -> \val { $res.more(val) },
           done => { $res.done if ++$done == +@s }
       }
   }
@@ -971,7 +971,7 @@ third-party modules.
 
 Basic signal support is offered by the C<signal> function, which takes one or
 more C<Signal> enums, and an optional C<scheduler> named parameter.  It
-produces a C<Supply> which, when tapped, will C<drip> any signal coming in.
+produces a C<Supply> which, when tapped, will C<emit> any signal coming in.
 For example:
 
   signal(SIGINT).tap( { say "Thank you for your attention"; exit 0 } );
@@ -1027,7 +1027,7 @@ convenient, there is also shortcut with the C<act> method:
     });
 
 It can also take C<done> and C<quit> named parameters; these go to the tap,
-while the C<drip> closure is put in a C<do>. A C<Tap> is returned, which
+while the C<emit> closure is put in a C<do>. A C<Tap> is returned, which
 may be closed in the usual way. (Note that the name C<act> is also a subtle
 reference to actor semantics.)
 
