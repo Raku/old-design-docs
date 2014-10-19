@@ -16,8 +16,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 17 Aug 2014
-    Version: 162
+    Last Modified: 19 Oct 2014
+    Version: 163
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -70,9 +70,10 @@ B<Rules> (keyword: C<rule>) are regexes that perform non-backtracking
 (by default) pattern matching (and also enable rules to do whitespace
 dwimmery).
 
-B<Macros> (keyword: C<macro>) are routines whose calls execute as soon
-as they are parsed (i.e. at compile-time). Macros may return another
-source code string or a parse-tree.
+B<Macros> (keyword: C<macro> or C<slang>) are routines or methods that are
+installed such that they will be called as part of the compilation process,
+and which can therefore take temporary control of the subsequent
+compilation to cheat in any of the ways that a compiler might cheat.
 
 =head1 Routine modifiers
 
@@ -617,7 +618,6 @@ including Unicode characters. For example:
     sub infix:<(c)> ($text, $owner) { return $text but Copyright($owner) }
     method prefix:<±> (Num $x --> Num) { return +$x | -$x }
     multi sub postfix:<!> (Int $n) { $n < 2 ?? 1 !! $n*($n-1)! }
-    macro circumfix:«<!-- -->» ($text) is parsed / .*? / { "" }
 
     my $document = $text (c) $me;
 
@@ -2075,6 +2075,14 @@ Specifies the subrule by which a macro call is parsed.  The parse
 always starts after the macro's initial token.  If the operator has
 two parts (circumfix or postcircumfix), the final token is also automatically
 matched, and should not be matched by the supplied regex.
+
+[This trait and the following are likely to be deprecated in favor
+of slang macros that are aware of the grammar and category in which
+they are installed, and that therefore already know how to parse like
+normal grammar rules.  The actions of slang macros, however, will be
+more targeted toward user-level AST production and manipulation through
+use of quasi quoting and unquoting, as well as through direct access to
+some as-yet-unspecified high-level, VM-independent AST representation.]
 
 =item C<is reparsed>
 
