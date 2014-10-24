@@ -62,9 +62,10 @@ dynamic operation with a lexical target in mind.  Lexotic operators
 in Perl 6 include:
 
     return
+    redo
+    slip
     next
     last
-    redo
     goto
 
 Some of these operators also fall back to a purely dynamic interpretation
@@ -89,6 +90,11 @@ the current outer lexical scope.  It may not be used dynamically.
 (If you find yourself wanting the dynamic variant, please use C<goto>
 with an explicit label instead, so the compiler can know to pessimize
 any unrolling of that loop.)
+
+The C<slip> operator is a variant of the C<redo> operator.  It will also not
+leave the scope, but it B<will> obtain the next value of the iterator.  As such,
+the C<NEXT> phaser B<will> be called.  You could think of the C<next> operator
+as C<slip> + C<redo>.
 
 =head1 The Relationship of Blocks and Declarations
 
