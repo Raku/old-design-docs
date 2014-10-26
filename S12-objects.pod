@@ -13,8 +13,8 @@ Synopsis 12: Objects
 
     Created: 27 Oct 2004
 
-    Last Modified: 30 Dec 2013
-    Version: 133
+    Last Modified: 26 Oct 2014
+    Version: 134
 
 =head1 Overview
 
@@ -2300,9 +2300,18 @@ These may be used either as methods or as unary operators:
     $obj.WHAT   # method form of P5's ref
     WHAT $obj   # unary form of P5's ref
 
-These are all actually macros, not true operators or methods.  If you get
-a foreign object from another language and need to call its C<.WHERE> method,
-you can say:
+These should all be considered built-in language primitives, not
+true operators or methods, even if a given implementation happens to
+implement one or more of them that way.  The optimizer reserves the
+right to assume it knows what these names mean without user meddling.
+Do not attempt to override or overload them, or bend them into twisty
+little brain pretzels, except to fulfill those parts of the standard
+interface that require you to do so.  (Value types, for instance,
+currently require a definition of WHICH.  This too may change as
+our notions of identity are refined.)
+
+If you get a foreign object from another language and need to call
+its C<.WHERE> method, you can say:
 
     $obj."WHERE"()
 
