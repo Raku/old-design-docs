@@ -18,8 +18,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 24 Feb 2014
-    Version: 47
+    Last Modified: 26 Oct 2014
+    Version: 48
 
 If you read the HTML version, it is generated from the Pod in the specs
 repository under
@@ -487,20 +487,20 @@ See L<http://www.nntp.perl.org/group/perl.perl6.language/16578>
 for more details and examples (with C<is insensitive> meaning
 C<is canonicalized(&lc)>.)
 
-=item uniq
+=item unique
 
- multi method uniq(List:D: --> List:D, :&as)
+ multi method unique(List:D: --> List:D, :&as)
 
  multi sub uniq(*@values --> List:D, :&as)
 
 Returns a list of unique values from the invocant/argument list, such
 that only the first occurrence of each duplicated value remains in the
-result list. C<uniq> uses C<< &infix:<===> >> semantics to compare whether
+result list. C<unique> uses C<< &infix:<===> >> semantics to compare whether
 two objects are the same. The order of the original list is preserved even as
 duplicates are removed.
 
-    say <a a b b b c c>.uniq    # a b c
-    say <a b b c c b a>.uniq    # a b c
+    say <a a b b b c c>.unique    # a b c
+    say <a b b c c b a>.unique    # a b c
 
 (Use C<squish> instead if you know the input is sorted such that identical
 objects are adjacent.)
@@ -509,13 +509,13 @@ The optional C<:as> parameter allows you to normalize/canonicalize the elements
 before uniq-ing. The values are transformed for the purposes of comparison, but
 it's still the original values that make it to the result list:
 
-    say <a A B b c b C>.uniq(:as(&lc))          # a B c
+    say <a A B b c b C>.unique(:as(&lc))          # a B c
 
 This makes it possible to effectively compare with other comparison operators,
 too. For example, if you want to compare with C< infix:<==> > semantics, this
 might work for you:
 
-    say +uniq [100, 100e0, 200/2], :as(*.Num)   # 1
+    say +unique [100, 100e0, 200/2], :as(*.Num)   # 1
 
 =item squish
 
@@ -525,8 +525,8 @@ might work for you:
 
 Returns a list of values from the invocant/argument list where runs
 of more than one value are replaced with only the first instance.
-Like C<uniq>, C<squish> uses C<< &infix:<===> >> semantics to compare
-whether two objects are the same. Unlike C<uniq>, this function only
+Like C<unique>, C<squish> uses C<< &infix:<===> >> semantics to compare
+whether two objects are the same. Unlike C<unique>, this function only
 removes adjacent duplicates; identical values further apart are still
 kept. The order of the original list is preserved even as duplicates
 are removed.
@@ -534,7 +534,7 @@ are removed.
     say <a a b b b c c>.squish  # a b c
     say <a b b c c b a>.squish  # a b c b a
 
-The optional C< :as > parameter, just like with C< uniq >, allows values to be
+The optional C< :as > parameter, just like with C< unique >, allows values to be
 temporarily transformed before comparison.
 
 =item min
