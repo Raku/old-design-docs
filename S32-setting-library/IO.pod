@@ -24,8 +24,8 @@ Synopsis 32: Setting Library - IO
 
     Created: 19 Feb 2009
 
-    Last Modified: 5 Oct 2014
-    Version: 26
+    Last Modified: 28 Oct 2014
+    Version: 27
 
 =head1 Overview
 
@@ -157,12 +157,13 @@ X<dir()>
     sub dir($directory as Str = $*CWD,
         Mu       :$test = $*SPEC.curupdir,
         Bool     :$absolute = False,
+        Bool     :$Str = False,
         IO::Path :$CWD = $*CWD,
-        --> List[Str] ) is export
+        --> List ) is export
 
-Returns a lazy list of (relative) path names in the C<$directory> as strings,
-by default from the directory pointed to by C<$*CWD>.  If dir() fails, it
-returns an L<X::IO::Dir|S32::Exception/X::IO::Dir> failure.  The following
+Returns a lazy list of (relative) paths in the C<$directory> as C<IO::Path>
+objects, by default from the directory pointed to by C<$*CWD>.  If dir() fails,
+it returns an L<X::IO::Dir|S32::Exception/X::IO::Dir> failure.  The following
 named parameters are optional:
 
 =over 4
@@ -175,6 +176,11 @@ default excludes C<curdir> (usually ".") and C<updir> (usually "..") only.
 =item :absolute
 
 Boolean indicating to return absolute path names, rather than relative ones.
+False by default.
+
+=item :Str
+
+Boolean indicating to return C<Str>ings, rather than C<IO::Path> objects.
 False by default.
 
 =item :CWD
