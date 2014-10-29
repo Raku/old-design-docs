@@ -215,6 +215,13 @@ You can do this with the C<:stop> parameter.
     sleep 10;
     $stop = True;  # task stopped after 10 seconds
 
+The C<.cue> method returns a C<Cancellation> object, which can also be used
+to stop a repeating cue:
+
+    my $c = $*SCHEDULER.cue: :every(1), { say "Oh wow, a kangaroo!" };
+    sleep 10;
+    $c.cancel;  # task stopped after 10 seconds
+
 Schedulers also provide counts of the number of operations in various states:
 
     say $*SCHEDULER.loads;
