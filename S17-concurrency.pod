@@ -13,7 +13,7 @@ Synopsis 17: Concurrency
 
     Created: 3 Nov 2013
 
-    Last Modified: 26 October 2014
+    Last Modified: 29 October 2014
     Version: 23
 
 This synopsis is based around the concurrency primitives and tools currently
@@ -205,13 +205,13 @@ parameter in the .cue:
     # Every second, from now, but only 42 times
     $*SCHEDULER.cue: :every(1), :limit(42), { say "Oh wow, a kangaroo!" };
 
-The second is by specifying a variable that will be checked at the end of
-each interval.  The task will be stopped as soon as it has a True value.
+The second is by specifying code that will be checked at the end of each
+interval.  The task will be stopped as soon as it returns a True value.
 You can do this with the C<:stop> parameter.
 
     # Every second, from now, until stopped
     my $stop;
-    $*SCHEDULER.cue: :every(1), :$stop, { say "Oh wow, a kangaroo!" };
+    $*SCHEDULER.cue: :every(1), :stop({$stop}), { say "Oh wow, a kangaroo!" };
     sleep 10;
     $stop = True;  # task stopped after 10 seconds
 
