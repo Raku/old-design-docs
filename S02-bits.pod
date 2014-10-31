@@ -253,7 +253,7 @@ allowed within a token.  Additionally, line numbers are still
 counted if the unspace contains one or more newlines.
 Since Pod chunks count as whitespace to the language, they are also
 swallowed up by unspace.  Heredoc boundaries are suppressed, however,
-so you can split excessively long heredoc intro lines like this:
+so you can split excessively long lines introducing heredocs like this:
 
     ok(q:to'CODE', q:to'OUTPUT', \
     "Here is a long description", \ # --more--
@@ -634,7 +634,7 @@ consistent use of either native types or object types.)
 
 Some object types can behave as value types.  Every object can produce
 a "WHICH" value that uniquely identifies the
-object for hashing and other value-based comparisons.  Normal objects
+object for hashing and other value-based comparisons.  Normal objects use
 some kind of unique ID as their identity, but if a class wishes to behave as a
 value type, it can define a C<.WHICH> method that makes different objects
 look like the same object if they happen to have the same contents.
@@ -816,7 +816,7 @@ the new numerator and denominator are (at least in the abstract) of
 C<Int> type.  After a new numerator and denominator are determined,
 any sign is forced to be represented only by the numerator.  Then if
 the denominator exceeds the storage size of the unsigned integer used,
-the fraction is reduced via gcd.  If the resulting denominator is still
+the fraction is reduced via GCD.  If the resulting denominator is still
 larger than the storage size, then and I<only> then may the precision
 be reduced to fit into a C<Rat> or C<Num>.
 
@@ -839,7 +839,7 @@ C<FatRat>, to prevent accidental promotion of reasonably fast C<Rat>
 values into arbitrarily slow C<FatRat> values.
 
 Although most rational implementations normalize or "reduce" fractions
-to their smallest representation immediately through a gcd algorithm,
+to their smallest representation immediately through a GCD algorithm,
 Perl allows a rational datatype to do so lazily at need, such as
 whenever the denominator would run out of precision, but avoid the
 overhead otherwise.  Hence, if you are adding a bunch of C<Rat>s that
@@ -855,7 +855,7 @@ or C<.Str> returns an exact decimal number if possible, and otherwise rounds
 off the repeated decimal based on the size of the denominator.  For full 
 details see the documentation of C<Rat.gist> in S32.
 
-C<Num.Str> and C<Num.gist> both produce valid Num literals, so they must
+C<Num.Str> and C<Num.gist> both produce valid C<Num> literals, so they must
 include the C<e> for the exponential.
 
     say 1/5;    # 0.2 exactly
@@ -887,7 +887,7 @@ All IEEE modes must be lexically available via pragma except in cases
 where that would entail heroic efforts to bypass a braindead platform.
 
 The default floating-point modes do not throw exceptions but rather
-propagate Inf and NaN.  The boxed object types may carry more detailed
+propagate C<Inf> and C<NaN>.  The boxed object types may carry more detailed
 information on where overflow or underflow occurred.  Numerics in Perl
 are not designed to give the identical answer everywhere.  They are
 designed to give the typical programmer the tools to achieve a good
@@ -1309,8 +1309,8 @@ you treat them as objects:
 
 Since native types cannot represent Perl's concept of undefined values,
 in the absence of explicit initialization, native floating-point types
-default to NaN, while integer types (including C<bit>) default to 0.
-The complex type defaults to NaN + NaN\i.  A buf type of known size
+default to C<NaN>, while integer types (including C<bit>) default to 0.
+The complex type defaults to C<NaN + NaN\i>.  A buf type of known size
 defaults to a sequence of 0 values.
 
 You can set a different default on any container type by use of a trait
@@ -1624,7 +1624,7 @@ and C<Blob> compose the more general one and just C<Str> composes a less
 general one.  The more general of those would apply to what is common to
 any dense sequence ("string") that C<Str> and C<Blob> both are (either of
 characters or bits or integers etc), and the string operators like
-catenation (C<~>) and replication (C<x>, C<xx>) would be part of the more
+concatenation (C<~>) and replication (C<x>, C<xx>) would be part of the more
 general role.  The more specific role would apply to C<Str> but not C<Blob>
 and includes any specific operators that are specific to I<characters> and
 don't apply to bits or integers etc.  The other alternative is to more
@@ -1873,7 +1873,7 @@ the same signature must unify compatibly if they have the same name:
         return $x eqv $y;
     }
 
-=head1 The Cool class (and package)
+=head2 The Cool class (and package)
 
 The C<Cool> type is derived from C<Any>, and contains all the methods
 that are "cool" (as in, "I'm cool with an argument of that type.").
@@ -2556,8 +2556,8 @@ similar semantics:
 although with different optimization options for the compiler.
 
 You may use :!exists to test for non-existence.  This is specifically handy
-because of precedence rules making C<!%hash<a>:exists> apply the :exists to the
-prefix C<!>.  C<%hash<a>:!exists> does not have that problem.
+because of precedence rules making C<< !%hash<a> :exists >> apply the :exists to the
+prefix C<!>.  C<< %hash<a> :!exists >> does not have that problem.
 
 =head2 Combining subscript adverbs
 
@@ -2566,7 +2566,7 @@ adverbs with subscripts.  Some combinations make sense, such as:
 
   %a = %b{@keys-to-extract} :delete :p; # same as :p :delete
 
-would slice out pairs for the given the keys out of one hash into another.
+would slice out pairs for the given keys out of one hash into another.
 Whereas
 
   @actually-deleted = %h{@keys-to-extract} :delete :k; # same as :k :delete
@@ -2574,7 +2574,7 @@ Whereas
 would return the I<keys> that were actually deleted from the hash.
 
 The adverbs that specify a return type only, can B<not> be combined, because
-combinations such as I<:kv:p> or I<:v:k> simply do not make sense.
+combinations such as C<:kv :p> or C<:v :k> simply do not make sense.
 
 These combinations are considered legal and mean the following:
 
@@ -2987,10 +2987,10 @@ equivalent to C<< DYNAMIC::<$*FOO> >>.)  If, after scanning outward
 through all those dynamic scopes, there is no variable of that name
 in any immediately associated lexical pad, it strips the C<*> twigil
 out of the name and looks in the C<GLOBAL> package followed by the
-C<PROCESS> package.  If the value is not found, it returns failure.
+C<PROCESS> package.  If the value is not found, it returns C<Failure>.
 
 Unlike C<CALLER>, C<DYNAMIC> will see a dynamic variable that is
-declared in the current scope, since it starts search 0 scopes up the
+declared in the current scope, since it starts searching 0 scopes up the
 stack rather than 1.  You may, however, use C<< CALLER::<$*foo> >>
 to bypass a dynamic definition of C<$*foo> in your current scope,
 such as to initialize it with the outer dynamic value:
@@ -3425,17 +3425,17 @@ and maybe a trailing Units type for an implied scaling.  Leading and
 trailing whitespace is ignored.  Note also that leading C<0> by itself
 I<never> implies octal in Perl 6.
 
-In all these cases, the type produced will be the narrowest of Int,
-Rat, or Num that can accurately represent the number.  If no type can
-represent it exactly, it should be returned as either a Rat or a Num,
-whichever is more accurate.  (Rat64 will tend to be more accurate
-for numbers of normal or large magnitude, while Num64 may be more
-accurate for numbers of very small magnitude, since the Rat's size
+In all these cases, the type produced will be the narrowest of C<Int>,
+C<Rat>, or C<Num> that can accurately represent the number.  If no type can
+represent it exactly, it should be returned as either a C<Rat> or a C<Num>,
+whichever is more accurate.  (C<Rat64> will tend to be more accurate
+for numbers of normal or large magnitude, while C<Num64> may be more
+accurate for numbers of very small magnitude, since the C<Rat>'s size
 mismatch of numerator and denominator will eventually cost more
 accuracy than the Num's exponent overhead.  As a limiting case,
-a Rat64 cannot represent any number smaller than :10<1*2**-64>.)
+a C<Rat64> cannot represent any number smaller than C<< :10<1*2**-64> >>.)
 
-A consequence of the preceding is that you cannot make a FatRat using
+A consequence of the preceding is that you cannot make a C<FatRat> using
 colon notation.  You must rely on constructors and constant folding:
 
     FatRat.new(1,2) ** 128
@@ -3801,7 +3801,7 @@ to serve as the key.
 
 For identifiers that take a non-negative integer argument, it is allowed
 to abbreviate, for example, C<:sweet(16)> to C<:16sweet>. (This is
-distinguishable from the :16<deadbeef> form, which never has an
+distinguishable from the C<< :16<deadbeef> >> form, which never has an
 alphabetic character following the number.) Only literal non-negative
 integers numbers may be swapped this way. Please note that this
 abbreviation allows:
@@ -4246,7 +4246,7 @@ characters that would interpolate if unbackslashed.  (In either case,
 a special exception is made for brackets; if the left bracket would
 interpolate, the right bracket may optionally also be backslashed,
 and if so, the backslash will be removed.  If brackets are used as
-the delimiters, both left and right C<must> be backslashed the same,
+the delimiters, both left and right I<must> be backslashed the same,
 since they would otherwise be counted wrong in the bracket count.)
 
 =back
@@ -4348,8 +4348,8 @@ trailing method call in preference.  An indirect object that parses as
 more than one token must be placed in parentheses, followed by the colon.
 
 In short, only an identifier followed by a simple term followed by a
-postfix colon is C<ever> parsed as an indirect object, but that form
-will C<always> be parsed as an indirect object regardless of whether
+postfix colon is I<ever> parsed as an indirect object, but that form
+will I<always> be parsed as an indirect object regardless of whether
 the identifier is otherwise declared.
 
 =head2 Dereferences
@@ -4381,7 +4381,7 @@ subject to keyword or even macro interpretation.  If you say
 then C<$x> ends up containing the pair C<< ("if" => 1) >>.  Always.
 (Unlike in Perl 5, where version numbers didn't autoquote.)
 
-You can also use the :key($value) form to quote the keys of option
+You can also use the C<:key($value)> form to quote the keys of option
 pairs.  To align values of option pairs, you may use the
 "unspace" postfix forms:
 
@@ -4418,10 +4418,10 @@ current file can be accessed via a Pod object, such as C<< $=data >> or
 C<< $=SYNOPSIS >> or C<< $=UserBlock >> etc. That is: a variable with 
 the same name of the desired block, and a C<=> twigil.
 
-These Pod objects can be used as Positionals (indexed by their block
-sequence). They can also be treated as Associatives (indexed by C<:key>
-options specified with the block). Either way, each Positional or
-Associative element represents the entire contents of the corresponding
+These Pod objects can be used as C<Positional>s (indexed by their block
+sequence). They can also be treated as C<Associative>s (indexed by C<:key>
+options specified with the block). Either way, each C<Positional> or
+C<Associative> element represents the entire contents of the corresponding
 Pod block. You have to split those contents into lines yourself. Each
 chunk has a C<.range> property that indicates its line number range
 within the source file.
@@ -4928,7 +4928,7 @@ Conjecturally, we might also have other kinds of rules, such as tree rewrite rul
     infix:match<cmp>      # rewrite a match node after reducing its arguments
     infix:ast<cmp>        # rewrite an ast node after reducing its arguments
 
-Within a grammar, matching the proto subrule <infix> will match all visible rules
+Within a grammar, matching the proto subrule C<< <infix> >> will match all visible rules
 in the infix category as parallel alternatives, as if they were separated by 'C<|>'.
 
 Here are some of the names of parse rules in STD:
