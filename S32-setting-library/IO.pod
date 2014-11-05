@@ -24,8 +24,8 @@ Synopsis 32: Setting Library - IO
 
     Created: 19 Feb 2009
 
-    Last Modified: 4 Nov 2014
-    Version: 28
+    Last Modified: 28 Oct 2014
+    Version: 27
 
 =head1 Overview
 
@@ -155,7 +155,7 @@ C<.lines> and C<.get>.  Defaults to C<True>.
 X<dir()>
 
     sub dir($directory as Str = $*CWD,
-        Mu       :$test = !dotfiles,
+        Mu       :$test = $*SPEC.curupdir,
         Bool     :$absolute = False,
         Bool     :$Str = False,
         IO::Path :$CWD = $*CWD,
@@ -171,8 +171,7 @@ named parameters are optional:
 =item :test
 
 Expression against which to smart-match for inclusion in result list.  By
-default excludes all basenames that start with a period (usually only C<.>
-and C<..>, but also "hidden" directories such as C<.git>).
+default excludes C<curdir> (usually ".") and C<updir> (usually "..") only.
 
 =item :absolute
 
