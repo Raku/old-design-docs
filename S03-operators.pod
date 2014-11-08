@@ -702,8 +702,8 @@ C<< prefix:<~^> >>, string bitwise negation
 
     ~^$x
 
-Coerces NFG strings to non-variable-encoding string buffer type (such as buf8,
-buf16, or buf32) and then does negation (complement) on each
+Coerces NFG strings to non-variable-encoding string buffer type (such as C<buf8>,
+C<buf16>, or C<buf32>) and then does negation (complement) on each
 bit of each integer element, returning a buffer of the same size as the input.
 
 The use of coercion probably indicates a design error, however.  This operator
@@ -874,8 +874,8 @@ C<< infix:<~&> >>, buffer bitwise and
 
     $x ~& $y
 
-Coerces NFG strings to non-variable-encoding string buffer type (such as buf8,
-buf16, or buf32) and then does numeric bitwise AND on corresponding integers
+Coerces NFG strings to non-variable-encoding string buffer type (such as C<buf8>,
+C<buf16>, or C<buf32>) and then does numeric bitwise AND on corresponding integers
 of the two buffers, logically padding the shorter buffer with 0 values.
 returning a buffer sufficiently large to contain all non-zero integer results
 (which for AND is at most the size of the shorter of the two buffers).
@@ -982,8 +982,8 @@ C<< infix:<~|> >>, buffer bitwise inclusive or
 
     $x ~| $y
 
-Coerces NFG strings to non-variable-encoding string buffer type (such as buf8,
-buf16, or buf32) and then does numeric bitwise OR on corresponding integers
+Coerces NFG strings to non-variable-encoding string buffer type (such as C<buf8>,
+C<buf16>, or C<buf32>) and then does numeric bitwise OR on corresponding integers
 of the two buffers, logically padding the shorter buffer with 0 values, and
 returning a buffer sufficiently large to contain all non-zero integer results
 (which for OR is at most the size of the longer of the two buffers).
@@ -998,8 +998,8 @@ C<< infix:<~^> >> buffer bitwise exclusive or
 
     $x ~^ $y
 
-Coerces NFG strings to non-variable-encoding string buffer type (such as buf8,
-buf16, or buf32) and then does numeric bitwise XOR on corresponding integers
+Coerces NFG strings to non-variable-encoding string buffer type (such as C<buf8>,
+C<buf16>, or C<buf32>) and then does numeric bitwise XOR on corresponding integers
 of the two buffers, logically padding the shorter buffer with 0 values.
 returning a buffer sufficiently large to contain all non-zero integer results
 (which for XOR is at most the size of the longer of the two buffers).
@@ -2625,7 +2625,7 @@ list operators can handle a nullterm.)
 
 =item *
 
-Semicolon: ;
+Semicolon: C<;>
 
     $x = 1; $y = 2;
 
@@ -2638,7 +2638,7 @@ or disallow semicolons entirely.)
 
 =item *
 
-Feed operators: <==, ==>, <<==, ==>>
+Feed operators: C<< <== >>, C<< ==> >>, C<<< <<== >>>, C<<< ==>> >>>
 
     source() ==> filter() ==> sink()
 
@@ -2658,7 +2658,7 @@ an appropriate target to append to.
 
 =item *
 
-Control block: <ws>{...}
+Control block: <ws>C<{...}>
 
 When a block occurs after whitespace where an infix is expected, it is
 interpreted as a control block for a statement control construct.
@@ -2668,13 +2668,13 @@ looking for such a block currently, it is a syntax error.
 
 =item *
 
-Statement modifiers: if, unless, while, until, for
+Statement modifiers: C<if>, C<unless>, C<while>, C<until>, C<for>
 
 Statement modifiers terminate one expression and start another.
 
 =item *
 
-Any unexpected ), ], } at this level.
+Any unexpected C<)>, C<]>, C<}> at this level.
 
 Calls into the operator precedence parser may be parameterized
 to recognize additional terminators, but right brackets of any
@@ -2688,7 +2688,7 @@ can form hyperoperators (see L</Hyper operators>).
 
 =item *
 
-A block-final } at the end of the line terminates the current expression.
+A block-final C<}> at the end of the line terminates the current expression.
 A block within an argument list terminates the argument list unless
 followed by the comma operator.
 
@@ -2772,7 +2772,7 @@ is equivalent to either of:
     when all(:r,:w,:x)
 
 The pair forms are useful only for boolean tests because the method's
-value is evaluated as a Bool, so the
+value is evaluated as a C<Bool>, so the
 method form must be used for any numeric-based tests:
 
     if $filename.IO.s > 1024 {...}
@@ -2803,7 +2803,7 @@ In general, the user need not worry about caching the stat buffer
 when a filename is queried.  The stat buffer will automatically be
 reused if the same object has recently been queried, where "recently"
 is defined as less than a second or so.  If this is a concern, an
-explicit stat() or lstat() may be used to return an explicit C<IO>
+explicit C<stat()> or C<lstat()> may be used to return an explicit C<IO>
 object that will not be subject to timeout, and may be tested
 repeatedly just as a filename or handle can.  An C<IO> object has
 a C<.path> method that can be queried for its path (if known).
@@ -2998,7 +2998,7 @@ any assignment is done.  Therefore this:
     my $a = 0; my @b;
     ($a, @b[$a]) = 1, 2;
 
-assigns 2 to @b[0], not @b[1].
+assigns 2 to C<@b[0]>, not C<@b[1]>.
 
 =item *
 
@@ -3298,7 +3298,7 @@ make a junction of only the hash's keys.  Use the listop form (or an
 explicit C<.pairs>) to make a junction of pairs.
 
 The various operators for sets and bags (intersection, union,
-etc.) also have junctive precedence (except for those that return Bool,
+etc.) also have junctive precedence (except for those that return C<Bool>,
 which are instead classified as chaining operators).
 
 =head1 Comparison semantics
@@ -3414,7 +3414,7 @@ The C<..> range operator has variants with C<^> on either end to
 indicate exclusion of that endpoint from the range.  It always
 produces a C<Range> object.  Range objects are immutable, and primarily
 used for matching intervals.  C<1..2> is the interval from 1 to 2
-inclusive of the endpoints, whereas 1^..^2 excludes the endpoints
+inclusive of the endpoints, whereas C<1^..^2> excludes the endpoints
 but matches any real number in between.
 
 For numeric arguments of differing type, ranges coerce to the wider type, so:
@@ -3445,7 +3445,7 @@ Likewise for strings:
     0 .. '1.5'  # okay
     0 .. +'1.5' # same thing
 
-C<Whatever> types are also supported to represent -Inf/+Inf.  If
+C<Whatever> types are also supported to represent C<-Inf>/C<+Inf>.  If
 either endpoint is a C<WhateverCode>, the range is primed into
 another C<WhateverCode>.
 
@@ -3468,7 +3468,7 @@ operator C<...> can autoreverse, however.  See below.)
 
 Range objects support C<.excludes_min> and C<.excludes_max> methods
 representing the exclusion (has C<^>) or inclusion (no C<^>) of each
-endpoint in the Range.
+endpoint in the C<Range>.
 
     Range      | .min | .max | .excludes_min | .excludes_max
     -----------+------+------+---------------+------------
@@ -3508,14 +3508,14 @@ if either endpoint does C<Real>.  Otherwise comparison is in
 the C<Stringy> domain if either argument does C<Stringy>.
 Otherwise the min's type is used if it defines ordering, or if not,
 the max's type.  If neither min nor max have an ordering, 
-dispatch to .ACCEPTS fails.  It may also fail if the ordering
+dispatch to C<.ACCEPTS> fails.  It may also fail if the ordering
 in question does not have any way to coerce the object
 being smartmatched into an appropriate type implied by the
 chosen domain of ordering.
 
 In general, the domain of comparison should be a type that can
-represent all the values in question, if possible.  Hence, since Int
-is not such a type, it is promoted to a Real, so fractional numbers
+represent all the values in question, if possible.  Hence, since C<Int>
+is not such a type, it is promoted to a C<Real>, so fractional numbers
 are I<not> truncated before comparison to integer ranges.  Instead the
 integers are assumed to represent points on the real number line:
 
@@ -4201,7 +4201,7 @@ lists for most operators.  For example:
 
 (If you find yourself doing this, ask yourself whether you are really
 working with objects or lists; in the latter case, there may be other
-metaoperators such as Z or X that are more appropriate, and will not
+metaoperators such as C<Z> or C<X> that are more appropriate, and will not
 require parens.)
 
 A unary hyper operator (either prefix or postfix) has only one
@@ -4233,7 +4233,7 @@ ordinary operators.  These include the dereferencing operators
 such as subscripts, as well as any method whose least-derived
 variant (or proto, in the case of a multi method) is declared
 or autogenerated in a class derived from Iterable.  Additionally,
-structural methods include any method placed in class Any with
+structural methods include any method placed in class C<Any> with
 the intent of treating items as lists of one item.  So C<.elems>
 is considered structural, but a C<prefix:<+>> that happens to call
 C<.elems> internally is not considered structural.
@@ -4251,7 +4251,7 @@ controller will consider it to be structural.
 [Conjecture: we can assume C<is nodal> on methods declared
 in a class that is C<Iterable>, to save having to mark every method
 as nodal.  Or we provide a pragma within a lexical scope that assumes
-C<is nodal>, so we can use it inside Any as well.]
+C<is nodal>, so we can use it inside C<Any> as well.]
 
 [Conjecture: we might revise this be a C<does Nodal> role instead of
 a trait, if the implementors decide that makes more sense.]
@@ -5172,7 +5172,7 @@ declarator in front:
     state constant $latch = snapshot(); # careful with this!
 
 However, the constant declarator is intended to create values the
-compiler can inline, so it always evaluates its value at BEGIN time.
+compiler can inline, so it always evaluates its value at C<BEGIN> time.
 Thus, while the extra scope declarator may say where the value is
 stored and when that storage is initialized, it cannot change the value
 of that from instance to instance.  In general, if you want something
