@@ -11,93 +11,57 @@ Synopsis 17: Concurrency
     Last Modified: 29 October 2014
     Version: 23
 
-This synopsis is based around the concurrency primitives and tools currently
-being implemented in Rakudo on MoarVM and the JVM.  It covers both things
-that are already implemented today, in addition to things expected to be
-implemented in the near future (where "near" means O(months)).
+This synopsis is based around the concurrency primitives and tools currently being implemented in Rakudo on MoarVM and the JVM.  It covers both things that are already implemented today, in addition to things expected to be implemented in the near future (where "near" means O(months)).
 
 =head1 Design Philosophy
 
 =head2 Focus on composability
 
-Perl 6 generally prefers constructs that compose well, enabling large problems
-to be solved by putting together solutions for lots of smaller problems. This
-also helps make it easier to extend and refactor code.
+Perl 6 generally prefers constructs that compose well, enabling large problems to be solved by putting together solutions for lots of smaller problems. This also helps make it easier to extend and refactor code.
 
-Many common language features related to parallel and asynchronous programming
-lack composability. For example:
+Many common language features related to parallel and asynchronous programming lack composability. For example:
 
 =over
 
 =item *
 
-Locks do not compose, since two independently correct operations using
-locks may deadlock when performed together.
+Locks do not compose, since two independently correct operations using locks may deadlock when performed together.
 
 =item *
 
-Callback-centric approaches tend to compose badly, with chains of
-asynchronous operations typically leading to deeply nested callbacks. This
-essentially is just leaving the programmer to do a CPS transform of their own
-logical view of the program by hand.
+Callback-centric approaches tend to compose badly, with chains of asynchronous operations typically leading to deeply nested callbacks. This essentially is just leaving the programmer to do a CPS transform of their own logical view of the program by hand.
 
 =item *
 
-Directly spawning threads on a per-component basis tends to compose
-badly, as when a dozen such components are used together the result is a high
-number of threads with no ability to centrally schedule or handle errors.
+Directly spawning threads on a per-component basis tends to compose badly, as when a dozen such components are used together the result is a high number of threads with no ability to centrally schedule or handle errors.
 
 =back
 
-In Perl 6, concurrency features aimed at typical language users should have
-good composability properties, both with themselves and also with other
-language features.
+In Perl 6, concurrency features aimed at typical language users should have good composability properties, both with themselves and also with other language features.
 
 =head2 Boundaries between synchronous and asynchronous should be explicit
 
-Asynchrony happens when we initiate an operation, then continue running our
-own idea of "next thing" without waiting for the operation to complete. This
-differs from synchronous programming, where calling a sub or method causes the
-caller to wait for a result for continuing.
+Asynchrony happens when we initiate an operation, then continue running our own idea of "next thing" without waiting for the operation to complete. This differs from synchronous programming, where calling a sub or method causes the caller to wait for a result before continuing.
 
-The vast majority of programmers are much more comfortable with synchrony, as
-in many senses it's the "normal thing". As soon as we have things taking place
-asynchronously, there is a need to coordinate the work, and doing so tends to
-be domain specific. Therefore, placing the programmer in an asynchronous
-situation when they didn't ask for it is likely to lead to confusion and bugs.
-We should try to make places where asynchrony happens clear.
+The vast majority of programmers are much more comfortable with synchrony, as in many senses it's the "normal thing". As soon as we have things taking place asynchronously, there is a need to coordinate the work, and doing so tends to be domain specific. Therefore, placing the programmer in an asynchronous situation when they didn't ask for it is likely to lead to confusion and bugs. We should try to make places where asynchrony happens clear.
 
-It's also worthwhile trying to make it easy to keep asynchronous things flowing
-asynchronously. While synchronous code is pull-y (for example, eating its way
-through iterable things, blocking for results), asynchronous code is push-y
-(results get pushed to things that know what to do next).
+It's also worthwhile trying to make it easy to keep asynchronous things flowing asynchronously. While synchronous code is pull-y (for example, eating its way through iterable things, blocking for results), asynchronous code is push-y (results get pushed to things that know what to do next).
 
-Places where we go from synchronous to asynchronous, or from asynchronous to
-synchronous, are higher risk areas for bugs and potential bottlenecks. Thus,
-Perl 6 should try to provide features that help minimize the need to make such
-transitions.
+Places where we go from synchronous to asynchronous, or from asynchronous to synchronous, are higher risk areas for bugs and potential bottlenecks. Thus, Perl 6 should try to provide features that help minimize the need to make such transitions.
 
 =head2 Implicit parallelism is OK
 
-Parallelism is primarily about taking something we could do serially and using
-multiple CPU cores in order to get to a result more quickly. This leads to a
-very nice property: a parallel solution to a problem should give the same
-answer as a serial solution. 
+Parallelism is primarily about taking something we could do serially and using multiple CPU cores in order to get to a result more quickly. This leads to a very nice property: a parallel solution to a problem should give the same answer as a serial solution. 
 
-While under the hood there is asynchrony and the inherent coordination it
-requires, on the outside a problem solved using parallel programming is still,
-when taken as a whole, a single, synchronous operation.
+While under the hood there is asynchrony and the inherent coordination it requires, on the outside a problem solved using parallel programming is still, when taken as a whole, a single, synchronous operation.
 
-Elsewhere in the specification, Perl 6 provides several features that allow
-the programmer to indicate that parallelizing an operation will produce the
-same result as evaluating it serially:
+Elsewhere in the specification, Perl 6 provides several features that allow the programmer to indicate that parallelizing an operation will produce the same result as evaluating it serially:
 
 =over
 
 =item *
 
-Hyper operators (L<S03/Hyper operators>) express that parallel operator
-application is safe.
+Hyper operators (L<S03/Hyper operators>) express that parallel operator application is safe.
 
 =item *
 
@@ -105,61 +69,33 @@ Junctions (L<S09/Junctions>) may auto-thread in parallel.
 
 =item *
 
-Feeds (L<S06/Feed operators>) form pipelines and express that the stages
-may be executed in parallel in a producer-consumer style relationship (though
-each stage is in itself not parallelized).
+Feeds (L<S06/Feed operators>) form pipelines and express that the stages may be executed in parallel in a producer-consumer style relationship (though each stage is in itself not parallelized).
 
 =item *
 
-C<hyper> and C<race> list operators (L<S02/The hyper operator>) express
-that iteration may be done in parallel; this is a generalization of hyper
-operators.
+C<hyper> and C<race> list operators (L<S02/The hyper operator>) express that iteration may be done in parallel; this is a generalization of hyper operators.
 
 =back
 
 =head2 Make the hard things possible
 
-The easy things should be easy, and able to be built out of primitives that
-compose nicely. However, such things have to be built out of what VMs and
-operating systems provide: threads, atomic instructions (such as CAS), and
-concurrency control constructs such as mutexes and semaphores. Perl 6 is meant
-to last for decades, and the coming decades will doubtless bring new ways do
-do parallel and asynchronous programming that we do not have today. They will
-still, however, almost certainly need to be built out of what is available.
+The easy things should be easy, and able to be built out of primitives that compose nicely. However, such things have to be built out of what VMs and operating systems provide: threads, atomic instructions (such as CAS), and concurrency control constructs such as mutexes and semaphores. Perl 6 is meant to last for decades, and the coming decades will doubtless bring new ways do do parallel and asynchronous programming that we do not have today. They will still, however, almost certainly need to be built out of what is available.
 
-Thus, the primitive things should be provided for those who need to work on
-such hard things. Perl 6 should not hide the existence of OS-level threads, or
-fail to provide access to lower level concurrency control constructs. However,
-they should be clearly documented as I<not> the way to solve the majority of
-problems.
+Thus, the primitive things should be provided for those who need to work on such hard things. Perl 6 should not hide the existence of OS-level threads, or fail to provide access to lower level concurrency control constructs. However, they should be clearly documented as I<not> the way to solve the majority of problems.
 
 =head1 Schedulers
 
-Schedulers lie at the heart of all concurrency in Perl 6. While most users are
-unlikely to immediately encounter schedulers when starting to use Perl 6's
-concurrency features, many of them are implemented in terms of it. Thus, they
-will be described first here to avoid lots of forward references.
+Schedulers lie at the heart of all concurrency in Perl 6. While most users are unlikely to immediately encounter schedulers when starting to use Perl 6's concurrency features, many of them are implemented in terms of it. Thus, they will be described first here to avoid lots of forward references.
 
-A scheduler is something that does the C<Scheduler> role. Its responsibility
-is taking code objects representing tasks that need to be performed and making
-sure they get run, as well as handling any time-related operations (such as,
-"run this code every second").
+A scheduler is something that does the C<Scheduler> role. Its responsibility is taking code objects representing tasks that need to be performed and making sure they get run, as well as handling any time-related operations (such as, "run this code every second").
 
-The current default scheduler is available as C<$*SCHEDULER>. If no such
-dynamic variable has been declared, then C<$PROCESS::SCHEDULER> is used. This
-defaults to an instance of C<ThreadPoolScheduler>, which maintains a pool of
-threads and distributes scheduled work amongst them. Since the scheduler is
-dynamically scoped, this means that test scheduler modules can be developed
-that poke a C<$*SCHEDULER> into C<EXPORT>, and then provide the test writer
-with control over time.
+The current default scheduler is available as C<$*SCHEDULER>. If no such dynamic variable has been declared, then C<$PROCESS::SCHEDULER> is used. This defaults to an instance of C<ThreadPoolScheduler>, which maintains a pool of threads and distributes scheduled work amongst them. Since the scheduler is dynamically scoped, this means that test scheduler modules can be developed that poke a C<$*SCHEDULER> into C<EXPORT>, and then provide the test writer with control over time.
 
 The C<cue> method takes a C<Callable> object and schedules it.
 
     $*SCHEDULER.cue: { say "Golly, I got scheduled!" }
 
-Various options may be supplied as named arguments.  (All references to time
-are taken to be in seconds, which may be fractional.)  You may schedule an
-event to fire off after some number of seconds:
+Various options may be supplied as named arguments.  (All references to time are taken to be in seconds, which may be fractional.)  You may schedule an event to fire off after some number of seconds:
 
     $*SCHEDULER.cue: in=>10, { say "10s later" }
 
@@ -167,24 +103,19 @@ or at a given absolute time, specified as an C<Instant>:
 
     $*SCHEDULER.cue: at=>$instant, { say "at $instant" }
 
-If a scheduled item dies, the scheduler will catch this exception and pass it
-to a C<handle_uncaught> method, a default implementation of which is provided
-by the C<Scheduler> role. This by default will report the exception and cause
-the entire application to terminate. However, it is possible to replace this:
+If a scheduled item dies, the scheduler will catch this exception and pass it to a C<handle_uncaught> method, a default implementation of which is provided by the C<Scheduler> role. This by default will report the exception and cause the entire application to terminate. However, it is possible to replace this:
 
     $*SCHEDULER.uncaught_handler = sub ($exception) {
         $logger.log_error($exception);
     }
 
-For more fine-grained handling, it is possible to schedule code along with a
-code object to be invoked with the thrown exception if it dies:
+For more fine-grained handling, it is possible to schedule code along with a code object to be invoked with the thrown exception if it dies:
 
     $*SCHEDULER.cue:
         { upload_progress($stuff) },
         quit => -> $ex { warn "Could not upload latest progress" }
 
-Use C<:every> to schedule a task to run at a fixed interval, possibly
-with a delay before the first scheduling.
+Use C<:every> to schedule a task to run at a fixed interval, possibly with a delay before the first scheduling.
 
     # Every second, from now
     $*SCHEDULER.cue: :every(1), { say "Oh wow, a kangaroo!" };
@@ -192,17 +123,12 @@ with a delay before the first scheduling.
     # Every 0.5s, but don't start for 2s.
     $*SCHEDULER.cue: { say "Kenya believe it?" }, :every(0.5), :in(2);
 
-Since this will cause the given to be executed for the given interval ad
-infinitum, there are two ways to make sure the scheduling of the task is
-halted at a future time.  The first is provided by specifying the C<:limit>
-parameter in the .cue:
+Since this will cause the given task to be executed at the given interval ad infinitum, there are two ways to make sure the scheduling of the task is halted at a future time.  The first is provided by specifying the C<:limit> parameter in the .cue:
 
     # Every second, from now, but only 42 times
     $*SCHEDULER.cue: :every(1), :limit(42), { say "Oh wow, a kangaroo!" };
 
-The second is by specifying code that will be checked at the end of each
-interval.  The task will be stopped as soon as it returns a True value.
-You can do this with the C<:stop> parameter.
+The second is by specifying code that will be checked at the end of each interval.  The task will be stopped as soon as it returns a True value. You can do this with the C<:stop> parameter.
 
     # Every second, from now, until stopped
     my $stop;
@@ -210,8 +136,7 @@ You can do this with the C<:stop> parameter.
     sleep 10;
     $stop = True;  # task stopped after 10 seconds
 
-The C<.cue> method returns a C<Cancellation> object, which can also be used
-to stop a repeating cue:
+The C<.cue> method returns a C<Cancellation> object, which can also be used to stop a repeating cue:
 
     my $c = $*SCHEDULER.cue: :every(1), { say "Oh wow, a kangaroo!" };
     sleep 10;
@@ -221,26 +146,16 @@ Schedulers also provide counts of the number of operations in various states:
 
     say $*SCHEDULER.loads;
 
-This returns, in order, the number of cues that are not yet runnable due to
-delays, the number of cues that are runnable but not yet assigned to a thread,
-and the number of cues that are now assigned to a thread (and presumably running).
+This returns, in order, the number of cues that are not yet runnable due to delays, the number of cues that are runnable but not yet assigned to a thread, and the number of cues that are now assigned to a thread (and presumably running).
 [Conjecture: perhaps these should be separate methods.]
 
-Schedulers may optionally provide further introspection in order to support
-tools such as debuggers.
+Schedulers may optionally provide further introspection in order to support tools such as debuggers.
 
-There is also a C<CurrentThreadScheduler>, which always schedules things on
-the current thread. It provides the same methods, just no concurrency, and
-any exceptions are thrown immediately. This is mostly useful for forcing
-synchrony in places that default to asynchrony.  (Note that C<.loads> can never
-return anything but 0 for the currently running cues, since they're waiting
-on the current thread to stop scheduling first!)
+There is also a C<CurrentThreadScheduler>, which always schedules things on the current thread. It provides the same methods, just no concurrency, and any exceptions are thrown immediately. This is mostly useful for forcing synchrony in places that default to asynchrony.  (Note that C<.loads> can never return anything but 0 for the currently running cues, since they're waiting on the current thread to stop scheduling first!)
 
 =head1 Promises
 
-A C<Promise> is a synchronization primitive for an asynchronous piece of work
-that will produce a single result (thus keeping the promise) or fail in some
-way (thus breaking the promise).
+A C<Promise> is a synchronization primitive for an asynchronous piece of work that will produce a single result (thus keeping the promise) or fail in some way (thus breaking the promise).
 
 The simplest way to use a C<Promise> is to create one:
 
@@ -257,19 +172,13 @@ Or C<break> it:
     $promise.break(X::Some::Problem.new);       # With exception
     $promise.break("I just couldn't do it");    # With message
 
-The current status of a C<Promise> is available through the C<status> method,
-which returns an element from the C<PromiseStatus> enumeration.
+The current status of a C<Promise> is available through the C<status> method, which returns an element from the C<PromiseStatus> enumeration.
 
     enum PromiseStatus (:Planned(0), :Kept(1), :Broken(2));
 
-The result itself can be obtained by calling C<result>. If the C<Promise> was
-already kept, the result is immediately returned. If the C<Promise> was broken
-then the exception that it was broken with is thrown. If the C<Promise> is not
-yet kept or broken, then the caller will block until this happens.
+The result itself can be obtained by calling C<result>. If the C<Promise> was already kept, the result is immediately returned. If the C<Promise> was broken then the exception that it was broken with is thrown. If the C<Promise> is not yet kept or broken, then the caller will block until this happens.
 
-A C<Promise> will boolify to whether the C<Promise> is already kept or broken.
-There is also an C<excuse> method for extracting the exception from a C<Broken>
-C<Promise> rather than having it thrown.
+A C<Promise> will boolify to whether the C<Promise> is already kept or broken. There is also an C<excuse> method for extracting the exception from a C<Broken> C<Promise> rather than having it thrown.
 
     if $promise {
         if $promise.status == Kept {
@@ -291,14 +200,11 @@ You can also simply use a switch:
         when Broken  { say "Broken because ", $promise.excuse }
     }
 
-There are various convenient "factory" methods on C<Promise>. The most common
-is C<start>.
+There are various convenient "factory" methods on C<Promise>. The most common is C<start>.
 
     my $p = Promise.start(&do_hard_calculation);
 
-This creates a C<Promise> that runs the supplied code, and calls C<keep> with
-its result. If the code throws an exception, then C<break> is called with the
-C<Exception>. Most of the time, however, the above is simply written as:
+This creates a C<Promise> that runs the supplied code, and calls C<keep> with its result. If the code throws an exception, then C<break> is called with the C<Exception>. Most of the time, however, the above is simply written as:
 
     my $p = start {
         # code here
@@ -306,38 +212,25 @@ C<Exception>. Most of the time, however, the above is simply written as:
 
 Which is implemented by calling C<Promise.start>.
 
-There is also a method to create a C<Promise> that is kept after a number of
-seconds, or at a specific time:
+There is also a method to create a C<Promise> that is kept after a number of seconds, or at a specific time:
 
     my $kept_in_10s      = Promise.in(10);
     my $kept_in_duration = Promise.in($duration);
     my $kept_at_instant  = Promise.at($instant);
 
-The C<result> is always C<True> and such a C<Promise> can never be broken. It
-is mostly useful for combining with other promises.
+The C<result> is always C<True> and such a C<Promise> can never be broken. It is mostly useful for combining with other promises.
 
-There are also a couple of C<Promise> combinators. The C<anyof> combinator
-creates a C<Promise> that is kept whenever any of the specified C<Promise>s
-are kept. If the first promise to produce a result is instead broken, then
-the resulting C<Promise> is also broken. The excuse is passed along. When the
-C<Promise> is kept, it has a C<True> result.
+There are also a couple of C<Promise> combinators. The C<anyof> combinator creates a C<Promise> that is kept whenever any of the specified C<Promise>s are kept. If the first promise to produce a result is instead broken, then the resulting C<Promise> is also broken. The excuse is passed along. When the C<Promise> is kept, it has a C<True> result.
 
     my $calc     = start { ... }
     my $timeout  = Promise.in(10);
     my $timecalc = Promise.anyof($calc, $timeout);
 
-There is also an C<allof> combinator, which creates a C<Promise> that will be
-kept when all of the specified C<Promise>s are kept, or broken if any of them
-are broken.
+There is also an C<allof> combinator, which creates a C<Promise> that will be kept when all of the specified C<Promise>s are kept, or broken if any of them are broken.
 
 [Conjecture: there should be infix operators for these resembling the junctionals.]
 
-The C<then> method on a C<Promise> is used to request that a certain piece of
-code should be run, receiving the C<Promise> as an argument, when the
-C<Promise> is kept or broken. If the C<Promise> is already kept or broken,
-the code is scheduled immediately. It is possible to call C<then> more than
-once, and each time it returns a C<Promise> representing the completion of
-both the original C<Promise> as well as the code specified in C<then>.
+The C<then> method on a C<Promise> is used to request that a certain piece of code should be run, receiving the C<Promise> as an argument, when the C<Promise> is kept or broken. If the C<Promise> is already kept or broken, the code is scheduled immediately. It is possible to call C<then> more than once, and each time it returns a C<Promise> representing the completion of both the original C<Promise> as well as the code specified in C<then>.
 
     my $feedback_promise = $download_promise.then(-> $res {
         given $res.status {
@@ -346,23 +239,9 @@ both the original C<Promise> as well as the code specified in C<then>.
         }
     });
 
-[Conjecture: this needs better syntax to separate the "then" policies from the "else"
-policies (and from "catch" policies?), and to avoid a bunch of switch boilerplate.
-We already know the givens here...]
+[Conjecture: this needs better syntax to separate the "then" policies from the "else" policies (and from "catch" policies?), and to avoid a bunch of switch boilerplate. We already know the givens here...]
 
-One risk when working with C<Promise> is that another piece of code will
-sneak in and keep or break a C<Promise> it should not.  The notion of
-a promise is user-facing.  To instead represent the promise from the
-viewpoint of the promiser, the various built-in C<Promise> factory methods
-and combinators use C<Promise::Vow> objects to represent that internal
-resolve to fulfill the promise.  ("I have vowed to keep my promise
-to you.")  The C<vow> method on a C<Promise> returns an object with C<keep>
-and C<break> methods. It can only be called once during a C<Promise> object's
-lifetime. Since C<keep> and C<break> on the C<Promise> itself just delegate
-to C<self.vow.keep(...)> or C<self.vow.break(...)>, obtaining the vow
-before letting the C<Promise> escape to the outside world is a way to take
-ownership of the right to keep or break it. For example, here is how the
-C<Promise.in> factory is implemented:
+One risk when working with C<Promise>s is that another piece of code will sneak in and keep or break a C<Promise> it should not.  The notion of a promise is user-facing.  To instead represent the promise from the viewpoint of the promiser, the various built-in C<Promise> factory methods and combinators use C<Promise::Vow> objects to represent that internal resolve to fulfill the promise.  ("I have vowed to keep my promise to you.")  The C<vow> method on a C<Promise> returns an object with C<keep> and C<break> methods. It can only be called once during a C<Promise> object's lifetime. Since C<keep> and C<break> on the C<Promise> itself just delegate to C<self.vow.keep(...)> or C<self.vow.break(...)>, obtaining the vow before letting the C<Promise> escape to the outside world is a way to take ownership of the right to keep or break it. For example, here is how the C<Promise.in> factory is implemented:
 
     method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new(:$scheduler);
@@ -371,18 +250,15 @@ C<Promise.in> factory is implemented:
         $p;
     }
 
-The C<await> function is used to wait for one or more C<Promise>s to produce a
-result.
+The C<await> function is used to wait for one or more C<Promise>s to produce a result.
 
     my ($a, $b) = await $p1, $p2;
 
-This simply calls C<result> on each of the C<Promise>s, so any exception will
-be thrown.
+This simply calls C<result> on each of the C<Promise>s, so any exception will be thrown.
 
 =head1 Channels
 
-A C<Channel> is essentially a concurrent queue. One or more threads can put
-values into the C<Channel> using C<send>:
+A C<Channel> is essentially a concurrent queue. One or more threads can put values into the C<Channel> using C<send>:
 
     my $c = Channel.new;
     $c.send($msg);
@@ -391,27 +267,15 @@ Meanwhile, others can C<receive> them:
 
     my $msg = $c.receive;
 
-Channels are ideal for producer/consumer scenarios, and since there can be
-many senders and many receivers, they adapt well to scaling certain pipeline
-stages out over multiple workers also. [Conjectural: The two feed operators
-C<< ==> >> and C<< <== >> are implemented using Channel to connect each of
-the stages.]
+Channels are ideal for producer/consumer scenarios, and since there can be many senders and many receivers, they adapt well to scaling certain pipeline stages out over multiple workers also. [Conjectural: The two feed operators C<< ==> >> and C<< <== >> are implemented using Channel to connect each of the stages.]
 
-A C<Channel> may be "forever", but it is possible to close it to further
-sends by telling it to C<close>:
+A C<Channel> may be "forever", but it is possible to close it to further sends by telling it to C<close>:
 
     $c.close();
 
-Trying to C<send> any further messages on a closed channel will throw the
-C<X::Channel::SendOnDone> exception. Closing a channel has no effect on the
-receiving end until all sent values have been received. At that point, any
-further calls to receive will throw C<X::Channel::ReceiveOnDone>. The
-C<done> method returns a C<Promise> that is kept when a sender has
-called C<close> and all sent messages have been received.  Note that multiple
-calls to a channel return the same promise, not a new one.
+Trying to C<send> any further messages on a closed channel will throw the C<X::Channel::SendOnDone> exception. Closing a channel has no effect on the receiving end until all sent values have been received. At that point, any further calls to receive will throw C<X::Channel::ReceiveOnDone>. The C<done> method returns a C<Promise> that is kept when a sender has called C<close> and all sent messages have been received.  Note that multiple calls to a channel return the same promise, not a new one.
 
-While C<receive> blocks until it can read, C<poll> takes a message from the
-channel if one is there or immediately returns C<Nil> if nothing is there.
+While C<receive> blocks until it can read, C<poll> takes a message from the channel if one is there or immediately returns C<Nil> if nothing is there.
 
 There is also a C<earliest> statement:
 
@@ -420,14 +284,9 @@ There is also a C<earliest> statement:
         more $c2 { say "Second channel got a value" }
     }
 
-That will invoke the closure associated with the first channel that
-receives a value.
+That will invoke the closure associated with the first channel that receives a value.
 
-It's possible to add a timer using the keyword C<wait> followed
-by the number of seconds to wait (which may be fractional).  As a
-degenerate case, in order to avoid blocking at all you may use a
-C<wait 0>.  The timeout is always checked last, to guarantee that
-the other entries are all tried at least once before timing out.
+It's possible to add a timer using the keyword C<wait> followed by the number of seconds to wait (which may be fractional).  As a degenerate case, in order to avoid blocking at all you may use a C<wait 0>.  The timeout is always checked last, to guarantee that the other entries are all tried at least once before timing out.
 
     my $gotone = earliest * {
         more $c1 { say "First channel got a value" }
@@ -437,22 +296,15 @@ the other entries are all tried at least once before timing out.
 
 The construct as a whole returns the result of whichever block was selected.
 
-It's also possible to process a variadic list of channels together,
-using generic code that works over some set of the channels (use C<*>
-to represent any of them).  The index and the received value are passed to
-the code as named arguments C<$:k> and <$:v> (possibly via priming if
-the code is instantiated ahead of time).
+It's also possible to process a variadic list of channels together, using generic code that works over some set of the channels (use C<*> to represent any of them).  The index and the received value are passed to the code as named arguments C<$:k> and <$:v> (possibly via priming if the code is instantiated ahead of time).
 
     earliest * {
         more @channels { say "Channel $:k received, result was: ", $:v }
     }
 
-In this case C<$:k> returns the index of the channel, base 0.
-Likewise C<$:v> returns the value.
+In this case C<$:k> returns the index of the channel, base 0. Likewise C<$:v> returns the value.
 
-The C<earliest> construct also automatically checks the C<.done> promise
-corresponding to the channel, so it can also be used in order
-to write a loop to receive from a channel until it is closed:
+The C<earliest> construct also automatically checks the C<.done> promise corresponding to the channel, so it can also be used in order to write a loop to receive from a channel until it is closed:
 
     gather loop {
         earliest $channel {
@@ -461,39 +313,20 @@ to write a loop to receive from a channel until it is closed:
         }
     }
 
-This is such a common pattern that we make a channel in list context behave
-that way:
+This is such a common pattern that we make a channel in list context behave that way:
 
     for @$channel -> $val { ... }
     for $channel.list -> $val { ... }
 
-(Note that this is not a combinator, but a means for transfering data from
-the reactive realm to the lazy realm.  Some reasonable amount of buffering
-is assumed between the two.)
+(Note that this is not a combinator, but a means for transfering data from the reactive realm to the lazy realm.  Some reasonable amount of buffering is assumed between the two.)
 
 =head1 Supplies
 
-Channels are good for producer/consumer scenarios, but because each worker
-blocks on receive, it is not such an ideal construct for doing fine-grained
-processing of asynchronously produced streams of values. Additionally, there
-can only be one receiver for each value. Supplies exist to address both
-of these issues.
+Channels are good for producer/consumer scenarios, but because each worker blocks on receive, it is not such an ideal construct for doing fine-grained processing of asynchronously produced streams of values. Additionally, there can only be one receiver for each value. Supplies exist to address both of these issues.
 
-A C<Supply> pushes or pumps values to one or more receivers who have registered
-their interest.  There are two types of Supplies: C<live> and C<on demand>.
-When tapping into a C<live> supply, the tap will only see values that are
-pumped B<after> the tap has been created. Such supplies are normally infinite
-in nature, such as mouse movements. Closing the tap does not stop events from
-occurring, it just means nobody is listening. All tappers see the same stream. 
-A tap on an C<on demand> supply will initiate the production of values, and
-tapping the supply again may result in a new set of values. For example,
-C<Supply.interval> produces a fresh timer with the appropriate interval each
-time it is tapped. If the tap is closed, the timer stops pushing out new
-values.
+A C<Supply> pushes or pumps values to one or more receivers who have registered their interest.  There are two types of Supplies: C<live> and C<on demand>. When tapping into a C<live> supply, the tap will only see values that are pumped B<after> the tap has been created. Such supplies are normally infinite in nature, such as mouse movements. Closing the tap does not stop events from occurring, it just means nobody is listening. All tappers see the same stream.  A tap on an C<on demand> supply will initiate the production of values, and tapping the supply again may result in a new set of values. For example, C<Supply.interval> produces a fresh timer with the appropriate interval each time it is tapped. If the tap is closed, the timer stops pushing out new values.
 
-Anything that does the C<Supply> role can be tapped (that is, subscribed to)
-by calling the C<tap> method on it. This takes up to three callables as
-arguments, the optional ones expresses as named arguments:
+Anything that does the C<Supply> role can be tapped (that is, subscribed to) by calling the C<tap> method on it. This takes up to three callables as arguments, the optional ones expresses as named arguments:
 
     $supply.tap: -> $value { say "Got a $value" },
         done => { say "Reached the end" },
@@ -502,16 +335,9 @@ arguments, the optional ones expresses as named arguments:
             default        { warn "Supply shut down early: $_" }
         }
 
-The first, known as the C<emit> closure, is invoked whenever a value is emitted into
-the thing that has been tapped.  The optional named parameter C<done> specifies
-the code to be invoked when all expected values have been produced and no more
-values will be emitted. The optional named parameter C<quit> specifies the code
-to be invoked if there is an error. This also means there will be no further
-values.
+The first, known as the C<emit> closure, is invoked whenever a value is emitted into the thing that has been tapped.  The optional named parameter C<done> specifies the code to be invoked when all expected values have been produced and no more values will be emitted. The optional named parameter C<quit> specifies the code to be invoked if there is an error. This also means there will be no further values.
 
-The simplest Supply is a C<Supply> class, which is punned from the role.
-It creates a C<live> supply.  On the "pumping" end, this has corresponding
-methods C<emit>, C<done>, and C<quit>, which notify all current taps.
+The simplest Supply is a C<Supply> class, which is punned from the role. It creates a C<live> supply.  On the "pumping" end, this has corresponding methods C<emit>, C<done>, and C<quit>, which notify all current taps.
 
     my $s = Supply.new;
     
@@ -523,30 +349,19 @@ methods C<emit>, C<done>, and C<quit>, which notify all current taps.
                     { say "End" });
     $s.emit(3);                              # 3\n6\n
 
-The object returned by C<tap> represents the subscription. To stop
-subscribing, call C<close> on it.
+The object returned by C<tap> represents the subscription. To stop subscribing, call C<close> on it.
 
     $t1.close;
     $s.emit(4);                              # 8\n
     $s.done;                                 # End\n
 
-This doesn't introduce any asynchrony directly. However, it is possible for
-values to be pumped into a C<Supply> from an asynchronous worker. In fact,
-it is possible for many threads to safely pump values into a supply. In the
-event this happens, the callback of the tap may be executed on many threads
-at the same time.
+This doesn't introduce any asynchrony directly. However, it is possible for values to be pumped into a C<Supply> from an asynchronous worker. In fact, it is possible for many threads to safely pump values into a supply. In the event this happens, the callback of the tap may be executed on many threads at the same time.
 
-The C<Supply> class has various methods that produce more interesting kinds of
-C<Supply>.  These default to working asynchronously.
+The C<Supply> class has various methods that produce more interesting kinds of C<Supply>.  These default to working asynchronously.
 
-C<Supply.for> takes a (potentially lazy) list of values, and returns an
-on demand C<Supply> that, when tapped, will iterate over the values and invoke
-the C<emit> callable for each of them, and any C<done> callable at the end.
-If the iteration at some point produces an exception, then the C<quit>
-callable will be invoked to pass along the exception.
+C<Supply.for> takes a (potentially lazy) list of values, and returns an on demand C<Supply> that, when tapped, will iterate over the values and invoke the C<emit> callable for each of them, and any C<done> callable at the end. If the iteration at some point produces an exception, then the C<quit> callable will be invoked to pass along the exception.
 
-C<Supply.interval> produces an on demand C<Supply> that, when tapped, will
-produce an ascending value at a regular time interval.
+C<Supply.interval> produces an on demand C<Supply> that, when tapped, will produce an ascending value at a regular time interval.
 
     Supply.interval(1).tap(&say);     # Once a second, starting now
     Supply.interval(5, 10).tap(&say); # Each 5 seconds, starting in 10 seconds
@@ -559,15 +374,9 @@ Take the returned tap object and close it to stop the ticks:
 
 [TODO: many more of these.]
 
-Supplies are mathematically dual to iterators, and so it is possible to
-define the same set of operations on them as are available on lazy lists. The
-key difference is that, while C<grep> on a lazy list I<pulls> a value to
-process, working synchronously, C<grep> on a Supply has values I<pushed>
-through it, and pushes those that match the filter onwards to anything that
-taps it.
+Supplies are mathematically dual to iterators, and so it is possible to define the same set of operations on them as are available on lazy lists. The key difference is that, while C<grep> on a lazy list I<pulls> a value to process, working synchronously, C<grep> on a Supply has values I<pushed> through it, and pushes those that match the filter onwards to anything that taps it.
 
-The following methods are available on an instantiated C<Supply> (C<$s> in
-these examples):
+The following methods are available on an instantiated C<Supply> (C<$s> in these examples):
 
 =over
 
@@ -593,23 +402,19 @@ Produces a C<Channel> of the values of the given C<Supply>.
 
   my $p = $s.Promise;
 
-Produces a C<Promise> that will kept for the next value of the given C<Supply>,
-or will be broken when the C<Supply> is done before a value is produced.
+Produces a C<Promise> that will be kept for the next value of the given C<Supply>, or will be broken when the C<Supply> is done before a value is produced.
 
 =item last
 
   my $l = $s.last(42);  # default: 1
 
-Produces a C<Supply> that will only emit the last N values
-of the given C<Supply> when it is C<done>.  Default is the final value.
+Produces a C<Supply> that will only emit the last N values of the given C<Supply> when it is C<done>.  Default is the final value.
 
 =item grab
 
   my $g = $s.grab( { .sort } ); # sort the values of a Supply
 
-Produces a C<Supply> will grab all values emitted by the given C<Supply> until it
-is done.  It will then call the given closure and then C<emit> each of the
-return values of the closure, and then C<done> the Supply that was produced.
+Produces a C<Supply> will grab all values emitted by the given C<Supply> until it is done.  It will then call the given closure and then C<emit> each of the return values of the closure, and then C<done> the Supply that was produced.
 
 =item flat
 
@@ -622,27 +427,21 @@ Produces a C<Supply> in which all values of the original supply are flattened.
   my $seen;
   my $d = $s.do( {$seen++} );
 
-Produces a C<Supply> that is identical to the original supply, but will execute
-the given code for its side-effects. It promises that only one thread will ever
-be executing the code object passed to it at a time; others will block behind
-it.
+Produces a C<Supply> that is identical to the original supply, but will execute the given code for its side-effects. It promises that only one thread will ever be executing the code object passed to it at a time; others will block behind it.
 
 =item act
 
   my $seen;
   $s->act( {$seen++} );
 
-A special case of C<Supply>.do, that will also create a tap on the given
-C<Supply>, so that you only need to worry about writing the side-effect code.
+A special case of C<Supply>.do, that will also create a tap on the given C<Supply>, so that you only need to worry about writing the side-effect code.
 
 =item grep
 
   my $g = $s.grep( * > 5 );
   my $g = $s.grep(Int);
 
-Produces a C<Supply> that only provides values that you want.  Takes either
-a C<Callable> (which is supposed to return a C<True> value to pass on
-emitted values) or a value to be smartmatched against.
+Produces a C<Supply> that only provides values that you want.  Takes either a C<Callable> (which is supposed to return a C<True> value to pass on emitted values) or a value to be smartmatched against.
 
 =item map
 
@@ -658,66 +457,43 @@ Produces a C<Supply> that provides its original's Supply values twice.
 
   my $u = $s.unique( :as( {$_} ), :with( &[===] ), :expires(1) );
 
-Produces a C<Supply> that only provides unique values, as defined by the
-optional C<as> and C<with> named parameters (same as L<List.unique>). The
-optional C<expires> parameter specifies how long to wait (in seconds) before
-"resetting" and not considering a value to have been seen, even if it's the
-same as an old value.
+Produces a C<Supply> that only provides unique values, as defined by the optional C<as> and C<with> named parameters (same as L<List.unique>). The optional C<expires> parameter specifies how long to wait (in seconds) before "resetting" and not considering a value to have been seen, even if it's the same as an old value.
 
 =item squish
 
   my $q = $s.squish( :as( {$_} ), :with( &[===] ), :expires(1) );
 
-Produces a C<Supply> that only provides sequentially different values, as
-defined by the optional C<as> and C<with> named parameters (same as
-L<List.squish>). The optional C<expires> parameter specifies how long to wait
-(in seconds) before "resetting" and not squishing a new value with an old one,
-even if they are the same.
+Produces a C<Supply> that only provides sequentially different values, as defined by the optional C<as> and C<with> named parameters (same as L<List.squish>). The optional C<expires> parameter specifies how long to wait (in seconds) before "resetting" and not squishing a new value with an old one, even if they are the same.
 
 =item max
 
   my $a = $s.max(&by); # default &infix:<cmp>
 
-Produces a C<Supply> that produces the B<maximum> values of the specified
-C<Supply>.  In other words, from a continuously ascending C<Supply> it will
-produce all the values.  From a continuously descending C<Supply> it will only
-produce the first value.  The optional parameter specifies the comparator,
-just as with C<Any.max>.
+Produces a C<Supply> that produces the B<maximum> values of the specified C<Supply>.  In other words, from a continuously ascending C<Supply> it will produce all the values.  From a continuously descending C<Supply> it will only produce the first value.  The optional parameter specifies the comparator, just as with C<Any.max>.
 
 =item min
 
   my $i = $s.min(&by); # default &infix:<cmp>
 
-Produces a C<Supply> that produces the B<minimum> values of the specified
-C<Supply>.  In other words, from a continuously descending C<Supply> it will
-produce all the values.  From a continuously ascending C<Supply> it will only
-produce the first value.  The optional parameter specifies the comparator,
-just as with C<Any.min>.
+Produces a C<Supply> that produces the B<minimum> values of the specified C<Supply>.  In other words, from a continuously descending C<Supply> it will produce all the values.  From a continuously ascending C<Supply> it will only produce the first value.  The optional parameter specifies the comparator, just as with C<Any.min>.
 
 =item minmax
 
   my $m = $s.minmax(&by); # default &infix:<cmp>
 
-Produces a C<Supply> that produces the C<Range>s with the B<minimum> and
-B<maximum> values of the specified C<Supply>.  The optional parameter specifies
-the comparator, just as with C<Any.minmax>.
+Produces a C<Supply> that produces the C<Range>s with the B<minimum> and B<maximum> values of the specified C<Supply>.  The optional parameter specifies the comparator, just as with C<Any.minmax>.
 
 =item batch
 
   my $b = $s.batch( :elems(100), :seconds(1) );
 
-Produces a C<Supply> that batches the values of the given Supply by either
-the number of elements (using the C<elems> named parameter) or the maximum
-number of seconds (using the C<seconds> named parameter) or both.  Values
-are grouped in a single array element when flushed.
+Produces a C<Supply> that batches the values of the given Supply by either the number of elements (using the C<elems> named parameter) or the maximum number of seconds (using the C<seconds> named parameter) or both.  Values are grouped in a single array element when flushed.
 
 =item elems
 
   my $e = $s.elems($seconds?); # default: see all
 
-Produces a C<Supply> that produces the number of elements seen in the given
-C<Supply>.  You can also specify an interval to only see the number of elements
-seen once per that interval.
+Produces a C<Supply> that produces the number of elements seen in the given C<Supply>.  You can also specify an interval to only see the number of elements seen once per that interval.
 
 =item rotor
 
@@ -725,80 +501,56 @@ seen once per that interval.
 
   my $b = $s.rotor;    # elems = 2, overlap = 1
 
-Produces a "rotoring" C<Supply> where every C<elems> number of elements are
-combined, and the last C<overlap> elements of such a combination become the
-initial elements of the next combination.  This can e.g. be used to convert
-a C<Supply> of coordinates into a C<Supply> of begin/end points.
+Produces a "rotoring" C<Supply> where every C<elems> number of elements are combined, and the last C<overlap> elements of such a combination become the initial elements of the next combination.  This can e.g. be used to convert a C<Supply> of coordinates into a C<Supply> of begin/end points.
 
 =item delayed
 
   my $d = $s.delayed( 3.5 );  # delay supply 3.5 seconds
 
-Produces a C<Supply> that passes on the values of the given Supply with the
-given delay (in seconds).
+Produces a C<Supply> that passes on the values of the given Supply with the given delay (in seconds).
 
 =item stable
 
   my $u = $s.stable( $seconds, :$scheduler );
 
-Produces a C<Supply> that only passes on a value if it wasn't superseded by
-another value in the given time (in seconds).  Optionally uses another
-scheduler than the default scheduler, using the C<scheduler> named parameter.
+Produces a C<Supply> that only passes on a value if it wasn't superseded by another value in the given time (in seconds).  Optionally uses another scheduler than the default scheduler, using the C<scheduler> named parameter.
 
 =item start
 
   my $t = $s.start( {...} );
 
-Takes a closure and, for each supplied value, schedules the closure to
-run on another thread. It then emits a Supply (resulting in us having
-a supply of supplies) that will either have a single value emitted and
-then be done if the async work completes successfully, or quit if the
-work fails. Useful for kicking off work on the thread pool if you do
-not want to block up the thread pushing values at you (maybe 'cus you
-are reacting to UI events, but have some long-running work to kick off).
-Usually used in combination with C<migrate>.
+Takes a closure and, for each supplied value, schedules the closure to run on another thread. It then emits a Supply (resulting in us having a supply of supplies) that will either have a single value emitted and then be done if the async work completes successfully, or quit if the work fails. Useful for kicking off work on the thread pool if you do not want to block up the thread pushing values at you (maybe 'cus you are reacting to UI events, but have some long-running work to kick off). Usually used in combination with C<migrate>.
 
 =item migrate
 
   my $m = $t.migrate;
 
-Produces a continuous C<Supply> from a C<Supply>, in which each value is a
-C<Supply>.  As soon a new C<Supply> appears, it will close the current
-C<Supply> and provide values from the new C<Supply>.  Can be used in combination
-with C<schedule_on>.
+Produces a continuous C<Supply> from a C<Supply>, in which each value is a C<Supply>.  As soon as a new C<Supply> appears, it will close the current C<Supply> and provide values from the new C<Supply>.  Can be used in combination with C<schedule_on>.
 
 =item schedule_on
 
   my $o = $m.schedule_on( $scheduler );
 
-This allows a C<Supply>'s emit/done/quit to be scheduled on another
-scheduler. Useful in GUI situations, for example, where the final
-stage of some work needs to be done on some UI scheduler in order to
-have UI updates run on the UI thread.
+This allows a C<Supply>'s emit/done/quit to be scheduled on another scheduler. Useful in GUI situations, for example, where the final stage of some work needs to be done on some UI scheduler in order to have UI updates run on the UI thread.
 
 =item reduce
 
   my $r = $s.reduce( {...} );
 
-Produces a C<Supply> that will emit each reduction from the given C<Supply>,
-just like C<reduce> on C<List>s.
+Produces a C<Supply> that will emit each reduction from the given C<Supply>, just like C<reduce> on C<List>s.
 
 =item lines
 
   my $l = $s.lines;              # chomp lines
   my $l = $s.lines( :!chomp );   # do *not* chomp lines
 
-Produces a C<Supply> that will emit the characters coming in line by line
-from a C<Supply> that usually created by some asynchronous I/O operation.
-The optional C<:chomp> named parameter indicates whether to remove line
-separators: the default is C<True>.
+Produces a C<Supply> that will emit the characters coming in line by line from a C<Supply> that's usually created by some asynchronous I/O operation. The optional C<:chomp> named parameter indicates whether to remove line separators: the default is C<True>.
 
 =item words
 
   my $w = $s.words;
 
-Produces a C<Supply> that will emit the characters coming in word by word
-from a C<Supply> that usually created by some asynchronous I/O operation.
+Produces a C<Supply> that will emit the characters coming in word by word from a C<Supply> that's usually created by some asynchronous I/O operation.
 
 =item classify
 
@@ -806,10 +558,7 @@ from a C<Supply> that usually created by some asynchronous I/O operation.
   my $h = $s.classify( %mapper );
   my $a = $s.classify( @mapper );
 
-Produces a C<Supply> in which the emit values are C<Pair>s consisting of
-the classification value and the C<Supply> to which values of the given
-C<Supply> will be emitted.  Similar to C<List.classify>, but does not support
-multi-level classification.
+Produces a C<Supply> in which the emit values are C<Pair>s consisting of the classification value and the C<Supply> to which values of the given C<Supply> will be emitted.  Similar to C<List.classify>, but does not support multi-level classification.
 
 =item categorize
 
@@ -817,30 +566,23 @@ multi-level classification.
   my $h = $s.categorize( %mapper );
   my $a = $s.categorize( @mapper );
 
-Produces a C<Supply> in which the emitted values are C<Pair>s consisting of
-zero or more classification values and the C<Supply> to which values of the
-given C<Supply> will be emitted.  Similar to C<List.categorize>.
+Produces a C<Supply> in which the emitted values are C<Pair>s consisting of zero or more classification values and the C<Supply> to which values of the given C<Supply> will be emitted.  Similar to C<List.categorize>.
 
 =item reverse
 
   my $r = $s.reverse;
 
-Produces a C<Supply> that emits the values of the given Supply in reverse order.
-Please note that this C<Supply> will only start delivering values as soon as
-the given C<Supply> is C<done>.
+Produces a C<Supply> that emits the values of the given Supply in reverse order. Please note that this C<Supply> will only start delivering values when the given C<Supply> is C<done>.
 
 =item sort
 
   my $o = $s.sort(&by);  # default &infix:<cmp>
 
-Produces a C<Supply> that emits the values of the given Supply in sorted order.
-Please note that this C<Supply> will only start delivering values as soon as
-the given C<Supply> is C<done>.  Optionally accepts a comparator C<Block>.
+Produces a C<Supply> that emits the values of the given Supply in sorted order. Please note that this C<Supply> will only start delivering values when the given C<Supply> is C<done>.  Optionally accepts a comparator C<Block>.
 
 =back
 
-There are some combinators that deal with bringing multiple supplies
-together:
+There are some combinators that deal with bringing multiple supplies together:
 
 =over
 
@@ -850,9 +592,7 @@ together:
 
   my $m = Supply.merge(@s);  # also as class method
 
-Produces a C<Supply> containing the values produced by given and the specified
-supply or supplies, and triggering C<done> once all of the supplies have done
-so. 
+Produces a C<Supply> containing the values produced by given and the specified supply or supplies, and triggering C<done> once all of the supplies have done so. 
 
 =item C<zip>
 
@@ -860,9 +600,7 @@ so.
 
   my $z = Supply.zip(@s, :with( &[,] ));  # also as class method
 
-Produces a C<Supply> that pairs together items from the given and the specified
-supply or supplies, using C<< infix:<,> >> by default or any other
-user-supplied function with the C<with> named parameter.
+Produces a C<Supply> that pairs together items from the given and the specified supply or supplies, using C<< infix:<,> >> by default or any other user-supplied function with the C<with> named parameter.
 
 =item C<zip-latest>
 
@@ -872,33 +610,19 @@ user-supplied function with the C<with> named parameter.
 
   my $z = Supply.zip-latest( @s, :initial(42,63) ); # initial state
 
-Produces a C<Supply> that will emit tuples of values as soon as any combined
-Supply produces a value. Before any tuples are emitted, all supplies have to
-have produced at least one value. By default, it uses C<< infix:<,> >> to
-produce the tuples, but the named parameter C<with> can override that.
+Produces a C<Supply> that will emit tuples of values as soon as any combined Supply produces a value. Before any tuples are emitted, all supplies have to have produced at least one value. By default, it uses C<< infix:<,> >> to produce the tuples, but the named parameter C<with> can override that.
 
-The named parameter C<initial> can optionally be used to indicate the initial
-state of the values to be emitted.
+The named parameter C<initial> can optionally be used to indicate the initial state of the values to be emitted.
 
 =back
 
 [TODO: plenty more of these: while, until...]
 
-These combinators that involve multiple supplies need care in their
-implementation, since values may arrive at any point on each, and possibly at
-the same time. To help write such combinators, the C<on> meta-combinator is
-useful. C<on> taps many supplies, and ensures that only B<one> callback will be
-running at a time, freeing the combinator writer of worrying about
-synchronization issues.
+These combinators that involve multiple supplies need care in their implementation, since values may arrive at any point on each, and possibly at the same time. To help write such combinators, the C<on> meta-combinator is useful. C<on> taps many supplies, and ensures that only B<one> callback will be running at a time, freeing the combinator writer of worrying about synchronization issues.
 
-The C<on> combinator takes a block that receives the C<Supply> it will generate
-(and return) as the parameter.  That block is supposed to return list of
-C<Pairs>, in which the keys are one or more Supplies.  And the values are
-either a C<Block> (to be called for each value for that C<Supply>), or a
-hash with Pairs for C<emit>, C<done> and C<quit>.
+The C<on> combinator takes a block that receives the C<Supply> it will generate (and return) as the parameter.  That block is supposed to return list of C<Pairs>, in which the keys are one or more Supplies.  And the values are either a C<Block> (to be called for each value for that C<Supply>), or a hash with Pairs for C<emit>, C<done> and C<quit>.
 
-A simple combinator for C<Pair>ing values from two Supplies ($a and $b),
-would look like this:
+A simple combinator for C<Pair>ing values from two Supplies ($a and $b), would look like this:
 
   my $result = on -> $res {
       my @as;
@@ -919,15 +643,9 @@ would look like this:
       }
   }
 
-Thus there is never any race or other thread-safely problems with
-mutating the C<@as> and C<@bs>. The default behaviour, if a C<Callable> is
-specified along with the supply, is to use it for C<emit> and provide
-a default C<done> and C<quit>. The default C<done> triggers C<done> on the
-result C<Supply>.
+Thus there is never any race or other thread-safety problems with mutating the C<@as> and C<@bs>. The default behaviour, if a C<Callable> is specified along with the supply, is to use it for C<emit> and provide a default C<done> and C<quit>. The default C<done> triggers C<done> on the result C<Supply>.
 
-Note that the code blocks for both Supplies are identical.  There must be
-a better way of doing this.  And indeed, there is: you can also specify more
-than one C<Supply> per block.  The same as above implemented using that:
+Note that the code blocks for both Supplies are identical.  There must be a better way of doing this.  And indeed, there is: you can also specify more than one C<Supply> per block.  The same as above implemented using that:
 
   my $result = on -> $res {
       my @values = ([],[]);
@@ -939,15 +657,9 @@ than one C<Supply> per block.  The same as above implemented using that:
       }
   }
 
-Note that the block that is being called for each value from any of the
-Supplies also receives an index value to be able to group the values
-received.  By default, any C<done> or C<quit> will be immediately propagated.
-This is basically how C<zip> is implemented.
+Note that the block that is being called for each value from any of the Supplies also receives an index value to be able to group the values received.  By default, any C<done> or C<quit> will be immediately propagated. This is basically how C<zip> is implemented.
 
-Sometimes, we want the resulting C<Supply> to be C<done> only when all
-specified Supplies are done.  This is possible by specifying a hash with
-keys for C<emit>, C<done> and/or C<quit>, instead of just a C<Callable>.
-Given an array @s with Supplies:
+Sometimes, we want the resulting C<Supply> to be C<done> only when all specified Supplies are done.  This is possible by specifying a hash with keys for C<emit>, C<done> and/or C<quit>, instead of just a C<Callable>. Given an array @s with Supplies:
 
   my $done = 0;
   my $result = on -> $res {
@@ -957,30 +669,19 @@ Given an array @s with Supplies:
       }
   }
 
-This is essentially how C<merge> is implemented.  Note that if we don't need
-the index (as indicated by its absence in the signature of the C<Callable>s),
-it will not be passed.
+This is essentially how C<merge> is implemented.  Note that if we don't need the index (as indicated by its absence in the signature of the C<Callable>s), it will not be passed.
 
-A C<quit> handler can be provided in a similar way, although the default -
-convey the failure to the result supply - is normally what is wanted. The
-exception is writing combinators related to error handling.
+A C<quit> handler can be provided in a similar way, although the default - convey the failure to the result supply - is normally what is wanted. The exception is writing combinators related to error handling.
 
 =head1 System events exposed as Supplies
 
-System events, such as signals, or mouse events, can be exposed as Supplies.
-Because of lack of portability, these will most likely be implemented as
-third-party modules.
+System events, such as signals, or mouse events, can be exposed as Supplies. Because of lack of portability, these will most likely be implemented as third-party modules.
 
-Basic signal support is offered by the C<signal> function, which takes one or
-more C<Signal> enums, and an optional C<scheduler> named parameter.  It
-produces a C<Supply> which, when tapped, will C<emit> any signal coming in.
-For example:
+Basic signal support is offered by the C<signal> function, which takes one or more C<Signal> enums, and an optional C<scheduler> named parameter.  It produces a C<Supply> which, when tapped, will C<emit> any signal coming in. For example:
 
   signal(SIGINT).tap( { say "Thank you for your attention"; exit 0 } );
 
-would catch Control-C, thank you, and then exit.  Of course, you don't need to
-exit immediately.  Here's an example of how you would make sure that an
-iteration in a loop is completed before exiting:
+would catch Control-C, thank you, and then exit.  Of course, you don't need to exit immediately.  Here's an example of how you would make sure that an iteration in a loop is completed before exiting:
 
   for @todo {
       state $quitting;
@@ -992,70 +693,51 @@ iteration in a loop is completed before exiting:
 
 This probably could use some syntactic sugar.
 
-The list of supported C<Signals> can be found by checking C<Signal::.keys>,
-as you would any enum.
+The list of supported C<Signals> can be found by checking C<Signal::.keys>, as you would any enum.
 
 =head1 I/O features exposed as Supplies
 
-Various I/O-related things are also exposed as supplies. For example, it
-is possible to get notifications on changes to files or files (directly)
-in a directory, using:
+Various I/O-related things are also exposed as supplies. For example, it is possible to get notifications on changes to files or files (directly) in a directory, using:
 
     IO::Notification.watch_path(".").tap(-> $file {
         say "$file changed";
     });
 
-This is quite a mouthful, so there is a shortcut available with the C<IO>
-coercer and the C<watch> method:
+This is quite a mouthful, so there is a shortcut available with the C<IO> coercer and the C<watch> method:
 
     ".".IO.watch.tap: -> $file { say "$file changed" };
 
-Note that since I/O callbacks are, by default, scheduled on the thread pool,
-then it's possible that your callback will be executing twice on the same
-thread. One way to cope is with C<do>, and then a tap at the end:
+Note that since I/O callbacks are, by default, scheduled on the thread pool, then it's possible that your callback will be executing twice on the same thread. One way to cope is with C<do>, and then a tap at the end:
 
     ".".IO.watch.do(-> $file {
         state %changes;
         say "$file changed (change {++%changes{$file}})";
     }).tap();
 
-Here, we are tapping it purely for the side-effects, and C<do> promises we
-will only be in that code block one thread at a time. To make this more
-convenient, there is also shortcut with the C<act> method:
+Here, we are tapping it purely for the side-effects, and C<do> promises we will only be in that code block one thread at a time. To make this more convenient, there is also shortcut with the C<act> method:
 
     ".".IO.watch.act(-> $file {
         state %changes;
         say "$file changed (change {++%changes{$file}})";
     });
 
-It can also take C<done> and C<quit> named parameters; these go to the tap,
-while the C<emit> closure is put in a C<do>. A C<Tap> is returned, which
-may be closed in the usual way. (Note that the name C<act> is also a subtle
-reference to actor semantics.)
+It can also take C<done> and C<quit> named parameters; these go to the tap, while the C<emit> closure is put in a C<do>. A C<Tap> is returned, which may be closed in the usual way. (Note that the name C<act> is also a subtle reference to actor semantics.)
 
 =head1 Inter-Process Communication exposed as Promises and Supplies
 
-Starting external processes is rather easy: C<shell()>, C<run()> and C<qx//>.
-Having external processes run asynchronously, is slightly more involved.
-But not much.  The workhorse of asynchronous IPC in Perl 6 is C<Proc::Async>:
+Starting external processes is rather easy: C<shell()>, C<run()> and C<qx//>. Having external processes run asynchronously, is slightly more involved. But not much.  The workhorse of asynchronous IPC in Perl 6 is C<Proc::Async>:
 
     my $proc = Proc::Async.new( $path, @args );
 
-If you like to B<send> data to the process, you need to open it with the
-C<:w> named parameter.
+If you like to B<send> data to the process, you need to open it with the C<:w> named parameter.
 
     my $proc = Proc::Async.new( $path, @args, :w );
 
-By default, the current environment (as available in C<%*ENV>) will be set
-for the external process.  You can override this with the :ENV named parameter:
+By default, the current environment (as available in C<%*ENV>) will be set for the external process.  You can override this with the :ENV named parameter:
 
     my $proc = Proc::Async.new( $path, @args, :ENV(%hash) );
 
-The returned object can then be called whenever needed to start the external
-process.  However, before you do that, one needs to be clear what to do about
-the output of the external process.  Getting information back from the external
-process's C<STDOUT> or C<STDERR>, is done by a C<Supply> that either gets
-characters or bytes.
+The returned object can then be called whenever needed to start the external process.  However, before you do that, one needs to be clear what to do about the output of the external process.  Getting information back from the external process's C<STDOUT> or C<STDERR>, is done by a C<Supply> that either gets characters or bytes.
 
     $proc.stdout.act(&say);   # simply pass it on to our $*OUT as chars
     $proc.stderr.act(&note);  # and $*ERR as chars, but could be any code
@@ -1065,58 +747,41 @@ or:
     $proc.stdout(:bin).act: { # process STDOUT bytes };
     $proc.stderr(:bin).act: { # process STDERR bytes };
 
-So, to make sure no information will be lost, you need to create and tap the
-supplies B<before> the process is started.
+So, to make sure no information will be lost, you need to create and tap the supplies B<before> the process is started.
 
-To start the external process, you need to call the C<.start> method.  It
-returns a C<Promise> that becomes C<Kept> (and True) if the process concludes
-successfully, or C<Broken> (and False) if the process failed for some reason.
+To start the external process, you need to call the C<.start> method.  It returns a C<Promise> that becomes C<Kept> (and True) if the process concludes successfully, or C<Broken> (and False) if the process failed for some reason.
 
     my $done = $proc.start( :$scheduler = $*SCHEDULER );
 
-To send data to the running process, you can use the C<.print>, C<.say> and
-C<.write> methods on the C<Proc::Async> object:
+To send data to the running process, you can use the C<.print>, C<.say> and C<.write> methods on the C<Proc::Async> object:
 
     my $printed = $proc.print( "Hello world\n", :$scheduler = $*SCHEDULER );
     my $said    = $proc.say(   "Hello world",   :$scheduler = $*SCHEDULER );
     my $written = $proc.write( $buffer,         :$scheduler = $*SCHEDULER );
 
-They all also return a C<Promise> that is C<Kept> when communication with the
-process was successful.
+They all also return a C<Promise> that is C<Kept> when communication with the process was successful.
 
-Some programs expect their C<STDIN> to be closed to signify the end of their
-processing.  This can be achieved with the C<.close-stdin> method:
+Some programs expect their C<STDIN> to be closed to signify the end of their processing.  This can be achieved with the C<.close-stdin> method:
 
     $proc.close-stdin;
 
-Finally, if your process as going awry, you can stop it with the C<.kill>
-method:
+Finally, if your process as going awry, you can stop it with the C<.kill> method:
 
     $proc.kill;            # sends HUP signal to process
     $proc.kill("SIGINT");  # send INT signal
     $proc.kill(1);         # if you just know the signal number on your system
 
-The parameter should be something that is acceptable to the Kernel.signal
-method.
+The parameter should be something that is acceptable to the Kernel.signal method.
 
 =head1 The Event Loop
 
-There is no event loop.  Previous versions of this synopsis mentioned an event
-loop that would be underlying all concurrency.  In this version, this is not
-the case.
+There is no event loop.  Previous versions of this synopsis mentioned an event loop that would be underlying all concurrency.  In this version, this is not the case.
 
 =head2 Threads
 
-VM-level threads, which typically correspond to OS-level threads, are exposed
-through the C<Thread> class. Whatever underlies it, a C<Thread> should always
-be backed by something that is capable of being scheduled on a CPU core (that
-is, it may I<not> be a "green thread" or similar). Most users will not need to
-work with C<Thread>s directly. However, those building their own schedulers
-may well need to do so, and there may be other exceptional circumstances that
-demand such low-level control.
+VM-level threads, which typically correspond to OS-level threads, are exposed through the C<Thread> class. Whatever underlies it, a C<Thread> should always be backed by something that is capable of being scheduled on a CPU core (that is, it may I<not> be a "green thread" or similar). Most users will not need to work with C<Thread>s directly. However, those building their own schedulers may well need to do so, and there may be other exceptional circumstances that demand such low-level control.
 
-The easiest way to start a thread is with the C<start> method, which takes a
-C<Callable> and runs it on a new thread:
+The easiest way to start a thread is with the C<start> method, which takes a C<Callable> and runs it on a new thread:
 
     my $thread = Thread.start({
         say "Gosh, I'm in a thread!";
@@ -1130,9 +795,7 @@ It is also possible to create a thread object, and set it running later:
     # later...
     $thread.run();
 
-Both approaches result in C<$thread> containing a C<Thread> object. At some
-point, C<finish> should be called on the thread, from the thread that started
-it. This blocks until the thread has completed.
+Both approaches result in C<$thread> containing a C<Thread> object. At some point, C<finish> should be called on the thread, from the thread that started it. This blocks until the thread has completed.
 
     say "Certainly before the thread is started";
     my $thread = Thread.start({ say "In the thread" });
@@ -1140,12 +803,7 @@ it. This blocks until the thread has completed.
     $thread.finish();
     say "Certainly after all the above output";
 
-As an alternative to C<finish>, it is possible to create a thread whose lifetime
-is bounded by that of the overall application. Such threads are automatically
-terminated when the application exits. In a scenario where the initial thread
-creates an application lifetime thread and no others, then the exit of the
-initial thread will cause termination of the overall program. Such a thread is
-created by either:
+As an alternative to C<finish>, it is possible to create a thread whose lifetime is bounded by that of the overall application. Such threads are automatically terminated when the application exits. In a scenario where the initial thread creates an application lifetime thread and no others, then the exit of the initial thread will cause termination of the overall program. Such a thread is created by either:
 
     my $thread = Thread.new(:code({ ... }), :app_lifetime);
 
@@ -1161,17 +819,13 @@ Each thread also has a unique ID, which can be obtained by the C<id> property.
 
     say $thread.id;
 
-This should be treated as an opaque number. It can not be assumed to map to
-any particular operating system's idea of thread ID, for example. For that,
-use something that lets you get at OS-level identifiers (such as calling an OS
-API using NativeCall).
+This should be treated as an opaque number. It can not be assumed to map to any particular operating system's idea of thread ID, for example. For that, use something that lets you get at OS-level identifiers (such as calling an OS API using NativeCall).
 
 A thread may also be given a name.
 
     my $thread = Thread.start({ ... }, :name<Background CPU Eater>);
 
-This can be useful for understanding its usage. Uniqueness is not enforced;
-indeed, the default is "<anon>".
+This can be useful for understanding its usage. Uniqueness is not enforced; indeed, the default is "<anon>".
 
 A thread stringifies to something of the form:
 
@@ -1181,22 +835,13 @@ For example:
 
     Thread<1234>(<anon>)
 
-The currently executing thread is available through C<$*THREAD>. This is even
-available in the initial thread of the program, in this case by falling back
-to C<$PROCESS::THREAD>, which is the initial thread of the process.
+The currently executing thread is available through C<$*THREAD>. This is even available in the initial thread of the program, in this case by falling back to C<$PROCESS::THREAD>, which is the initial thread of the process.
 
-Finally, the C<yield> method can be called on C<Thread> (not on any particular
-thread) to hint to the OS that the thread has nothing useful to do for the
-moment, and so another thread should run instead.
+Finally, the C<yield> method can be called on C<Thread> (not on any particular thread) to hint to the OS that the thread has nothing useful to do for the moment, and so another thread should run instead.
 
 =head2 Atomic Compare and Swap
 
-The Atomic Compare and Swap (CAS) primitive is directly supported by most
-modern hardware. It has been shown that it can be used to build a whole range
-of concurrency control mechanisms (such as mutexes and semaphores). It can
-also be used to implement lock-free data structures. It is decidedly a
-primitive, and not truly composable due to risk of livelock. However, since so
-much can be built out of it, Perl 6 provides it directly.
+The Atomic Compare and Swap (CAS) primitive is directly supported by most modern hardware. It has been shown that it can be used to build a whole range of concurrency control mechanisms (such as mutexes and semaphores). It can also be used to implement lock-free data structures. It is decidedly a primitive, and not truly composable due to risk of livelock. However, since so much can be built out of it, Perl 6 provides it directly.
 
 A Perl 6 implementation of CAS would look something like this:
 
@@ -1208,8 +853,7 @@ A Perl 6 implementation of CAS would look something like this:
         return $seen;
     }
 
-Except that it happens atomically. For example, a crappy non-reentrant
-mutex could be implemented as:
+Except that it happens atomically. For example, a crappy non-reentrant mutex could be implemented as:
 
     class CrappyMutex {
         has $!locked = 0;
@@ -1225,14 +869,7 @@ mutex could be implemented as:
         }
     }
 
-Another common use of CAS is in providing lock-free data structures. Any data
-structure can be made lock-free as long as you're willing to never mutate it,
-but build a fresh one each time. To support this, there is another C<&cas>
-candidate that takes a scalar and a block. It calls the block with the seen
-initial value. The block returns the new, updated value. If nothing
-else updated the value in the meantime, the reference will be updated. If
-the CAS fails because another update got in first, the block will be run
-again, passing in the latest value.
+Another common use of CAS is in providing lock-free data structures. Any data structure can be made lock-free as long as you're willing to never mutate it, but build a fresh one each time. To support this, there is another C<&cas> candidate that takes a scalar and a block. It calls the block with the seen initial value. The block returns the new, updated value. If nothing else updated the value in the meantime, the reference will be updated. If the CAS fails because another update got in first, the block will be run again, passing in the latest value.
 
 So, atomically incrementing a variable is done thusly:
 
@@ -1242,8 +879,7 @@ or more generally for all assignment meta-operators:
 
     cas $a, { $_ * 5 };     # $a *= 5
 
-Another  example, implementing a top-5 news headlines list to be accessed and
-updated without ever locking, as:
+Another  example, implementing a top-5 news headlines list to be accessed and updated without ever locking, as:
 
     class TopHeadlines {
         has $!headlines = [];   # Scalar holding array, as CAS needs
@@ -1261,25 +897,15 @@ updated without ever locking, as:
         }
     }
 
-It's the programmer's duty to ensure that the original data structure is never
-mutated and that the block has no side-effects (since it may be run any number
-of times).
+It's the programmer's duty to ensure that the original data structure is never mutated and that the block has no side-effects (since it may be run any number of times).
 
 =head1 Low-level primitives
 
-Perl6 offers high-level concurrency methods, but in extreme cases, like if you
-need to implement a fundamentally different mechanism, these primitives are
-available.
+Perl6 offers high-level concurrency methods, but in extreme cases, like if you need to implement a fundamentally different mechanism, these primitives are available.
 
 =head2 Locks
 
-Locks are unpleasant to work with, and users are pushed towards higher level
-synchronization primitives. However, those need to be implemented via lower
-level constructs for efficiency. As such, a simple lock mechanism - as close to
-what the execution environment offers as possible - is provided by the C<Lock>
-class. Note that it is erroneous to rely on the exact representation of an
-instance of this type (for example, don't assume it can be mixed into). Put
-another way, treat C<Lock> like a native type.
+Locks are unpleasant to work with, and users are pushed towards higher level synchronization primitives. However, those need to be implemented via lower level constructs for efficiency. As such, a simple lock mechanism - as close to what the execution environment offers as possible - is provided by the C<Lock> class. Note that it is erroneous to rely on the exact representation of an instance of this type (for example, don't assume it can be mixed into). Put another way, treat C<Lock> like a native type.
 
 A C<Lock> is instantiated with C<new>:
 
@@ -1291,9 +917,7 @@ The best way to use it is:
         # code to run with the lock held
     }
 
-This acquires the lock, runs the code passed, and then releases the lock. It
-ensures the lock will be released even if an exception is thrown. It is also
-possible to do:
+This acquires the lock, runs the code passed, and then releases the lock. It ensures the lock will be released even if an exception is thrown. It is also possible to do:
 
     {
         $!lock.lock();
@@ -1301,24 +925,15 @@ possible to do:
         LEAVE $!lock.unlock()
     }
 
-When using the C<lock> and C<unlock> methods, the programmer must ensure that
-the lock is unlocked. C<Lock> is reentrant. Naturally, it's easy to
-introduce deadlocks. Again, this is a last resort, intended for those who are
-building first resorts.
+When using the C<lock> and C<unlock> methods, the programmer must ensure that the lock is unlocked. C<Lock> is reentrant. Naturally, it's easy to introduce deadlocks. Again, this is a last resort, intended for those who are building first resorts.
 
 =head2 Semaphore
 
-The C<Semaphore> class implements traditional semaphores that can be initiated
-with a fixed number of permits and offers the operations C<acquire> to block
-on a positive number of permits to become available and then reduce that number
-by one, C<tryacquire> to try to acquire a permit, but return C<False> instead
-of blocking if there are no permits available yet. The last operation is
-C<release>, which will increase the number of permits by one.
+The C<Semaphore> class implements traditional semaphores that can be initiated with a fixed number of permits and offers the operations C<acquire> to block on a positive number of permits to become available and then reduce that number by one, C<tryacquire> to try to acquire a permit, but return C<False> instead of blocking if there are no permits available yet. The last operation is C<release>, which will increase the number of permits by one.
 
 The initial number of permits may be negative, positive or 0.
 
-Some implementations allow for race-free acquisition and release of multiple
-permits at once, but this primitive does not offer that capability.
+Some implementations allow for race-free acquisition and release of multiple permits at once, but this primitive does not offer that capability.
 
 =head1 AUTHORS
 
