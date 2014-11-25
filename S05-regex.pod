@@ -8,8 +8,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 22 Jul 2014
-    Version: 176
+    Last Modified: 25 Nov 2014
+    Version: 177
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -42,6 +42,26 @@ is determined by a multi-level tie-breaking test:
 Note that tiebreaker #5 can occur only when a grammar is monkey-patched
 from another compilation unit.  Like #3, it privileges local declarations
 over distant ones.
+
+Tiebreaker #2 will treat any initial sequence of literals as the longest
+literal prefix.  If there is an alternation embedded in the longest token matching,
+those alternations can extend a literal prefix provided everything was literal up to
+the alternation.  If all of the alternations are totally literal, then the literal
+can also extend beyond the end of the alternation when they rejoin.  Otherwise
+the end of the alternation terminates all longest literal prefixes, even the branches
+that are totally literal.  For example:
+
+    / a [ 1 | 2 ] b /   # longest literals are 'a1b' and 'a2b'
+    / a [ 1 | 2\w ] b / # longest literals are 'a1 and 'a2'
+    / a <[ 1 2 ]> b /   # longest literal is only 'a'
+
+Note that in this case, a character class is not treated the same as an alternation.
+All character classes are considered too generic to include in a longest literal string.
+
+As with longest token matching, longest literal prefixes are transitive
+through subrules.  If a subrule is a protoregex, it is treated just as
+alternation with C<|> is, and follows the same rules about extending
+or terminating the longest literal prefix.
 
 In addition to this pecking order, if any rule chosen under the pecking
 backtracks, the next best rule is chosen.  That is, the pecking order
