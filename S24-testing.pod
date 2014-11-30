@@ -85,16 +85,16 @@ All of the following functions are exported by default:
     sub plan($number_of_tests) is export { ... };
     sub done() is export { ... };
 
-In order to determine whether a test file ran all its tests, a C<plan> function
+In order to determine whether a test file ran all its tests, a C<plan()> function
 call can be made somewhere in the test file, providing a count of the total
 number of tests. A TAP harness can then flag an error condition when the number
 of tests actually run doesn't match.
 
-If C<plan> isn't called, C<done> can be called at the end of the test
+If C<plan()> isn't called, C<done()> can be called at the end of the test
 file to output an automatically computed tally.
 
-A TAP harness will consider it an error if neither C<plan> nor
-C<done> was called, or if there was more than one call in the test
+A TAP harness will consider it an error if neither C<plan()> nor
+C<done()> was called, or if there was more than one call in the test
 file, or if the call occurred between calling two test functions
 (rather than at the beginning or at the end).
 
@@ -114,7 +114,7 @@ positional arguments to these test files by name is discouraged.
     sub pass($desc?) is export { ... }
     sub flunk($desc?) is export { ... }
 
-The C<pass> function marks a test as passed.  The C<flunk> function marks a
+The C<pass()> function marks a test as passed.  The C<flunk()> function marks a
 test as B<not> passed.
 
 =head2 diag()
@@ -161,8 +161,8 @@ condition evaluates to C<False>.
     sub cmp_ok(Mu $got, $op, Mu $expected, $desc?) is export { ... }
 
 The C<is()> function marks a test as passed if the obtained and expected values
-are C<eq>: as such it is a shortcut for C<cmp_ok> with the C<'eq'> operator.
-The C<isnt> function marks a test as passed if the obtained and expected values
+are C<eq>: as such it is a shortcut for C<cmp_ok()> with the C<'eq'> operator.
+The C<isnt()> function marks a test as passed if the obtained and expected values
 are B<not> C<eq>.  These are typically used to check scalar values.
 
 The C<cmp_ok()> function compares two values with the given operator and passes
@@ -197,7 +197,7 @@ as a string.
     sub subtest(&subtests, $desc?) is export { ... }
 
 The C<subtest()> function executes the given block, consisting of usually more
-than one test, possibly including a C<plan()> or C<done>.  It will pass the
+than one test, possibly including a C<plan()> or C<done()>.  It will pass the
 test only if B<all> tests in the block, pass.
 
 =head2 dies_ok(), lives_ok(), throws_like()
@@ -210,7 +210,7 @@ The C<dies_ok()> passes the test if the given code throws an exception.
 The C<lives_ok()> passes the test if the given code B<does not> throw an
 exception.
 
-The C<throws_like> function checks whether the given code (specified as either
+The C<throws_like()> function checks whether the given code (specified as either
 something C<Callable>, or as a something to be C<EVAL>led) throws a specific
 exception (either specified as a Type object, or as a string).  If an
 exception was thrown, it will also try to match the matcher hash, in which
