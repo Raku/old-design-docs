@@ -649,8 +649,20 @@ Garbage collecting.
 
 =head2 gensym
 
-A gensym gives you the ability to create something and then uniquely refer
-to it (a very little bit) later (a B<gen>erated B<sym>bol).
+A B<gen>erated B<sym>bol. Used primarily in macro parlance, a gensym acts as a
+"handle" on something anonymous, allowing a macro author to refer to
+synthetically created bits of program after creating them. Gensyms generally
+look ugly, partly so as not to collide with anything else. The symbols
+`#:G847`, `#:G848` and `#:G850` below from
+L<http://lists.warhead.org.uk/pipermail/iwe/2005-July/000130.html> are gensyms:
+
+        (LET* ((#:G847 X) (#:G848 FOO))
+          (MULTIPLE-VALUE-BIND (#:G850) 1 (COMMON-LISP::%PUT #:G847
+            #:G848 #:G850)))
+
+Current consensus is that we won't need gensyms for Perl 6 macros, because
+we'll have Qtree nodes which, being objects, come pre-equipped with a "handle":
+their object identity.
 
 =head2 gimme
 
