@@ -695,10 +695,13 @@ then it must be a mutable container (variable) of some sort.
 The container variable is declared as any other parameter would be, but
 no incoming argument will ever be bound to it.  It is permitted
 to supply a default value, in which case the return variable will
-always be initialized with that default value.  As with value return,
-all top-level statements are evaluated in sink context, and only
-argumentless C<return> is allowed, indicating that the current contents
-of the return value should be returned.
+always be initialized with that default value.  Like other variables
+declared in a signature, a new variable will B<always> be created; any
+existing variable will automatically be shadowed.  If you want to have
+the return variable reference an existing variable, you must resort to
+C<< OUTER::<foo> >> hackery.  As with value return, all top-level statements
+are evaluated in sink context, and only argumentless C<return> is allowed,
+indicating that the current contents of the return value should be returned.
 
 Note that the default return policy assumes functional semantics, with
 the result that a loop as the final statement would be evaluated as
