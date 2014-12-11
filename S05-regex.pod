@@ -8,8 +8,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 5 Dec 2014
-    Version: 178
+    Last Modified: 10 Dec 2014
+    Version: 179
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -4667,15 +4667,11 @@ or a C<Nil> value to indicate that it was not.
 
 Likewise, for both C<m:g> matches and C<s:g> substitutions, there may
 be multiple matches found.  These constructs must still continue to
-work under smartmatching, but since smartmatch recognizes only a few
-distinguished kinds of result values (C<True>, C<False>, C<Match>,
-C<Nil>, or C<Failure>), a C<Match> object must be returned to indicate
-a successful match any time it is desirable to return a list from a
-smartmatcher.  When coerced to a list, all the matches will be returned
-as if they were part of a single match.  When coerced to numeric, the
-fake C<Match> returns the number of matches under C<:g>.  (When used
-as a boolean, the C<Match> always returns C<True>, since failure to
-match is represented by C<Nil>, not by a false C<Match> object.)
+work under smartmatching while returning a list of matches.  Fortunately,
+C<List> is one of the distinguished types that a matcher may return
+to indicate success or failure.  So these construct simply return the
+list of successful matches, which will be empty (and hence false) if no
+matches occurred.
 
 =head1 Positional matching, fixed width types
 
