@@ -8,8 +8,8 @@ Synopsis 5: Regexes and Rules
 
     Created: 24 Jun 2002
 
-    Last Modified: 25 Nov 2014
-    Version: 177
+    Last Modified: 5 Dec 2014
+    Version: 178
 
 This document summarizes Apocalypse 5, which is about the new regex
 syntax.  We now try to call them I<regex> rather than "regular
@@ -33,17 +33,13 @@ as an extension of regular expression notation.  PEGs require that you
 provide a "pecking order" for ambiguous parses.  Perl 6's pecking order
 is determined by a multi-level tie-breaking test:
 
-    1) Longest token matching: food\s+ beats foo by 2 or more positions
-    2) Longest literal prefix: food\w* beats foo\w* by 1 position
-    3) Declaration from most-derived grammar beats less-derived
-    4) Within a given compilation unit, earlier declaration wins
-    5) (Conjectural) Declaration with least number of 'uses' wins
+    1) Most-derived only/proto hides less-derived of the same name
+    2) Longest token matching: food\s+ beats foo by 2 or more positions
+    3) Longest literal prefix: food\w* beats foo\w* by 1 position
+    4) For a given proto, multis from a more-derived grammar win
+    5) Within a given compilation unit, the earlier alternative or multi wins
 
-Note that tiebreaker #5 can occur only when a grammar is monkey-patched
-from another compilation unit.  Like #3, it privileges local declarations
-over distant ones.
-
-Tiebreaker #2 will treat any initial sequence of literals as the longest
+Tiebreaker #3 will treat any initial sequence of literals as the longest
 literal prefix.  If there is an alternation embedded in the longest token matching,
 those alternations can extend a literal prefix provided everything was literal up to
 the alternation.  If all of the alternations are totally literal, then the literal
@@ -69,6 +65,9 @@ determines a candidate list; just because one candidate is chosen does not
 mean the rest are thrown away.  They may, however, be explicitly thrown away
 by an appropriate backtracking control (sometimes called a "cut" operator,
 but Perl 6 has several of them, depending on how much you want to cut).
+
+Also, any rule chosen to execute under #1 may choose to delegate to its ancestors;
+PEG backtracking has no control over this.
 
 =head1 New match result and capture variables
 

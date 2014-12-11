@@ -8,8 +8,8 @@ Synopsis 3: Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 7 Oct 2014
-    Version: 282
+    Last Modified: 10 Dec 2014
+    Version: 283
 
 =head1 Overview
 
@@ -3667,6 +3667,7 @@ as a default because the more specific types listed above it didn't match.
     Any         Callable:($)  item sub truth          X($_)
     Any         Callable:()   simple closure truth    X() (ignoring $_)
     Any         Bool      simple truth            X (treats Bool value as success/failure)
+    Any         List      list truth              X (treats list size as success/failure)
     Any         Match     match success           X (treats Match value as success)
     Any         Nil       benign failure          X (treats Nil value as failure)
     Any         Failure   malign failure          X (passes Failure object through)
@@ -3908,14 +3909,10 @@ represents a successful match and is treated by smartmatching the same as a C<Tr
 Similarly, a C<Nil> represents a failure, and cannot be used directly on the
 right side of a smartmatch.  Test for definedness instead, or use C<* === Nil>.
 
-The primary use of the C<~~> operator is to return a boolean-ish value in
-a boolean context.  However, for certain operands such as regular
-expressions, use of the operator within item or list context transfers
-the context to that operand, so that, for instance, a regular expression
-can return a list of matched substrings, as in Perl 5.  This is done
-by returning an object that can return a list in list context, or that
-can return a boolean in a boolean context.  In the case regex matching
-the C<Match> object is a kind of C<Capture>, which has these capabilities.
+Regex matches with modifiers such as C<:g> that wish to return multiple
+matches do so using a C<List>.  As with any list, the value evaluates
+to true if there are 1 or more entries.  If there are no matches, an
+empty list is returned, which evaluates to false in a Boolean context.
 
 For the purpose of smartmatching, all C<Set>, C<Bag>, and C<Mix>
 values are considered equivalent to the corresponding hash type,
