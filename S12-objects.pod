@@ -624,22 +624,13 @@ you a choice.  If you declare an ordinary method, it can function as a
 "class" method when you pass it a type object such as "C<Dog>" regardless
 of how defined the prototype object is, as long as the method body doesn't
 try to access any information that is undefined in the current instance.
+Alternatively, a method can use the C<:U> type modifier on the invocant:
 
-Alternately, you can associate a method with the current metaclass instance,
-which as a singleton object knows your package, and can function as a
-more traditional "class" method:
+    method oh_so_static(::?CLASS:U:) {
+    }
 
-    our $count;
-    method ^count { return $count }
-
-Such a I<metaclass method> is always delegated to the C<HOW> object
-just as methods like C<.does> are, so it's possible to call this as
-C<Dog.count> or C<$dog.count>.  However, best practice is probably to
-call such a class method as C<Dog.^count> or C<$dog.^count> to make it
-clear that it's in its own namespace separate from ordinary methods, and
-so that your class method cannot be accidentally overridden by an
-ordinary method in a subclass--presuming you don't want to allow for
-that possibility.
+This will cause the method to actively refuse invocations on instances, and
+only permit invocation through the type object.
 
 =head1 Submethods
 
@@ -2638,6 +2629,47 @@ many long names due to signatured roles.
 
     role Foo[::T] {
     }
+
+Sometimes, it may be interesting to customize meta-object behaviour on a
+per-type basis. While this could be done by writing a custom meta-class and
+arranging for it to be used, Perl 6 permits overriding specific meta-methods
+on a per-type basis. For example, if the C<trusts> adverb was not flexible
+enough and the class instead wanted to implement a more custom policy on
+what other types it trusts, it could do something like:
+
+    method ^is_trusted($obj, $do_we_trust_it) {
+        return $do_we_trust_it ~~ TheRoleOfTheTrustworthy;
+    }
+
+It's not necessary to override existing meta-methods either; this can be used
+to attach whatever properties are desired to the meta-object for the type:
+
+    method ^license($obj) { 'Artistic License' }
+
+Note that meta-methods generally need to take an argument that corresponds to
+the object they are invoked on. This is because:
+
+    $obj.^license
+
+Desugars to:
+
+    $obj.HOW.license($obj)
+
+Meaning that implementing meta-methods providing prototype-like semantics are
+possible.
+
+Methods declared with the C<^> modifier are handed to the meta-object by the
+C<add_meta_method> method, rather than the usual C<add_method>. At compose
+time of the class (usually, the closing C<}>), if there are any such per-type
+meta-methods, a role will be generated containing the meta-methods, and this
+will be mixed in to the meta-object. This means that this mechanism is only
+useful for overriding meta-methods called after class composition. Therefore,
+short of trying to restrict C<augment> operations in the future, it does not
+make sense to write a C<method ^add_method(...) { ... }>. Such declarational
+behaviour changes should be handled through the C<EXPORTHOW> approach. Any
+meta-methods in a role will not have immediate effect, but will rather be
+passed along to any class the role is composed into, and so take effect at
+composition time of each class composing the role.
 
 =head1 Autovivifying objects
 
