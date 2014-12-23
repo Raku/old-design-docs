@@ -8,8 +8,8 @@ Synopsis 17: Concurrency
 
     Created: 3 Nov 2013
 
-    Last Modified: 29 October 2014
-    Version: 23
+    Last Modified: 23 December 2014
+    Version: 24
 
 This synopsis is based around the concurrency primitives and tools currently being implemented in Rakudo on MoarVM and the JVM.  It covers both things that are already implemented today, in addition to things expected to be implemented in the near future (where "near" means O(months)).
 
@@ -357,22 +357,36 @@ The object returned by C<tap> represents the subscription. To stop subscribing, 
 
 This doesn't introduce any asynchrony directly. However, it is possible for values to be pumped into a C<Supply> from an asynchronous worker. In fact, it is possible for many threads to safely pump values into a supply. In the event this happens, the callback of the tap may be executed on many threads at the same time.
 
-The C<Supply> class has various methods that produce more interesting kinds of C<Supply>.  These default to working asynchronously.
+The C<Supply> class has various methods that produce more interesting kinds of
+C<Supply>.  These default to working asynchronously.
 
-C<Supply.for> takes a (potentially lazy) list of values, and returns an on demand C<Supply> that, when tapped, will iterate over the values and invoke the C<emit> callable for each of them, and any C<done> callable at the end. If the iteration at some point produces an exception, then the C<quit> callable will be invoked to pass along the exception.
+=over 4
 
-C<Supply.interval> produces an on demand C<Supply> that, when tapped, will produce an ascending value at a regular time interval.
+=item from-list
 
-    Supply.interval(1).tap(&say);     # Once a second, starting now
-    Supply.interval(5, 10).tap(&say); # Each 5 seconds, starting in 10 seconds
+  my $fl = Supply.from-list(^10);
+
+Takes a (potentially lazy) list of values, and returns an on demand C<Supply>
+that, when tapped, will iterate over the values and invoke the C<emit> callable
+for each of them, and any C<done> callable at the end. If the iteration at some
+point produces an exception, then the C<quit> callable will be invoked to pass
+along the exception.
+
+=item interval
+
+  my $e1    = Supply.interval(1);     # Once a second, starting now
+  my $e5i10 = Supply.interval(5, 10); # Each 5 seconds, starting in 10 seconds
+
+Produces an on demand C<Supply> that, when tapped, will produce an ascending
+value at a regular time interval.
 
 Take the returned tap object and close it to stop the ticks:
 
-    my $t = Supply.interval(1).tap(&say);
+    my $e1 = Supply.interval(1).tap(&say);
     # ...later...
-    $t.close();
+    $e1.close();
 
-[TODO: many more of these.]
+=back
 
 Supplies are mathematically dual to iterators, and so it is possible to define the same set of operations on them as are available on lazy lists. The key difference is that, while C<grep> on a lazy list I<pulls> a value to process, working synchronously, C<grep> on a Supply has values I<pushed> through it, and pushes those that match the filter onwards to anything that taps it.
 
