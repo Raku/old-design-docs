@@ -268,41 +268,46 @@ An overview:
 
 =head3 IO::Locally role
 
-The official way to create an C<IO::Path> object is with the C<new> method.
-Apart from the C<path> positional, it also takes optional C<:SPEC> and
-C<CWD> named parameters.  The C<.IO> coercer (which takes the same parameters
-as C<.new>) is the syntactic sugar that will most likely be used most often.
+The best way to create an object that does the C<IO::Locally> role, is to use
+the C<.IO> coercer.  It takes an optional C<:CWD> parameter to indicate what
+the current directory is supposed to be (for relative paths, defaults to
+C<$*CWD>).
 
-  my $io = $filename.IO;                  # current $*SPEC/$*CWD
-  my $io = $filename.IO(:SPEC(*$SPEC));   # specific IO::SPEC
-  my $io = $filename.IO(:SPEC(*$SPEC), :CWD($*CWD));
+  my $io = $filename.IO;               # current directory
+  my $io = $filename.IO(:CWD($*CWD));  # same
 
-which would be the same as:
+These classes consume the IO::Locally role:
 
-  my $io = IO::Path.new($filename);
-  my $io = IO::Path.new($filename, :SPEC(*$SPEC));
-  my $io = IO::Path.new($filename, :SPEC(*$SPEC), :CWD($*CWD));
+  IO::Handle    # an opened regular file
+  IO::File      # a regular file
+  IO::Dir       # a directory
+  IO::Local     # something else that exists
+  IOU           # not recognized as something that exists
 
-If you only have filename components to start with, you can also create an
-C<IO::Path> object with the C<:volume>, C<:directory> and C<:basename> named
-parameters:
-
-  my $io = IO::Path.new( :$volume, :$directory, :$basename );
-
-The following file test methods are provided:
+The following file test methods are provided by the IO::Locally role, or are
+overridden by a class (e.g. C<.e> is overridden to return C<True> for all but
+the C<IOU> class):
 
   r          is readable by effective uid/gid
   w          is writable by effective uid/gid
+  rw         is readable and writable by effective uid/gid
   x          is executable by effective uid/gid
+  rx         is readable and executable by effective uid/gid
+  wx         is writable and executable by effective uid/gid
+  rwx        is readable, writable and executable by effective uid/gid
   o          is owned by effective uid
 
   R          is readable by real uid/gid
   W          is writable by real uid/gid
+  RW         is readable and writable by real uid/gid
   X          is executable by real uid/gid
+  RX         is readable and executable by real uid/gid
+  WX         is writable and executable by real uid/gid
+  RWX        is readable, writable and executable by real uid/gid
   O          is owned by real uid
 
   e          exists
-  s          Size of the $!path of $io in bytes
+  s          size of the $!path of $io in bytes
   z          has zero size (an empty file)
 
   f          is a plain file
@@ -318,33 +323,19 @@ The following file test methods are provided:
   g          has setgid bit set
   k          has sticky bit set
 
-To allow for easy chaining of file tests, there is an C<.all> method that can
-be fed the tests to be tried as a C<Parcel> of strings.  The value returned
-will be the first non-True value, or the final True value.
+A typical use case would be:
 
-  say "rwx" if $io.all: <r w x>;
-
-  if $io.all(<f r w x s>) -> $size {
+  if $io.f && $io.rwx && $io.s -> $size {
       say "plain file with rwx of $size bytes";
   }
 
-This is mostly handy when passing file tests as parameters between routines
-and methods.  From a performance point of view, direct use of the methods,
-like:
-
-  if $io.f && $io.r && $io.w && $io.x && $io.s -> $size {
-      say "plain file with rwx of $size bytes";
-  }
-
-or the smart match method:
+which you can also smart match:
 
   given $io {
-      when :f :r :w :x {
+      when :f :rwx {
           say "plain file with rwx of $_.s() bytes";
       }
   }
-
-is probably faster.
 
 These other methods are also provided (in alphabetical order):
 
