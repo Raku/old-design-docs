@@ -128,7 +128,7 @@ coercer returns one of 4 object types:
   IO::Local     # something else that exists
   IOU           # not recognized as something that exists
 
-All these classes are consumers of the C<IO::Locally> role, which provided all
+All these classes are consumers of the C<IO::Pathy> role, which provided all
 of the methods that have to do with paths (such as C<.basename>).
 
 =head1 $*CWD and chdir()
@@ -230,8 +230,8 @@ An overview:
   $handle = pipe($command)       # open a pipe, return IO::Pipe
   $handle = socket($host,$port)  # connect to host:port, return IO::Socket
 
-  @locals = dir                  # paths (as IO::Locally) in $*CWD
-  @locals = dir('/foo')          # paths (as IO::Locally) in /foo
+  @locals = dir                  # paths (as IO::Pathy) in $*CWD
+  @locals = dir('/foo')          # paths (as IO::Pathy) in /foo
   @strs = dir(:Str)              # paths (as Str) in $*CWD
 
   $contents = slurp('/foo/bar')  # read all from /foo/bar
@@ -264,9 +264,9 @@ An overview:
   link($target,$source)          # create a hard-link to a file
   symlink($target,$source)       # create a symbolic link to a file
 
-=head2 IO::Locally role
+=head2 IO::Pathy role
 
-These classes consume the C<IO::Locally> role:
+These classes consume the C<IO::Pathy> role:
 
   IO::Handle    # an opened regular file
   IO::File      # a regular file
@@ -274,7 +274,7 @@ These classes consume the C<IO::Locally> role:
   IO::Local     # something else that exists (locally)
   IOU           # not recognized as something that exists
 
-The easiest way to create an object that does the C<IO::Locally> role, is to
+The easiest way to create an object that does the C<IO::Pathy> role, is to
 use the C<.IO> coercer.  It takes an optional C<:CWD> parameter to indicate
 what the current directory is supposed to be (for relative paths, defaults to
 C<$*CWD>).
@@ -282,7 +282,7 @@ C<$*CWD>).
   my $io = $filename.IO;               # current directory
   my $io = $filename.IO(:CWD($*CWD));  # same
 
-The following file test methods are provided by the IO::Locally role, or are
+The following file test methods are provided by the IO::Pathy role, or are
 overridden by a class (e.g. C<.e> is overridden to return C<True> for all but
 the C<IOU> class):
 
@@ -334,7 +334,7 @@ which you can also smart match:
   }
 
 Please note that another of determining whether an object, that consumes the
-IO::Locally role, is a regular file or a directory, is by smartmatching the
+IO::Pathy role, is a regular file or a directory, is by smartmatching the
 object with the class:
 
   given $io {
@@ -363,7 +363,7 @@ given path (in alphabetical order):
   volume         the volume of the path (if any)
 
 Methods that access the file system to operate on the given path (in
-alphabetical order).  May only operate on certain consumers of the IO::Locally
+alphabetical order).  May only make sense on certain consumers of the IO::Pathy
 role:
 
   accessed       last access time (if available)
