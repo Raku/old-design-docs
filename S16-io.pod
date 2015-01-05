@@ -337,38 +337,42 @@ which you can also smart match:
       }
   }
 
-These other methods are also provided (in alphabetical order):
+Methods that do not access the file system and purely operate on the
+given path (in alphabetical order):
 
-  absolute       the absolute, canonical path
-  accessed       last access time (if available)
+  abspath        the absolute, canonical path
   basename       the basename of the path
-  changed        last (metadata) changed time
-  chdir          change $*CWD if directory
   child          append basename to path, return new object for that
-  chmod          change attributes of path
-  copy           create a copy of file
-  dir            files in path (if dir)
-  directory      the directory part of the absolute path
-  extension      the extension of the file
-  is-absolute    is the (original) path absolute
-  is-relative    is the (original) path relative
-  lines          contents of file as lines
+  dirname        the directory part of the absolute path
+  extension      the extension of the path
+  parent         remove last portion of path, return new object for that
+  pred           previous logical path, return new object for that
+  succ           next logical path, return new object for that
+  volume         the volume of the path (if any)
+
+Methods that access the file system to operate on the given path (in
+alphabetical order).  May only operate on certain consumers of the IO::Locally
+role::
+
+  accessed       last access time (if available)
+  changed        last (metadata) changed time
+  chdir          change $*CWD
+  chmod          change attributes
+  copy           create a copy
+  dir            files in path
+  lines          contents as lines
   mkdir          create directory
   modified       last modified time
   move           move (rename) to other storage
-  open           attempt to open file, return IO::Handle
-  parent         remove last portion of path, return new object for that
-  pipe           attempt to open a pipe, return IO::Pipe
-  pred           previous logical path, return new object for that
-  relative       the relative path against CWD
+  open           attempt to open as file
+  pipe           attempt to open a pipe
+  relpath        the relative path against $*CWD
   rename         rename (move) to other name
   resolve        follow symlinks to the real path, return new object for that
   rmdir          remove directory if empty directory
-  slurp          obtain the contents of the file
-  spurt          set the contents of the file
-  succ           next logical path, return new object for that
-  unlink         remove file
-  volume         the volume of the path (if any)
+  slurp          obtain the contents
+  spurt          set the contents
+  unlink         remove as file
   words          contents of file as words
 
 =head3 IO::Handle Class
