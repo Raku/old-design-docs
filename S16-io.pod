@@ -227,6 +227,8 @@ An overview:
   $line = prompt($message)       # print message on $*OUT, obtain next line
 
   $handle = open($path)          # open a file, return IO::Handle
+  $handle = pipe($command)       # open a pipe, return IO::Pipe
+  $handle = socket($host,$port)  # connect to host:port, return IO::Socket
 
   @locals = dir                  # paths (as IO::Locally) in $*CWD
   @locals = dir('/foo')          # paths (as IO::Locally) in /foo
@@ -264,21 +266,21 @@ An overview:
 
 =head2 IO::Locally role
 
-The best way to create an object that does the C<IO::Locally> role, is to use
-the C<.IO> coercer.  It takes an optional C<:CWD> parameter to indicate what
-the current directory is supposed to be (for relative paths, defaults to
-C<$*CWD>).
-
-  my $io = $filename.IO;               # current directory
-  my $io = $filename.IO(:CWD($*CWD));  # same
-
-These classes consume the IO::Locally role:
+These classes consume the C<IO::Locally> role:
 
   IO::Handle    # an opened regular file
   IO::File      # a regular file
   IO::Dir       # a directory
   IO::Local     # something else that exists (locally)
   IOU           # not recognized as something that exists
+
+The easiest way to create an object that does the C<IO::Locally> role, is to
+use the C<.IO> coercer.  It takes an optional C<:CWD> parameter to indicate
+what the current directory is supposed to be (for relative paths, defaults to
+C<$*CWD>).
+
+  my $io = $filename.IO;               # current directory
+  my $io = $filename.IO(:CWD($*CWD));  # same
 
 The following file test methods are provided by the IO::Locally role, or are
 overridden by a class (e.g. C<.e> is overridden to return C<True> for all but
@@ -306,12 +308,10 @@ the C<IOU> class):
   s          size of the $!path of $io in bytes
   z          has zero size (an empty file)
 
-  f          is a plain file
-  d          is a directory
+  f          is a plain file  (also ~~ IO::File)
+  d          is a directory   (also ~~ IO::Dir)
   l          is a symbolic link
   L          path of symbolic link (readlink)
-  p          is a named pipe (FIFO)
-  S          is a socket
   b          is a block special file
   c          is a character special file
 
@@ -330,6 +330,22 @@ which you can also smart match:
   given $io {
       when :f :rwx {
           say "plain file with rwx of $_.s() bytes";
+      }
+  }
+
+Please note that another of determining whether an object, that consumes the
+IO::Locally role, is a regular file or a directory, is by smartmatching the
+object with the class:
+
+  given $io {
+      when IO::File {
+          say "$io is a regular file";
+      }
+      when IO::Dir {
+          say "$io is a directory";
+      }
+      when IOU {
+          say "doesn't exist";
       }
   }
 
@@ -361,7 +377,6 @@ role:
   modified       last modified time
   move           move (rename) to other storage
   open           attempt to open as file
-  pipe           attempt to open a pipe
   relpath        the relative path against $*CWD
   rename         rename (move) to other name
   resolve        follow symlinks to the real path, return new object for that
@@ -373,54 +388,41 @@ role:
 
 =head2 PIO role
 
-  class IO::Handle does IO { }
+These classes consume the C<PIO> (B<P>erl6 B<IO>)  role:
 
-The C<IO::Handle> object is usually B<not> directly instantiated, but
-with C<open()> or C<IO::Path.open>.  Nonetheless, you B<can> create an
-C<IO::Handle> object with just a path:
+  IO::Dup       # handle from a fileno(), such as $*IN, $*OUT, $*ERR
+  IO::Handle    # an opened regular file
+  IO::Pipe      # a pipe
+  IO::Socket    # a socket
 
-  my $handle = IO::Handle.new($filename);
-  my $handle = IO::Handle.new($filename, :SPEC(*$SPEC));
-  my $handle = IO::Handle.new($filename, :SPEC(*$SPEC), :CWD($*CWD));
+An object that consumes the PIO role, is generally created by calling the
+associated function (such as C<open>, C<pipe> or C<socket>)>, or is accessible
+by already defined dynamic variables such as C<$*IN>.
 
-This does not interact with anything at all and will appear as if the file
-has been C<.close>d.  The C<.open> method does interact with the file system:
-
-  $handle.open;  # same as $handle = $filename.IO.open
-
-It either returns True, or a C<Failure> with additional information.
-
-The other methods of the C<IO::Handle> class are only valid B<after> the
-C<.open> has been called succesfully:
+These are the methods provided by the PIO role (an alphabetical order):
 
   close          close file handle, flush buffers
-  encoding       set/return encoding of file handle
-  eof            file pointer reached end of file
+  encoding       set/return encoding
+  eof            file pointer reached end of information
   fileno         file descriptor (usually a native integer)
   flush          flush buffers
-  get            get next line from file
-  getc           get next character from file
+  get            get next line
+  getc           get next character
   ins            number of lines read
-  IO             return new IO::Path of path of file
-  lines          return rest of contents of file as lines
-  opened         is the file open?
+  lines          return rest of contents as lines
+  opened         is it not closed?
   p              the handle is a pipe
-  path           the IO::Path of path of file, handles file tests
-  print          write characters to file
-  read           read bytes from file
-  say            write characters + newline to file
-  seek           move file pointer to given position
-  slurp          return rest of contents of file
-  spurt          write / append contents to file
-  t              is the file a TTY (as a person looking?)
-  tell           return position of file pointer
-  words          return rest of contents of file as words
-  write          write bytes to file
-
-=head3 Interplay between Roles and Classes
-
-These classes and roles may cache and share pertinent information for better
-performance.
+  print          write characters
+  read           read bytes
+  S              is a socket
+  say            write characters + newline
+  seek           move pointer to given position
+  slurp-rest     return rest of contents
+  spurt          write / append contents
+  t              is it a TTY (is a person looking?)
+  tell           return position of pointer
+  words          return rest of contents as words
+  write          write bytes
 
 =head1 AUTHORS
 
