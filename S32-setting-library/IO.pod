@@ -8,15 +8,15 @@ Synopsis 32: Setting Library - IO
 
     Created: 19 Feb 2009
 
-    Last Modified: 28 Oct 2014
-    Version: 27
+    Last Modified: 11 Jan 2015
+    Version: 28
 
 =head1 Overview
 
 This synopsis describes in depth the subroutines and methods that were
 described broadly in S16.  Please note that any implementation is free
-to use multi-method dispatch on both subroutines as well as methods should
-this increase the performance or maintainability.
+to use multi-method dispatch on both subroutines as well as methods to
+increase the performance or maintainability.
 
 =head1 Functions
 
@@ -25,7 +25,7 @@ X<print()>
 
     sub print(*@text --> Bool) is export
 
-Print the given text on $*OUT.
+Print the given text (as C<Str> objects) on $*OUT.  Return whether successful.
 
 =head2 say()
 X<say()>
@@ -33,7 +33,8 @@ X<say()>
     sub say(*@text --> Bool) is export
 
 Print the given text, followed by a new line C<"\n"> on C<$*OUT>.  Before
-printing, call the C<.gist> method on any non-C<Str> objects.
+printing, call the C<.gist> method on any non-C<Str> objects.  Return whether
+successful.
 
 =head2 note()
 X<note()>
@@ -41,7 +42,8 @@ X<note()>
     sub note(*@text --> Bool) is export
 
 Print the given text, followed by a new line C<"\n"> on C<$*ERR>.  Before
-printing, call the C<.gist> method on any non-C<Str> objects.
+printing, call the C<.gist> method on any non-C<Str> objects. Return whether
+successful.
 
 =head2 dd()
 X<dd()>
@@ -60,13 +62,13 @@ X<prompt()>
 
     sub prompt($msg --> Bool) is export
 
-Simple Prompter.  Print message on C<$*OUT> and obtains a single line of
-input from C<$*IN>.
+Simple Prompter.  Print message (as C<Str> object) on C<$*OUT> and obtains a
+single line of input from C<$*IN>.
 
 =head2 open()
 X<open()>
 
-    sub open ($name as IO,
+    sub open ($name,
       # mode
         Bool :$r  = True,
         Bool :$w  = False,
@@ -115,11 +117,10 @@ types.  Default is C<False>, implying text semantics.
 
 =item :enc
 
-Encoding to use if opened in text mode.  Defaults to "Unicode", which
-implies figuring out which actual UTF is
-in use, either from a BOM or other heuristics.  If heuristics are
-inconclusive, UTF-8 will be assumed.  (No 8-bit encoding will ever
-be picked implicitly.)
+Encoding to use if opened in text mode.  Defaults to "Unicode", which implies
+figuring out which actual UTF is in use, either from a BOM or other heuristics.
+If heuristics are inconclusive, UTF-8 will be assumed.  (No 8-bit encoding will
+ever be picked implicitly.)
 
 =item :nl
 
@@ -139,38 +140,32 @@ C<.lines> and C<.get>.  Defaults to C<True>.
 X<dir()>
 
     sub dir($directory as Str = $*CWD,
-        Mu       :$test = $*SPEC.curupdir,
-        Bool     :$absolute = False,
-        Bool     :$Str = False,
-        IO::Path :$CWD = $*CWD,
+        Mu   :$test = (exclude . and ..)
+        Bool :$Str = False,
+             :$CWD = $*CWD.Str,
         --> List ) is export
 
-Returns a lazy list of (relative) paths in the C<$directory> as C<IO::Path>
-objects, by default from the directory pointed to by C<$*CWD>.  If dir() fails,
-it returns an L<X::IO::Dir|S32::Exception/X::IO::Dir> failure.  The following
-named parameters are optional:
+Returns a lazy list directory entries in given the C<$directory> as objects
+doing the C<IO::Pathy> role.   Defualts to the directory pointed to by C<$*CWD>.
+If dir() fails, it returns an L<X::IO::Dir|S32::Exception/X::IO::Dir> failure.
+The following named parameters are optional:
 
 =over 4
 
 =item :test
 
 Expression against which to smart-match for inclusion in result list.  By
-default excludes C<curdir> (usually ".") and C<updir> (usually "..") only.
-
-=item :absolute
-
-Boolean indicating to return absolute path names, rather than relative ones.
-False by default.
+default excludes C<"."> and C<".."> only.
 
 =item :Str
 
-Boolean indicating to return C<Str>ings, rather than C<IO::Path> objects.
-False by default.
+Boolean indicating to return absolute C<Str>ings, rather than objects doing
+the C<IO::Path> role.  False by default.
 
 =item :CWD
 
-Only important if C<:absolute> is specified with a True value.  The directory
-to pre-pend to the relative file paths.  Defaults to C<$*CWD>.
+The directory to pre-pend to C<$directory> if specified as a relative path.
+Defaults to C<$*CWD>.
 
 =back
 
@@ -198,19 +193,19 @@ X<spurt()>
 
 Writes the indicated contents (2nd positional parameter) to the location
 indicated by the first positional parameter (which can either be a string,
-an C<IO::Path> object, or an already opened C<IO::Handle> object).
+an object doing the C<IO::Pathy> role, or an object doing the C<PIO> role).
 
 If a file needs to be opened for writing, it will also be C<close>d.  Returns
 True on success, or the appropriate C<Failure> if something went wrong.
 
 These named parameters are optional and only have meaning if the first
-positional parameter was B<not> an C<IO::Handle>:
+positional parameter was B<not> an object doing the C<PIO> role:
 
 =over 4
 
 =item :enc
 
-The encoding with which the contents will be written. [conjectural]
+The encoding to pass on to L</open()>.
 
 =item :append
 
@@ -227,10 +222,17 @@ C<False>.
 =head2 mkdir()
 X<mkdir()>
 
-    sub mkdir($dir as IO, $mode = 0o777 --> Bool) is export
+    multi sub mkdir($dir, Int $mode = 0o777 --> Bool)
 
-Creates the directory as indicated by the positional parameter.  Returns
-C<True> on success or an appropriate C<Failure>.
+Create directory indicated by the first positional, with the (optional) mode
+as the second positional.  Return True if successful, or an appropriate
+C<Failure>.
+
+    multi sub mkdir(Int $mode, *@dir --> List)
+
+Use the first positional parameter C<Int> value as mode with which to create
+the directories specified with the other positional parameters.  Returns a
+C<List> with the directories that were successfully created.
 
 =head2 rmdir()
 X<rmdir()>
