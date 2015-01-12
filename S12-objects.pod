@@ -257,16 +257,15 @@ you may use that directly in list context to produce its elements
 
     method push3 (@x: $a, $b, $c) { ... any(@x) ... }
 
-Note that the C<self> function is not context sensitive and thus always
-returns the current object as a single item even in list context.
-Hence if your current object happens to be an array but you did not
-declare it with an explicit array variable, you need to explicitly
-access the elements of the array somehow:
+Note that the C<self> term refers directly to the object the method was invoked
+on, and therefore:
 
-    any(self)     # WRONG
-    any(self[])   # okay
-    any(@(self))  # okay
-    any(@self)    # WRONG unless you declared @self yourself
+    class A is Array {
+        method m() { .say for self }
+    }
+    A.new(1, 2, 3).m;
+
+Will produce 3 lines of output.
 
 =head2 Private methods
 
