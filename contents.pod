@@ -1,8 +1,11 @@
 =begin pod
+=encoding utf8
 
 =head1 Synopsis 1: Overview
 	Project Plan
 	Random Thoughts
+	About These Documents
+		Additions
 
 =head1 Synopsis 2: Bits and Pieces
 	One-pass parsing
@@ -15,6 +18,7 @@
 		User-selected Brackets
 		Unspaces
 		Comments in Unspaces and vice versa
+		Unspace disallowed within regexes
 		Optional Whitespace and Exclusions
 			Implicit Topical Method Calls
 	Built-In Data Types
@@ -60,7 +64,7 @@
 		Hierarchical types
 		Parameter types
 		Generic types
-	The Cool class (and package)
+		The Cool class (and package)
 	Names and Variables
 		Apostrophe separator
 		Sigils
@@ -397,7 +401,6 @@
 	Capture or Parcel
 	Multidimensionality
 	Context deferral
-	Additions
 
 =head1 Synopsis 9: Data Structures
 	Overview
@@ -585,7 +588,22 @@
 		OS::Unix::User role
 		Group role
 		OS::Unix::NameServices role
-	Additions
+
+=head1 Synopsis 16: I/O
+	IO
+		Overridable IO handles
+		Path Names and the .IO coercer
+		$*SPEC
+		$*CWD and chdir()
+		$*TMPDIR and tmpdir()
+		$*HOME and homedir()
+		System dependent path semantics and IO::Spec
+		Functions and Classes
+			Functions
+			IO::Spec Class
+			IO::Path Class
+			IO::Handle Class
+			Interplay between Roles and Classes
 
 =head1 Synopsis 17: Concurrency
 	Design Philosophy
@@ -599,6 +617,7 @@
 	Supplies
 	System events exposed as Supplies
 	I/O features exposed as Supplies
+	Inter-Process Communication exposed as Promises and Supplies
 	The Event Loop
 		Threads
 		Atomic Compare and Swap
@@ -694,7 +713,6 @@
 	CLASSES
 		CompUnitRepo
 			Specifying a CompUnitRepo
-			parse-spec
 			new
 			short-id
 			install
@@ -711,6 +729,7 @@
 			new
 			load
 			loaded
+			precomp
 	SYSTEM VARIABLES
 		%?RESOURCE
 		%*CUSTOM_LIB
@@ -719,9 +738,18 @@
 =head1 Synopsis 24: Testing
 	SYNOPSIS
 	DESCRIPTION
-		Test plans
-		Test functions
-		todo() and skip()
+	Test plans
+	Test functions
+		pass(), flunk()
+		diag()
+		todo(), skip(), skip_rest()
+		ok(), nok()
+		is(), isnt(), cmp_ok()
+		is_deeply()
+		is approx()
+		isa_ok()
+		subtest()
+		dies_ok(), lives_ok(), throws_like()
 	
 		General syntactic structure
 		
@@ -792,7 +820,6 @@
 			Form.pm
 			S15-unicode.pod
 			Infectious trait spec
-	Additions
 
 =head1 Synopsis 29: Builtin Functions
 	Notes
@@ -814,12 +841,10 @@
 		Obsolete Functions
 			Keywords
 	Default Export Questions
-	Additions
 
 =head1 [DRAFT] Synopsis 31: Pragmatic Modules
 	Overview
 	Pragmata
-	Additions
 
 =head1 DRAFT: Synopsis 32: Setting Library - Basics
 	Roles
@@ -827,7 +852,6 @@
 		Any
 		Pattern
 		Scalar
-	Additions
 
 =head1 DRAFT: Synopsis 32: Setting Library - Callable
 	Callable
@@ -841,7 +865,6 @@
 	Method
 	Submethod
 	Macro
-	Additions
 
 =head1 DRAFT: Synopsis 32: Setting Library - Containers.pod
 	Function Roles
@@ -866,7 +889,6 @@
 		QuantHash
 		MixHash
 		Junction
-	Additions
 
 =head1 DRAFT: Synopsis 32: Setting Library - Exceptions
 	Roles and Classes
@@ -938,6 +960,9 @@
 			X::Syntax::NoSelf
 			X::Syntax::Number::RadixOutOfRange
 			X::Syntax::Regex::Adverb
+			X::Syntax::Regex::SolitaryQuantifier
+			X::Syntax::Term::MissingInitializer
+			X::Syntax::AddCategorial::MissingSeparator
 			X::Syntax::Signature::InvocantMarker
 			X::Syntax::Extension::Category
 			X::Syntax::InfixInTermPosition
@@ -1014,6 +1039,125 @@
 		IO::Encoded
 		IO::Readable::Encoded
 
+=head1 Synopsis 32: Setting Library - IO
+	Overview
+	Functions
+		print()
+		say()
+		note()
+		dd()
+		prompt()
+		open()
+		dir()
+		slurp()
+		spurt()
+		mkdir()
+		rmdir()
+		chdir()
+		copy()
+		rename()
+		move()
+		unlink()
+			chmod()
+		link()
+		symlink()
+	IO Types
+		IO
+		IO::Spec
+			.select
+		IO::Spec subclasses
+			.abs2rel
+			.canonpath
+			.catdir
+			.catpath
+			.curdir
+			curupdir
+			.devnull
+			.extension
+			.is-absolute
+			.join
+			.PATH
+			.rel2abs
+			.rootdir
+			.split
+			.splitdir
+			.splitpath
+			.tmpdir
+			.updir
+			Comparison of .splitpath and .split
+			Comparison of .catpath and .join
+		IO::Path
+			File test methods
+			.absolute
+			.accessed
+			.basename
+			.changed
+			.chdir
+			.child
+			.chmod
+			.copy
+			.dir
+			.dirname
+			.extension
+			.IO
+			.is-absolute
+			.is-relative
+			.lines
+			.mkdir
+			.modified
+			.move
+			.open
+			.parent
+			.pred
+			.relative
+			.rename
+			.resolve
+			.rmdir
+			.slurp
+			.SPEC
+			.spurt
+			.succ
+			.unlink
+			.volume
+			.words
+			Subclasses
+		IO::Handle
+			Methods handled by .path
+			.close
+			.encoding
+			.eof
+			.fileno
+			.flush
+			.get
+			.getc
+			.ins
+			.opened
+			.p
+			.print
+			.read
+			.say
+			.seek
+			.t
+			.tell
+			.write
+	Here Be Dragons
+		IO::Socket
+		IO::Socket::INET
+	Conjectural Stuff
+		IO::ACL
+		IO::Pipe
+		OS-specific classes
+			Unix
+			Path::Unix
+			IO::Socket::Unix
+			IO::POSIX
+	Unfilled
+	Removed functions
+		IO::Buffered
+		IO::Streamable
+		IO::Encoded
+		IO::Readable::Encoded
+
 =head1 DRAFT: Synopsis 32: Setting Library - Numeric
 	Function Packages
 		Bool
@@ -1024,7 +1168,6 @@
 		Trigonometric functions
 		Int
 		Rat
-	Additions
 
 =head1 DRAFT: Synopsis 32: Setting Library - Rules
 	Overview
@@ -1033,11 +1176,9 @@
 		Match
 		Cursor
 		Grammar
-	Additions
 
 =head1 DRAFT: Synopsis 32: Setting Library - Str
 	Str
-	Additions
 
 =head1 Synopsis 32: Setting Library - Temporal
 	Time and time again
@@ -1060,12 +1201,16 @@
 		AFAICT
 		AFAIK
 		afk
+		ALAP
 		Any
 		any()
 		API
 		Apocalypse
+		arity
+		argument
 		array
 		AST
+		atomic
 		attribute
 		auth
 		author
@@ -1073,11 +1218,24 @@
 		autopun
 	B
 		backlog
+		backtrack
+		backend
 		Bailador
+		bare string
 		biab
+		binary
 		blast
+		block
+		Bool
+		boolean
+		boolean context
+		bootstrap
+		boxing
+		branch
 		brb
 		BS
+		Bug report
+		bytecode
 	C
 		caller
 		CALLER::
@@ -1085,16 +1243,32 @@
 		camelia
 		capture
 		CAS
+		category
+		CFG
 		circularity saw
 		circumfix
 		class
 		CLI
 		clog
+		Closure Parameter
 		CLR
+		comment
 		compilation unit
 		compile time
+		compiler
+		COMPILING::
+		composer
 		compunit
 		concurrency
+		concrete
+		concrete syntax
+		container
+		context
+		control flow
+		Control Flow Graph
+		constant
+		constructor
+		CORE::
 		CPAN
 		credentials
 		CUR
@@ -1105,48 +1279,71 @@
 		dead code
 		debugger
 		dev
+		DFS
 		dies_ok
 		diffy
 		DIHWIDT
 		dispatcher
 		distribution
+		DSL
+		Domain specific language
+		Dominance
+		DYNAMIC::
 		dynamic
+		dynamic language
+		DWIM
 	E
 		eager
 		ecosystem
 		edsel
+		empty list
 		EPIC FAIL
 		EVAL
 		Exegesis
 		export
-		EXPORT::
+		EXPORT
+		Expression
+		Extop
 	F
 		FAIL
+		fat comma
 		fiddly
+		FIFO
 		flap
 		fork
 		fossil
+		FP
 		FSVO
 		FTFY
 		fudge
+		functional programming
 	G
+		GC
+		gensym
 		gimme
 		gist
 		git
 		git submodule
 		github
+		given
 		GLOBAL::
+		GLR
 		golf
 		golfing
 		good *
+		gorilla/banana problem
 		grammar
 		green threads
 	H
 		hash
+		High Level Language
+		HLL
 		HN
 		HN'ed
 		HPMoR
+		Huffmanization
 		hyper
+		hypothetical variable
 	I
 		IC
 		iffy
@@ -1160,32 +1357,52 @@
 		Int
 		int
 		interface
+		Intermediate Representation
+		interpreter
 		invocant
+		invokedynamic
+		IR
 		IRC
 		ISTR
 		item
+		item context
+		iteration
+		IWBN
 	J
 		jakudo
 		JAST
+		JIT
 		Junction
 		JVM
 	K
 		karma
 		KISS
 	L
+		lambda
 		lazy
+		laziness
 		lexical
 		lexical pad
 		lexotic
+		LGTM
 		LHF
+		Library
+		LIFO
+		List
 		lmddgtfy
 		LMGTFY
+		LoL
+		longname
 		LTA
 		LTM
 	M
+		machine code
+		magic variable
+		Match
 		match
 		metamodel
 		method
+		MI
 		mischan
 		MMD
 		MoarVM
@@ -1194,8 +1411,9 @@
 		MRO
 		Mu
 		multi
-		multi method
-		multi sub
+		multiple dispatch
+		multi-method
+		multi-sub
 		multi-method dispatch
 		mumble
 		my
@@ -1203,53 +1421,89 @@
 	N
 		named parameter
 		namespace
+		Native Call
+		Native value
+		name
 		need
+		NFA
 		NFG
 		Niecza
+		Nil
 		NST
 		nom
 		null-PMC access
 		Num
 		number
 		NQP
+		NSA
 	O
+		Obfuscation
+		object
+		Object code
+		On Stack Replacement
+		OO
+		OOP
+		opcode
+		open source
+		operand
+		operator
+		opt
+		OSR
 		our
 		OUR::
 		OUTER::
 	P
 		package
+		package manager
 		pad
 		Pair
 		pair notation
 		Panda
 		panda bootstrap script
 		parakudo
+		parameter
 		parrakudo
+		PARENT::
 		Parrot
-		parse
+		parser
+		parse tree
 		PAST
 		PAUSE
 		pb
+		PBP
 		PDD
 		Perlito
 		phaser
+		PIO
 		PIR
 		PMC
 		pod
 		pod6
+		pointy block
+		POLA
+		POLS
 		Positional
 		positional parameter
 		postcircumfix
 		postfix
+		PPI
+		pragma
 		precedence
 		prefix
+		predicate
 		private
+		process
 		PROCESS::
 		producer
+		pseudo-scope
+		pseudo-package
 		proto
+		PR
+		PSA
 		PSGI
 		pull request
 		pugs
+		pure
 		p5
 		p6
 	Q
@@ -1258,6 +1512,7 @@
 		race
 		Rakudo
 		Rakudo *
+		R*
 		rakudobug
 		regex
 		regexp
@@ -1265,42 +1520,72 @@
 		reify
 		REPL
 		repository
+		REPR
+		Representation
 		require
 		revert
 		roast
 		role
 		RPA
 		RC
+		Repository
+		Root Object
+		Rosalind
+		Rosetta Code
+		RSN
 		RT
 		runtime
 	S
 		sanity test
+		SC
 		scalar
+		scope
 		segfault
 		segmentation fault
 		serialization
+		serialization context
+		SETTING::
 		setting
+		shared library
+		shortname
 		sigil
+		Single Static Assignment
 		sink context
 		sixplanet
+		slang
+		smart match
 		slurpy
 		slushy
+		source code
 		spectest
 		spesh
 		splat
+		SSA
+		stack frame
+		STable
 		star
+		stash
+		statement
+		Static frame
 		STM
 		Str
 		sub
-		subroutine
+		Subroutine
+		Subsignature
+		symbol
 		Synopsis
+		Syntax sugar
 	T
+		TAP
+		Texas operator
 		TheDamian
 		thinko
 		thread
 		thunk
 		TimToady
 		TIMTOWTDI
+		tl;dr
+		TMI
 		TMTOWTDI
 		token
 		topic
@@ -1310,38 +1595,62 @@
 		tuit
 		twigil
 	U
+		UAX
+		UCD
+		unboxing
+		unspace
 		ufo
 		UGT
+		unary
+		Unicode
+		Unicode Data Base
+		Unicode Normalization Form
 		unit
-		UNIT::
+		UNIT
 		unslushing
+		use
 	V
+		value
+		variable
+		variable interpolation
 		ver
+		Virtual Machine
 		VM
 		v5
 		v6
 	W
 		warnocked
 		WAT
+		Weekly Changes
 		wfm
 		Whatever
 		whitespace
+		WIP
+		World
+		WP
 		ww
 	X
 		XY Problem
 	Y
+		YAPAE
 		yoleaux
 	Z
+		Zavolaj
+		Zen slice
 	*
 		.
 		..
 		...
 		:
 		?
+		(
+			()
 		*
 		@_
 		$_
 		%_
 		++
 		&
+		6model
+
 =end pod
