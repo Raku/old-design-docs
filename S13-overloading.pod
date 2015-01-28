@@ -176,8 +176,12 @@ it certainly creates a new C<Dog> object.  But if you say:
 it might call C<Dog.new>, or it might pull a C<Dog> with Spot's
 identity from the dog cache, or it might do absolutely nothing if
 C<$spot> already knows how to be a C<Dog>.  As a fallback, if no
-method responds to a coercion request, the class will be asked to attempt to
-do C<Dog.new($spot)> instead.
+method responds to a coercion request, the multi C<COERCE> will
+be called with the argument (in this case, C<$spot>) as the first
+parameter, and the destination type (in this case, C<Dog>) as the
+second.  The default implementation for C<COERCE(Any, Any)> is
+to call a method on the source object with the same name as the
+destination class, as seen below.
 
 It is also possible (and often preferable) to specify coercions from
 the other end, that is, for a class to specify how to coerce one of
@@ -205,6 +209,11 @@ an anonymous class can only be specified by the destination class:
 
     $someclass = generate_class();
     $someclass($x);
+
+Of course, you can always provide a candidate for C<COERCE>, which is especially
+useful if you want to provide coercions between classes that don't know about
+each other, you have two potential destination classes that share the same name,
+or you're coercing to/from a class with no name at all.
 
 =head1 AUTHORS
 
