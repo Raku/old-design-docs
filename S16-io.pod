@@ -389,6 +389,24 @@ role:
   unlink         remove as local entity
   words          contents of file as words
 
+On filesystems that support symbolic links, there can be a subtle difference
+between the actual directory entry, and the symbolic link pointing to that
+directory entry.  In most cases, you do not have to think about this.  If
+a symlink points to a non-existing directory entry, it will just be like it
+doesn't exist (B<.e> is False).  If a symbolic link points to a directory, then
+it will just be like a directory (B<.d> is True).  For this rare cases where
+you would like to investigate the properties of a symbolic link itself, the
+following methods also exist with an B<l-> prefix:
+
+  l-o          symlink is owned by effective uid
+  l-e          symlink exists
+  l-s          size of the symlink in bytes
+  l-accessed   symlink's last access time (if available)
+  l-changed    symlink's last (metadata) changed time
+  l-device     identifier for device of symlink, if available
+  l-inode      identifier for symlink, if available (usually inode)
+  l-modified   symlink's last modified time
+
 =head2 PIO role
 
 These classes consume the C<PIO> (B<P>erl6 B<IO>)  role:
