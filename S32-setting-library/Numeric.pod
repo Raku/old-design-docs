@@ -8,14 +8,10 @@ DRAFT: Synopsis 32: Setting Library - Numeric
 
     Created: 19 Mar 2009 extracted from S29-functions.pod
 
-    Last Modified: 28 Dec 2013
-    Version: 18
+    Last Modified: 13 Feb 2015
+    Version: 19
 
-The document is a draft.
-
-This documents Bit, Int, Numeric, Rat, Complex, and Bool.
-
-XXX So where are Bit, Int, and Rat
+This documents Int, Numeric, Rat, Complex, and Bool.
 
 =head1 Function Packages
 
@@ -237,13 +233,21 @@ number, so for example, the C<Rat> C<5/4> is returned as C<"1.2">.
 
 =item base
 
-  multi method base(Cool $base as Int)
+  multi method base($base, $digits?)
 
 Returns a C<Str> representing the invocant in base C<$base>. Fails if C<$base>
 is smaller than C<2> or larger than C<36>.
 
 For bases above ten, the digit repertoire is enhanced with uppercase latin
 characters starting from C<A>.
+
+The optional C<$digits> argument asks for that many digits of fraction
+(which may not be negative).  If omitted, a reasonable default is chosen
+based on type.  For Int this default is 0.  For Num, the default is 8.
+For Rat, the number of places is scaled to the size of the denominator,
+with a minimum of 6.
+
+The final digit produced is always rounded.
 
 =item floor
 
@@ -622,6 +626,21 @@ number can be represented exactly in decimal, it will be. Otherwise uses
 the form "C<< <3/5> >>", without internal spaces, and including the 
 angles that keep the C</> from being treated as a normal division 
 operator.
+
+=item base-repeating
+
+  multi method base-repeating($base)
+
+Returns two strings representing the invocant in base C<$base>. Fails if C<$base>
+is smaller than C<2> or larger than C<36>.
+
+For bases above ten, the digit repertoire is enhanced with uppercase latin
+characters starting from C<A>.
+
+The first returned string is the non-repeating part of the representation.
+The second is the repeating part.  The precision is arbitrarily limited to 100000.
+Above that, the repeating group will return '???'.  If there is no repeating group,
+the second returned string is C<''>.
 
 =back
 
