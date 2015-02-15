@@ -173,6 +173,11 @@ has complete access (C<+rwx>).
 
   tmpdir($dir);  # sets $*TMPDIR of scope, usually PROCESS::<$TMPDIR>
 
+Any relative paths, are taking to be relative to C<$*CWD>.  You can specify
+an alternate C<IO::Dir> object as the second parameter:
+
+  tmpdir("foo",$*TMPDIR);  # relative to current $*TMPDIR setting
+
 To set a locally scoped version of C<$*TMPDIR>, you can use C<tmpdir()> with
 a temporary C<$*TMPDIR>:
 
@@ -185,8 +190,8 @@ a temporary C<$*TMPDIR>:
 It will return a newly created C<IO::Dir> object (which is C<True>) or an
 appropriate C<Failure>.
 
-The initialization of C<$*TMPDIR> at startup is set depending on the OS you're
-on.
+The initialization of C<$*TMPDIR> at startup is set depending on the currently
+active C<$*DISTRO>.
 
 =head1 $*HOME and homedir()
 
@@ -196,6 +201,11 @@ which will check whether the specified path exists as a directory and is
 completely accessible (C<+rwx>).
 
   homedir($dir);  # sets $*HOME of scope, usually PROCESS::<$HOME>
+
+Any relative paths, are taking to be relative to C<$*CWD>.  You can specify
+an alternate C<IO::Dir> object as the second parameter:
+
+  tmpdir("foo",$*HOME);  # relative to current $*HOME setting
 
 To set a locally scoped version of C<$*HOME>, you can use C<homedir()> with a
 temporary C<$*HOME>:
@@ -209,7 +219,8 @@ temporary C<$*HOME>:
 It will return a newly created C<IO::Dir> object (which is C<True>) or an
 appropriate C<Failure>.
 
-The initialization of C<$*HOME> at startup is set depending on the OS you're on.
+The initialization of C<$*HOME> at startup is set depending on the currently
+active C<$*DISTRO>.
 
 =head1 Functions, Roles and Classes
 
