@@ -25,13 +25,13 @@ In alphabetical order.
 =head2 chdir()
 X<chdir()>
 
-  sub chdir(Str(Any) $dir, Str(Any) $CWD = $*CWD --> Bool) is export
+  sub chdir(Str() $dir, Str() $CWD = $*CWD --> IO::Dir)
 
 Changes the current working directory to the given directory, for the scope in
 which C<$*CWD> is active.  Optionally takes a second positional parameter to
 indicate from which directory any relative path specified in the first
-positional parameter, should be taken.  Returns C<True> if successful, or an
-appropriate C<Failure>.
+positional parameter, should be taken.  Returns the C<IO::Dir> object of the
+directory if successful (which is C<True>), or an appropriate C<Failure>.
 
 Please note that this directory has B<no> connection with whatever the
 operating system thinks is the current working directory.  The value of
@@ -45,8 +45,7 @@ Normal usage:
 A typically lexical scope bound use case:
 
   {
-      my $*CWD;
-      chdir("foo");
+      temp $*CWD = chdir("foo");
       # working directory changed to "foo"
   }
   # restored to what it was
@@ -56,7 +55,7 @@ But for the latter, you're probably better off using L</indir()>.
 =head2 dd()
 X<dd()>
 
-  sub dd(@vars --> Bool) is export
+  sub dd(@vars --> Bool)
 
 Tiny Data Dumper.  Takes the C<variables> specified and C<note>s them (on
 C<$*ERR>) in an easy to read format, along with the C<name> of the variable.
@@ -71,11 +70,11 @@ Returns C<True> (not that that will matter most of the time).
 X<dir()>
 
   sub dir(
-    Str(Any) $dir   = $*CWD,
-    Str(Any) $from  = $*CWD,
-    Mu       :$test = (exclude . and ..),
-    Bool     :$Str  = False,
-    --> List ) is export
+    Str() $dir   = $*CWD,
+    Str() $from  = $*CWD,
+    Mu    :$test = (exclude . and ..),
+    Bool  :$Str  = False,
+    --> List )
 
 Returns a lazy list of objects doing the C<IO::Pathy> role for the directory
 entries in the given the C<$dir>.  Optionally takes a second positional
@@ -101,7 +100,7 @@ the C<IO::Pathy> role.  False by default.
 =head2 indir()
 X<indir()>
 
-  sub indir(Str(Any) $dir, &what, Str(Any) $CWD = $*CWD) is export
+  sub indir(Str() $dir, &what, Str() $CWD = $*CWD)
 
 Change to the directory indicated by the first positional, and execute the
 code given by the second positional.  Optionally specify the directory to
@@ -110,10 +109,10 @@ which any relative dir should be applied.  Returns whatever the code returns.
 =head2 mkdir()
 X<mkdir()>
 
-  multi sub mkdir(Str(Any) $dir, Int $mode = 0o777 --> Bool)
+  multi sub mkdir(Str() $dir, Int $mode = 0o777 --> Bool)
 
 Create directory indicated by the first positional, with the (optional) mode
-as the second positional.  Return True if successful, or an appropriate
+as the second positional.  Return C<True> if successful, or an appropriate
 C<Failure>.
 
   multi sub mkdir(Int $mode, *@dir --> List)
@@ -125,16 +124,12 @@ C<List> with the directories that were successfully created.
 =head2 move()
 X<move()>
 
-  sub move(
-    Str(Any) $src,
-    Str(Any) $dest,
-    Bool     :$createonly,
-    --> Bool ) is export
+  sub move( Str() $src, Str() $dest, Bool :$createonly, --> Bool )
 
-Moves a file, as indicate by the first positional parameter, by copying its
+Moves a file, as indicated by the first positional parameter, by copying its
 contents to the destination specified, and then removing the file at the
 original location.  If the destination is a directory, moves the file into
-that directory.  If :createonly is set to True, the move fails if a
+that directory.  If :createonly is set to C<True>, the move fails if a
 directory entry already exists at the destination.  Returns C<True> upon
 success, or an appropriate C<Failure> if the operation could not be completed.
 
@@ -146,16 +141,16 @@ and if that (silently) fails, do it the hard way.
 =head2 note()
 X<note()>
 
-  sub note(*@text --> Bool) is export
+  sub note(*@text --> Bool)
 
 Print the given text, followed by a new line C<"\n"> on C<$*ERR>.  Before
 printing, call the C<.gist> method on any non-C<Str> objects. Return whether
-successful.
+successful.  It really just is like L</say()>, but on C<$*ERR>.
 
 =head2 open()
 X<open()>
 
-    sub open ($name,
+    sub open( Str() $name,
       # mode
         Bool :$r  = True,
         Bool :$w  = False,
@@ -167,7 +162,7 @@ X<open()>
       # newlines
         Any  :$nl    = "EOL",
         Bool :$chomp = True,
-        --> IO::Handle ) is export
+        --> IO::Handle )
 
 A convenience function for opening normal files as text (by default) as
 specified by its (first) parameter.  It returns an instantiated L</IO::Handle>
@@ -226,14 +221,14 @@ C<.lines> and C<.get>.  Defaults to C<True>.
 =head2 print()
 X<print()>
 
-  sub print(*@text --> Bool) is export
+  sub print(*@text --> Bool)
 
 Print the given text (as C<Str> objects) on $*OUT.  Return whether successful.
 
 =head2 prompt()
 X<prompt()>
 
-  sub prompt(Str(Any) $msg --> Str) is export
+  sub prompt(Str() $msg --> Str)
 
 Simple Prompter.  Print message (as C<Str> object) on C<$*OUT> and obtains a
 single line of input from C<$*IN>, which is returned.
@@ -241,7 +236,7 @@ single line of input from C<$*IN>, which is returned.
 =head2 say()
 X<say()>
 
-  sub say(*@text --> Bool) is export
+  sub say(*@text --> Bool)
 
 Print the given text, followed by a new line C<"\n"> on C<$*OUT>.  Before
 printing, call the C<.gist> method on any non-C<Str> objects.  Return whether
@@ -254,7 +249,7 @@ X<slurp()>
     $what      = $*ARGFILES,  # XXX need to generalize $*ARGFILES behaviour
     Bool :$bin = False,
     Str  :$enc = "Unicode",
-    --> Str|Buf ) is export
+    --> Str|Buf )
 
 Slurps the contents of the entire file into a C<Str> (or C<Buf> if C<:bin>).
 Accepts C<:bin> and C<:enc> optional named parameters, with the same meaning
@@ -264,7 +259,7 @@ directory.
 =head2 spurt()
 X<spurt()>
 
-  sub spurt ($where, $what,
+  sub spurt(Str() $where, $what,
     Str  :$enc        = $*ENC,
     Bool :$append     = False,
     Bool :$createonly = False,
@@ -301,7 +296,7 @@ C<False>.
 =head2 rmdir()
 X<rmdir()>
 
-    sub rmdir($dir as IO --> Bool) is export
+    sub rmdir(Str() $dir --> Bool)
 
 Removes the (empty) directory as indicated by the positional parameter.
 Returns C<True> on success or an appropriate C<Failure>.
@@ -309,7 +304,7 @@ Returns C<True> on success or an appropriate C<Failure>.
 =head2 copy()
 X<copy()>
 
-    sub copy(Str(Any) $src, Str(Any) $dst, :$createonly --> Bool) is export
+    sub copy(Str() $src, Str() $dst, :$createonly --> Bool)
 
 Copies a file, as indicate by the first positional parameter, to the
 destination specified.  Optionally takes a named parameter C<:createonly>:
@@ -320,9 +315,7 @@ the operation could not be completed.
 =head2 rename()
 X<rename()>
 
-    sub rename ($source as IO, $dest as IO,
-        :$createonly = False,
-        --> Bool ) is export
+    sub rename( Str() $src, Str() $dst, :$createonly --> Bool )
 
 Moves a file, as indicate by the first positional parameter, by renaming it
 to the destination specified.  If :createonly is set to True, the rename fails
@@ -335,7 +328,7 @@ the destination is on a different physical storage device).
 =head2 tmpdir()
 X<tmpdir()>
 
-  sub tmpdir(Str(Any) $dir, Str(Any) $CWD = $*CWD --> Bool) is export
+  sub tmpdir(Str() $dir, Str() $CWD = $*CWD --> Bool)
 
 Similar in functionality to L</chdir()>, but instead sets the dynamic
 variable C<$*TMPDIR> (rather than $*CWD).
@@ -343,7 +336,7 @@ variable C<$*TMPDIR> (rather than $*CWD).
 =head2 unlink()
 X<unlink()>
 
-    sub unlink(*@files --> @removed) is export
+    sub unlink(*@files --> @removed)
 
 Delete all specified ordinary files, links, or symbolic links.  Returns the
 names of the files that were successfully deleted.
