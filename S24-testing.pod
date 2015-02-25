@@ -161,13 +161,17 @@ condition evaluates to C<False>.
     sub cmp_ok(Mu $got, $op, Mu $expected, $desc?) is export { ... }
 
 The C<is()> function marks a test as passed if the obtained and expected values
-are C<eq>: as such it is a shortcut for C<cmp_ok()> with the C<'eq'> operator.
-The C<isnt()> function marks a test as passed if the obtained and expected values
-are B<not> C<eq>.  These are typically used to check scalar values.
+are the same.  If C<$expected> is a type object, then C<$got> is compared
+using C<===>.  If C<$expected> is a defined value, then C<$got> is compared
+using C<eq>.  The C<isnt()> function marks a test as passed if the obtained
+and expected values are B<not> the same (using the same logic as with C<is()>).
 
 The C<cmp_ok()> function compares two values with the given operator and passes
 the test if the comparison yields a C<True> value.  For ease of use, operators
-may be passed as strings, such as C<'=='> or C<'~~'>.
+may be passed as strings, such as C<'=='> or C<'~~'>.  Note that you can also
+pass a custom operator, for special types of comparisons.
+
+These functions are typically used to check scalar values.
 
 =head2 is_deeply()
 
