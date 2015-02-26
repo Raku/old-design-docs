@@ -8,8 +8,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 26 Oct 2014
-    Version: 48
+    Last Modified: 26 Feb 2015
+    Version: 49
 
 =head1 Function Roles
 
@@ -681,6 +681,38 @@ are converted to a list of individual values before permuting them.)
 
 The functional form assumes it is working on a list of integers C<^$n>.
 
+=item pairup
+
+ multi method pairup ( )
+
+Turns a list of mixed keys, values, and pairs into a list of pairs in
+the same way that a hash composer does, only without creating the hash.
+While there is more list to process, the next value is examined.  If it
+is a Pair, it is passed through unchanged.  Otherwise a second value is
+also taken from the list and those two values together are turned into
+a pair.  It is an X::Pairup::OddNumber error if there is no next value.
+(It is not an error if the second value happens be a pair; if so, it
+merely becomes the value paired with the key of the first value.)
+
+Obviously you cannot create pairs where the keys are Pairs using this
+function.  Use a map or some such for that.
+
+=item invert
+
+ multi method invert ( --> List ) is export {
+     self.map: -> $p { $.value X=> $.key }
+ }
+
+Produces a backmapping of values to keys, expanding list values
+into multiple pairs.  (The C<< X=> >> expands C<$v> if it is a list.)
+To handle keys that do C<Positional> you'll need to write your own map.
+
+The invocant must be a list containing only Pairs, and throws an error if
+anything that is not a Pair is passed.  To get combine kv values, use
+C<.pairup> first:
+
+    @kv.pairup.invert
+
 =back
 
 =head2 Array
@@ -1013,7 +1045,7 @@ the keys in the hash matches.
 
 Produces a backmapping of values to keys, expanding list values
 into multiple pairs.  (The C<< X=> >> expands C<$v> if it is a list.)
-[NB: this may need refinement to handle keys that do C<Positional>.]
+To handle keys that do C<Positional> you'll need to write your own map.
 
 =item push
 
