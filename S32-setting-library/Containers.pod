@@ -1068,7 +1068,7 @@ merely sets the value without turning it into an array.  (Fortunately,
 most list operators create a list of one element when used on an object
 that is not a list.)
 
-The intent is that reversing a hash twice produces a hash equivalent
+The intent is that inverting a hash twice produces a hash equivalent
 to the original hash.
 
 =back
@@ -1205,11 +1205,25 @@ to C<Pair> unless you try to modify it.)
 
 =over
 
+=item exchange
+
+    multi method exchange ( $pair: --> List ) is export {
+        $pair.value => $pair.key
+    }
+
+Returns new pair with key and value swapped.
+
 =item invert
 
     multi method invert ( $pair: --> List ) is export {
-     $pair.value X=> $pair.key
+        $pair.value »=>» $pair.key
     }
+
+Note that this is not a simple exchange, but splits pairs with C<Positional> values
+into multiple pairs in support of database inversion operations (when
+used along with C<Hash.push>).
+
+Equivalent to C<exchange> if no values are C<Positional>.
 
 =back
 
@@ -1479,3 +1493,4 @@ discourage casual use of the eigenstates as a set.)
     Moritz Lenz <moritz@faui2k3.org>
     Tim Nelson <wayland@wayland.id.au>
 
+=for vim:set expandtab sw=4:
