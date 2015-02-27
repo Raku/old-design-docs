@@ -700,12 +700,11 @@ function.  Use a map or some such for that.
 =item invert
 
  multi method invert ( --> List ) is export {
-     self.map: -> $p { $.value X=> $.key }
+     self.map: -> $p { $.value »=>» $.key }
  }
 
 Produces a backmapping of values to keys, expanding list values
-into multiple pairs.  (The C<< X=> >> expands C<$v> if it is a list.)
-To handle keys that do C<Positional> you'll need to write your own map.
+into multiple pairs.  (The C<< »=>» >> expands the value if it is a list.)
 
 The invocant must be a list containing only Pairs, and throws an error if
 anything that is not a Pair is passed.  To get combine kv values, use
@@ -1040,12 +1039,14 @@ the keys in the hash matches.
 =item invert
 
  multi method invert ( %hash: --> List ) is export {
-     map -> $k, $v { $v X=> $k }, %hash.kv;
+     map -> $k, $v { $v »=>» $k }, %hash.kv;
  }
 
 Produces a backmapping of values to keys, expanding list values
-into multiple pairs.  (The C<< X=> >> expands C<$v> if it is a list.)
-To handle keys that do C<Positional> you'll need to write your own map.
+into multiple pairs.  (The C<< »=>» >> expands C<$v> if it is a list.)
+
+This function is essentially a shortcut for C<.pairs.invert>, but bypasses
+the creation of pairs only to invert them.
 
 =item push
 
