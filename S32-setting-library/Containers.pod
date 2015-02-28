@@ -717,10 +717,18 @@ Produces a backmapping of values to keys, expanding list values
 into multiple pairs.  (The C<< »=>» >> expands the value if it is a list.)
 
 The invocant must be a list containing only Pairs, and throws an error if
-anything that is not a Pair is passed.  To get combine kv values, use
+anything that is not a Pair is passed.  To invert key/value lists, use
 C<.pairup> first:
 
     @kv.pairup.invert
+
+Likewise if you wish to invert the implicit indices of an array or list, you must
+call C<.pairs> first:
+
+    <a b c>.pairs.invert  # ('a' => 0, 'b' => 1, 'c' => 2)
+
+(You may call C<.invert> directly on a hash, because a hash naturally listifies
+to a list of pairs.)
 
 =back
 
@@ -927,13 +935,16 @@ returns the modified array.
 
 =item pairs
 
+=item antipairs
+
 =item values
 
- multi method keys   ( @array: ) is export
- multi method kv     ( @array: ) is export
- multi method pairs  ( @array: ) is export
- multi method enums  ( @array: ) is export
- multi method values ( @array: ) is export
+ multi method keys      ( @array: ) is export
+ multi method kv        ( @array: ) is export
+ multi method pairs     ( @array: ) is export
+ multi method antipairs ( @array: ) is export
+ multi method enums     ( @array: ) is export
+ multi method values    ( @array: ) is export
 
 Iterates the elements of C<@array>, in order.
 
@@ -991,13 +1002,16 @@ which can be processed using junctions.
 
 =item pairs
 
+=item pairs
+
 =item values
 
- multi method keys   ( %hash: ) is export
- multi method kv     ( %hash: ) is export
- multi method pairs  ( %hash: ) is export
- multi method enums  ( %hash: ) is export
- multi method values ( %hash: ) is export
+ multi method keys      ( %hash: ) is export
+ multi method kv        ( %hash: ) is export
+ multi method pairs     ( %hash: ) is export
+ multi method antipairs ( %hash: ) is export
+ multi method enums     ( %hash: ) is export
+ multi method values    ( %hash: ) is export
 
 Iterates the elements of C<%hash>. The order is implementation dependent
 and arbitrary, but will be the same between successive calls to these
@@ -1049,11 +1063,11 @@ the keys in the hash matches.
 =item invert
 
  multi method invert ( %hash: --> List ) is export {
-     map -> $k, $v { $v »=>» $k }, %hash.kv;
+     %hash.map: { .value »=>» .key }
  }
 
-Produces a backmapping of values to keys, expanding list values
-into multiple pairs.  (The C<< »=>» >> expands C<$v> if it is a list.)
+Produces a backmapping of values to keys, but unlike C<.antipairs>, expands list values
+into multiple pairs.  (The C<< »=>» >> expands C<.value> if it is a list.)
 
 This function is essentially a shortcut for C<.pairs.invert>, but bypasses
 the creation of pairs only to invert them.
@@ -1215,13 +1229,14 @@ to C<Pair> unless you try to modify it.)
 
 =over
 
-=item exchange
+=item antipair
 
-    multi method exchange ( $pair: --> List ) is export {
+    multi method antipair ( $pair: --> Pair ) is export {
         $pair.value => $pair.key
     }
 
-Returns new pair with key and value swapped.
+Returns new pair with key and value swapped.  Note singular spelling,
+since this operates only on one pair.
 
 =item invert
 
@@ -1233,7 +1248,7 @@ Note that this is not a simple exchange, but splits pairs with C<Positional> val
 into multiple pairs in support of database inversion operations (when
 used along with C<Hash.push>).
 
-Equivalent to C<exchange> if no values are C<Positional>.
+Equivalent to C<antipair> if no values are C<Positional>.
 
 =back
 
