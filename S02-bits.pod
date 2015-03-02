@@ -8,8 +8,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 21 Jan 2015
-    Version: 287
+    Last Modified: 2 Mar 2015
+    Version: 288
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -410,6 +410,28 @@ postfix dot will be taken to be the start of some kind of method call
 syntax.  (The C<.123> form with a leading
 dot is still allowed however when a term is expected, and is equivalent
 to C<0.123> rather than C<$_.123>.)
+
+=head2 Keywords and whitespace
+
+One other spot where whitespace makes a difference is after various
+keywords, such as control flow or other statement-oriented keywords.
+Such keywords require whitespace after them.  (Again, this is in the
+interests of extensibility).  So for instance, if you define a symbol
+that happens to be the same as the keyword C<if>, you can still use it
+as a non-keyword, as long as you don't put whitespace after it:
+
+    my \if = 42; say (if) if if;   # prints 42
+
+Here only the middle if of the second statement is taken as a keyword
+because it has whitespace after it.  The other mentions of C<if> do not,
+and would be illegal were it not that the symbol is defined in this scope.
+If you omit the definition, you'd get a message like this:
+
+    Whitespace required after keyword 'if'
+    at myfile:1
+    ------> say (if⏏) if if;
+    Undeclared routine:
+        if used at line 1
 
 =head1 Built-In Data Types
 
@@ -3943,6 +3965,28 @@ since that is what the words are split apart on.
 =head2 Whitespace before adverbs
 
 Whitespace is allowed between the "q" and its adverb: C<q :w /.../>.
+
+=head2 Overriding the definitions of quoting keywords
+
+If you define an identifier (either as a term or a subroutine) that happens
+to shadow one of the quoting or matching keywords, that keyword is no longer
+available for quoting purposes:
+
+    my \q = 42;    say q / 2;  # prints 21
+    sub m { 42 };  say m / 2;  # prints 21
+
+Unlike with keyword overrides, it doesn't matter whether there's
+whitespace after it; the name will always just be parsed as a term or
+function call, unless followed explicitly by a colon.  Generally you can
+work around such a definition by using a related form of the same quote,
+or by adding a useless modifier (either with or without the colon):
+
+    my \q = 42;   say Q:q /2/;    # prints 2
+    my \q = 42;   say qs  /2/;    # prints 2
+    my \q = 42;   say q:s /2/;    # prints 2
+
+    sub m { 42 }; say / 2 /;      # matches 2
+    sub m { 42 }; say m:1st/ 2 /; # matches 2
 
 =head2 Delimiters of quoting forms
 
