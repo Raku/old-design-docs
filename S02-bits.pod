@@ -8,8 +8,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 5 Mar 2015
-    Version: 289
+    Last Modified: 20 Mar 2015
+    Version: 290
 
 This document summarizes Apocalypse 2, which covers small-scale
 lexical items and typological issues.  (These Synopses also contain
@@ -3504,8 +3504,8 @@ Rational literals are indicated by separating two integer literals
 Whitespace is not allowed on either side of the slash or it will
 be split under normal quote-words semantics:
 
-    < 1 / 2 >   # ('1', '/', '2')
-    < 1/2 >     # okay, same as <1/2>
+    < 1 / 2 >   # (IntStr('1'), '/', IntStr('2'))
+    < 1/2 >     # okay, returns RatStr('1/2') rather than Rat
 
 Because of constant folding, you may often get away with leaving
 out the angles:
@@ -3523,8 +3523,9 @@ Decimal fractions not using "e" notation are also treated as literal C<Rat> valu
     1.23456.WHAT     # Rat
     0.11 == 11/100   # True
 
-Literals specified in angle brackets are always subject to C<val()> processing,
-so C<< <1/2> >> produces a value that is both a C<Rat> and a C<Str>.
+Literals specified without spaces in angle brackets are exempt from C<val()> processing,
+so C<< <1/2> >> produces a value that is C<Rat>, while
+C<< < 1/2 > >> produces a value that is both a C<Rat> and a C<Str>.
 See L<Allomorphic value semantics> below.
 
 =head2 Complex literals
@@ -3533,7 +3534,7 @@ Complex literals are similarly indicated by writing an addition or subtraction o
 two real numbers (again, without spaces around the operators) inside angles:
 
     <5.2+1e42i>
-    < -3-1i >
+    <-3-1i>
 
 As with rational literals, constant folding would produce the same
 complex number, but this form parses as a single term, ignoring
@@ -3543,8 +3544,9 @@ surrounding precedence.
 rational and complex literal forms fall out naturally from the semantic
 rules of qw quotes described below.)
 
-Literals specified in angle brackets are always subject to C<val()> processing,
-so C<< <1+2i> >> produces a value that is both a C<Complex> and a C<Str>.
+Literals specified without spaces in angle brackets are exempt from C<val()> processing,
+so C<< <1+2i> >> produces a value that is a C<Complex>
+while C<< < 1+2i > >> produces a value that is both a C<Complex> and a C<Str>.
 See L<Allomorphic value semantics> below.
 
 =head2 C<Blob> literals
