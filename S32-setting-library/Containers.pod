@@ -8,8 +8,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 26 Feb 2015
-    Version: 49
+    Last Modified: 23 Mar 2015
+    Version: 50
 
 =head1 Function Roles
 
@@ -476,7 +476,7 @@ C<is canonicalized(&lc)>.)
 
  multi method unique(List:D: --> List:D, :&as)
 
- multi sub uniq(*@values --> List:D, :&as)
+ multi sub unique(*@values --> List:D, :&as)
 
 Returns a list of unique values from the invocant/argument list, such
 that only the first occurrence of each duplicated value remains in the
@@ -491,7 +491,7 @@ duplicates are removed.
 objects are adjacent.)
 
 The optional C<:as> parameter allows you to normalize/canonicalize the elements
-before uniq-ing. The values are transformed for the purposes of comparison, but
+before unique-ing. The values are transformed for the purposes of comparison, but
 it's still the original values that make it to the result list:
 
     say <a A B b c b C>.unique(:as(&lc))          # a B c
@@ -1059,6 +1059,16 @@ in the hash matches.
 
 Returns a junction which will only match against another value if none of
 the keys in the hash matches.
+
+=item antipairs
+
+ multi method antipairs ( %hash: --> List ) is export {
+     %hash.map: { .value => .key }
+ }
+
+Produces a simple backmapping of values to keys, like C<.pairs> but with each
+returned pair returned as an antipair, that is, a pair with key and value exchanged.
+Unlike the C<invert> method, there is no attempt to expand list values into multiple pairs.
 
 =item invert
 
