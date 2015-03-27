@@ -2,7 +2,7 @@
 
 =head1 TITLE
 
-Synopsis 17: Concurrency 
+Synopsis 17: Concurrency
 
 =head1 VERSION
 
@@ -51,7 +51,7 @@ Places where we go from synchronous to asynchronous, or from asynchronous to syn
 
 =head2 Implicit parallelism is OK
 
-Parallelism is primarily about taking something we could do serially and using multiple CPU cores in order to get to a result more quickly. This leads to a very nice property: a parallel solution to a problem should give the same answer as a serial solution. 
+Parallelism is primarily about taking something we could do serially and using multiple CPU cores in order to get to a result more quickly. This leads to a very nice property: a parallel solution to a problem should give the same answer as a serial solution.
 
 While under the hood there is asynchrony and the inherent coordination it requires, on the outside a problem solved using parallel programming is still, when taken as a whole, a single, synchronous operation.
 
@@ -119,7 +119,7 @@ Use C<:every> to schedule a task to run at a fixed interval, possibly with a del
 
     # Every second, from now
     $*SCHEDULER.cue: :every(1), { say "Oh wow, a kangaroo!" };
-    
+
     # Every 0.5s, but don't start for 2s.
     $*SCHEDULER.cue: { say "Kenya believe it?" }, :every(0.5), :in(2);
 
@@ -340,11 +340,11 @@ The first, known as the C<emit> closure, is invoked whenever a value is emitted 
 The simplest Supply is a C<Supply> class, which is punned from the role. It creates a C<live> supply.  On the "pumping" end, this has corresponding methods C<emit>, C<done>, and C<quit>, which notify all current taps.
 
     my $s = Supply.new;
-    
+
     my $t1 = $s.tap({ say $_ });
     $s.emit(1);                              # 1\n
     $s.emit(2);                              # 2\n
-    
+
     my $t2 = $s.tap({ say 2 * $_ },
               :done({ say "End"  }));
     $s.emit(3);                              # 3\n6\n
@@ -606,7 +606,7 @@ There are some combinators that deal with bringing multiple supplies together:
 
   my $m = Supply.merge(@s);  # also as class method
 
-Produces a C<Supply> containing the values produced by given and the specified supply or supplies, and triggering C<done> once all of the supplies have done so. 
+Produces a C<Supply> containing the values produced by given and the specified supply or supplies, and triggering C<done> once all of the supplies have done so.
 
 =item C<zip>
 
@@ -871,13 +871,13 @@ Except that it happens atomically. For example, a crappy non-reentrant mutex cou
 
     class CrappyMutex {
         has $!locked = 0;
-        
+
         method lock() {
             loop {
                 return if cas($!locked, 0, 1) == 0;
             }
         }
-        
+
         method unlock() {
             $!locked = 0;
         }
@@ -897,11 +897,11 @@ Another  example, implementing a top-5 news headlines list to be accessed and up
 
     class TopHeadlines {
         has $!headlines = [];   # Scalar holding array, as CAS needs
-        
+
         method headlines() {
             $!headlines
         }
-        
+
         method add_headline($headline) {
             cas($!headlines, -> @current {
                 my @new = $headline, @current;
