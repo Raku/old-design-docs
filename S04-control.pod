@@ -16,46 +16,45 @@ statement syntax of Perl.
 
 =head1 The Relationship of Lexical and Dynamic Scopes
 
-Control flow is a dynamic feature of all computer programming
-languages, but languages differ in the extent to which control flow is
-attached to declarative features of the language, which are often known
-as "static" or "lexical".  We use the phrase "lexical scoping" in its
-industry-standard meaning to indicate those blocks that surround the
-current textual location.  More abstractly, any declarations associated
-with those textual blocks are also considered to be part of the lexical
-scope, and this is where the term earns the "lexical" part of its name,
-in the sense that lexical scoping actually does define the "lexicon"
-for the current chunk of code, insofar as the definitions of variables
-and routines create a local domain-specific language.
+Control flow is a dynamic feature of all computer programming languages, but
+languages differ in the extent to which control flow is attached to
+declarative features of the language, which are often known as "static" or
+"lexical".  We use the phrase "lexical scoping" in its industry-standard
+meaning to indicate those blocks that surround the current textual location.
+More abstractly, any declarations associated with those textual blocks are
+also considered to be part of the lexical scope, and this is where the term
+earns the "lexical" part of its name, in the sense that lexical scoping
+actually does define the "lexicon" for the current chunk of code, insofar as
+the definitions of variables and routines create a local domain-specific
+language.
 
-We also use the term "dynamic scoping" in the standard fashion to
-indicate the nested call frames that are created and destroyed every
-time a function or method is called.  In most interesting programs the
-dynamic scopes are nested quite differently from the lexical scopes,
-so it's important to distinguish carefully which kind of scoping
-we're talking about.
+We also use the term "dynamic scoping" in the standard fashion to indicate
+the nested call frames that are created and destroyed every time a function
+or method is called.  In most interesting programs the dynamic scopes are
+nested quite differently from the lexical scopes, so it's important to
+distinguish carefully which kind of scoping we're talking about.
 
-Further compounding the difficulty is that every dynamic scope's outer call frame is
-associated with a lexical scope somewhere, so you can't just consider
-one kind of scoping or the other in isolation.  Many constructs define
-a particular interplay of lexical and dynamic features.  For instance,
-unlike normal lexically scope variables, dynamic variables search
-up the dynamic call stack for a variable of a particular name, but at
-each "stop" along the way, they are actually looking in the lexical
-"pad" associated with that particular dynamic scope's call frame.
+Further compounding the difficulty is that every dynamic scope's outer call
+frame is associated with a lexical scope somewhere, so you can't just
+consider one kind of scoping or the other in isolation.  Many constructs
+define a particular interplay of lexical and dynamic features.  For
+instance, unlike normal lexically scope variables, dynamic variables search
+up the dynamic call stack for a variable of a particular name, but at each
+"stop" along the way, they are actually looking in the lexical "pad"
+associated with that particular dynamic scope's call frame.
 
-In Perl 6, control flow is designed to do what the user expects most of
-the time, but this implies that we must consider the declarative nature
-of labels and blocks and combine those with the dynamic nature of the
-call stack.  For instance, a C<return> statement always returns from
-the lexically scoped subroutine that surrounds it.  But to do that,
-it may eventually have to peel back any number of layers of dynamic
-call frames internal to the subroutine's current call frame.  The lexical scope supplies the
-declared target for the dynamic operation.  There does not seem to
-be a prevailing term in the industry for this, so we've coined the
-term I<lexotic> to refer to these strange operations that perform a
-dynamic operation with a lexical target in mind.  Lexotic operators
-in Perl 6 include:
+In Perl 6, control flow is designed to do what the user expects most of the
+time, but this implies that we must consider the declarative nature of
+labels and blocks and combine those with the dynamic nature of the call
+stack.  For instance, a C<return> statement always returns from the
+lexically scoped subroutine that surrounds it.  But to do that, it may
+eventually have to peel back any number of layers of dynamic call frames
+internal to the subroutine's current call frame.  The lexical scope supplies
+the declared target for the dynamic operation.  There does not seem to be a
+prevailing term in the industry for this, so we've coined the term
+I<lexotic> to refer to these strange operations that perform a dynamic
+operation with a lexical target in mind.  Lexotic operators in Perl 6
+include:
 
     return
     next
@@ -63,53 +62,51 @@ in Perl 6 include:
     redo
     goto
 
-Some of these operators also fall back to a purely dynamic interpretation
-if the lexotic interpretation doesn't work.  For instance, C<next> with a label
-will prefer to exit a loop lexotically, but if there is no loop with
-an appropriate label in the lexical context, it will then scan upward
-dynamically through the call frames for any loop with the appropriate label, even though that
-loop will not be lexically visible.  (C<next> without a label is purely dynamic.)  Lexotic and dynamic control flow
-is implemented by a system of control exceptions.  For the lexotic
-return of C<next>, the control exception will contain the identity of
-the loop scope to be exited (since the label was already "used up" to
-discover that identity), but for the dynamic fallback, the exception
-will contain only the loop label to be matched dynamically.  See
-L</Control Exceptions> below.
+Some of these operators also fall back to a purely dynamic interpretation if
+the lexotic interpretation doesn't work.  For instance, C<next> with a label
+will prefer to exit a loop lexotically, but if there is no loop with an
+appropriate label in the lexical context, it will then scan upward
+dynamically through the call frames for any loop with the appropriate label,
+even though that loop will not be lexically visible.  (C<next> without a
+label is purely dynamic.)  Lexotic and dynamic control flow is implemented
+by a system of control exceptions.  For the lexotic return of C<next>, the
+control exception will contain the identity of the loop scope to be exited
+(since the label was already "used up" to discover that identity), but for
+the dynamic fallback, the exception will contain only the loop label to be
+matched dynamically.  See L</Control Exceptions> below.
 
-The C<redo> operator, as a variant of C<goto>, directly transfers
-control to the first statement of the lexotically enclosed loop.
-Essentially, the compiler turns it into a C<goto> with an implicitly
-generated (secret) label on that first statement.  In order to know
-when that implicit label must be generated, we restrict C<redo> to
-the current outer lexical scope.  It may not be used dynamically.
-(If you find yourself wanting the dynamic variant, please use C<goto>
-with an explicit label instead, so the compiler can know to pessimize
-any unrolling of that loop.)
+The C<redo> operator, as a variant of C<goto>, directly transfers control to
+the first statement of the lexotically enclosed loop.  Essentially, the
+compiler turns it into a C<goto> with an implicitly generated (secret) label
+on that first statement.  In order to know when that implicit label must be
+generated, we restrict C<redo> to the current outer lexical scope.  It may
+not be used dynamically.  (If you find yourself wanting the dynamic variant,
+please use C<goto> with an explicit label instead, so the compiler can know
+to pessimize any unrolling of that loop.)
 
 =head1 The Relationship of Blocks and Declarations
 
-Every block is a closure.  (That is, in the abstract, they're all
-anonymous subroutines that take a snapshot of their lexical environment.)
-How a block is invoked and how its results are used are matters of
-context, but closures all work the same on the inside.
+Every block is a closure.  (That is, in the abstract, they're all anonymous
+subroutines that take a snapshot of their lexical environment.) How a block
+is invoked and how its results are used are matters of context, but closures
+all work the same on the inside.
 
-Blocks are delimited by curlies, or by the beginning and end of the
-current compilation unit (either the current file or the current
-C<EVAL> string).  Unlike in Perl 5, there are (by policy) no implicit
-blocks around standard control structures.  (You could write a macro
-that violates this, but resist the urge.)  Variables that mediate
-between an outer statement and an inner block (such as loop variables)
-should generally be declared as formal parameters to that block.  There
-are three ways to declare formal parameters to a closure.
+Blocks are delimited by curlies, or by the beginning and end of the current
+compilation unit (either the current file or the current C<EVAL> string).
+Unlike in Perl 5, there are (by policy) no implicit blocks around standard
+control structures.  (You could write a macro that violates this, but resist
+the urge.)  Variables that mediate between an outer statement and an inner
+block (such as loop variables) should generally be declared as formal
+parameters to that block.  There are three ways to declare formal parameters
+to a closure.
 
     $func = sub ($a, $b) { .print if $a eq $b };  # standard sub declaration
     $func = -> $a, $b { .print if $a eq $b };     # a "pointy" block
     $func = { .print if $^a eq $^b }              # placeholder arguments
 
 A bare closure (except the block associated with a conditional statement)
-without placeholder arguments that uses C<$_>
-(either explicitly or implicitly) is treated as though C<$_> were a
-formal parameter:
+without placeholder arguments that uses C<$_> (either explicitly or
+implicitly) is treated as though C<$_> were a formal parameter:
 
     $func = { .print if $_ };   # Same as: $func = <-> $_ { .print if $_ };
     $func("printme");
@@ -118,17 +115,16 @@ In any case, all formal parameters are the equivalent of C<my> variables
 within the block.  See S06 for more on function parameters.
 
 Except for such formal parameter declarations, all lexically scoped
-declarations are visible from the point of declaration to the end of
-the enclosing block.  Period.  Lexicals may not "leak" from a block to any
-other external scope (at least, not without some explicit aliasing
-action on the part of the block, such as exportation of a symbol
-from a module).  The "point of declaration" is the moment the compiler
-sees "C<my $foo>", not the end of the statement as in Perl 5, so
+declarations are visible from the point of declaration to the end of the
+enclosing block.  Period.  Lexicals may not "leak" from a block to any other
+external scope (at least, not without some explicit aliasing action on the
+part of the block, such as exportation of a symbol from a module).  The
+"point of declaration" is the moment the compiler sees "C<my $foo>", not the
+end of the statement as in Perl 5, so
 
     my $x = $x;
 
-will no longer see the value of the outer C<$x>; you'll need to say
-either
+will no longer see the value of the outer C<$x>; you'll need to say either
 
     my $x = $OUTER::x;
 
@@ -143,9 +139,8 @@ If you declare a lexical twice in the same scope, it is the same lexical:
     my $x;
     my $x;
 
-By default the second declaration will get a compiler warning.
-You may suppress this by modifying the first declaration
-with C<proto>:
+By default the second declaration will get a compiler warning.  You may
+suppress this by modifying the first declaration with C<proto>:
 
     my proto $x;
     ...
@@ -154,40 +149,39 @@ with C<proto>:
 
 If you've referred to C<$x> prior to the first declaration, and the compiler
 tentatively bound it to C<$OUTER::x>, then it's an error to declare it, and
-the compiler is required to complain at that point.  If such use can't
-be detected because it is hidden in an C<EVAL>, then it is erroneous, since
-the C<EVAL()> compiler might bind to either C<$OUTER::x> or the subsequently
+the compiler is required to complain at that point.  If such use can't be
+detected because it is hidden in an C<EVAL>, then it is erroneous, since the
+C<EVAL()> compiler might bind to either C<$OUTER::x> or the subsequently
 declared "C<my $x>".
 
-As in Perl 5, "C<our $foo>" introduces a lexically scoped alias for
-a variable in the current package.
+As in Perl 5, "C<our $foo>" introduces a lexically scoped alias for a
+variable in the current package.
 
-The new C<constant> declarator introduces a
-compile-time constant, either a variable or named value, which
-may be initialized with a pseudo-assignment:
+The new C<constant> declarator introduces a compile-time constant, either a
+variable or named value, which may be initialized with a pseudo-assignment:
 
     constant $pi of Int = 3;
     my Num constant π = atan2(2,2) * 4;
 
-The initializing expression is evaluated at C<BEGIN> time.  Constants
-(and enums) default to C<our> scoping so they can be accessed from
-outside the package.
+The initializing expression is evaluated at C<BEGIN> time.  Constants (and
+enums) default to C<our> scoping so they can be accessed from outside the
+package.
 
 There is a new C<state> declarator that introduces a lexically scoped
-variable like C<my> does, but with a lifetime that persists for the
-life of the closure, so that it keeps its value from the end of one
-call to the beginning of the next.  Separate clones of the closure
-get separate state variables.  However, recursive calls to the same
-clone use the same state variable.
+variable like C<my> does, but with a lifetime that persists for the life of
+the closure, so that it keeps its value from the end of one call to the
+beginning of the next.  Separate clones of the closure get separate state
+variables.  However, recursive calls to the same clone use the same state
+variable.
 
-Perl 5's "C<local>" function has been renamed to C<temp> to better
-reflect what it does.  There is also a C<let> prefix operator that sets a
-hypothetical value.  It works exactly like C<temp>, except that the
-value will be restored only if the current block exits unsuccessfully.
-(See Definition of Success below for more.)  C<temp> and C<let> temporize
-or hypotheticalize the value or the variable depending on whether you
-do assignment or binding.  One other difference from Perl 5 is that
-the default is not to undefine a variable.  So
+Perl 5's "C<local>" function has been renamed to C<temp> to better reflect
+what it does.  There is also a C<let> prefix operator that sets a
+hypothetical value.  It works exactly like C<temp>, except that the value
+will be restored only if the current block exits unsuccessfully.  (See
+Definition of Success below for more.)  C<temp> and C<let> temporize or
+hypotheticalize the value or the variable depending on whether you do
+assignment or binding.  One other difference from Perl 5 is that the default
+is not to undefine a variable.  So
 
     temp $x;
 
@@ -197,26 +191,26 @@ causes C<$x> to start with its current value.  Use
 
 to get the Perl 5 behavior.
 
-Note that temporizations that are undone upon scope exit must be
-prepared to be redone if a continuation within that scope is taken.
+Note that temporizations that are undone upon scope exit must be prepared to
+be redone if a continuation within that scope is taken.
 
 =head1 The Relationship of Blocks and Statements
 
-In the absence of explicit control flow terminating the block early,
-the return value of a block is the value of its final statement.
-This is defined as the textually last statement of its top-level
-list of statements; any statements embedded within those top-level
-statements are in their own lower-level list of statements and,
-while they may be a final statement in their subscope, they're not
-considered the final statement of the outer block in question.
+In the absence of explicit control flow terminating the block early, the
+return value of a block is the value of its final statement.  This is
+defined as the textually last statement of its top-level list of statements;
+any statements embedded within those top-level statements are in their own
+lower-level list of statements and, while they may be a final statement in
+their subscope, they're not considered the final statement of the outer
+block in question.
 
-This is subtly different from Perl 5's behavior, which was to return
-the value of the last expression evaluated, even if that expression
-was just a conditional.  Unlike in Perl 5, if a final statement in
-Perl 6 is a conditional that does not execute any of its branches, it
-doesn't matter what the value of the conditional is, the value of that
-conditional statement is always C<()>.  If there are no statements
-in the block at all, the result is also C<()>.
+This is subtly different from Perl 5's behavior, which was to return the
+value of the last expression evaluated, even if that expression was just a
+conditional.  Unlike in Perl 5, if a final statement in Perl 6 is a
+conditional that does not execute any of its branches, it doesn't matter
+what the value of the conditional is, the value of that conditional
+statement is always C<()>.  If there are no statements in the block at all,
+the result is also C<()>.
 
 =head1 Statement-ending blocks
 
@@ -227,8 +221,8 @@ can occur there.  That is, these two statements are equivalent:
     my $x = sub { 3 }
     my $x = sub { 3 };
 
-Since bracketed expressions consider their insides to be statements,
-this works out consistently even where you might expect problems:
+Since bracketed expressions consider their insides to be statements, this
+works out consistently even where you might expect problems:
 
     my $x = [
         sub { 3 },  # this comma is not optional
@@ -240,8 +234,8 @@ this works out consistently even where you might expect problems:
         2 => { 6 => 7, 8 => 9 }   # OK, terminates inner statement
     };
 
-Because subroutine declarations are expressions, not statements,
-this is now invalid:
+Because subroutine declarations are expressions, not statements, this is now
+invalid:
 
     sub f { 3 } sub g { 3 }     # two terms occur in a row
 
@@ -251,10 +245,9 @@ But these two are valid:
     sub f { 3 }; sub g { 3 }    # the trailing semicolon is optional
 
 Though certain control statements could conceivably be parsed in a
-self-contained way, for visual consistency all statement-terminating
-blocks that end in the middle of a line I<must> be terminated by
-semicolon unless they are naturally terminated by some other statement
-terminator:
+self-contained way, for visual consistency all statement-terminating blocks
+that end in the middle of a line I<must> be terminated by semicolon unless
+they are naturally terminated by some other statement terminator:
 
     while yin() { yang() }  say "done";      # ILLEGAL
     while yin() { yang() }; say "done";      # okay, explicit semicolon
@@ -264,8 +257,8 @@ terminator:
 =head1 Conditional statements
 X<if>X<unless>
 
-The C<if> and C<unless> statements work much as they do in
-Perl 5.  However, you may omit the parentheses on the conditional:
+The C<if> and C<unless> statements work much as they do in Perl 5.  However,
+you may omit the parentheses on the conditional:
 
     if $foo == 123 {
         ...
@@ -277,37 +270,36 @@ Perl 5.  However, you may omit the parentheses on the conditional:
         ...
     }
 
-The result of a conditional statement is the result of the block
-chosen to execute.  If the conditional does not execute any
-branch, the return value is C<()>.
+The result of a conditional statement is the result of the block chosen to
+execute.  If the conditional does not execute any branch, the return value
+is C<()>.
 
 The C<unless> statement does not allow an C<elsif> or C<else> in Perl 6.
 
-The value of the conditional expression may be optionally bound to
-a closure parameter:
+The value of the conditional expression may be optionally bound to a closure
+parameter:
 
     if    testa() -> $a { say $a }
     elsif testb() -> $b { say $b }
     else          -> $b { say $b }
 
-Note that the value being evaluated for truth and subsequently bound is
-not necessarily a value of type C<Bool>.  (All normal types in Perl may
-be evaluated for truth.  In fact, this construct would be relatively
-useless if you could bind only boolean values as parameters, since
-within the closure you already know whether it evaluated to true
-or false.)  Binding within an C<else> automatically binds the value
-tested by the previous C<if> or C<elsif>, which, while known to be
-false, might nevertheless be an I<interesting> value of false.  (By similar
-reasoning, an C<unless> allows binding of a false parameter.)
+Note that the value being evaluated for truth and subsequently bound is not
+necessarily a value of type C<Bool>.  (All normal types in Perl may be
+evaluated for truth.  In fact, this construct would be relatively useless if
+you could bind only boolean values as parameters, since within the closure
+you already know whether it evaluated to true or false.)  Binding within an
+C<else> automatically binds the value tested by the previous C<if> or
+C<elsif>, which, while known to be false, might nevertheless be an
+I<interesting> value of false.  (By similar reasoning, an C<unless> allows
+binding of a false parameter.)
 
 An explicit placeholder may also be used:
 
     if blahblah() { return $^it }
 
 However, use of C<$_> with a conditional or conditionally repeating
-statement's block is I<not> considered sufficiently explicit to turn
-a 0-ary block into a 1-ary function, so all these methods use the
-same invocant:
+statement's block is I<not> considered sufficiently explicit to turn a 0-ary
+block into a 1-ary function, so all these methods use the same invocant:
 
     if .haste { .waste }
     while .haste { .waste }
@@ -316,14 +308,13 @@ same invocant:
 
     for .haste { .waste }
 
-where each call to the block would bind a new invocant for the
-C<.waste> method, each of which is likely different from the original
-invocant to the C<.haste> method.)
+where each call to the block would bind a new invocant for the C<.waste>
+method, each of which is likely different from the original invocant to the
+C<.haste> method.)
 
-Conditional statement modifiers work as in Perl 5.  So do the
-implicit conditionals implied by short-circuit operators.  Note though that
-the contents of parens or brackets is parsed as a statement,
-so you can say:
+Conditional statement modifiers work as in Perl 5.  So do the implicit
+conditionals implied by short-circuit operators.  Note though that the
+contents of parens or brackets is parsed as a statement, so you can say:
 
     @x = 41, (42 if $answer), 43;
 
@@ -337,63 +328,61 @@ See L<S02/"Multidimensional slices and parcels">.)
 
 =head1 Loop statements
 
-Looping statement modifiers are the same as in Perl 5 except that,
-for ease of writing list comprehensions, a looping statement modifier
-is allowed to contain a single conditional statement modifier:
+Looping statement modifiers are the same as in Perl 5 except that, for ease
+of writing list comprehensions, a looping statement modifier is allowed to
+contain a single conditional statement modifier:
 
     @evens = ($_ * 2 if .odd for 0..100);
 
-Loop modifiers C<next>, C<last>, and C<redo> also work much as in
-Perl 5.  However, the labeled forms can use method call syntax:
-C<LABEL.next>, etc.  The C<.next> and C<.last> methods take an
-optional argument giving the final value of that loop iteration.
-So the old C<next LINE> syntax is still allowed but really does
-something like C<LINE.next(())> underneath.  Any block object can
-be used, not just labels, so to return a value from this iteration
-of the current block you can say:
+Loop modifiers C<next>, C<last>, and C<redo> also work much as in Perl 5.
+However, the labeled forms can use method call syntax: C<LABEL.next>, etc.
+The C<.next> and C<.last> methods take an optional argument giving the final
+value of that loop iteration.  So the old C<next LINE> syntax is still
+allowed but really does something like C<LINE.next(())> underneath.  Any
+block object can be used, not just labels, so to return a value from this
+iteration of the current block you can say:
 
     &?BLOCK.next($retval);
 
-[Conjecture: a bare C<next($retval)> function could be taught to do
-the same, as long as C<$retval> isn't a loop label.  Presumably multiple
+[Conjecture: a bare C<next($retval)> function could be taught to do the
+same, as long as C<$retval> isn't a loop label.  Presumably multiple
 dispatch could sort this out.]
 
-With a target object or label, loop modifiers search lexotically
-for the scope to modify.  Without a target, however, they are purely
-dynamic, and choose the innermost dynamic loop, which may well be a
-C<map> or other implicitly looping function, including user-defined
-functions.
+With a target object or label, loop modifiers search lexotically for the
+scope to modify.  Without a target, however, they are purely dynamic, and
+choose the innermost dynamic loop, which may well be a C<map> or other
+implicitly looping function, including user-defined functions.
 
-There is no longer a C<continue> block.  Instead, use a C<NEXT> block
-within the body of the loop.  See below.
+There is no longer a C<continue> block.  Instead, use a C<NEXT> block within
+the body of the loop.  See below.
 
-The value of a loop statement is the list of values from each
-iteration.  Each iteration's value is returned as a single "argument"
-object.  See L<S02> for a long definition of argument, but in short,
-it's either an ordinary object or a parcel containing multiple values.
+The value of a loop statement is the list of values from each iteration.
+Each iteration's value is returned as a single "argument" object.  See
+L<S02> for a long definition of argument, but in short, it's either an
+ordinary object or a parcel containing multiple values.
 
 Normal flat list context ignores parcel boundaries and flattens the list.
 
-Iterations that return C<()> (such as by calling C<next> with no extra return
-arguments) return that C<()> as the next value, which will therefore disappear
-when interpolated in flat context, but will interpolate an empty C<Parcel> into slice
-context.
+Iterations that return C<()> (such as by calling C<next> with no extra
+return arguments) return that C<()> as the next value, which will therefore
+disappear when interpolated in flat context, but will interpolate an empty
+C<Parcel> into slice context.
 
-For finer-grained control of which iterations return values, use
-C<gather> and C<take>.
+For finer-grained control of which iterations return values, use C<gather>
+and C<take>.
 
 =head2 The C<while> and C<until> statements
 X<while>X<until>
 
-The C<while> and C<until> statements work as in Perl 5, except that you
-may leave out the parentheses around the conditional:
+The C<while> and C<until> statements work as in Perl 5, except that you may
+leave out the parentheses around the conditional:
 
     while $bar < 100 {
         ...
     }
 
-As with conditionals, you may optionally bind the result of the
-conditional expression to a parameter of the block:
+As with conditionals, you may optionally bind the result of the conditional
+expression to a parameter of the block:
 
     while something() -> $thing {
         ...
@@ -403,17 +392,16 @@ conditional expression to a parameter of the block:
 
 Nothing is ever bound implicitly, however, and many conditionals would
 simply bind C<True> or C<False> in an uninteresting fashion.  This mechanism
-is really only good for objects that know how to return a boolean
-value and still remain themselves.  In general, for most iterated
-solutions you should consider using a C<for> loop instead (see below).
-In particular, we now generally use C<for> to iterate filehandles.
+is really only good for objects that know how to return a boolean value and
+still remain themselves.  In general, for most iterated solutions you should
+consider using a C<for> loop instead (see below).  In particular, we now
+generally use C<for> to iterate filehandles.
 
 =head2 The C<repeat> statement
 X<repeat>X<while>X<next>X<last>X<redo>
 
 Unlike in Perl 5, applying a statement modifier to a C<do> block is
 specifically disallowed:
-
 
     do {
         ...
@@ -431,10 +419,10 @@ or equivalently:
         ...
     } until $x >= 10;
 
-Unlike Perl 5's C<do-while> loop, this is a real loop block now, so
-C<next>, C<last>, and C<redo> work as expected.  The loop conditional
-on a C<repeat> block is required, so it will be recognized even if you
-put it on a line by its own:
+Unlike Perl 5's C<do-while> loop, this is a real loop block now, so C<next>,
+C<last>, and C<redo> work as expected.  The loop conditional on a C<repeat>
+block is required, so it will be recognized even if you put it on a line by
+its own:
 
     repeat
     {
@@ -442,12 +430,12 @@ put it on a line by its own:
     }
     while $x < 10;
 
-However, that's likely to be visually confused with a following
-C<while> loop at the best of times, so it's also allowed to put the
-loop conditional at the front, with the same meaning. (The C<repeat>
-keyword forces the conditional to be evaluated at the end of the loop,
-so it's still C's C<do-while> semantics.)  Therefore, even under GNU style
-rules, the previous example may be rewritten into a very clear:
+However, that's likely to be visually confused with a following C<while>
+loop at the best of times, so it's also allowed to put the loop conditional
+at the front, with the same meaning. (The C<repeat> keyword forces the
+conditional to be evaluated at the end of the loop, so it's still C's
+C<do-while> semantics.)  Therefore, even under GNU style rules, the previous
+example may be rewritten into a very clear:
 
     repeat while $x < 10
       {
@@ -461,8 +449,8 @@ or equivalently:
         ...
       }
 
-As with an ordinary C<while>, you may optionally bind the result of
-the conditional expression to a parameter of the block:
+As with an ordinary C<while>, you may optionally bind the result of the
+conditional expression to a parameter of the block:
 
     repeat -> $thing {
         ...
@@ -474,8 +462,8 @@ or
         ...
     }
 
-Since the loop executes once before evaluating the condition, the
-bound parameter will be undefined that first time through the loop.
+Since the loop executes once before evaluating the condition, the bound
+parameter will be undefined that first time through the loop.
 
 =head2 The general loop statement
 X<loop>
@@ -486,9 +474,9 @@ The C<loop> statement is the C-style C<for> loop in disguise:
         ...
     }
 
-As in C, the parentheses are required if you supply the 3-part spec; however,
-the 3-part loop spec may be entirely omitted to write an infinite loop.
-That is,
+As in C, the parentheses are required if you supply the 3-part spec;
+however, the 3-part loop spec may be entirely omitted to write an infinite
+loop.  That is,
 
     loop {...}
 
@@ -499,29 +487,29 @@ is equivalent to the C-ish idiom:
 =head2 The C<for> statement
 X<for>X<zip>X<Z>X<STDIN>X<$*IN>X<lines>
 
-There is no C<foreach> statement any more. It's always spelled C<for>
-in Perl 6, so it always takes a list as an argument:
+There is no C<foreach> statement any more. It's always spelled C<for> in
+Perl 6, so it always takes a list as an argument:
 
     for @foo { .print }
 
-As mentioned earlier, the loop variable is named by passing a parameter
-to the closure:
+As mentioned earlier, the loop variable is named by passing a parameter to
+the closure:
 
     for @foo -> $item { print $item }
 
-Multiple parameters may be passed, in which case the list is traversed
-more than one element at a time:
+Multiple parameters may be passed, in which case the list is traversed more
+than one element at a time:
 
     for %hash.kv -> $key, $value { print "$key => $value\n" }
 
-To process two arrays in parallel use the C<zip> function to generate a
-list that can be bound to the corresponding number of parameters:
+To process two arrays in parallel use the C<zip> function to generate a list
+that can be bound to the corresponding number of parameters:
 
     for zip(@a;@b) -> $a, $b { print "[$a, $b]\n" }
     for @a Z @b -> $a, $b { print "[$a, $b]\n" }        # same thing
 
-The list is evaluated lazily by default, so instead of using a C<while>
-to read a file a line at a time as you would in Perl 5:
+The list is evaluated lazily by default, so instead of using a C<while> to
+read a file a line at a time as you would in Perl 5:
 
     while (my $line = <STDIN>) {...}
 
@@ -529,22 +517,22 @@ in Perl 6 you should use a C<for> instead:
 
     for $*IN.lines -> $line {...}
 
-This has the added benefit of limiting the scope of the C<$line>
-parameter to the block it's bound to.  (The C<while>'s declaration of
-C<$line> continues to be visible past the end of the block.  Remember,
-no implicit block scopes.)  It is also possible to write
+This has the added benefit of limiting the scope of the C<$line> parameter
+to the block it's bound to.  (The C<while>'s declaration of C<$line>
+continues to be visible past the end of the block.  Remember, no implicit
+block scopes.)  It is also possible to write
 
     while $*IN.get -> $line {...}
 
-However, this is likely to fail on autochomped filehandles, so use
-the C<for> loop instead.
+However, this is likely to fail on autochomped filehandles, so use the
+C<for> loop instead.
 
 Note also that Perl 5's special rule causing
 
     while (<>) {...}
 
-to automatically assign to C<$_> is not carried over to Perl 6.  That
-should now be written:
+to automatically assign to C<$_> is not carried over to Perl 6.  That should
+now be written:
 
     for lines() {...}
 
@@ -552,16 +540,16 @@ which is short for
 
     for lines($*ARGFILES) {...}
 
-Arguments bound to the formal parameters of a pointy block are by
-default readonly within the block.  You can declare a parameter
-read/write by including the "C<is rw>" trait.  The following treats
-every other value in C<@values> as modifiable:
+Arguments bound to the formal parameters of a pointy block are by default
+readonly within the block.  You can declare a parameter read/write by
+including the "C<is rw>" trait.  The following treats every other value in
+C<@values> as modifiable:
 
     for @values -> $even is rw, $odd { ... }
 
-In the case where you want all your parameters to default to C<rw>,
-you may use the visually suggestive double-ended arrow to indicate that
-values flow both ways:
+In the case where you want all your parameters to default to C<rw>, you may
+use the visually suggestive double-ended arrow to indicate that values flow
+both ways:
 
     for @values <-> $even, $odd { ... }
 
@@ -569,9 +557,8 @@ This is equivalent to
 
     for @values -> $even is rw, $odd is rw { ... }
 
-If you rely on C<$_> as the implicit parameter to a block,
-then C<$_> is considered read/write by default.  That is,
-the construct:
+If you rely on C<$_> as the implicit parameter to a block, then C<$_> is
+considered read/write by default.  That is, the construct:
 
     for @foo {...}
 
@@ -581,52 +568,50 @@ is actually short for:
 
 so you can modify the current list element in that case.
 
-When used as statement modifiers on implicit blocks (thunks), C<for>
-and C<given> privately temporize the current value of C<$_> for the
-left side of the statement and restore the original value at loop exit:
+When used as statement modifiers on implicit blocks (thunks), C<for> and
+C<given> privately temporize the current value of C<$_> for the left side of
+the statement and restore the original value at loop exit:
 
     $_ = 42;
     .say             # 42
     .say for 1,2,3;  # 1,2,3
     .say;            # 42
 
-The previous value of C<$_> is not available within the loop.  If you
-want it to be available, you must rewrite it as an explicit block
-using curlies:
+The previous value of C<$_> is not available within the loop.  If you want
+it to be available, you must rewrite it as an explicit block using curlies:
 
     { say OUTER::<$_>, $_ } for 1,2,3;  # 421,422,423
 
-No temporization is necessary with the explicit form since C<$_> is a
-formal parameter to the block.  Likewise, temporization is never needed
-for C<< statement_control:<for> >> because it always calls a closure.
+No temporization is necessary with the explicit form since C<$_> is a formal
+parameter to the block.  Likewise, temporization is never needed for C<<
+statement_control:<for> >> because it always calls a closure.
 
 =head2 The do-once loop
 
-In Perl 5, a bare block is deemed to be a do-once loop.  In Perl 6,
-the bare block is not a do-once.  Instead C<do {...}> is the do-once
-loop (which is another reason you can't put a statement
-modifier on it; use C<repeat> for a test-at-the-end loop).
+In Perl 5, a bare block is deemed to be a do-once loop.  In Perl 6, the bare
+block is not a do-once.  Instead C<do {...}> is the do-once loop (which is
+another reason you can't put a statement modifier on it; use C<repeat> for a
+test-at-the-end loop).
 
-For any statement, prefixing with a C<do> allows you to
-return the value of that statement and use it in an expression:
+For any statement, prefixing with a C<do> allows you to return the value of
+that statement and use it in an expression:
 
     $x = do if $a { $b } else { $c };
 
-This construct only allows you to attach a single statement to the end
-of an expression.  If you want to continue the expression after the
-statement, or if you want to attach multiple statements, you must either
-use the curly form or surround the entire expression in brackets of some sort:
+This construct only allows you to attach a single statement to the end of an
+expression.  If you want to continue the expression after the statement, or
+if you want to attach multiple statements, you must either use the curly
+form or surround the entire expression in brackets of some sort:
 
     @primesquares = (do $_ if .is-prime for 1..100) »**» 2;
 
-Since a bare expression may be used as a statement, you may use C<do>
-on an expression, but its only effect is to function as an unmatched
-left parenthesis, much like the C<$> operator in Haskell.  That is,
-precedence decisions do not cross a C<do> boundary, and the missing
-"right paren" is assumed at the next statement terminator or unmatched
-bracket.  A C<do> is unnecessary immediately after any opening bracket as
-the syntax inside brackets expects a statements,
-so the above can in fact be written:
+Since a bare expression may be used as a statement, you may use C<do> on an
+expression, but its only effect is to function as an unmatched left
+parenthesis, much like the C<$> operator in Haskell.  That is, precedence
+decisions do not cross a C<do> boundary, and the missing "right paren" is
+assumed at the next statement terminator or unmatched bracket.  A C<do> is
+unnecessary immediately after any opening bracket as the syntax inside
+brackets expects a statements, so the above can in fact be written:
 
     @primesquares = ($_ if .is-prime for 1..100) »**» 2;
 
@@ -634,10 +619,10 @@ This basically gives us list comprehensions as rvalue expressions:
 
     (for 1..100 { $_ if .is-prime }).say
 
-Another consequence of this is that any block just inside a
-left parenthesis is immediately called like a bare block, so a
-multidimensional list comprehension may be written using a block with
-multiple parameters fed by a C<for> modifier:
+Another consequence of this is that any block just inside a left parenthesis
+is immediately called like a bare block, so a multidimensional list
+comprehension may be written using a block with multiple parameters fed by a
+C<for> modifier:
 
     @names = (-> $name, $num { "$name.$num" } for 'a'..'zzz' X 1..100);
 
@@ -645,36 +630,35 @@ or equivalently, using placeholders:
 
     @names = ({ "$^name.$^num" } for 'a'..'zzz' X 1..100);
 
-Since C<do> is defined as going in front of a statement, it follows
-that it can always be followed by a statement label.  This is particularly
-useful for the do-once block, since it is officially a loop and can take
-therefore loop control statements.
+Since C<do> is defined as going in front of a statement, it follows that it
+can always be followed by a statement label.  This is particularly useful
+for the do-once block, since it is officially a loop and can take therefore
+loop control statements.
 
 =head2 Loops at the statementlist level vs the statement level
 
-In any sequence of statements, only the value of the final statement
-is returned, so all prior statements are evaluated in sink context,
-which is automatically eager, to force the evaluation of side effects.
-(Side effects are the only reason to execute such statements in the
-first place, and Perl will, in fact, warn you if you do something that
-is "useless" in sink context.)  A loop in sink context not only evaluates
-itself eagerly, but can optimize away the production of any values from
-the loop.
+In any sequence of statements, only the value of the final statement is
+returned, so all prior statements are evaluated in sink context, which is
+automatically eager, to force the evaluation of side effects.  (Side effects
+are the only reason to execute such statements in the first place, and Perl
+will, in fact, warn you if you do something that is "useless" in sink
+context.)  A loop in sink context not only evaluates itself eagerly, but can
+optimize away the production of any values from the loop.
 
-The final statement of a statement list is not a sink context, and
-can return any value including a lazy list.  However, to support the
-expectations of imperative programmers (the vast majority of us,
-it turns out), any explicit loop found as the final statement of
-a statement list is automatically forced to use sink semantics so
-that the loop executes to completion before returning from the block.
+The final statement of a statement list is not a sink context, and can
+return any value including a lazy list.  However, to support the
+expectations of imperative programmers (the vast majority of us, it turns
+out), any explicit loop found as the final statement of a statement list is
+automatically forced to use sink semantics so that the loop executes to
+completion before returning from the block.
 
 This forced sink context is applied to loops I<only> at the statement list
-level, that is, at the top level of a compilation unit, or directly
-inside a block.  Constructs that parse a single statement or semilist
-as an argument are presumed to want the results of that statement,
-so such constructs remain lazy even when that statement is a loop.
-Assuming each of the following statements is the final statement in a block,
-"sunk" loops such as these may be indicated:
+level, that is, at the top level of a compilation unit, or directly inside a
+block.  Constructs that parse a single statement or semilist as an argument
+are presumed to want the results of that statement, so such constructs
+remain lazy even when that statement is a loop.  Assuming each of the
+following statements is the final statement in a block, "sunk" loops such as
+these may be indicated:
 
     for LIST { ... }
     ... if COND for LIST 
@@ -694,16 +678,17 @@ or by use of either a statement prefix or a phaser in statement form:
     lazy for LIST { ... }
     ENTER for LIST { ... }
 
-Note that the corresponding block forms put the loop into a statement list, so
-these loops are evaluated in sink context:
+Note that the corresponding block forms put the loop into a statement list,
+so these loops are evaluated in sink context:
 
     lazy { for LIST { ... } }   # useless use of 'lazy' here
     ENTER { for LIST { ... } }
 
-It doesn't matter that there is only one statement there; what matters
-is that a sequence of statements is expected there by the grammar.
+It doesn't matter that there is only one statement there; what matters is
+that a sequence of statements is expected there by the grammar.
 
-An eager loop may likewise be indicated by using the C<eager> statement prefix:
+An eager loop may likewise be indicated by using the C<eager> statement
+prefix:
 
     eager for LIST { ... }
     eager ... if COND for LIST 
@@ -712,28 +697,26 @@ An eager loop may likewise be indicated by using the C<eager> statement prefix:
     eager while COND { ... }
     eager repeat until COND { ... }
 
-It is erroneous to write an eager loop without a loop exit, since that will chew up
-all your memory.
+It is erroneous to write an eager loop without a loop exit, since that will
+chew up all your memory.
 
-Note that since C<do> is considered a one-time loop, it is always
-evaluated eagerly, despite being a statement prefix.  This is no great
-hardship; the C<lazy> prefix is better documentation in any case.
-And surely the verb "do" ought to imply some degree of getting it done
-eagerly.
+Note that since C<do> is considered a one-time loop, it is always evaluated
+eagerly, despite being a statement prefix.  This is no great hardship; the
+C<lazy> prefix is better documentation in any case.  And surely the verb
+"do" ought to imply some degree of getting it done eagerly.
 
 The C<given> construct is not considered a loop, and just returns normally.
 
 =head2 Statement-level bare blocks
 
-Although a bare block occurring as a single statement is no longer
-a do-once loop, as with loops when used in a statement list,
-it still executes immediately as in Perl 5, as if it
-were immediately dereferenced with a C<.()> postfix, so within such a
-block C<CALLER::> refers to the dynamic scope associated
-with the lexical scope surrounding the block.
+Although a bare block occurring as a single statement is no longer a do-once
+loop, as with loops when used in a statement list, it still executes
+immediately as in Perl 5, as if it were immediately dereferenced with a
+C<.()> postfix, so within such a block C<CALLER::> refers to the dynamic
+scope associated with the lexical scope surrounding the block.
 
-If you wish to return a closure from a function, you must use an
-explicit prefix such as C<return> or C<sub> or C<< -> >>.
+If you wish to return a closure from a function, you must use an explicit
+prefix such as C<return> or C<sub> or C<< -> >>.
 
     sub f1
     {
@@ -751,10 +734,10 @@ explicit prefix such as C<return> or C<sub> or C<< -> >>.
 
     my $x2= f2;  # returns a Block object.
 
-Use of a placeholder parameter in statement-level blocks triggers a
-syntax error, because the parameter is not out front where it can be
-seen.  However, it's not an error when prefixed by a C<do>, or when
-followed by a statement modifier:
+Use of a placeholder parameter in statement-level blocks triggers a syntax
+error, because the parameter is not out front where it can be seen.
+However, it's not an error when prefixed by a C<do>, or when followed by a
+statement modifier:
 
     # Syntax error: Statement-level placeholder block
     { say $^x };
@@ -782,31 +765,30 @@ X<gather>X<take>
 
 A variant of C<do> is C<gather>.  Like C<do>, it is followed by a statement
 or block, and executes it once.  Unlike C<do>, it evaluates the statement or
-block in sink (void) context; its return value is instead specified by calling
-the C<take> list prefix operator one or more times within the scope (either lexical or dynamic) of 
-the C<gather>.  The C<take> function's signature is like that of C<return>;
-while having the syntax of a list operator, it merely returns a single item
-or "argument" (see L<S02> for definition).
+block in sink (void) context; its return value is instead specified by
+calling the C<take> list prefix operator one or more times within the scope
+(either lexical or dynamic) of the C<gather>.  The C<take> function's
+signature is like that of C<return>; while having the syntax of a list
+operator, it merely returns a single item or "argument" (see L<S02> for
+definition).
 
-The C<take> function is lexotic if there is a visible outer C<gather>,
-but falls back to purely dynamic if not.  Well, it doesn't really
-fall back, since a C<take> knows at compile time whether it is being
-used lexically or dynamically.  Less obviously, so does a C<gather>;
-if a C<gather> lexically contains any C<take> calls, it is marked as
-lexotic-only, and it will be invisible to a dynamic C<take>.  If the
-C<gather> contains no C<take> lexically, it by definition cannot be
-the lexotic target of any C<take>, so it can only harvest dynamic
-C<take> calls.  The only remaining difficulty arises if both the user
-and a library writer attempt to use dynamic gather with user-defined
-callbacks that contain C<take>.  So we will say that it is erroneous
-for a library writer to mix dynamic gather with callbacks unless
+The C<take> function is lexotic if there is a visible outer C<gather>, but
+falls back to purely dynamic if not.  Well, it doesn't really fall back,
+since a C<take> knows at compile time whether it is being used lexically or
+dynamically.  Less obviously, so does a C<gather>; if a C<gather> lexically
+contains any C<take> calls, it is marked as lexotic-only, and it will be
+invisible to a dynamic C<take>.  If the C<gather> contains no C<take>
+lexically, it by definition cannot be the lexotic target of any C<take>, so
+it can only harvest dynamic C<take> calls.  The only remaining difficulty
+arises if both the user and a library writer attempt to use dynamic gather
+with user-defined callbacks that contain C<take>.  So we will say that it is
+erroneous for a library writer to mix dynamic gather with callbacks unless
 those callbacks are somehow "ungathered" to the outer dynamic scope.
-[Conjecture: there should either be an C<callergather> primitive that
-does this, or 
-we should allow labeled C<gather>/C<take> for such a situation,
-and dynamic C<take> must match the C<gather>'s label (or lack thereof) exactly.
-(Using the term "label" loosely, to include other solutions besides the label syntax,
-such as .gather and .take methods on some identity object.)]
+[Conjecture: there should either be an C<callergather> primitive that does
+this, or we should allow labeled C<gather>/C<take> for such a situation, and
+dynamic C<take> must match the C<gather>'s label (or lack thereof) exactly.
+(Using the term "label" loosely, to include other solutions besides the
+label syntax, such as .gather and .take methods on some identity object.)]
 
 If you take multiple items in a comma list (since it is, after all, a list
 operator), they will be wrapped up in a C<Parcel> object for return as the
@@ -818,24 +800,24 @@ iterated (with C<.get> vs C<.getarg>).
 The value returned by the C<take> to the C<take>'s own context is that same
 returned argument (which is ignored when the C<take> is in sink context).
 Regardless of the C<take>'s immediate context, the object returned is also
-added to the list of values being gathered, which is returned by the C<gather>
-as a lazy list (that is, an iterator, really), with each argument element
-of that list corresponding to one C<take>.
+added to the list of values being gathered, which is returned by the
+C<gather> as a lazy list (that is, an iterator, really), with each argument
+element of that list corresponding to one C<take>.
 
-Any parcels in the returned list are normally flattened when bound
-into flat context.  When bound into a lol context, however,
-the parcel objects become real C<List> objects that keep their
-identity as discrete sublists.  The eventual binding context thus
-determines whether to throw away or keep the groupings resulting from
-each individual C<take> call.  Most list contexts are flat
-rather than sliced, so the boundaries between individual C<take>
-calls usually disappear.  (FLAT is an acronym meaning Flat Lists Are Typical. :)
+Any parcels in the returned list are normally flattened when bound into flat
+context.  When bound into a lol context, however, the parcel objects become
+real C<List> objects that keep their identity as discrete sublists.  The
+eventual binding context thus determines whether to throw away or keep the
+groupings resulting from each individual C<take> call.  Most list contexts
+are flat rather than sliced, so the boundaries between individual C<take>
+calls usually disappear.  (FLAT is an acronym meaning Flat Lists Are
+Typical. :)
 
-Because C<gather> evaluates its block or statement in sink context,
-this typically causes the C<take> function to be evaluated in sink
-context.  However, a C<take> function that is not in sink context
-gathers its return objects I<en passant> and also returns them unchanged.
-This makes it easy to keep track of what you last "took":
+Because C<gather> evaluates its block or statement in sink context, this
+typically causes the C<take> function to be evaluated in sink context.
+However, a C<take> function that is not in sink context gathers its return
+objects I<en passant> and also returns them unchanged.  This makes it easy
+to keep track of what you last "took":
 
     my @squished = gather for @list {
         state $previous = take $_;
@@ -845,8 +827,8 @@ This makes it easy to keep track of what you last "took":
 
 The C<take> function essentially has two contexts simultaneously, the
 context in which the C<gather> is operating, and the context in which the
-C<take> is operating.  These need not be identical contexts, since they
-may bind or coerce the resulting parcels differently:
+C<take> is operating.  These need not be identical contexts, since they may
+bind or coerce the resulting parcels differently:
 
     my @y;
     my @x = gather for 1..2 {            # flat context for list of parcels
@@ -866,36 +848,36 @@ later coercing it:
     # $c.lol produces LoL.new($(1,10),$(2,20)) -- list of Parcels, a 2-D list.
     # $c.item produces ($(1,10),$(2,20)).list.item -- a list of Parcels, as an item.
 
-Note that the C<take> itself is in sink context in this example because
-the C<for> loop is in the sink context provided inside the gather.
+Note that the C<take> itself is in sink context in this example because the
+C<for> loop is in the sink context provided inside the gather.
 
 A C<gather> is not considered a loop, but it is easy to combine with a loop
 statement as in the examples above.
 
 The C<take> operation may be defined internally using resumable control
-exceptions, or dynamic variables, or pigeons carrying clay tablets.
-The choice any particular implementation makes is specifically I<not> part
-of the definition of Perl 6, and you should not rely on it in portable code.
+exceptions, or dynamic variables, or pigeons carrying clay tablets.  The
+choice any particular implementation makes is specifically I<not> part of
+the definition of Perl 6, and you should not rely on it in portable code.
 
 =head2 Other C<do>-like forms
 X<do>
 
-Other similar forms, where a keyword is followed by code to be controlled by it, may also take bare statements,
-including C<try>, C<once>, C<quietly>, C<start>, C<lazy>, and C<sink>.  These constructs
-establish a dynamic scope without necessarily establishing a lexical
-scope.  (You can always establish a lexical scope explicitly by using
-the block form of argument.)  As statement introducers, all these
-keywords must be followed by whitespace.  (You can say something
-like C<try({...})>, but then you are calling the C<try()> function
-using function call syntax instead, and since Perl does not supply
-such a function, it will be assumed to be a user-defined function.)
-For purposes of flow control, none of these forms are considered loops,
-but they may easily be applied to a normal loop.
+Other similar forms, where a keyword is followed by code to be controlled by
+it, may also take bare statements, including C<try>, C<once>, C<quietly>,
+C<start>, C<lazy>, and C<sink>.  These constructs establish a dynamic scope
+without necessarily establishing a lexical scope.  (You can always establish
+a lexical scope explicitly by using the block form of argument.)  As
+statement introducers, all these keywords must be followed by whitespace.
+(You can say something like C<try({...})>, but then you are calling the
+C<try()> function using function call syntax instead, and since Perl does
+not supply such a function, it will be assumed to be a user-defined
+function.) For purposes of flow control, none of these forms are considered
+loops, but they may easily be applied to a normal loop.
 
-Note that any construct in the statement_prefix category defines
-special syntax.  If followed by a block it does not parse as a
-list operator or even as a prefix unary; it will never look for any
-additional expression following the block.  In particular,
+Note that any construct in the statement_prefix category defines special
+syntax.  If followed by a block it does not parse as a list operator or even
+as a prefix unary; it will never look for any additional expression
+following the block.  In particular,
 
     foo( try {...}, 2, 3 )
 
@@ -904,9 +886,8 @@ calls the C<foo> function with three arguments.  And
     do {...} + 1
 
 add 1 to the result of the do block.  On the other hand, if a
-statement_prefix is followed by a non-block statement, all nested
-blockless statement_prefixes will terminate at the same statement
-ending:
+statement_prefix is followed by a non-block statement, all nested blockless
+statement_prefixes will terminate at the same statement ending:
 
     do do do foo(); bar 43;
 
@@ -917,9 +898,8 @@ is parsed as:
 =head1 Switch statements
 X<given>X<when>X<switch>X<case>X<default>
 
-A switch statement is a means of topicalizing, so the switch keyword
-is the English topicalizer, C<given>.  The keyword for individual
-cases is C<when>:
+A switch statement is a means of topicalizing, so the switch keyword is the
+English topicalizer, C<given>.  The keyword for individual cases is C<when>:
 
     given EXPR {
         when EXPR { ... }
@@ -927,32 +907,30 @@ cases is C<when>:
         default { ... }
     }
 
-The current topic is always aliased to the special variable C<$_>.
-The C<given> block is just one way to set the current topic, but
-a switch statement can be any block that sets C<$_>, including a
-C<for> loop (assuming one of its loop variables is bound to C<$_>)
-or the body of a method (if you have declared the invocant as C<$_>).
-So switching behavior is actually caused by the C<when> statements in
-the block, not by the nature of the block itself.  A C<when> statement
-implicitly does a "smart match" between the current topic (C<$_>) and
-the argument of the C<when>.  If the smart match succeeds, C<when>'s
-associated block is executed, and the innermost surrounding block
-that has C<$_> as one of its formal parameters (either explicit
-or implicit) is automatically broken out of.  (If that is not the
-block you wish to leave, you must use the C<LABEL.leave> method (or some
-other control exception such as C<return> or C<next>) to
-be more specific, since the compiler may find it difficult to guess
-which surrounding construct was intended as the actual topicalizer.)
-The value of the inner block is returned as the value of the outer
-block.
+The current topic is always aliased to the special variable C<$_>.  The
+C<given> block is just one way to set the current topic, but a switch
+statement can be any block that sets C<$_>, including a C<for> loop
+(assuming one of its loop variables is bound to C<$_>) or the body of a
+method (if you have declared the invocant as C<$_>).  So switching behavior
+is actually caused by the C<when> statements in the block, not by the nature
+of the block itself.  A C<when> statement implicitly does a "smart match"
+between the current topic (C<$_>) and the argument of the C<when>.  If the
+smart match succeeds, C<when>'s associated block is executed, and the
+innermost surrounding block that has C<$_> as one of its formal parameters
+(either explicit or implicit) is automatically broken out of.  (If that is
+not the block you wish to leave, you must use the C<LABEL.leave> method (or
+some other control exception such as C<return> or C<next>) to be more
+specific, since the compiler may find it difficult to guess which
+surrounding construct was intended as the actual topicalizer.) The value of
+the inner block is returned as the value of the outer block.
 
-If the smart match fails, control proceeds to the next statement
-normally, which may or may not be a C<when> statement.  Since C<when>
-statements are presumed to be executed in order like normal statements,
-it's not required that all the statements in a switch block be C<when>
-statements (though it helps the optimizer to have a sequence of
-contiguous C<when> statements, because then it can arrange to jump
-directly to the first appropriate test that might possibly match.)
+If the smart match fails, control proceeds to the next statement normally,
+which may or may not be a C<when> statement.  Since C<when> statements are
+presumed to be executed in order like normal statements, it's not required
+that all the statements in a switch block be C<when> statements (though it
+helps the optimizer to have a sequence of contiguous C<when> statements,
+because then it can arrange to jump directly to the first appropriate test
+that might possibly match.)
 
 The default case:
 
@@ -962,61 +940,58 @@ is exactly equivalent to
 
     when * {...}
 
-Because C<when> statements are executed in order, the default must
-come last.  You don't have to use an explicit default--you can just
-fall off the last C<when> into ordinary code.  But use of a C<default>
-block is good documentation.
+Because C<when> statements are executed in order, the default must come
+last.  You don't have to use an explicit default--you can just fall off the
+last C<when> into ordinary code.  But use of a C<default> block is good
+documentation.
 
-If you use a C<for> loop with a parameter named C<$_> (either
-explicitly or implicitly), that parameter can function as the topic
-of any C<when> statements within the loop.
+If you use a C<for> loop with a parameter named C<$_> (either explicitly or
+implicitly), that parameter can function as the topic of any C<when>
+statements within the loop.
 
 You can explicitly break out of a C<when> block (and its surrounding
-topicalizer block) early using the C<succeed> verb.  More precisely,
-it first scans outward (lexically) for the innermost containing
-C<when> block.  From there it continues to scan outward to find the
-innermost block outside the C<when> that defines C<$_>,
-either explicitly or implicitly.  (Note that
-both of these scans are done at compile time; if the scans fail,
-it's a compile-time semantic error.)  Typically, such an outer
-block will be the block of a C<given> or a C<for> statement, but any block that
-sets the topic can be broken out of.  At run time,
-C<succeed> uses a control exception to scan up the dynamic chain to
-find the call frame belonging to that same outer block, and
-when it has found that frame, it does a C<.leave> on it to unwind
-the call frames.  If any arguments are supplied to the C<succeed> function,
-they are passed out via the C<leave> method.  Since leaving a block is
-considered a successful return, breaking out of one with C<succeed> is also considered
-a successful return for the purposes of C<KEEP> and C<UNDO>.
+topicalizer block) early using the C<succeed> verb.  More precisely, it
+first scans outward (lexically) for the innermost containing C<when> block.
+From there it continues to scan outward to find the innermost block outside
+the C<when> that defines C<$_>, either explicitly or implicitly.  (Note that
+both of these scans are done at compile time; if the scans fail, it's a
+compile-time semantic error.)  Typically, such an outer block will be the
+block of a C<given> or a C<for> statement, but any block that sets the topic
+can be broken out of.  At run time, C<succeed> uses a control exception to
+scan up the dynamic chain to find the call frame belonging to that same
+outer block, and when it has found that frame, it does a C<.leave> on it to
+unwind the call frames.  If any arguments are supplied to the C<succeed>
+function, they are passed out via the C<leave> method.  Since leaving a
+block is considered a successful return, breaking out of one with C<succeed>
+is also considered a successful return for the purposes of C<KEEP> and
+C<UNDO>.
 
-The implicit break of a normal
-C<when> block works the same way, returning the value of the entire
-block (normally from its last statement) via an implicit C<succeed>.
+The implicit break of a normal C<when> block works the same way, returning
+the value of the entire block (normally from its last statement) via an
+implicit C<succeed>.
 
 You can explicitly leave a C<when> block and go to the next statement
-following the C<when> by using C<proceed>.  (Note that, unlike C's
-idea of "falling through", subsequent C<when> conditions are evaluated.
-To jump into the next C<when> block without testing its condition,
-you must use a C<goto>.  But generally that means you should refactor
-instead.)
+following the C<when> by using C<proceed>.  (Note that, unlike C's idea of
+"falling through", subsequent C<when> conditions are evaluated.  To jump
+into the next C<when> block without testing its condition, you must use a
+C<goto>.  But generally that means you should refactor instead.)
 
-If you have a switch that is the main block of a C<for> loop that uses C<$_> as its loop variable, and
-you break out of the switch either implicitly or explicitly (that is,
-the switch "succeeds"), control merely goes to the end of that block,
-and thence on to the next iteration of the loop.  You must use C<last>
-(or some more violent control exception such as C<return>) to break
-out of the entire loop early.  Of course, an explicit C<next> might
-be clearer than a C<succeed> if you really want to go directly to the
-next iteration.  On the other hand, C<succeed> can take an optional
-argument giving the value for that iteration of the loop.  As with
-the C<.leave> method, there is also a C<.succeed> method to break from a
-labelled block functioning as a switch:
+If you have a switch that is the main block of a C<for> loop that uses C<$_>
+as its loop variable, and you break out of the switch either implicitly or
+explicitly (that is, the switch "succeeds"), control merely goes to the end
+of that block, and thence on to the next iteration of the loop.  You must
+use C<last> (or some more violent control exception such as C<return>) to
+break out of the entire loop early.  Of course, an explicit C<next> might be
+clearer than a C<succeed> if you really want to go directly to the next
+iteration.  On the other hand, C<succeed> can take an optional argument
+giving the value for that iteration of the loop.  As with the C<.leave>
+method, there is also a C<.succeed> method to break from a labelled block
+functioning as a switch:
 
     OUTER.succeed($retval)
 
-There is a C<when> statement modifier, but it does not have any
-breakout semantics; it is merely a smartmatch against
-the current topic.  That is,
+There is a C<when> statement modifier, but it does not have any breakout
+semantics; it is merely a smartmatch against the current topic.  That is,
 
     doit() when 42;
 
@@ -1031,40 +1006,37 @@ This is particularly useful for list comprehensions:
 =head1 Exception handlers
 X<CATCH>
 
-Unlike many other languages, Perl 6 specifies exception handlers by
-placing a C<CATCH> block I<within> that block that is having its exceptions
-handled.
+Unlike many other languages, Perl 6 specifies exception handlers by placing
+a C<CATCH> block I<within> that block that is having its exceptions handled.
 
-The Perl 6 equivalent to Perl 5's C<eval {...}> is C<try {...}>.
-(Perl 6's C<EVAL> function only evaluates strings, not blocks, and
-does not catch exceptions.)
-A C<try> block by default has a C<CATCH> block that handles all fatal
-exceptions by ignoring them.  If you define a C<CATCH> block within
+The Perl 6 equivalent to Perl 5's C<eval {...}> is C<try {...}>.  (Perl 6's
+C<EVAL> function only evaluates strings, not blocks, and does not catch
+exceptions.) A C<try> block by default has a C<CATCH> block that handles all
+fatal exceptions by ignoring them.  If you define a C<CATCH> block within
 the C<try>, it replaces the default C<CATCH>.  It also makes the C<try>
-keyword redundant, because any block can function as a C<try> block
-if you put a C<CATCH> block within it.  To prevent lazy lists for leaking out
-unexpectedly, the inside of a C<try> is always considered
-an eager context, unless the C<try> itself is in a sink context, in which
-case the inside of C<try> is also in sink context.
+keyword redundant, because any block can function as a C<try> block if you
+put a C<CATCH> block within it.  To prevent lazy lists for leaking out
+unexpectedly, the inside of a C<try> is always considered an eager context,
+unless the C<try> itself is in a sink context, in which case the inside of
+C<try> is also in sink context.
 
-Additionally, the C<try> block or statement implicitly enforces a
-C<use fatal> context such that failures are immediately thrown as exceptions.
+Additionally, the C<try> block or statement implicitly enforces a C<use
+fatal> context such that failures are immediately thrown as exceptions.
 (See below.)
 
-An exception handler is just a switch statement on an implicit topic
-that happens to be the current exception to be dealt with.
-Inside the C<CATCH> block, the exception in question is
-bound to C<$_>.  Because of smart matching,
-ordinary C<when> statements are sufficiently powerful to pattern
-match the current exception against classes or patterns or numbers
-without any special syntax for exception handlers.  If none of the
-cases in the C<CATCH> handles the exception, the exception will be rethrown.
-To ignore all unhandled exceptions, use an empty C<default> case.
-(In other words, there is an implicit C<.die> just inside the end
-of the C<CATCH> block.  Handled exceptions break out past this implicit
-rethrow.)  Hence, C<CATCH> is unlike all other switch statements in that
-it treats code inside a C<default> block differently from code that's after
-all the C<when> blocks but not in a C<default> block.
+An exception handler is just a switch statement on an implicit topic that
+happens to be the current exception to be dealt with.  Inside the C<CATCH>
+block, the exception in question is bound to C<$_>.  Because of smart
+matching, ordinary C<when> statements are sufficiently powerful to pattern
+match the current exception against classes or patterns or numbers without
+any special syntax for exception handlers.  If none of the cases in the
+C<CATCH> handles the exception, the exception will be rethrown.  To ignore
+all unhandled exceptions, use an empty C<default> case.  (In other words,
+there is an implicit C<.die> just inside the end of the C<CATCH> block.
+Handled exceptions break out past this implicit rethrow.)  Hence, C<CATCH>
+is unlike all other switch statements in that it treats code inside a
+C<default> block differently from code that's after all the C<when> blocks
+but not in a C<default> block.
 
 More specifically, when you write:
 
@@ -1103,89 +1075,87 @@ something like this:
         @unhandled;
     }
 
-Whenever an exception occurs during the execution of a handler,
-it is pushed onto the end of the C<@*undead> array for later processing
-by an outer handler.  If there are any unhandled C<@!> exceptions,
-or if any exceptions were caught by the inner SIMPLECATCH (which does
-nothing but runs its push code, which should not produce any exceptions),
-then the CATCH block returns them to the exception thrower.
+Whenever an exception occurs during the execution of a handler, it is pushed
+onto the end of the C<@*undead> array for later processing by an outer
+handler.  If there are any unhandled C<@!> exceptions, or if any exceptions
+were caught by the inner SIMPLECATCH (which does nothing but runs its push
+code, which should not produce any exceptions), then the CATCH block returns
+them to the exception thrower.
 
-The exception thrower looks up the call stack for a catch lambda
-that returns () to indicate all exceptions are handled, and then it is happy,
-and unwinds the stack to that point.  If any exceptions are returned
-as not handled, the exception thrower keeps looking for a higher
-dynamic scope for a spot to unwind to.  Note that any C<die> in the
-catch lambda eventually rethrows outside the lambda as a new exception, but
-not until the current exception handler has a chance to handle all
-exceptions that came in via C<@!>.
+The exception thrower looks up the call stack for a catch lambda that
+returns () to indicate all exceptions are handled, and then it is happy, and
+unwinds the stack to that point.  If any exceptions are returned as not
+handled, the exception thrower keeps looking for a higher dynamic scope for
+a spot to unwind to.  Note that any C<die> in the catch lambda eventually
+rethrows outside the lambda as a new exception, but not until the current
+exception handler has a chance to handle all exceptions that came in via
+C<@!>.
 
-Resumable exceptions may or may not leave
-normally depending on the implementation.  If continuations are used,
-the C<.resume> call will simply goto the continuation in question,
-and the lambda's callframe is abandoned.  Resumable exceptions may also
-be implemented by simply marking the current exception as "resumed",
-in which case the original exception thrower simply returns to
-the code that threw the resumable exception, rather than unwinding
-before returning.  This could be done by pushing the resumed exception
-onto the unhandled list, and then the thrower checking to see if there is only
-a single resumed exception in the "unhandled" list.  The unhandled list
-is a dynamic variable so that it's easy for .resume to manipulate it.
+Resumable exceptions may or may not leave normally depending on the
+implementation.  If continuations are used, the C<.resume> call will simply
+goto the continuation in question, and the lambda's callframe is abandoned.
+Resumable exceptions may also be implemented by simply marking the current
+exception as "resumed", in which case the original exception thrower simply
+returns to the code that threw the resumable exception, rather than
+unwinding before returning.  This could be done by pushing the resumed
+exception onto the unhandled list, and then the thrower checking to see if
+there is only a single resumed exception in the "unhandled" list.  The
+unhandled list is a dynamic variable so that it's easy for .resume to
+manipulate it.
 
-A C<CATCH> block sees the lexical scope in which it was defined, but
-its caller is the dynamic location that threw the exception.  That is,
-the stack is not unwound until some exception handler chooses to
-unwind it by "handling" the exception in question.  So logically,
-if the C<CATCH> block throws its own exception, you would expect the
-C<CATCH> block to catch its own exception recursively forever.  However,
-a C<CATCH> must not behave that way, so we say that a C<CATCH> block
-never attempts to handle any exception thrown within its own dynamic scope.
-(Otherwise any C<die> would cause an infinite loop.)  Instead we treasure
-them up and rethrow them to a handler further up.
+A C<CATCH> block sees the lexical scope in which it was defined, but its
+caller is the dynamic location that threw the exception.  That is, the stack
+is not unwound until some exception handler chooses to unwind it by
+"handling" the exception in question.  So logically, if the C<CATCH> block
+throws its own exception, you would expect the C<CATCH> block to catch its
+own exception recursively forever.  However, a C<CATCH> must not behave that
+way, so we say that a C<CATCH> block never attempts to handle any exception
+thrown within its own dynamic scope.  (Otherwise any C<die> would cause an
+infinite loop.)  Instead we treasure them up and rethrow them to a handler
+further up.
 
-Unlike C<try>, the presence of a C<CATCH> block does not
-imply C<use fatal> semantics for failures; you may, however, use
-either an explicit C<try> block around the C<CATCH> or an explicit
-C<use fatal> to guarantee that failures are thrown eagerly rather
-than lazily.
+Unlike C<try>, the presence of a C<CATCH> block does not imply C<use fatal>
+semantics for failures; you may, however, use either an explicit C<try>
+block around the C<CATCH> or an explicit C<use fatal> to guarantee that
+failures are thrown eagerly rather than lazily.
 
 =head1 Control Exceptions
 
-All abnormal control flow is, in the general case, handled by the
-exception mechanism (which is likely to be optimized away in specific
-cases.)  Here "abnormal" means any transfer of control outward that
-is not just falling off the end of a block.  A C<return>,
-for example, is considered a form of abnormal control flow, since it
-can jump out of multiple levels of closures to the end of the scope
-of the current subroutine definition.  Loop commands like C<next>
-are abnormal, but looping because you hit the end of the block is not.
-The implicit break (what C<succeed> does explicitly) of a C<when> block is abnormal.
+All abnormal control flow is, in the general case, handled by the exception
+mechanism (which is likely to be optimized away in specific cases.)  Here
+"abnormal" means any transfer of control outward that is not just falling
+off the end of a block.  A C<return>, for example, is considered a form of
+abnormal control flow, since it can jump out of multiple levels of closures
+to the end of the scope of the current subroutine definition.  Loop commands
+like C<next> are abnormal, but looping because you hit the end of the block
+is not.  The implicit break (what C<succeed> does explicitly) of a C<when>
+block is abnormal.
 
-A C<CATCH> block handles only "bad" exceptions, and lets control
-exceptions pass unhindered.  Control exceptions may be caught with a
-C<CONTROL> block.  Generally you don't need to worry about this unless
-you're defining a control construct.  You may have one C<CATCH> block
-and one C<CONTROL> block, since some user-defined constructs may wish to
-supply an implicit C<CONTROL> block to your closure, but let you define
-your own C<CATCH> block.
+A C<CATCH> block handles only "bad" exceptions, and lets control exceptions
+pass unhindered.  Control exceptions may be caught with a C<CONTROL> block.
+Generally you don't need to worry about this unless you're defining a
+control construct.  You may have one C<CATCH> block and one C<CONTROL>
+block, since some user-defined constructs may wish to supply an implicit
+C<CONTROL> block to your closure, but let you define your own C<CATCH>
+block.
 
-A C<return> always exits from the lexically surrounding sub
-or method definition (that is, from a function officially declared
-with the C<sub>, C<method>, or C<submethod> keywords).  Pointy blocks
-and bare closures are transparent to C<return>, in that the C<return>
-statement still means C<&?ROUTINE.leave> from the C<Routine> that existed
-in dynamic scope when the closure was cloned.
+A C<return> always exits from the lexically surrounding sub or method
+definition (that is, from a function officially declared with the C<sub>,
+C<method>, or C<submethod> keywords).  Pointy blocks and bare closures are
+transparent to C<return>, in that the C<return> statement still means
+C<&?ROUTINE.leave> from the C<Routine> that existed in dynamic scope when
+the closure was cloned.
 
-It is illegal to return from the closure if that C<Routine> no longer owns
-a call frame in the current call stack.
+It is illegal to return from the closure if that C<Routine> no longer owns a
+call frame in the current call stack.
 
-To return a value (to the dynamical caller) from any pointy block or bare closure, you either
-just let the block return the value of its final expression, or you
-can use C<leave>, which comes in both function and method forms.
-The function (or listop) form always exits from the innermost block,
-returning its arguments as the final value of the block exactly as
-C<return> does.  The method form will leave any block in the dynamic
-scope that can be named as an object and that responds to the C<.leave>
-method.
+To return a value (to the dynamical caller) from any pointy block or bare
+closure, you either just let the block return the value of its final
+expression, or you can use C<leave>, which comes in both function and method
+forms.  The function (or listop) form always exits from the innermost block,
+returning its arguments as the final value of the block exactly as C<return>
+does.  The method form will leave any block in the dynamic scope that can be
+named as an object and that responds to the C<.leave> method.
 
 Hence, the C<leave> function:
 
@@ -1204,195 +1174,183 @@ C<callframe> function:
 
     callframe({ .labels.any eq 'LINE' }).leave(1,2,3);
 
-By default the innermost call frame matching the selection criteria
-will be exited.  This can be a bit cumbersome, so in the particular
-case of labels, the label that is already visible in the current lexical
-scope is considered a kind of pseudo object specifying a potential
-dynamic context.  If instead of the above you say:
+By default the innermost call frame matching the selection criteria will be
+exited.  This can be a bit cumbersome, so in the particular case of labels,
+the label that is already visible in the current lexical scope is considered
+a kind of pseudo object specifying a potential dynamic context.  If instead
+of the above you say:
 
     LINE.leave(1,2,3)
 
-it was always exit from your lexically scoped C<LINE> loop, even
-if some inner dynamic scope you can't see happens to also have that
-label.  (In other words, it's lexotic.)  If the C<LINE> label is visible but you aren't actually in
-a dynamic scope controlled by that label, an exception is thrown.
-(If the C<LINE> is not visible, it would have been caught earlier at
-compile time since C<LINE> would likely be a bareword.)
+it was always exit from your lexically scoped C<LINE> loop, even if some
+inner dynamic scope you can't see happens to also have that label.  (In
+other words, it's lexotic.)  If the C<LINE> label is visible but you aren't
+actually in a dynamic scope controlled by that label, an exception is
+thrown.  (If the C<LINE> is not visible, it would have been caught earlier
+at compile time since C<LINE> would likely be a bareword.)
 
 In theory, any user-defined control construct can catch any control
 exception it likes.  However, there have to be some culturally enforced
-standards on which constructs capture which exceptions.  Much like
-C<return> may only return from an "official" subroutine or method,
-a loop exit like C<next> should be caught by the construct the user
-expects it to be caught by.  (Always assuming the user expects the
-right thing, of course...)  In particular, if the user labels a loop
-with a specific label, and calls a loop control from within the lexical
-scope of that loop, and if that call mentions the outer loop's label,
-then that outer loop is the one that must be controlled.  In other words,
-it first tries this form:
+standards on which constructs capture which exceptions.  Much like C<return>
+may only return from an "official" subroutine or method, a loop exit like
+C<next> should be caught by the construct the user expects it to be caught
+by.  (Always assuming the user expects the right thing, of course...)  In
+particular, if the user labels a loop with a specific label, and calls a
+loop control from within the lexical scope of that loop, and if that call
+mentions the outer loop's label, then that outer loop is the one that must
+be controlled.  In other words, it first tries this form:
 
     LINE.leave(1,2,3)
 
 If there is no such lexically scoped outer loop in the current subroutine,
-then a fallback search is made outward through the dynamic scopes in
-the same way Perl 5 does.  (The difference between Perl 5 and Perl 6
-in this respect arises only because Perl 5 didn't have user-defined
-control structures, hence the sub's lexical scope was I<always>
-the innermost dynamic scope, so the preference to the lexical scope
-in the current sub was implicit.  For Perl 6 we have to make this
-preference for lexotic behavior explicit.)
+then a fallback search is made outward through the dynamic scopes in the
+same way Perl 5 does.  (The difference between Perl 5 and Perl 6 in this
+respect arises only because Perl 5 didn't have user-defined control
+structures, hence the sub's lexical scope was I<always> the innermost
+dynamic scope, so the preference to the lexical scope in the current sub was
+implicit.  For Perl 6 we have to make this preference for lexotic behavior
+explicit.)
 
-Warnings are produced in Perl 6 by throwing a resumable control
-exception to the outermost scope, which by default prints the
-warning and resumes the exception by extracting a resume continuation
-from the exception, which must be supplied by the C<warn()> function
-(or equivalent).  Exceptions are not resumable in Perl 6 unless
-the exception object does the C<Resumable> role.  (Note that fatal
-exception types can do the C<Resumable> role even if thrown via
-C<fail()>--when uncaught they just hit the outermost fatal handler
+Warnings are produced in Perl 6 by throwing a resumable control exception to
+the outermost scope, which by default prints the warning and resumes the
+exception by extracting a resume continuation from the exception, which must
+be supplied by the C<warn()> function (or equivalent).  Exceptions are not
+resumable in Perl 6 unless the exception object does the C<Resumable> role.
+(Note that fatal exception types can do the C<Resumable> role even if thrown
+via C<fail()>--when uncaught they just hit the outermost fatal handler
 instead of the outermost warning handler, so some inner scope has to
 explicitly treat them as warnings and resume them.)
 
-Since warnings are processed using the standard control exception
-mechanism, they may be intercepted and either suppressed or fatalized
-anywhere within the dynamic scope by supplying a suitable C<CONTROL>
-block.  This dynamic control is orthogonal to any lexically scoped
-warning controls, which merely decide whether to call C<warn()>
-in the first place.
+Since warnings are processed using the standard control exception mechanism,
+they may be intercepted and either suppressed or fatalized anywhere within
+the dynamic scope by supplying a suitable C<CONTROL> block.  This dynamic
+control is orthogonal to any lexically scoped warning controls, which merely
+decide whether to call C<warn()> in the first place.
 
-As with calls to C<return>, the warning control exception is an
-abstraction that the compiler is free to optimize away (along with the
-associated continuation) when the compiler or runtime can determine
-that the semantics would be preserved by merely printing out the
-error and going on.  Since all exception handlers run in the dynamic
-scope of the throw, that reduces to simply returning from the C<warn>
-function most of the time.  See previous section for discussion of
-ways to return from catch lambdas.  The control lambda is logically
-separate from the catch lambda, though an implementation is allowed
-to combine them if it is careful to retain separate semantics for
+As with calls to C<return>, the warning control exception is an abstraction
+that the compiler is free to optimize away (along with the associated
+continuation) when the compiler or runtime can determine that the semantics
+would be preserved by merely printing out the error and going on.  Since all
+exception handlers run in the dynamic scope of the throw, that reduces to
+simply returning from the C<warn> function most of the time.  See previous
+section for discussion of ways to return from catch lambdas.  The control
+lambda is logically separate from the catch lambda, though an implementation
+is allowed to combine them if it is careful to retain separate semantics for
 catch and control exceptions.
 
-One additional level of control is the notion of I<lazy warnings>.
-If, instead of throwing a warning directly, the program calls C<fail()>
-with a resumable exception, the throwing of the warning is delayed
-until first use (or the caller's policy) requires it to be thrown.
-If the warning exception supports the C<.resume_value> method, that
-will be the value of the failure after it has resumed.  Otherwise the
-value will be the null string.  Numeric and string conversions
-use these lazy warnings to allow (but not require) failsoft semantics.
+One additional level of control is the notion of I<lazy warnings>.  If,
+instead of throwing a warning directly, the program calls C<fail()> with a
+resumable exception, the throwing of the warning is delayed until first use
+(or the caller's policy) requires it to be thrown.  If the warning exception
+supports the C<.resume_value> method, that will be the value of the failure
+after it has resumed.  Otherwise the value will be the null string.  Numeric
+and string conversions use these lazy warnings to allow (but not require)
+failsoft semantics.
 
 =head1 The goto statement
 X<goto>
 
-In addition to C<next>, C<last>, and C<redo>, Perl 6 also supports
-C<goto>.  As with ordinary loop controls, the label is searched for
-first lexically within the current subroutine, then dynamically outside
-of it.  Unlike with loop controls, however, scanning a scope includes
-a scan of any lexical scopes included within the current candidate
-scope.  As in Perl 5, it is possible to C<goto> into a lexical scope,
-but only for lexical scopes that require no special initialization
-of parameters.  (Initialization of ordinary variables does not
-count--presumably the presence of a label will prevent code-movement
-optimizations past the label.)  So, for instance, it's always possible
-to C<goto> into the next case of a C<when> or into either the "then"
-or "else" branch of a conditional.  You may not go into a C<given>
-or a C<for>, though, because that would bypass a formal parameter
-binding (not to mention list generation in the case of C<for>).
-(Note: the implicit default binding of an outer C<$_> to an inner C<$_>
-can be emulated for a bare block, so that doesn't fall under the
-prohibition on bypassing formal binding.)
+In addition to C<next>, C<last>, and C<redo>, Perl 6 also supports C<goto>.
+As with ordinary loop controls, the label is searched for first lexically
+within the current subroutine, then dynamically outside of it.  Unlike with
+loop controls, however, scanning a scope includes a scan of any lexical
+scopes included within the current candidate scope.  As in Perl 5, it is
+possible to C<goto> into a lexical scope, but only for lexical scopes that
+require no special initialization of parameters.  (Initialization of
+ordinary variables does not count--presumably the presence of a label will
+prevent code-movement optimizations past the label.)  So, for instance, it's
+always possible to C<goto> into the next case of a C<when> or into either
+the "then" or "else" branch of a conditional.  You may not go into a
+C<given> or a C<for>, though, because that would bypass a formal parameter
+binding (not to mention list generation in the case of C<for>).  (Note: the
+implicit default binding of an outer C<$_> to an inner C<$_> can be emulated
+for a bare block, so that doesn't fall under the prohibition on bypassing
+formal binding.)
 
-Because it is possible to go to a label that is after the operation,
-and because Perl 6 does one-pass parsing, any C<goto> to a label
-that has not been yet declared (or is declared outside the outward
-lexical scope of the C<goto>) must enclose the label in quotes.
+Because it is possible to go to a label that is after the operation, and
+because Perl 6 does one-pass parsing, any C<goto> to a label that has not
+been yet declared (or is declared outside the outward lexical scope of the
+C<goto>) must enclose the label in quotes.
 
 =head1 Exceptions
 
-As in Perl 5, many built-in functions simply return an undefined value
-when you ask for a value out of range, or the function fails somehow.
-Perl 6 has C<Failure> objects, known as "unthrown exceptions" (though
-really a C<Failure> merely contains an unthrown exception), which
-know whether they have been handled or not.  C<$!> is a convenient
-link to the last failure, and only ever contains one exception, the
-most recent.
+As in Perl 5, many built-in functions simply return an undefined value when
+you ask for a value out of range, or the function fails somehow.  Perl 6 has
+C<Failure> objects, known as "unthrown exceptions" (though really a
+C<Failure> merely contains an unthrown exception), which know whether they
+have been handled or not.  C<$!> is a convenient link to the last failure,
+and only ever contains one exception, the most recent.
 
-[Conjecture: all unhandled exceptions within a routine could be stored
-in C<@!>, with the most recent first.  C<$!> would then be sugar for
-C<@![0]>.  (Or we use push semantics and C<$!> means C<@![*-1]>.) This
-might be more robust than merely making C<@!> a parameter to CATCH.
-However, the new semantics of autothrowing when sink eats a Failure
-means we won't have many unthrown exceptions waiting around to be
-handled at the end of the block anymore.  We should probably at least
-issue warnings, though, if the GC eventually collects a failure that
-was never handled.  We can't really rely on end-of-routine cleanup
-to deal with failures that are returned as normal data, unless we go
-with the overhead of a lexical C<@!> variable.]
+[Conjecture: all unhandled exceptions within a routine could be stored in
+C<@!>, with the most recent first.  C<$!> would then be sugar for C<@![0]>.
+(Or we use push semantics and C<$!> means C<@![*-1]>.) This might be more
+robust than merely making C<@!> a parameter to CATCH.  However, the new
+semantics of autothrowing when sink eats a Failure means we won't have many
+unthrown exceptions waiting around to be handled at the end of the block
+anymore.  We should probably at least issue warnings, though, if the GC
+eventually collects a failure that was never handled.  We can't really rely
+on end-of-routine cleanup to deal with failures that are returned as normal
+data, unless we go with the overhead of a lexical C<@!> variable.]
 
-If you test a C<Failure> for C<.defined> or C<.Bool>, the C<Failure>
-marks itself as I<handled>; the exception acts as a
-relatively harmless undefined value thereafter.  Any other use of the
-C<Failure> object to extract a normal value will throw its associated
-exception immediately.  (The C<Failure> may, however, be stored in
-any container whose type allows the C<Failure> role to be mixed in.)
-The C<.handled> method returns C<False> on failures that have not
-been handled.  It returns C<True> for handled exceptions and for
-all non-C<Failure> objects. (That is, it is a C<Mu> method,
-not a C<Failure> method.  Only C<Failure> objects need to store the
+If you test a C<Failure> for C<.defined> or C<.Bool>, the C<Failure> marks
+itself as I<handled>; the exception acts as a relatively harmless undefined
+value thereafter.  Any other use of the C<Failure> object to extract a
+normal value will throw its associated exception immediately.  (The
+C<Failure> may, however, be stored in any container whose type allows the
+C<Failure> role to be mixed in.) The C<.handled> method returns C<False> on
+failures that have not been handled.  It returns C<True> for handled
+exceptions and for all non-C<Failure> objects. (That is, it is a C<Mu>
+method, not a C<Failure> method.  Only C<Failure> objects need to store the
 actual status however; other types just return C<True>.)
 
-The C<.handled> method is C<rw>, so you may mark an exception as handled
-by assigning C<True> to it.  Note however that
+The C<.handled> method is C<rw>, so you may mark an exception as handled by
+assigning C<True> to it.  Note however that
 
     $!.handled = 1;
 
-marks only the last exception as handled.  To mark them all as handled
-you must access them individually via the implicit loop of a CATCH block.
+marks only the last exception as handled.  To mark them all as handled you
+must access them individually via the implicit loop of a CATCH block.
 
-A bare C<die>/C<fail> takes C<$!> as the default argument specifying
-the exception to be thrown or propagated outward to the caller's C<$!>.
+A bare C<die>/C<fail> takes C<$!> as the default argument specifying the
+exception to be thrown or propagated outward to the caller's C<$!>.
 
 You can cause built-ins to automatically throw exceptions on failure using
 
     use fatal;
 
-The C<fail> function responds to the caller's C<use fatal> state.
-It either returns an unthrown exception, or throws the exception.
-Before you get too happy about this pragma, note that Perl 6 contains
-various parallel processing primitives that will tend to get blown
-up prematurely by thrown exceptions.  Unthrown exceptions are meant
-to provide a failsoft mechanism in which failures can be treated
-as data and dealt with one by one, without aborting execution
-of what may be perfectly valid parallel computations.  If you
-I<don't> deal with the failures as data, then sink context will
+The C<fail> function responds to the caller's C<use fatal> state.  It either
+returns an unthrown exception, or throws the exception.  Before you get too
+happy about this pragma, note that Perl 6 contains various parallel
+processing primitives that will tend to get blown up prematurely by thrown
+exceptions.  Unthrown exceptions are meant to provide a failsoft mechanism
+in which failures can be treated as data and dealt with one by one, without
+aborting execution of what may be perfectly valid parallel computations.  If
+you I<don't> deal with the failures as data, then sink context will
 automatically throw any unhandled C<Failure> that you try to discard.
 
-In any case, the overriding design principle here is that no
-unhandled exception is ever dropped on the floor, but propagated
-outward until it is handled.  If no explicit handler handles it,
-the implicit outermost exception handler will
-eventually decide to abort and print all unhandled exceptions passed
-in as its current C<@!> list.
+In any case, the overriding design principle here is that no unhandled
+exception is ever dropped on the floor, but propagated outward until it is
+handled.  If no explicit handler handles it, the implicit outermost
+exception handler will eventually decide to abort and print all unhandled
+exceptions passed in as its current C<@!> list.
 
-It is possible to fail with a resumable exception, such as a warning.
-If the failure throws its exception and the exception resumes,
-the thrower by default returns the null string (C<''>) to whatever
-caused the failure to throw its exception.  This may be overridden by
-attaching a C<.resume_value> to the warning.  Hence numeric coercions
-such as C<+"42foo"> can be forced to return C<42> after issuing
-a warning.
+It is possible to fail with a resumable exception, such as a warning.  If
+the failure throws its exception and the exception resumes, the thrower by
+default returns the null string (C<''>) to whatever caused the failure to
+throw its exception.  This may be overridden by attaching a C<.resume_value>
+to the warning.  Hence numeric coercions such as C<+"42foo"> can be forced
+to return C<42> after issuing a warning.
 
 =head1 Phasers
 
 A C<CATCH> block is just a trait of the closure containing it, and is
-automatically called at the appropriate moment.  These auto-called
-blocks are known as I<phasers>, since they generally mark the
-transition from one phase of computing to another.  For instance,
-a C<CHECK> block is called at the end of compiling a compilation
-unit.  Other kinds of phasers can be installed as well; these are
-automatically called at various times as appropriate, and some of
-them respond to various control exceptions and exit values.
-Phasers marked with a C<*> can be used for their return value.
+automatically called at the appropriate moment.  These auto-called blocks
+are known as I<phasers>, since they generally mark the transition from one
+phase of computing to another.  For instance, a C<CHECK> block is called at
+the end of compiling a compilation unit.  Other kinds of phasers can be
+installed as well; these are automatically called at various times as
+appropriate, and some of them respond to various control exceptions and exit
+values.  Phasers marked with a C<*> can be used for their return value.
 
       BEGIN {...}*      at compile time, ASAP, only ever runs once
       CHECK {...}*      at compile time, ALAP, only ever runs once
@@ -1417,9 +1375,9 @@ Phasers marked with a C<*> can be used for their return value.
 
     COMPOSE {...}       when a role is composed into a class
 
-Some of the statement prefixes also behave a little bit like phasers,
-but they run in-line with the executable code, so they are spelled
-in lowercase.  They parse the same as phasers:
+Some of the statement prefixes also behave a little bit like phasers, but
+they run in-line with the executable code, so they are spelled in lowercase.
+They parse the same as phasers:
 
          do {...}*      run a block or statement as a term
        once {...}*      run only once, suppressing additional evaluations
@@ -1432,33 +1390,31 @@ in lowercase.  They parse the same as phasers:
       start {...}*      start computation of a promised result
 
 Constructs marked with a C<*> have a run-time value, and if evaluated
-earlier than their surrounding expression, they simply save their
-result for use in the expression later when the rest of the expression
-is evaluated:
+earlier than their surrounding expression, they simply save their result for
+use in the expression later when the rest of the expression is evaluated:
 
     my $compiletime = BEGIN { now };
     our $temphandle = ENTER { maketemp() };
 
-As with other statement prefixes, these value-producing constructs
-may be placed in front of either a block or a statement:
+As with other statement prefixes, these value-producing constructs may be
+placed in front of either a block or a statement:
 
     my $compiletime = BEGIN now;
     our $temphandle = ENTER maketemp();
 
-In fact, most of these phasers will take either a block or a thunk
-(known as a I<blast> in the vernacular).  The statement form can be
-particularly useful to expose a lexically scoped
-declaration to the surrounding lexical scope without "trapping" it inside a block.
+In fact, most of these phasers will take either a block or a thunk (known as
+a I<blast> in the vernacular).  The statement form can be particularly
+useful to expose a lexically scoped declaration to the surrounding lexical
+scope without "trapping" it inside a block.
 
-Hence these declare the same
-variables with the same scope as the preceding example, but run the
-statements as a whole at the indicated time:
+Hence these declare the same variables with the same scope as the preceding
+example, but run the statements as a whole at the indicated time:
 
     BEGIN my $compiletime = now;
     ENTER our $temphandle = maketemp();
 
-(Note, however, that the value of a variable calculated at compile
-time may not persist under run-time cloning of any surrounding closure.)
+(Note, however, that the value of a variable calculated at compile time may
+not persist under run-time cloning of any surrounding closure.)
 
 Most of the non-value-producing phasers may also be so used:
 
@@ -1469,58 +1425,58 @@ Note, however, that
     END say my $accumulator = 0;
 
 sets the variable to 0 at C<END> time, since that is when the "my"
-declaration is actually executed.  Only argumentless phasers may
-use the statement form.  This means that C<CATCH> and C<CONTROL>
-always require a block, since they take an argument that sets C<$_>
-to the current topic, so that the innards are able to behave
-as a switch statement.  (If bare statements were allowed, the
-temporary binding of C<$_> would leak out past the end of the C<CATCH>
-or C<CONTROL>, with unpredictable and quite possibly dire consequences.
-Exception handlers are supposed to reduce uncertainty, not increase it.)
+declaration is actually executed.  Only argumentless phasers may use the
+statement form.  This means that C<CATCH> and C<CONTROL> always require a
+block, since they take an argument that sets C<$_> to the current topic, so
+that the innards are able to behave as a switch statement.  (If bare
+statements were allowed, the temporary binding of C<$_> would leak out past
+the end of the C<CATCH> or C<CONTROL>, with unpredictable and quite possibly
+dire consequences.  Exception handlers are supposed to reduce uncertainty,
+not increase it.)
 
-Code that is generated at run time can still fire off C<CHECK>
-and C<INIT> phasers, though of course those phasers can't do things that
-would require travel back in time.  You need a wormhole for that.
+Code that is generated at run time can still fire off C<CHECK> and C<INIT>
+phasers, though of course those phasers can't do things that would require
+travel back in time.  You need a wormhole for that.
 
-The compiler is free to ignore C<LINK> phasers compiled at run time
-since they're too late for the application-wide linking decisions.
+The compiler is free to ignore C<LINK> phasers compiled at run time since
+they're too late for the application-wide linking decisions.
 
-Some of these phasers also have corresponding traits that can be set on variables.
-These have the advantage of passing the variable in question into
-the closure as its topic:
+Some of these phasers also have corresponding traits that can be set on
+variables.  These have the advantage of passing the variable in question
+into the closure as its topic:
 
     our $h will enter { .rememberit() } will undo { .forgetit() };
 
-Only phasers that can occur multiple times within a block are eligible
-for this per-variable form.
+Only phasers that can occur multiple times within a block are eligible for
+this per-variable form.
 
-Apart from C<CATCH> and C<CONTROL>, which can only occur once, most
-of these can occur multiple times within the block.  So they aren't
-really traits, exactly--they add themselves onto a list stored in the
-actual trait.  So if you examine the C<ENTER> trait of a block, you'll
-find that it's really a list of phasers rather than a single phaser.
+Apart from C<CATCH> and C<CONTROL>, which can only occur once, most of these
+can occur multiple times within the block.  So they aren't really traits,
+exactly--they add themselves onto a list stored in the actual trait.  So if
+you examine the C<ENTER> trait of a block, you'll find that it's really a
+list of phasers rather than a single phaser.
 
-When multiple phasers are scheduled to run at the same moment, the
-general tiebreaking principle is that initializing phasers execute in
-order declared, while finalizing phasers execute in the opposite order,
-because setup and teardown usually want to happen in the opposite order
-from each other.  When phasers are in different modules, the
-C<INIT> and C<END> phasers are treated as if declared at C<use> time in
-the using module.  (It is erroneous to depend on this order if the
-module is used more than once, however, since the phasers are only
-installed the first time they're noticed.)
+When multiple phasers are scheduled to run at the same moment, the general
+tiebreaking principle is that initializing phasers execute in order
+declared, while finalizing phasers execute in the opposite order, because
+setup and teardown usually want to happen in the opposite order from each
+other.  When phasers are in different modules, the C<INIT> and C<END>
+phasers are treated as if declared at C<use> time in the using module.  (It
+is erroneous to depend on this order if the module is used more than once,
+however, since the phasers are only installed the first time they're
+noticed.)
 
-The semantics of C<INIT> and C<once> are not equivalent to each
-other in the case of cloned closures.  An C<INIT> only runs once for
-all copies of a cloned closure.  A C<once> runs separately for each
-clone, so separate clones can keep separate state variables:
+The semantics of C<INIT> and C<once> are not equivalent to each other in the
+case of cloned closures.  An C<INIT> only runs once for all copies of a
+cloned closure.  A C<once> runs separately for each clone, so separate
+clones can keep separate state variables:
 
     our $i = 0;
     ...
     $func = once { state $x { $x = $i++ }; dostuff($i) };
 
-But C<state> automatically applies "once" semantics to any initializer,
-so this also works:
+But C<state> automatically applies "once" semantics to any initializer, so
+this also works:
 
     $func = { state $x = $i++; dostuff($i) }
 
@@ -1528,105 +1484,101 @@ Each subsequent clone gets an initial state that is one higher than the
 previous, and each clone maintains its own state of C<$x>, because that's
 what C<state> variables do.
 
-Even in the absence of closure cloning, C<INIT> runs before the
-mainline code, while C<once> puts off the initialization till the
-last possible moment, then runs exactly once, and caches its value
-for all subsequent calls (assuming it wasn't called in sink context,
-in which case the C<once> is evaluated once only for its side effects).
-In particular, this means that C<once> can make use of any parameters
-passed in on the first call, whereas C<INIT> cannot.
+Even in the absence of closure cloning, C<INIT> runs before the mainline
+code, while C<once> puts off the initialization till the last possible
+moment, then runs exactly once, and caches its value for all subsequent
+calls (assuming it wasn't called in sink context, in which case the C<once>
+is evaluated once only for its side effects).  In particular, this means
+that C<once> can make use of any parameters passed in on the first call,
+whereas C<INIT> cannot.
 
 All of these phaser blocks can see any previously declared lexical
-variables, even if those variables have not been elaborated yet when
-the closure is invoked (in which case the variables evaluate to an
-undefined value.)
+variables, even if those variables have not been elaborated yet when the
+closure is invoked (in which case the variables evaluate to an undefined
+value.)
 
-Note: Apocalypse 4 confused the notions of C<PRE>/C<POST> with C<ENTER>/C<LEAVE>.
-These are now separate notions.  C<ENTER> and C<LEAVE> are used only for
-their side effects.  C<PRE> and C<POST> return boolean values which, if
-false, trigger a runtime exception.  C<KEEP> and C<UNDO> are just variants
-of C<LEAVE>, and for execution order are treated as part of the queue of
-C<LEAVE> phasers.
+Note: Apocalypse 4 confused the notions of C<PRE>/C<POST> with
+C<ENTER>/C<LEAVE>.  These are now separate notions.  C<ENTER> and C<LEAVE>
+are used only for their side effects.  C<PRE> and C<POST> return boolean
+values which, if false, trigger a runtime exception.  C<KEEP> and C<UNDO>
+are just variants of C<LEAVE>, and for execution order are treated as part
+of the queue of C<LEAVE> phasers.
 
 It is conjectured that C<PRE> and C<POST> submethods in a class could be
-made to run as if they were phasers in any public method of the class.
-This feature is awaiting further exploration by means of a C<ClassHOW>
-extension.
+made to run as if they were phasers in any public method of the class.  This
+feature is awaiting further exploration by means of a C<ClassHOW> extension.
 
-C<FIRST>, C<NEXT>, and C<LAST> are meaningful only within the
-lexical scope of a loop, and may occur only at the top level of such
-a loop block.  A C<NEXT> executes only if the end of the loop block is
-reached normally, or an explicit C<next> is executed.  In distinction
-to C<LEAVE> phasers, a C<NEXT> phaser is not executed if the loop block
-is exited via any exception other than the control exception thrown
-by C<next>.  In particular, a C<last> bypasses evaluation of C<NEXT>
-phasers.
+C<FIRST>, C<NEXT>, and C<LAST> are meaningful only within the lexical scope
+of a loop, and may occur only at the top level of such a loop block.  A
+C<NEXT> executes only if the end of the loop block is reached normally, or
+an explicit C<next> is executed.  In distinction to C<LEAVE> phasers, a
+C<NEXT> phaser is not executed if the loop block is exited via any exception
+other than the control exception thrown by C<next>.  In particular, a
+C<last> bypasses evaluation of C<NEXT> phasers.
 
-[Note: the name C<FIRST> used to be associated with C<state>
-declarations.  Now it is associated only with loops.  See the C<once>
-above for C<state> semantics.]
+[Note: the name C<FIRST> used to be associated with C<state> declarations.
+Now it is associated only with loops.  See the C<once> above for C<state>
+semantics.]
 
-Except for C<CATCH> and C<CONTROL> phasers, which run while an exception
-is looking for a place to handle it, all block-leaving phasers wait until
-the call stack is actually unwound to run.  Unwinding happens only after
-some exception handler decides to handle the exception that way.  That is,
-just because an exception is thrown past a stack frame does not mean we have
+Except for C<CATCH> and C<CONTROL> phasers, which run while an exception is
+looking for a place to handle it, all block-leaving phasers wait until the
+call stack is actually unwound to run.  Unwinding happens only after some
+exception handler decides to handle the exception that way.  That is, just
+because an exception is thrown past a stack frame does not mean we have
 officially left the block yet, since the exception might be resumable. In
 any case, exception handlers are specified to run within the dynamic scope
 of the failing code, whether or not the exception is resumable.  The stack
 is unwound and the phasers are called only if an exception is not resumed.
 
-So C<LEAVE> phasers for a given block are necessarily evaluated after
-any C<CATCH> and C<CONTROL> phasers.  This includes
-the C<LEAVE> variants, C<KEEP> and C<UNDO>.  C<POST> phasers are evaluated after
-everything else, to guarantee that even C<LEAVE> phasers can't violate postconditions.
+So C<LEAVE> phasers for a given block are necessarily evaluated after any
+C<CATCH> and C<CONTROL> phasers.  This includes the C<LEAVE> variants,
+C<KEEP> and C<UNDO>.  C<POST> phasers are evaluated after everything else,
+to guarantee that even C<LEAVE> phasers can't violate postconditions.
 Likewise C<PRE> phasers fire off before any C<ENTER> or C<FIRST> (though not
-before C<BEGIN>, C<CHECK>, C<LINK>, or C<INIT>, since those are done at compile or
-process initialization time).
+before C<BEGIN>, C<CHECK>, C<LINK>, or C<INIT>, since those are done at
+compile or process initialization time).
 
 The C<POST> block can be defined in one of two ways.  Either the
-corresponding C<POST> is defined as a separate phaser,
-in which case C<PRE> and C<POST> share no lexical scope.
-Alternately, any C<PRE>
-phaser may define its corresponding C<POST>
-as an embedded phaser block that closes over the lexical scope of
-the C<PRE>.
+corresponding C<POST> is defined as a separate phaser, in which case C<PRE>
+and C<POST> share no lexical scope.  Alternately, any C<PRE> phaser may
+define its corresponding C<POST> as an embedded phaser block that closes
+over the lexical scope of the C<PRE>.
 
-If exit phasers are running as a result of a stack unwind initiated by
-an exception, this information needs to be made available.  In any
-case, the information as to whether the block is being exited
-successfully or unsuccessfully needs to be available to decide
-whether to run C<KEEP> or C<UNDO> blocks (also see L</"Definition of Success">).
-How this information is made available is implementation dependent.
+If exit phasers are running as a result of a stack unwind initiated by an
+exception, this information needs to be made available.  In any case, the
+information as to whether the block is being exited successfully or
+unsuccessfully needs to be available to decide whether to run C<KEEP> or
+C<UNDO> blocks (also see L</"Definition of Success">).  How this information
+is made available is implementation dependent.
 
-An exception thrown from an C<ENTER> phaser will abort the C<ENTER>
-queue, but one thrown from a C<LEAVE> phaser will not.  The exceptions
-thrown by failing C<PRE> and C<POST> phasers cannot be caught by a
-C<CATCH> in the same block, which implies that C<POST> phaser are not
-run if a C<PRE> phaser fails.
+An exception thrown from an C<ENTER> phaser will abort the C<ENTER> queue,
+but one thrown from a C<LEAVE> phaser will not.  The exceptions thrown by
+failing C<PRE> and C<POST> phasers cannot be caught by a C<CATCH> in the
+same block, which implies that C<POST> phaser are not run if a C<PRE> phaser
+fails.
 
-If a C<POST> fails or any kind of C<LEAVE> block throws an exception
-while the stack is unwinding, the unwinding continues and collects
-exceptions to be handled.  When the unwinding is completed all new
-exceptions are thrown from that point.
+If a C<POST> fails or any kind of C<LEAVE> block throws an exception while
+the stack is unwinding, the unwinding continues and collects exceptions to
+be handled.  When the unwinding is completed all new exceptions are thrown
+from that point.
 
-For phasers such as C<KEEP> and C<POST> that are run when exiting a
-scope normally, the return value (if any) from that scope is available
-as the current topic within the phaser.  (It is presented as a argument,
-that is, either as parcel or an object that can stand alone in a list.
-In other words, it's exactly what C<return> is sending to the outside
-world in raw form, so that the phaser doesn't accidentally impose
-context prematurely.)
+For phasers such as C<KEEP> and C<POST> that are run when exiting a scope
+normally, the return value (if any) from that scope is available as the
+current topic within the phaser.  (It is presented as a argument, that is,
+either as parcel or an object that can stand alone in a list.  In other
+words, it's exactly what C<return> is sending to the outside world in raw
+form, so that the phaser doesn't accidentally impose context prematurely.)
 
-The topic of the block outside a phaser is still available as C<< OUTER::<$_> >>.
-Whether the return value is modifiable may be a policy of the phaser
-in question.  In particular, the return value should not be modified
-within a C<POST> phaser, but a C<LEAVE> phaser could be more liberal.
+The topic of the block outside a phaser is still available as C<<
+OUTER::<$_> >>.  Whether the return value is modifiable may be a policy of
+the phaser in question.  In particular, the return value should not be
+modified within a C<POST> phaser, but a C<LEAVE> phaser could be more
+liberal.
 
-Any phaser defined in the lexical scope of a method is a closure that
-closes over C<self> as well as normal lexicals.  (Or equivalently,
-an implementation may simply turn all such phasers into submethods
-whose primed invocant is the current object.)
+Any phaser defined in the lexical scope of a method is a closure that closes
+over C<self> as well as normal lexicals.  (Or equivalently, an
+implementation may simply turn all such phasers into submethods whose primed
+invocant is the current object.)
 
 =head1 Statement parsing
 
@@ -1638,12 +1590,12 @@ In this statement:
         ...
     }
 
-parentheses aren't necessary around C<EXPR> because the whitespace
-between C<EXPR> and the block forces the block to be considered a block
-rather than a subscript, provided the block occurs where an infix
-operator would be expected.  This works for all control structures,
-not just the new ones in Perl 6.  A top-level bare block is always
-considered a statement block if there's a term and a space before it:
+parentheses aren't necessary around C<EXPR> because the whitespace between
+C<EXPR> and the block forces the block to be considered a block rather than
+a subscript, provided the block occurs where an infix operator would be
+expected.  This works for all control structures, not just the new ones in
+Perl 6.  A top-level bare block is always considered a statement block if
+there's a term and a space before it:
 
     if $foo { ... }
     elsif $bar { ... }
@@ -1651,13 +1603,13 @@ considered a statement block if there's a term and a space before it:
     while $more { ... }
     for 1..10 { ... }
 
-You can still parenthesize the expression argument for old times'
-sake, as long as there's a space between the closing paren and the
-opening brace.  (Otherwise it will be parsed as a hash subscript.)
+You can still parenthesize the expression argument for old times' sake, as
+long as there's a space between the closing paren and the opening brace.
+(Otherwise it will be parsed as a hash subscript.)
 
-Note that the parser cannot intuit how many arguments a list operator
-is taking, so if you mean 0 arguments, you must parenthesize the
-argument list to force the block to appear after a term:
+Note that the parser cannot intuit how many arguments a list operator is
+taking, so if you mean 0 arguments, you must parenthesize the argument list
+to force the block to appear after a term:
 
     if caller {...}    # WRONG, parsed as caller({...})
     if caller() {...}  # okay
@@ -1667,22 +1619,21 @@ Note that common idioms work as expected though:
 
     for map { $^a + 1 }, @list { .say }
 
-Unless you are parsing a statement that expects a block argument,
-it is illegal to use a bare closure where an operator is expected
-because it will be considered to be two terms in row.
-(Remove the whitespace if you wish it to be a postcircumfix.)
+Unless you are parsing a statement that expects a block argument, it is
+illegal to use a bare closure where an operator is expected because it will
+be considered to be two terms in row.  (Remove the whitespace if you wish it
+to be a postcircumfix.)
 
-Anywhere a term is expected, a block is taken to be a closure
-definition (an anonymous subroutine).  If a closure has arguments,
-it is always taken as a normal closure.  (In addition to standard
-formal parameters, placeholder arguments also count, as do the
-underscore variables.  Implicit use of C<$_> with C<.method> also
-counts as an argument.)
+Anywhere a term is expected, a block is taken to be a closure definition (an
+anonymous subroutine).  If a closure has arguments, it is always taken as a
+normal closure.  (In addition to standard formal parameters, placeholder
+arguments also count, as do the underscore variables.  Implicit use of C<$_>
+with C<.method> also counts as an argument.)
 
-However, if an argumentless closure is empty, or appears to contain
-nothing but a comma-separated list starting with a pair or a hash (counting
-a single pair or hash as a list of one element), the closure will be
-immediately executed as a hash composer, as if called with C<.()>.
+However, if an argumentless closure is empty, or appears to contain nothing
+but a comma-separated list starting with a pair or a hash (counting a single
+pair or hash as a list of one element), the closure will be immediately
+executed as a hash composer, as if called with C<.()>.
 
     $hash = { };
     $hash = { %stuff };
@@ -1697,21 +1648,21 @@ immediately executed as a hash composer, as if called with C<.()>.
     $code = { "a", 1 };
     $code = { "a" => 1, $b, $c ==> print };
 
-If you wish to be less ambiguous, the C<hash> list operator will
-explicitly evaluate a list and compose a hash of the returned value,
-while C<sub> or C<< -> >> introduces an anonymous subroutine:
+If you wish to be less ambiguous, the C<hash> list operator will explicitly
+evaluate a list and compose a hash of the returned value, while C<sub> or
+C<< -> >> introduces an anonymous subroutine:
 
     $code = -> { "a" => 1 };
     $code = sub { "a" => 1 };
     $hash = hash("a" => 1);
     $hash = hash("a", 1);
 
-Note that the closure in a C<map> will never be interpreted as a hash,
-since such a closure always takes arguments, and use of placeholders
-(including underscore variables) is taken as evidence of arguments.
+Note that the closure in a C<map> will never be interpreted as a hash, since
+such a closure always takes arguments, and use of placeholders (including
+underscore variables) is taken as evidence of arguments.
 
-If a closure is the right argument of the dot operator, the closure
-is interpreted as a hash subscript.
+If a closure is the right argument of the dot operator, the closure is
+interpreted as a hash subscript.
 
     $code = {$x};       # closure because term expected
     if $term{$x}        # subscript because postfix expected
@@ -1735,34 +1686,34 @@ And to the parentheses delimiting function arguments:
     if $term.($x)       # valid function call with explicit dot deref
     if $term\  .($x)    # valid function call with "unspace" and dot
 
-Outside of any kind of expression brackets, a final closing curly
-on a line (not counting whitespace or comments) always reverts
-to the precedence of semicolon whether or not you put a semicolon
-after it.  (In the absence of an explicit semicolon, the current
-statement may continue on a subsequent line, but only with valid
-statement continuators such as C<else> that cannot be confused with
-the beginning of a new statement.  Anything else, such as a statement
-modifier (on, say, a C<loop> statement) must continue on the same line,
-unless the newline be escaped using the "unspace" construct--see S02.)
+Outside of any kind of expression brackets, a final closing curly on a line
+(not counting whitespace or comments) always reverts to the precedence of
+semicolon whether or not you put a semicolon after it.  (In the absence of
+an explicit semicolon, the current statement may continue on a subsequent
+line, but only with valid statement continuators such as C<else> that cannot
+be confused with the beginning of a new statement.  Anything else, such as a
+statement modifier (on, say, a C<loop> statement) must continue on the same
+line, unless the newline be escaped using the "unspace" construct--see S02.)
 
-Final blocks on statement-level constructs always imply semicolon
-precedence afterwards regardless of the position of the closing curly.
-Statement-level constructs are distinguished in the grammar by being
-declared in the C<statement_control> category:
+Final blocks on statement-level constructs always imply semicolon precedence
+afterwards regardless of the position of the closing curly.  Statement-level
+constructs are distinguished in the grammar by being declared in the
+C<statement_control> category:
 
     macro statement_control:<if> ($expr, &ifblock) {...}
     macro statement_control:<while> ($expr, &whileblock) {...}
     macro statement_control:<BEGIN> (&beginblock) {...}
 
-Statement-level constructs may start only where the parser is expecting
-the start of a statement.  To embed a statement in an expression you
-must use something like C<do {...}> or C<try {...}>.
+Statement-level constructs may start only where the parser is expecting the
+start of a statement.  To embed a statement in an expression you must use
+something like C<do {...}> or C<try {...}>.
 
     $x =  do { given $foo { when 1 {2}; when 3 {4} } } + $bar;
     $x = try { given $foo { when 1 {2}; when 3 {4} } } + $bar;
 
-The existence of a C<< statement_control:<BEGIN> >> does not preclude us from
-also defining a C<< prefix:<BEGIN> >> that I<can> be used within an expression:
+The existence of a C<< statement_control:<BEGIN> >> does not preclude us
+from also defining a C<< prefix:<BEGIN> >> that I<can> be used within an
+expression:
 
     macro prefix:<BEGIN> (&beginblock) { beginblock().repr }
 
@@ -1770,17 +1721,17 @@ Then you can say things like:
 
     $recompile_by = BEGIN { time } + $expiration_time;
 
-But C<< statement_control:<BEGIN> >> hides C<< prefix:<BEGIN> >> at the start of a statement.
-You could also conceivably define a C<< prefix:<if> >>, but then you may not
-get what you want when you say:
+But C<< statement_control:<BEGIN> >> hides C<< prefix:<BEGIN> >> at the
+start of a statement.  You could also conceivably define a C<< prefix:<if>
+>>, but then you may not get what you want when you say:
 
     die if $foo;
 
 since C<< prefix:<if> >> would hide C<< statement_modifier:<if> >>.
 
-Built-in statement-level keywords require whitespace between the
-keyword and the first argument, as well as before any terminating loop.
-In particular, a syntax error will be reported for C-isms such as these:
+Built-in statement-level keywords require whitespace between the keyword and
+the first argument, as well as before any terminating loop.  In particular,
+a syntax error will be reported for C-isms such as these:
 
     if(...) {...}
     while(...) {...}
@@ -1788,17 +1739,17 @@ In particular, a syntax error will be reported for C-isms such as these:
 
 =head1 Definition of Success
 
-Hypothetical variables are somewhat transactional--they keep their
-new values only on successful exit of the current block, and otherwise
-are rolled back to their original values.
+Hypothetical variables are somewhat transactional--they keep their new
+values only on successful exit of the current block, and otherwise are
+rolled back to their original values.
 
 It is, of course, a failure to leave the block by propagating an error
-exception, though returning a defined value after catching an exception
-is okay.
+exception, though returning a defined value after catching an exception is
+okay.
 
 In the absence of error exception propagation, a successful exit is one that
-returns a defined value or parcel.  (A defined parcel may contain undefined values.)
-So any Perl 6 function can say
+returns a defined value or parcel.  (A defined parcel may contain undefined
+values.) So any Perl 6 function can say
 
     fail "message";
 
@@ -1807,74 +1758,72 @@ context.  To return an explicit scalar undef, you can always say
 
     return Mu;          # like "return undef" in Perl 5
 
-Then in list context, you're returning a list of length 1, which is
-defined (much like in Perl 5).  But generally you should be using
-C<fail> in such a case to return an exception object.
-In any case, returning an unthrown exception is considered failure
-from the standpoint of C<let>.  Backtracking over a closure in a regex
-is also considered failure of the closure, which is how hypothetical
-variables are managed by regexes.  (And on the flip side, use of C<fail>
-within a regex closure initiates backtracking of the regex.)
+Then in list context, you're returning a list of length 1, which is defined
+(much like in Perl 5).  But generally you should be using C<fail> in such a
+case to return an exception object.  In any case, returning an unthrown
+exception is considered failure from the standpoint of C<let>.  Backtracking
+over a closure in a regex is also considered failure of the closure, which
+is how hypothetical variables are managed by regexes.  (And on the flip
+side, use of C<fail> within a regex closure initiates backtracking of the
+regex.)
 
 =head1 When is a closure not a closure
 
-Everything is conceptually a closure in Perl 6, but the optimizer
-is free to turn unreferenced closures into mere blocks of code.
-It is also free to turn referenced closures into mere anonymous
-subroutines if the block does not refer to any external lexicals that
-should themselves be cloned.  (When we say "clone", we mean the way
-the system takes a snapshot of the routine's lexical scope and binds
-it to the current instance of the routine so that if you ever use
-the current reference to the routine, it gets the current snapshot
-of its world in terms of the lexical symbols that are visible to it.)
+Everything is conceptually a closure in Perl 6, but the optimizer is free to
+turn unreferenced closures into mere blocks of code.  It is also free to
+turn referenced closures into mere anonymous subroutines if the block does
+not refer to any external lexicals that should themselves be cloned.  (When
+we say "clone", we mean the way the system takes a snapshot of the routine's
+lexical scope and binds it to the current instance of the routine so that if
+you ever use the current reference to the routine, it gets the current
+snapshot of its world in terms of the lexical symbols that are visible to
+it.)
 
-All remaining blocks are conceptually cloned into closures as soon
-as the lexical scope containing them is entered.  (This may be done
-lazily as long as consistent semantics are preserved, so a block
-that is never executed and never has a reference taken can avoid
-cloning altogether.  Execution or reference taking forces cloning
-in this case--references are not allowed to be lazily cloned, since
-no guarantee can be made that the scope needed for cloning will
-remain in existence over the life of the reference.)
+All remaining blocks are conceptually cloned into closures as soon as the
+lexical scope containing them is entered.  (This may be done lazily as long
+as consistent semantics are preserved, so a block that is never executed and
+never has a reference taken can avoid cloning altogether.  Execution or
+reference taking forces cloning in this case--references are not allowed to
+be lazily cloned, since no guarantee can be made that the scope needed for
+cloning will remain in existence over the life of the reference.)
 
-In particular, package subroutines are a special problem when embedded in
-a changing lexical scope (when they make reference to it).  The binding
-of such a definition to a name within a symbol table counts as taking
-a reference, so at compile time there is an initial binding
-to the symbol table entry in question.  For "global" bindings to
-symbol tables visible at compile time, this binds to the compile-time
-view of the lexical scopes.  (At run-time, the initial run-time view
-of these scopes is copied from the compiler's view of them, so that
-initializations carry over, for instance.)  At run time, when such
-a subroutine is cloned, an additional binding is done
-at clone time to the same symbol table entry that the original
-was bound to.  (The binding is not restored on exit from the current
-lexical scope; this binding records the I<last> cloning, not
-the currently in-use cloning, so any use of the global reference must
-take into consideration that it is functioning only as a cache of the
-most recent cloning, not as a surrogate for the current lexical scope.)
+In particular, package subroutines are a special problem when embedded in a
+changing lexical scope (when they make reference to it).  The binding of
+such a definition to a name within a symbol table counts as taking a
+reference, so at compile time there is an initial binding to the symbol
+table entry in question.  For "global" bindings to symbol tables visible at
+compile time, this binds to the compile-time view of the lexical scopes.
+(At run-time, the initial run-time view of these scopes is copied from the
+compiler's view of them, so that initializations carry over, for instance.)
+At run time, when such a subroutine is cloned, an additional binding is done
+at clone time to the same symbol table entry that the original was bound to.
+(The binding is not restored on exit from the current lexical scope; this
+binding records the I<last> cloning, not the currently in-use cloning, so
+any use of the global reference must take into consideration that it is
+functioning only as a cache of the most recent cloning, not as a surrogate
+for the current lexical scope.)
 
-Matters are more complicated if the package in question is lexically defined.
-In such cases, the package must be cloned as if it were a sub on entry to the
-corresponding lexical scope.  All runtime instances of a single package
-declaration share the same set of compile-time declared functions, however,
-the runtime instances can have different lexical environments as described in
-the preceding paragraph.  If multiple conflicting definitions of a sub exist
-for the same compile-time package, an error condition exists and behavior is
-not specified for Perl 6.0.
+Matters are more complicated if the package in question is lexically
+defined.  In such cases, the package must be cloned as if it were a sub on
+entry to the corresponding lexical scope.  All runtime instances of a single
+package declaration share the same set of compile-time declared functions,
+however, the runtime instances can have different lexical environments as
+described in the preceding paragraph.  If multiple conflicting definitions
+of a sub exist for the same compile-time package, an error condition exists
+and behavior is not specified for Perl 6.0.
 
-Methods in classes behave functionally like package subroutines, and have the
-same binding behavior if the classes are cloned.  Note that a class declaration,
-even an augment, is fundamentally a compile-time operation; composition only
-happens once and the results are recorded in the prototype class.  Runtime
-typological manipulations are limited to reseating C<OUTER::> scopes of methods.
+Methods in classes behave functionally like package subroutines, and have
+the same binding behavior if the classes are cloned.  Note that a class
+declaration, even an augment, is fundamentally a compile-time operation;
+composition only happens once and the results are recorded in the prototype
+class.  Runtime typological manipulations are limited to reseating
+C<OUTER::> scopes of methods.
 
-Lexical names do not share this problem, since the symbol goes out
-of scope synchronously with its usage.  Unlike global subs, they
-do not need a compile-time binding, but like global subs,
-they perform a binding to the lexical symbol at clone time
-(again, conceptually at the entry to the outer lexical scope, but
-possibly deferred.)
+Lexical names do not share this problem, since the symbol goes out of scope
+synchronously with its usage.  Unlike global subs, they do not need a
+compile-time binding, but like global subs, they perform a binding to the
+lexical symbol at clone time (again, conceptually at the entry to the outer
+lexical scope, but possibly deferred.)
 
     sub foo {
         # conceptual cloning happens to both blocks below
@@ -1887,30 +1836,28 @@ possibly deferred.)
 
 In particular, blocks of inline control flow need not be cloned until
 called.  [Note: this is currently a potential problem for user-defined
-constructs, since you have to take references to blocks to pass them
-to whatever is managing the control flow.  Perhaps the laziness can
-be deferred through C<Capture>s to binding time, so a slurpy of block
-refs doesn't clone them all prematurely.  On the other hand, this
-either means the C<Capture> must be smart enough to keep track of the
-lexical scope it came from so that it can pass the info to the cloner,
-or it means that we need some special fat not-cloned-yet references
-that can carry the info lazily.  Neither approach is pretty.]
+constructs, since you have to take references to blocks to pass them to
+whatever is managing the control flow.  Perhaps the laziness can be deferred
+through C<Capture>s to binding time, so a slurpy of block refs doesn't clone
+them all prematurely.  On the other hand, this either means the C<Capture>
+must be smart enough to keep track of the lexical scope it came from so that
+it can pass the info to the cloner, or it means that we need some special
+fat not-cloned-yet references that can carry the info lazily.  Neither
+approach is pretty.]
 
 Some closures produce C<Block> objects at compile time that cannot be
-cloned, because they're not attached to any runtime code that can
-actually clone them.  C<BEGIN>, C<CHECK>, C<LINK>, C<INIT>, and C<END> blocks
-fall into this category.  Therefore you can't reliably refer to
-run-time variables from these closures even if they appear to be in the
-scope.  (The compile-time closure may, in fact, see some kind of permanent
-copy of the variable for some storage classes, but the variable is
-likely to be undefined when the closure is run in any case.)  It's
-only safe to refer to package variables and file-scoped lexicals from
-such a routine.
+cloned, because they're not attached to any runtime code that can actually
+clone them.  C<BEGIN>, C<CHECK>, C<LINK>, C<INIT>, and C<END> blocks fall
+into this category.  Therefore you can't reliably refer to run-time
+variables from these closures even if they appear to be in the scope.  (The
+compile-time closure may, in fact, see some kind of permanent copy of the
+variable for some storage classes, but the variable is likely to be
+undefined when the closure is run in any case.)  It's only safe to refer to
+package variables and file-scoped lexicals from such a routine.
 
 On the other hand, it is required that C<CATCH> and C<LEAVE> blocks be able
-to see transient variables in their current lexical scope, so their
-cloning status depends at least on the cloning status of the block
-they're in.
+to see transient variables in their current lexical scope, so their cloning
+status depends at least on the cloning status of the block they're in.
 
 =head1 AUTHORS
 
