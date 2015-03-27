@@ -17,8 +17,8 @@ Synopsis 7: Lists and Iteration
 Lists and arrays have always been one of Perl's fundamental data types,
 and Perl 6 is no different.  However, lists in Perl 6 have been greatly
 extended to accommodate lazy lists, infinite lists, lists of mutable
-and immutable elements, typed lists, flattening behaviors, and so on.  
-So where lists and arrays in Perl 5 tended to be finite sequences of 
+and immutable elements, typed lists, flattening behaviors, and so on.
+So where lists and arrays in Perl 5 tended to be finite sequences of
 scalar values, in Perl 6 we have additional dimensions of behavior
 that must be addressed.
 
@@ -34,7 +34,7 @@ either mutable or immutable.
 C<List> objects are C<Positional>, meaning they can be bound to
 array variables and support the postfix C<.[]> operator.
 
-Lists are also lazy, in that the elements of a C<List> may 
+Lists are also lazy, in that the elements of a C<List> may
 come from generator functions (called C<Iterator>s) that produce
 elements on demand.
 
@@ -46,16 +46,16 @@ array.
 
 =head2 The C<Parcel> type
 
-The comma operator (C<< infix:<,> >>) creates C<Parcel> objects.  
+The comma operator (C<< infix:<,> >>) creates C<Parcel> objects.
 These should not be confused with lists; a C<Parcel> represents
 a raw syntactic sequence of elements.  A C<Parcel> is immutable,
 although the elements of a C<Parcel> may be either mutable or
 immutable.
 
-The name "Parcel" is derived from the phrase "parenthesis cell", 
-since many C<Parcel> objects appear inside of parentheses.  
-However, except for the empty parcel, it's the comma operator 
-that creates C<Parcel> objects.  
+The name "Parcel" is derived from the phrase "parenthesis cell",
+since many C<Parcel> objects appear inside of parentheses.
+However, except for the empty parcel, it's the comma operator
+that creates C<Parcel> objects.
 
     ()       # empty Parcel
     (1)      # an Int
@@ -110,7 +110,7 @@ prevent an C<Iterable> from being interpolated:
 An C<Iterator> is an object that is able to generate or produce
 elements of a list (called "reification").  Because a single
 C<Iterator> may be directly or indirectly referenced by
-multiple container objects simultaneously, C<Iterator>s provide 
+multiple container objects simultaneously, C<Iterator>s provide
 an immutable view of the sequence of elements produced, leaving
 it up to containers to provide any mutability.
 
@@ -124,10 +124,10 @@ iterators needed for the remaining elements in the sequence.  For example:
     say $r.iterator.reify(5).perl;  # (10, 11, 12, 13, 14, 15..50)
 
 Iterators are allowed to return more or fewer elements than requested
-by C<$n>; it's up to the caller to properly handle any shortage or 
+by C<$n>; it's up to the caller to properly handle any shortage or
 excess.  (In general an iterator is expected to always reify at
 least one element, however.)  If C<$n> is C<*>, then the iterator
-is asked to generate elements according to whatever is most natural 
+is asked to generate elements according to whatever is most natural
 for the thing being iterated.  For a C<Range> this might be a substantial
 number (or even all) of the elements of the range; for a filehandle
 it might read a single record; for a C<List> it may return only the
@@ -163,7 +163,7 @@ a value indicating the knowable finiteness of the iteration:
 
 As an example, C<Range> iterators can generally know finiteness simply
 by looking at the endpoint of the C<Range>.  The iterator for the
-C<< infix:<...> >> sequence operator treats any sequence ending in 
+C<< infix:<...> >> sequence operator treats any sequence ending in
 C<*> as being "known infinite", all other C<...> sequences have unknown
 finiteness.  In the general case it's not possible for loop iterators
 to definitively know if the sequence will be finite or infinite.
@@ -175,7 +175,7 @@ or known infinite.)
 
 Laziness is one of the primary virtues of a Perl programmer; it is
 also one of the virtues of Perl 6.  However, it's also possible to
-succumb to false laziness, so there are times when Perl 6 chooses 
+succumb to false laziness, so there are times when Perl 6 chooses
 to be eager instead of lazy.
 
 Perl 6 defines four levels of laziness:
@@ -201,12 +201,12 @@ values may be used in the definition of subsequent values.)
 =item Mostly Eager
 
 Obtain all leading items that are not known to be infinite.
-The remainder of the items are left for lazy evaluation.  
-As with the "mostly lazy" case, the programmer must not depend 
-on circular side effects in any situation where the implementation 
-is allowed to work ahead.  Note that there are no language-defined 
-limits on the amount of conjectural evaluation allowed, up to the 
-size of available memory; however, an implementation may allow 
+The remainder of the items are left for lazy evaluation.
+As with the "mostly lazy" case, the programmer must not depend
+on circular side effects in any situation where the implementation
+is allowed to work ahead.  Note that there are no language-defined
+limits on the amount of conjectural evaluation allowed, up to the
+size of available memory; however, an implementation may allow
 the arbitrary limitation of workahead by use of pragmas.
 
 In any case there should be no profound semantic differences
