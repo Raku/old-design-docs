@@ -8,8 +8,8 @@ Synopsis 11: Compilation Units
 
     Created: 27 Oct 2004
 
-    Last Modified: 11 Feb 2015
-    Version: 43
+    Last Modified: 28 Mar 2015
+    Version: 44
 
 =head1 Overview
 
@@ -191,11 +191,11 @@ X<use>
 Importing via C<use> binds into the current lexical scope by default
 (rather than the current package, as in Perl 5).
 
-    use Sense <common @horse>;
+    use Sense <&common @horse>;
 
 You can be explicit about the desired package:
 
-    use Sense :MY<common> :OUR<@horse>;
+    use Sense :MY<&common> :OUR<@horse>;
 
 That's pretty much equivalent to:
 
@@ -203,11 +203,13 @@ That's pretty much equivalent to:
     my &common ::= Sense::<&common>;
     our @horse ::= Sense::<@horse>;
 
+(if C<&common> and C<@horse> are C<our>-scoped in package C<Sense>).
+
 It is also possible to re-export the imported symbols:
 
-    use Sense :EXPORT;                  # import and re-export the defaults
-    use Sense <common> :EXPORT;         # import "common" and re-export it
-    use Sense <common> :EXPORT<@horse>; # import "common" but export "@horse"
+    use Sense :EXPORT;                   # import and re-export the defaults
+    use Sense <&common> :EXPORT;         # import "&common" and re-export it
+    use Sense <&common> :EXPORT<@horse>; # import "&common" but export "@horse"
 
 In the absence of a specific scoping specified by the caller, one
 may also specify a different scoping default by use of C<:MY> or C<:OUR>
@@ -217,12 +219,12 @@ in different scopes is likely to lead to confusion.)
 The C<use> declaration is actually a composite of two other declarations,
 C<need> and C<import>.  Saying
 
-    use Sense <common @horse>;
+    use Sense <&common @horse>;
 
 breaks down into:
 
     need Sense;
-    import Sense <common @horse>;
+    import Sense <&common @horse>;
 
 These further break down into:
 
@@ -241,7 +243,7 @@ These further break down into:
         $target{$package} := $loaded_compunit.copy;
         # finally give the chance for the module to install
         # the selected symbols
-        $loaded_compunit.EXPORTALL($target, <common @horse>);
+        $loaded_compunit.EXPORTALL($target, <&common @horse>);
       }
     }
 
