@@ -80,24 +80,24 @@ The use of filenames requires a special quoting syntax.  It works as follows:
 Both of the above result in the same C<IO::Path> object.
 
 The quote characters can be any of the usual ones, although / is probably a bad choice
-for filenames.  
+for filenames.
 
-The code shown above returns a Path object (or a descendant thereof).  
+The code shown above returns a Path object (or a descendant thereof).
 
 Naturally you can also ask for interpolation in filenames:
 
     qp:qq{$directory/$file}
     qq:p{$directory/$file}
 
-There are a number of special adverbs that can be applied to the file quoting 
+There are a number of special adverbs that can be applied to the file quoting
 operator.  Most of these are filesystem-specific.  They confine what can be
-included in a filename.  
+included in a filename.
 
 Any path that starts with a "/" is considered an absolute path, otherwise
-the path is considered relative.  
+the path is considered relative.
 
 When creating a path with qp{}, the Path.Encoding attribute is set to $?ENC, unless
-the :bin modifier (see below) is used.  
+the :bin modifier (see below) is used.
 
 =head3 Default constraints
 
@@ -107,39 +107,39 @@ The default constraints can be set with the "use path" pragma, for example:
     use path :modern;
     use path :local;
 
-The default when in strict mode is "use path :posix", whereas the default in 
-lax mode is "use path :local".  
+The default when in strict mode is "use path :posix", whereas the default in
+lax mode is "use path :local".
 
 =head3 :posix constraints
 
 The :modern set of constraints paths are portable POSIX paths (see POSIX.1-2008 sections
 4.7 and 3.276).  If platform/filesystem specific behavior is needed,
-specific constraints should be applied as needed (see below).  
+specific constraints should be applied as needed (see below).
 
-The default constraints are to only allow "/" as separator and only allows 
+The default constraints are to only allow "/" as separator and only allows
 portable POSIX filenames.  That means A-Z, a-z, 0-9, <period>, <underscore>,
-and <hyphen>.  Additionally, hyphen may not be the first character in the path.  
+and <hyphen>.  Additionally, hyphen may not be the first character in the path.
 
 Any path that starts with a "/" is considered an absolute path, otherwise
-the path is considered relative.  
+the path is considered relative.
 
 =head3 :portable
 
-In addition to the POSIX constraints above, the path should fit into 8 
-characters, followed by a full stop, and then three more characters.  Only 
+In addition to the POSIX constraints above, the path should fit into 8
+characters, followed by a full stop, and then three more characters.  Only
 the one full stop should appear in the filename.  Additionally, no path
-may be longer than 64 characters.  
+may be longer than 64 characters.
 
 =head3 :local
 
-This is :win on a Windows platform, :unix on a Unix platform, etc.  Note 
+This is :win on a Windows platform, :unix on a Unix platform, etc.  Note
 that this is specifically not portable between platforms with different
-constraint sets.  
+constraint sets.
 
 =head3 :modern constraints
 
 The :modern set of constraints are the same as :posix, except that they
-may contain any UTF-8 character, rather than just those listed.  
+may contain any UTF-8 character, rather than just those listed.
 
 =head3 :win constraints
 
@@ -148,28 +148,28 @@ platform is not a pain.
 
 my Path $path = p:win{C:\Program Files\MS Access\file.file};
 
-Note that this specifically excludes the backslash quoting usually used with 
-q{}.  
+Note that this specifically excludes the backslash quoting usually used with
+q{}.
 
 =head3 :unix constraints
 
 For Unix specific behavior we have a p:unix{} literal.  Here the only
-limits are what is defined by the locale and the filesystem type. So we won't 
-be able to write full Unicode if locale is set to Latin1. 
+limits are what is defined by the locale and the filesystem type. So we won't
+be able to write full Unicode if locale is set to Latin1.
 
 my Path $path = p:unix{/usr/src/bla/myfile?:%.file};
 
 =head3 :bin constraints (no constraints at all)
 
 If the above are causing problems, p:bin{} can be used as no checking is
-done here.  However, this leaves the Path.Encoding attribute undefined, which 
-means that certain features of Path will remain unavailable unless this 
-attribute is set.  
+done here.  However, this leaves the Path.Encoding attribute undefined, which
+means that certain features of Path will remain unavailable unless this
+attribute is set.
 
 =head3 Other constraints
 
 It is expected that other sets of constraints, such as VMS, DOS, and old-style
-Mac will be provided by modules.  
+Mac will be provided by modules.
 
 =head2 $*CWD
 
@@ -177,7 +177,7 @@ The global variable $*CWD is a C<IO::Path> object with certain special
 properties, mainly:
 
  * It must check whether the path exists before changing its value
- * It can only be assigned an absolute path; if you want to make relative 
+ * It can only be assigned an absolute path; if you want to make relative
    changes, use the Array interface with .push and .pop
 
 $*CWD is specific to the current thread, unlike C<< %*ENVZ<><PATH> >> or the
@@ -193,7 +193,7 @@ The variable is used in at least these cases:
 =head2 $*TMPDIR
 
 The global variable $*TMPDIR is an IO::Path object which points to the system's
-temporary directory.  It will check the usual places such a C<< %*ENVZ<><TMPDIR> >>, 
+temporary directory.  It will check the usual places such a C<< %*ENVZ<><TMPDIR> >>,
 C</tmp>, C<C:\Windows\temp>, etc (depending on the OS) for a writable directory.
 If a writable directory isn't found, it is set to $*CWD.
 

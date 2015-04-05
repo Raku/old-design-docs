@@ -184,10 +184,10 @@ in his C<$!> variables is an object of type C<X::AdHoc>.
 
 So C<&die> could be written as
 
-    multi sub die(Exception $e) is hidden_from_backtrace {
+    multi sub die(Exception $e) is hidden-from-backtrace {
         $e.throw
     }
-    multi sub die($payload) is hidden_from_backtrace {
+    multi sub die($payload) is hidden-from-backtrace {
         X::AdHoc.new(:$payload).throw;
     }
 
@@ -753,7 +753,7 @@ example C<rx:g/a/>).
 
 =head3 X::Syntax::Regex::SolitaryQuantifier
 
-Thrown when a stand alone quantifier in a regex is encountered (for 
+Thrown when a stand alone quantifier in a regex is encountered (for
 example C</ * />).
 
     my class X::Syntax::Regex::SolitaryQuantifier does X::Syntax {
@@ -819,7 +819,7 @@ Common role for all Pod-related errors.
 
 =head2 Dispatch errors
 
-=head3 X::Method::NotFound 
+=head3 X::Method::NotFound
 
 Thrown when the user tries to call a method that isn't there, for example
 C<1.foo>.
@@ -864,7 +864,7 @@ range.
         has $.range = '<unknown>';
         has $.comment;
         method message() {
-            $.comment.defined 
+            $.comment.defined
             ?? "$.what out of range. Is: $.got, should be in $.range.gist(); $.comment"
             !! "$.what out of range. Is: $.got, should be in $.range.gist()"
         }
@@ -1113,7 +1113,7 @@ cannot be used for composition (roles and enums are generally OK).
         }
     }
 
-=head2 X::TypeCheck 
+=head2 X::TypeCheck
 
 Thrown when a type check fails.
 
@@ -1208,7 +1208,7 @@ Thrown when a non-DWIMy hyperop has lists of lengths that do not match.
         has $.right-elems;
         method message() {
             "Lists on both side of non-dwimmy hyperop of &.operator.name() are not of the same length\n"
-            ~ "left: $.left-elems elements, right: $.right-elems elements"; 
+            ~ "left: $.left-elems elements, right: $.right-elems elements";
         }
     }
 
@@ -1327,9 +1327,9 @@ with two leading spaces on each line.
 The default stringification includes blocks and routines from user-space
 code, but from the setting only routines are shown [conjectural]. Routines
 can be hidden from the default backtrace stringification by apply the
-C<hidden_from_backtrace> trait:
+C<hidden-from-backtrace> trait:
 
-    sub my-die(*@msg) is hidden_from_backtrace { }
+    sub my-die(*@msg) is hidden-from-backtrace { }
 
 the C<is-hidden> method in C<Backtrace::Frame> returns C<Bool::True> for routines
 with that trait.

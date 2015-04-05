@@ -25,7 +25,6 @@ Paths are generally passed as strings or C<IO::Path> objects.
 
 C<&dir> returns C<IO::Path> objects.
 
-                      
               default handle
     routine   for sub form    purpose
     =======   ===========     =======
@@ -252,7 +251,7 @@ failure.
 
     sub rmdir(Cool:D $directory)
 
-Removes the directory given from disk.  Returns True on success, or an 
+Removes the directory given from disk.  Returns True on success, or an
 L<X::IO::Rmdir|S32::Exception/X::IO::Rmdir> failure.
 
 =item mkdir
@@ -410,7 +409,7 @@ The routine will C<fail> if the file does not exist, or is a directory.
         Str  :$enc = $?ENC,
         Bool :append = False,
         Bool :$createonly = False)
-    
+
     multi method spurt (
         Buf   $contents,
         Bool :append = False,
@@ -593,7 +592,7 @@ represents, and the directory is the part of the path leading up to the base
 name.
 
     path              volume         directory  base name
-    /usr/bin/gvim                    /usr/bin   gvim   
+    /usr/bin/gvim                    /usr/bin   gvim
     /usr/bin/                        /usr       bin
     foo/bar.txt                      foo        bar.txt
     C:\temp\f.txt     C:             \temp      f.txt
@@ -626,12 +625,12 @@ concept of volume in the path, returns the empty string.
 =item directory
 
 Returns the directory part of the path, not including the last item.  Functions
-equivalently to the C<dirname> shell program on Unix-like systems. 
+equivalently to the C<dirname> shell program on Unix-like systems.
 
 =item basename
 
 Returns the base name part of the path -- that is, the last portion.  Functions
-equivalently to the C<basename> shell program on Unix-like systems. 
+equivalently to the C<basename> shell program on Unix-like systems.
 
 =item path
 
@@ -764,7 +763,7 @@ on error.
 =item mkdir
 
 Makes (creates) the directory represented by the IO::Path. Returns True on success.
-The method will C<fail> with L<X::IO::Mkdir|S32::Exception/X::IO::Mkdir> if it 
+The method will C<fail> with L<X::IO::Mkdir|S32::Exception/X::IO::Mkdir> if it
 can not create the directory, if file or directory already exists or if the parent
 directory of the path does not exist.
 
@@ -785,7 +784,7 @@ Most of the methods are less convenient than in IO::Path, but it allows access
 to lower-level operations on file path strings.
 
 As with IO::Path, these operations are significantly different on some operating
-systems, so we have the following subclasses: IO::Spec::Unix, IO::Spec::Win32, 
+systems, so we have the following subclasses: IO::Spec::Unix, IO::Spec::Win32,
 and IO::Spec::Cygwin.  IO::Spec automatically loads the correct module for use
 on the current system.
 
@@ -852,12 +851,12 @@ X<splitpath>
     method splitpath( $path, $nofile = False )
 
 Splits a path in to volume, directory, and filename portions. On systems
-with no concept of volume, returns '' for volume. 
+with no concept of volume, returns '' for volume.
 
     my ($volume,$directories,$file) = IO::Spec.splitpath( $path );
     my ($volume,$directories,$file) = IO::Spec.splitpath( $path, $no_file );
 
-For systems with no syntax differentiating filenames from directories, 
+For systems with no syntax differentiating filenames from directories,
 assumes that the last file is a path unless C<$no_file> is true or a
 trailing separator or F</.> or F</..> is present. On Unix, this means that C<$no_file>
 true makes this return ( '', $path, '' ).
@@ -947,7 +946,7 @@ The opposite of L</catdir>.
 
     @dirs = IO::Spec.splitdir( $directories );
 
-C<$directories> must be only the directory portion of the path on systems 
+C<$directories> must be only the directory portion of the path on systems
 that have the concept of a volume or that have path syntax that differentiates
 files from directories.
 
@@ -990,7 +989,7 @@ On systems with the concept of volume, if C<$path> and C<$base> appear to be
 on two different volumes, we will not attempt to resolve the two
 paths, and we will instead simply return C<$path>.
 
-On systems that have a grammar that indicates filenames, this ignores the 
+On systems that have a grammar that indicates filenames, this ignores the
 C<$base> filename as well. Otherwise all path components are assumed to be
 directories.
 
@@ -1002,12 +1001,12 @@ No checks against the filesystem are made.
 =item rel2abs
 X<rel2abs>
 
-Converts a relative path to an absolute path. 
+Converts a relative path to an absolute path.
 
     $abs_path = IO::Spec.rel2abs( $path ) ;
     $abs_path = IO::Spec.rel2abs( $path, $base ) ;
 
-If C<$base> is not present or '', then C<$*CWD> is used. If C<$base> is also 
+If C<$base> is not present or '', then C<$*CWD> is used. If C<$base> is also
 relative, then it is first converted to absolute form, relative to C<$*CWD>.
 
 On systems with the concept of volume, if C<$path> and C<$base> appear to be

@@ -8,8 +8,8 @@ Synopsis 11: Compilation Units
 
     Created: 27 Oct 2004
 
-    Last Modified: 11 Feb 2015
-    Version: 43
+    Last Modified: 2 Apr 2015
+    Version: 45
 
 =head1 Overview
 
@@ -191,11 +191,11 @@ X<use>
 Importing via C<use> binds into the current lexical scope by default
 (rather than the current package, as in Perl 5).
 
-    use Sense <common @horse>;
+    use Sense <&common @horse>;
 
 You can be explicit about the desired package:
 
-    use Sense :MY<common> :OUR<@horse>;
+    use Sense :MY<&common> :OUR<@horse>;
 
 That's pretty much equivalent to:
 
@@ -203,11 +203,13 @@ That's pretty much equivalent to:
     my &common ::= Sense::<&common>;
     our @horse ::= Sense::<@horse>;
 
+(if C<&common> and C<@horse> are C<our>-scoped in package C<Sense>).
+
 It is also possible to re-export the imported symbols:
 
-    use Sense :EXPORT;                  # import and re-export the defaults
-    use Sense <common> :EXPORT;         # import "common" and re-export it
-    use Sense <common> :EXPORT<@horse>; # import "common" but export "@horse"
+    use Sense :EXPORT;                   # import and re-export the defaults
+    use Sense <&common> :EXPORT;         # import "&common" and re-export it
+    use Sense <&common> :EXPORT<@horse>; # import "&common" but export "@horse"
 
 In the absence of a specific scoping specified by the caller, one
 may also specify a different scoping default by use of C<:MY> or C<:OUR>
@@ -217,12 +219,12 @@ in different scopes is likely to lead to confusion.)
 The C<use> declaration is actually a composite of two other declarations,
 C<need> and C<import>.  Saying
 
-    use Sense <common @horse>;
+    use Sense <&common @horse>;
 
 breaks down into:
 
     need Sense;
-    import Sense <common @horse>;
+    import Sense <&common @horse>;
 
 These further break down into:
 
@@ -241,7 +243,7 @@ These further break down into:
         $target{$package} := $loaded_compunit.copy;
         # finally give the chance for the module to install
         # the selected symbols
-        $loaded_compunit.EXPORTALL($target, <common @horse>);
+        $loaded_compunit.EXPORTALL($target, <&common @horse>);
       }
     }
 
@@ -391,11 +393,15 @@ Other than that, the semantics are identical to the direct form.
 
 =head1 Versioning
 
-Compilation units posted to an authority (such as CPAN) as part of a
-distribution, or entered into any standard Perl 6 library, are required to
-declare their full name so that installations can know where to keep them,
-such that multiple versions by different authors can coexist, all of them
-available to any installed version of Perl.
+Whenever an authority (such as a CPAN author or a company) posts a
+compilation unit as part of a distribution of Perl 6 code, or enters it into
+any Perl 6 library, the module is required to declare its full
+name so that installations can know its unique, immutable identity,
+such that multiple versions by different authors can coexist, all of
+them available to any installed version of Perl.  (For the purposes of
+"standard Perl 6 library" we do not just mean publicly shared libraries
+such as CPAN, but also any internal or site-wide libraries that are
+shared outside the given module's dev group.)
 
 Such modules are also required to specify exactly which version (or
 versions) of Perl they are expecting to run under, so that future
@@ -493,12 +499,12 @@ the version lineage that was created first wins, unless overridden by
 local policy or by official abandonment by the original auth (as
 determined either by the author or by community consensus in case the
 author is no longer available or widely regarded as uncooperative).
-An officially abandoned lineage will be selected only if it is the
+An abandoned lineage will be selected only if it is the
 only available lineage of locally installed modules.
 
 Once the auth is selected, then and only then is any version
-selection done.  This implies that all official compunits record
-permanently when they were first installed in the official library,
+selection done.  This implies that all installed compunits record
+permanently when they were first installed in the library,
 and this creation date is considered immutable.  This date can be specified
 with the uppercase block typename CREATED.  For example:
 
@@ -657,12 +663,12 @@ it make sense more often, some hierarchical authority-naming scheme
 may be devised so that authorities can have temporary subauthorities
 to hold branches without relinquishing overall naming authority.)
 
-So anyway, the basic rule is this: you may import language tweaks
-from your own private (user-library) code as you like; however, all
-imports of language tweaks from the official library must specify
-the exact interface version of the package.
+So anyway, the basic rule is this: you may import language tweaks from
+your own private (user-library as specified in @*INC) code as you like;
+however, all imports of language tweaks from the installed Perl 6
+library must specify the exact interface version of the package.
 
-Such officially installed interface versions must be considered
+Such installed interface versions must be considered
 immutable on the language level, so that once any language-tweaking
 compunit is in circulation, it may be presumed to represent a fixed
 language change.  By examination of these interface versions a language
@@ -704,7 +710,7 @@ The requirement for immutable interfaces extends transitively to
 any packages imported by a language tweak module.  There can be no
 indeterminacy in the language definition either directly or indirectly.
 
-It must be possible for any official compilation unit to be separately compiled
+It must be possible for any compilation unit to be separately compiled
 without knowledge of the lexical or dynamic context in which it will be
 embedded, and this separate compilation must be able to produce a deterministic
 profile of the interface.  It must be possible to extract out the

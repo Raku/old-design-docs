@@ -8,8 +8,8 @@ Synopsis 3: Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 17 Jan 2015
-    Version: 284
+    Last Modified: 29 Mar 2015
+    Version: 285
 
 =head1 Overview
 
@@ -1110,7 +1110,7 @@ C<< infix:<~> >>, string/buffer concatenation
 
 =item *
 
-C<< infix:<&> >>, all() operator
+C<< infix:<&> >>, C<all()> operator
 
     $a & $b & $c ...
 
@@ -1136,7 +1136,7 @@ tests don't pass.  This cannot be guaranteed by:
 
 =item *
 
-C<< infix:<|> >>, any() operator
+C<< infix:<|> >>, C<any()> operator
 
     $a | $b | $c ...
 
@@ -1159,7 +1159,7 @@ of safety:
 
 =item *
 
-C<< infix:<^> >>, one() operator
+C<< infix:<^> >>, C<one()> operator
 
     $a ^ $b ^ $c ...
 
@@ -1871,14 +1871,14 @@ listed if the very first value matches the end test:
     1,2,3 ...^ * > $lim      # returns (), since 1 > 0
 
 This operator would be fairly useless if it could only return the
-literal values on the left.  The power comes from generating 
+literal values on the left.  The power comes from generating
 new values from the old ones.  You may, for instance, use an existing
 generator that happens to produce an infinite list:
 
     1..* ... * >= $lim
     @fib ... * >= $lim
 
-More typically, if the next item in the left-hand 
+More typically, if the next item in the left-hand
 list is a closure, it is not returned; rather it is called
 on the tail of the existing list to produce a new value.  The
 arity of the closure determines how many preceding values to
@@ -1928,7 +1928,7 @@ if they do match you may interleave unrelated sequences:
 Note in this case that the any limit test is applied to the entire parcel
 returned from the function, which contains two values.
 
-A sequence operator generated from an explicit function places no type
+A sequence generated from an explicit function places no type
 constraints on the sequence other than those constraints implied by
 the signature of the function.  If the signature of the function does
 not match the existing values, the sequence terminates.
@@ -2133,24 +2133,24 @@ Going the other way, digits are dropped when they go to the first existing
 digit until the current value is as short as the final value, then the digits
 are left there.  Which is a fancy way of saying that
 
-    '177777' ... '000000' 
+    '177777' ... '000000'
 
 and
 
-    '177777' ... '0' 
+    '177777' ... '0'
 
 both do exactly what the forward sequences do above, only in reverse.
 
 As an extra special rule, that works in either direction: if the bottom
 character is a '0' and the top character is alphanumeric, it is assumed
-to be representing a number in some base up to base 36, where digits above ten 
+to be representing a number in some base up to base 36, where digits above ten
 are represented by letters.  Hence the same sequences of 16-bit numbers, only in
 hexadecimal, may be produced with:
 
     '0000' ... 'ffff'
     '0' ... 'ffff'
-    'ffff' ... '0000' 
-    'ffff' ... '0' 
+    'ffff' ... '0000'
+    'ffff' ... '0'
 
 And as a limiting case, this applies to single characters also:
 
@@ -3523,7 +3523,7 @@ Smart matching against a C<Range> object does comparisons
 if either endpoint does C<Real>.  Otherwise comparison is in
 the C<Stringy> domain if either argument does C<Stringy>.
 Otherwise the min's type is used if it defines ordering, or if not,
-the max's type.  If neither min nor max have an ordering, 
+the max's type.  If neither min nor max have an ordering,
 dispatch to C<.ACCEPTS> fails.  It may also fail if the ordering
 in question does not have any way to coerce the object
 being smartmatched into an appropriate type implied by the
@@ -4185,17 +4185,18 @@ by prefixing with C<R>.  For instance, to do reversed comparisons:
     R<=>
 
 The precedence of any reversed operator is the same as the base operator.
-The associativity is I<not> reversed, so
+The associativity, however, is reversed, so
 
-    [R-] 1,2,3   # produces 2 from 3 - (2 - 1)
+    [R-] 1,2,3   # produces 0 from 3 - 2 - 1
+    [R**] 2,3,4   # produces 262144 from 4 ** 3 ** 2
 
-To get the other effect in a reduce, reverse the list:
-
-    [-] reverse 1,2,3  # produces 0
+Using both left and right associativity at the same precedence level is
+not prohibited, but is likely to drive you mad, unless of course you were
+mad in the first place, which seems almost a certainty by this point.
 
 =head2 Hyper operators
 
-The Unicode characters C<»> (C<\x[BB]>) and C<«> (C<\x[AB]>) and
+The Unicode characters C<»> (C<U+00BB>) and C<«> (C<U+00AB>) and
 their ASCII digraphs C<<< >> >>> and C<<< << >>> are used to denote a
 "list operation" that operates on each element of its list (or array)
 argument (or arguments) and returns a single list (or array) of
@@ -4287,7 +4288,7 @@ dimensions than provided for by hypers, use the either C<.duckmap>
 or C<.deepmap> method, depending on whether you want to give the item
 mapping or the substructure first shot at each node.)
 
-=head3 Binary hyper operators 
+=head3 Binary hyper operators
 
 In contrast to unary operators that allows for (a few) structural
 operators, infix operators are never considered structural, so the
@@ -4755,10 +4756,11 @@ list of lists, you can use a "triangular comma":
 If there is ambiguity between a triangular reduce and an infix operator
 beginning with backslash, the infix operator is chosen, and an extra backslash
 indicates the corresponding triangular reduce.  As a consequence, defining an
-infix operator beginning with backslash, C<< infix:<\x> >> say, will make it
-impossible to write certain triangular reduction operators, since C<[\x]> would
-mean the normal reduction of C<< infix:<\x> >> operator, not the triangular
-reduction of C<< infix:<x> >>.  This is deemed to be an insignificant problem.
+infix operator beginning with backslash, C<< infix:<\x> >> say, would cause
+C<[\x]> to mean the normal reduction of C<< infix:<\x> >>, not the triangular
+reduction of C<< infix:<x> >>.  To disambiguate, the syntax C<[\[x]]> can be
+used to reduce with C<< infix:<x> >>, while C<[\\x]> or C<[\[\x]]> could be
+used for triangular reduce with C<< infix:<\x> >>.
 
 Triangular reductions of chaining operators always consist of one or
 more C<True> values followed by 0 or more C<False> values.
@@ -4939,7 +4941,7 @@ Among other things.  In particular, we can have:
     a SX* b             single-threaded X*
     a SX[*] b           single-threaded X*
     a S[X*] b           single-threaded X*
-    a S+ b              suppress arg reordering by ignorant optimizer 
+    a S+ b              suppress arg reordering by ignorant optimizer
 
 This metaoperator has the same precedence and associativity as its base operator.
 The compiler is free to discard any C<S> metaoperator that is provably redundant,
@@ -5086,7 +5088,7 @@ the infix operator will be the variable's prototype object:
 
     my Dog $fido .= new;      # okay: a Dog object
     my Dog $fido = Dog.new;   # same thing
-    my Dog $fido = $fido.new; # wrong: invalid self-reference
+    my Dog $fido = $fido.new; # okay: valid self-reference
     my (Dog $fido .= new);    # wrong: cannot use .= inside signature
 
 Note that very few mutating operators make sense on a type object, however,
