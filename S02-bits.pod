@@ -8,8 +8,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 20 Mar 2015
-    Version: 290
+    Last Modified: 5 Apr 2015
+    Version: 291
 
 This document summarizes Apocalypse 2, which covers small-scale lexical
 items and typological issues.  (These Synopses also contain updates to
@@ -1208,6 +1208,9 @@ or just put the autoprime in parens:
 
     (*[0])(1,2,3,4,5)
 
+Note that only C<*> autoprimes, because it's an instantiated object.
+A C<Whatever> type object never autoprimes.
+
 =head3 Operators with idiosyncratic Whatever
 
 The above is only for operators that are not C<Whatever>-aware.  There is no
@@ -1229,6 +1232,14 @@ do not autoprime C<Whatever>, so we have:
 (If the last is used as a subscript, the subscripter notices there are two
 arguments and passes that dimension's size twice.)
 
+The smartmatch operator will autoprime C<*> but not a C<WhateverCode>.
+
+    * ~~ Int            # same as { $_ ~~ Int }
+    $x ~~ *             # same as { $x ~~ $_ }
+
+    $x ~~ * == 42       # same as $x ~~ { $_ == 42 }
+    * == 42 ~~ Any      # same as { $_ == 42 } ~~ Any
+
 =head3 Non-closure-returning Operators with C<*>
 
 Operators that are known to return non-closure values with C<*> include:
@@ -1239,16 +1250,11 @@ Operators that are known to return non-closure values with C<*> include:
     1,*         # means 1,*  :)
 
     $a = *      # just assigns Whatever
-    $a ~~ *     # just matches Whatever
+    $a = * + 1  # just assigns WhateverCode
 
-Note that the last two also do not autoprime C<WhateverCode>, because
-assignment and smartmatching are not really normal binary operators, but
-syntactic sugar for underlying primitives.  (Such pseudo operators may also
-place restrictions on which meta-operators work on them.)
-
-Neither do the sequence operators C<< &infix:<...> >> and C<< &infix:<...^>
->> autoprime C<WhateverCode>, because we want to allow WhateverCode closures
-as the stopper:
+The sequence operators C<< &infix:<...> >> and C<< &infix:<...^> >>
+do not autoprime C<WhateverCode>, because we want to allow C<WhateverCode>
+closures as the stopper:
 
     0 ...^ *>5  # means 0, 1, 2, 3, 4, 5
 
