@@ -126,7 +126,7 @@ coercer returns one of 4 object types:
   IO::File      # a regular file
   IO::Dir       # a directory
   IO::Local     # something else that exists
-  IOU           # not recognized as something that exists
+  IO::Huh       # not recognized as something that exists
 
 All these classes are consumers of the C<IO::Pathy> role, which provided all
 of the methods that have to do with paths (such as C<.basename>).
@@ -284,7 +284,7 @@ These classes consume the C<IO::Pathy> role:
   IO::File      # a regular file
   IO::Dir       # a directory
   IO::Local     # something else that exists (locally)
-  IOU           # not recognized as something that exists
+  IO::Huh       # not recognized as something that exists
 
 The easiest way to create an object that does the C<IO::Pathy> role, is to
 use the C<.IO> coercer.  It takes an optional C<:CWD> parameter to indicate
@@ -296,7 +296,7 @@ C<$*CWD>).
 
 The following file test methods are provided by the IO::Pathy role, or are
 overridden by a class (e.g. C<.e> is overridden to return C<True> for all but
-the C<IOU> class):
+the C<IO::Huh> class):
 
   r          is readable by effective uid/gid
   w          is writable by effective uid/gid
@@ -355,7 +355,7 @@ object with the class:
       when IO::Dir {
           say "$io is a directory";
       }
-      when IOU {
+      when IO::Huh {
           say "doesn't exist";
       }
   }
@@ -478,9 +478,9 @@ An object indicating an existing directory entry (C<-l>, C<-L>, C<-b> or
 C<-c>).  Usually created as one of the objects returned by a C<dir()> or
 the C<.IO> coercer.
 
-=head2 IOU
+=head2 IO::Huh
 
-  class IOU does IO does IO::Pathy
+  class IO::Huh does IO does IO::Pathy
 
 An object indicating an B<non>-existing directory entry (C<!-e>).  Usually
 created by the C<.IO> coercer.
