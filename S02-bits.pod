@@ -8,8 +8,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 5 Apr 2015
-    Version: 291
+    Last Modified: 9 Apr 2015
+    Version: 292
 
 This document summarizes Apocalypse 2, which covers small-scale lexical
 items and typological issues.  (These Synopses also contain updates to
@@ -4685,8 +4685,10 @@ containers (such as slice and hash context; see S03 for details).
 Unlike in Perl 5, objects are no longer always considered true.  It depends
 on the state of their C<.Bool> method, which may either be a synthetic
 attribute or an explicitly represented bit in the object.  Classes get to
-decide which of their values are true and which are false.  Individual
-objects can override the class definition:
+decide which of their values are true and which are false. In general,
+most classes choose a single distinguished value to be false but defined,
+such as 0 for the various numeric types, or the empty string for string types.
+Individual objects can override the class definition:
 
     return 0 but True;
 
@@ -4709,12 +4711,13 @@ however.)
 In general any container types should return false if they are empty, and
 true otherwise.  This is true of all the standard container types except
 Scalar, which always defers the definition of truth to its contents.
-Non-container types define truthiness much as Perl 5 does.
+Non-container types define truthiness much as Perl 5 does, except
+that the string C<"0"> is now considered true.  Coerce to numeric with
+C<<prefix:<+> >> if you want the other semantics.
 
 Just as with the standard types, user-defined types should feel free to
 partition their defined values into true and false values if such a
-partition makes sense in control flow using boolean contexts, since the
-separate C<.defined> method is always there if you need it.
+partition makes sense in control flow using boolean contexts.
 
 =back
 
