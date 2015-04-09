@@ -1932,7 +1932,7 @@ returned from the function, which contains two values.
 A sequence generated from an explicit function places no type
 constraints on the sequence other than those constraints implied by
 the signature of the function.  If the signature of the function does
-not match the existing values, the sequence terminates.
+not match the existing values, however, an exception is thrown.
 
 If no generating closure is provided, and the sequence is numeric,
 and is obviously arithmetic or geometric (from examining its I<last>
@@ -1966,6 +1966,21 @@ a geometric progression is warranted.  Define:
 If the two quotients are equal (and finite), then a geometric
 function of C<{$_ * $bc}> is deduced.
 
+The values on the left are considered samples of how the sequence will
+start if the end test permits it to get that far.  Hence, the test for
+completion applies even to those values:
+
+    0,2,4 ... 16    # 0,2,4,8,16
+    0,2,4 ... 4     # 0,2,4
+    0,2,4 ... 2     # 0,2
+    0,2,4 ... 0     # 0
+
+If there are more than three values, only the final three are tested
+against the deduced function; the earlier ones are always produced
+regardless of their value:
+
+    40, 2, 'Hike!', 0, 2, 4 ... 2   # 40, 2, 'Hike!', 0
+
 If there are only two values in the list so far, C<$a> and C<$b>, and the difference C<$ab>
 is non-zero, we assume an arithmetic progression of C<*+$ab>.  If C<$ab>
 is zero, then again whether we use C<*+0> or C<*.succ>/C<*.pred> depends on
@@ -1993,15 +2008,22 @@ so these come out the same:
 If the list on the left is C<()>, we use the function C<{()}> to generate an
 infinite supply of nothing.
 
-For deduced functions, when there is a endpoint that is suitably literal
-and of a similar type (that is, a numeric value for a numeric sequence,
-or a string value for a string sequence), then the deduced function
-will attempt to detect when the endpoint would be bypassed, and stop
-the sequence right there instead of running off to infinity:
+When there is a deduced function from the last three values, and when
+there is a limit that "misses" but is suitably literal and of a similar
+type (that is, a numeric value for a numeric sequence, or a string value
+for a string sequence), then the deduced function will attempt to detect
+when the limit would be bypassed, and stop the sequence right there
+instead of running off to infinity:
 
-    1,3 ... 8          # 1,3,5,7
+    42,1,3,5 ... 8     # 42,1,3,5,7
+    42,1,3,5 ... 4     # 42,1,3
+    42,1,3,5 ... 2     # 42,1
+    42,1,3,5 ... 0     # 42
+    1,3,5 ... 2        # 1
+    1,3,5 ... 0        # ()
 
-If a limit is given that is not a literal of the type of the elements, it must smartmatch exactly.  If it does not,
+If a limit is given that is not a literal, or is not of a sufficiently
+similar type, it must smartmatch exactly.  If it does not,
 an infinite list results.  For instance, since "asymptotically
 approaching" is not the same as "equals", both of the following are
 infinite lists, as if you'd specified C<*> for the limit rather than 0:
