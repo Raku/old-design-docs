@@ -8,8 +8,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 9 Apr 2015
-    Version: 292
+    Last Modified: 10 Apr 2015
+    Version: 293
 
 This document summarizes Apocalypse 2, which covers small-scale lexical
 items and typological issues.  (These Synopses also contain updates to
@@ -4493,7 +4493,7 @@ this approach is a slight restriction--you may not use the actual text of
 the heredoc in code that must run before the line finishes parsing.  Mostly
 that just means you can't write:
 
-    BEGIN { say q:to/END/ }
+    BEGIN { say q:to/END/ }; morestuff();
         Say me!
         END
 
@@ -4503,7 +4503,14 @@ You must instead put the entire heredoc into the C<BEGIN>:
         say q:to/END/;
         Say me!
         END
-    }
+    }; morestuff();
+
+The parser is, however, smart enough to recognize that it's already at
+the end of a line if you don't put C<morestuff()> there.  Hence this works:
+
+    BEGIN { say q:to/END/ }
+        Say me!
+        END
 
 =head2 Version literals
 
