@@ -143,9 +143,10 @@ X<note()>
 
   sub note(*@text --> Bool)
 
-Print the given text, followed by a new line C<"\n"> on C<$*ERR>.  Before
-printing, call the C<.gist> method on any non-C<Str> objects. Return whether
-successful.  It really just is like L</say()>, but on C<$*ERR>.
+Print the given text, followed by a new line (as determined by the
+C<"nl-saying"> attribute on C<$*ERR>.  Before printing, call the C<.gist>
+method on any non-C<Str> objects.  Return whether successful.  It really just
+is like L</say()>, but on C<$*ERR>, except that a bare call will say "Noted".
 
 =head2 open()
 X<open()>
@@ -160,8 +161,9 @@ X<open()>
         Bool :$bin = False,
         Str  :$enc = "Unicode",  # utf-8 unless otherwise
       # newlines
-        Any  :$nl    = "EOL",
-        Bool :$chomp = True,
+        Any  :$nl-reading = "EOL",
+        Any  :$nl-saying  = "\n",
+        Bool :$chomp      = True,
         --> IO::Handle )
 
 A convenience function for opening normal files as text (by default) as
@@ -204,12 +206,17 @@ figuring out which actual UTF is in use, either from a BOM or other heuristics.
 If heuristics are inconclusive, UTF-8 will be assumed.  (No 8-bit encoding will
 ever be picked implicitly.)
 
-=item :nl
+=item :nl-reading
 
 The marker used to indicate the end of a line of text.  Only used in text
 mode.  Defaults to "EOL", which implies accepting any combination of C<"\n">,
 C<"\r\n"> or C<"\r"> or any other Unicode character that has the C<Zl>
 (Separator, Line) property.
+
+=item :nl-saying
+
+The end of a line of text marker used when C<say>ing on this handle.  Defaults
+to C<"\n">.
 
 =item :chomp
 
@@ -238,9 +245,9 @@ X<say()>
 
   sub say(*@text --> Bool)
 
-Print the given text, followed by a new line C<"\n"> on C<$*OUT>.  Before
-printing, call the C<.gist> method on any non-C<Str> objects.  Return whether
-successful.
+Print the given text, followed by a new line (as determined by the
+C<"nl-saying"> attribute on C<$*OUT>.  Before printing, call the C<.gist>
+method on any non-C<Str> objects.  Return whether successful.
 
 =head2 slurp()
 X<slurp()>
@@ -1205,8 +1212,8 @@ X<.get>
     method get(--> Str)
 
 Reads the next line and returns it.  Uses the (implicit) specification of
-C<:nl> with L</open> to determine where a line ends.  Returns a C<Str> type
-object if no more lines to be read.
+C<:nl-reading> with L</open> to determine where a line ends.  Returns a C<Str>
+type object if no more lines to be read.
 
 =head3 .getc
 X<.getc>
