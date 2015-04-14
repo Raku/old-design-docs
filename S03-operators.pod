@@ -8,8 +8,8 @@ Synopsis 3: Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 29 Mar 2015
-    Version: 285
+    Last Modified: 8 Apr 2015
+    Version: 287
 
 =head1 Overview
 
@@ -20,11 +20,11 @@ For a summary of the changes from Perl 5, see L</Changes to Perl 5 operators>.
 Perl 6 has about the same number of precedence levels as Perl 5,
 but they're differently arranged in spots.  Here we list the
 levels from "tightest" to "loosest", along with a few examples of
-each level:
+each level.  (Column 'A' is for "associativity", see following table.)
 
     A  Level             Examples
     =  =====             ========
-    N  Terms             42 3.14 "eek" qq["foo"] $x :!verbose @$array
+    O  Terms             42 3.14 "eek" qq["foo"] $x :!verbose @$array
     L  Method postfix    .meth .+ .? .* .() .[] .{} .<> .«» .:: .= .^ .:
     N  Autoincrement     ++ --
     R  Exponentiation    **
@@ -49,7 +49,7 @@ each level:
     X  Loose and         and andthen
     X  Loose or          or xor orelse
     X  Sequencer         <== ==> <<== ==>>
-    N  Terminator        ; {...} unless extra ) ] }
+    O  Terminator        ; {...} unless extra ) ] }
 
 Using two C<!> symbols below generically to represent any pair of operators
 that have the same precedence, the associativities specified above
@@ -62,6 +62,7 @@ for binary operators are interpreted as follows:
     N   non       ILLEGAL
     C   chain     ($a ! $b) and ($b ! $c)
     X   list      infix:<!>($a; $b; $c)
+    O   N/A       (not really an operator)
 
 For unaries this is interpreted as:
 
@@ -1931,7 +1932,7 @@ returned from the function, which contains two values.
 A sequence generated from an explicit function places no type
 constraints on the sequence other than those constraints implied by
 the signature of the function.  If the signature of the function does
-not match the existing values, the sequence terminates.
+not match the existing values, however, an exception is thrown.
 
 If no generating closure is provided, and the sequence is numeric,
 and is obviously arithmetic or geometric (from examining its I<last>
@@ -1965,6 +1966,21 @@ a geometric progression is warranted.  Define:
 If the two quotients are equal (and finite), then a geometric
 function of C<{$_ * $bc}> is deduced.
 
+The values on the left are considered samples of how the sequence will
+start if the end test permits it to get that far.  Hence, the test for
+completion applies even to those values:
+
+    0,2,4 ... 16    # 0,2,4,8,16
+    0,2,4 ... 4     # 0,2,4
+    0,2,4 ... 2     # 0,2
+    0,2,4 ... 0     # 0
+
+If there are more than three values, only the final three are tested
+against the deduced function; the earlier ones are always produced
+regardless of their value:
+
+    40, 2, 'Hike!', 0, 2, 4 ... 2   # 40, 2, 'Hike!', 0
+
 If there are only two values in the list so far, C<$a> and C<$b>, and the difference C<$ab>
 is non-zero, we assume an arithmetic progression of C<*+$ab>.  If C<$ab>
 is zero, then again whether we use C<*+0> or C<*.succ>/C<*.pred> depends on
@@ -1992,7 +2008,22 @@ so these come out the same:
 If the list on the left is C<()>, we use the function C<{()}> to generate an
 infinite supply of nothing.
 
-If a limit is given, it must smartmatch exactly.  If it does not,
+When there is a deduced function from the last three values, and when
+there is a limit that "misses" but is suitably literal and of a similar
+type (that is, a numeric value for a numeric sequence, or a string value
+for a string sequence), then the deduced function will attempt to detect
+when the limit would be bypassed, and stop the sequence right there
+instead of running off to infinity:
+
+    42,1,3,5 ... 8     # 42,1,3,5,7
+    42,1,3,5 ... 4     # 42,1,3
+    42,1,3,5 ... 2     # 42,1
+    42,1,3,5 ... 0     # 42
+    1,3,5 ... 2        # 1
+    1,3,5 ... 0        # ()
+
+If a limit is given that is not a literal, or is not of a sufficiently
+similar type, it must smartmatch exactly.  If it does not,
 an infinite list results.  For instance, since "asymptotically
 approaching" is not the same as "equals", both of the following are
 infinite lists, as if you'd specified C<*> for the limit rather than 0:
@@ -2002,12 +2033,11 @@ infinite lists, as if you'd specified C<*> for the limit rather than 0:
 
 Likewise, this is all of the even numbers:
 
-    my $end = 7;
-    0,2,4 ... $end
+    0,2,4 ... * == 7 
 
 To catch such a situation, it is advised to write an inequality instead:
 
-    0,2,4 ...^ { $_ > $end }
+    0,2,4 ...^ { $_ > 7 }
 
 When an explicit limit function is used, it
 may choose to terminate its list by returning any true value.
@@ -2066,9 +2096,13 @@ on the left is complicated, especially if the left list is another sequence:
 And yes, there's also a C<^...^> form, for those people who have an
 undue fondness for symmetry.
 
-As with numeric values, a string match must be exact, or an infinite sequence
-is produced.  Use a different smartmatch such as a regular expression or
-a closure to do fancier tests.
+As with numeric values, a string sequence with a literal string endpoint
+will attempt to determine when it's traversing the endpoint without
+matching exactly.  In addition, however, if on an increasing sequence
+the next string would be longer than the endpoint, the sequence stops for
+that as well, since string comparison does not always map directly to the
+order of successors.  If this is insufficient, use a different endpoint
+smartmatch such as a regular expression or a closure to do fancier tests.
 
 Note that the sequence
 
