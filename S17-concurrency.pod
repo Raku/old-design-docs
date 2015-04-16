@@ -113,7 +113,7 @@ For more fine-grained handling, it is possible to schedule code along with a cod
 
     $*SCHEDULER.cue:
         { upload_progress($stuff) },
-        quit => -> $ex { warn "Could not upload latest progress" }
+        catch => -> $ex { warn "Could not upload latest progress" }
 
 Use C<:every> to schedule a task to run at a fixed interval, possibly with a delay before the first scheduling.
 
@@ -123,10 +123,10 @@ Use C<:every> to schedule a task to run at a fixed interval, possibly with a del
     # Every 0.5s, but don't start for 2s.
     $*SCHEDULER.cue: { say "Kenya believe it?" }, :every(0.5), :in(2);
 
-Since this will cause the given task to be executed at the given interval ad infinitum, there are two ways to make sure the scheduling of the task is halted at a future time.  The first is provided by specifying the C<:limit> parameter in the .cue:
+Since this will cause the given task to be executed at the given interval ad infinitum, there are two ways to make sure the scheduling of the task is halted at a future time.  The first is provided by specifying the C<:times> parameter in the .cue:
 
     # Every second, from now, but only 42 times
-    $*SCHEDULER.cue: :every(1), :limit(42), { say "Oh wow, a kangaroo!" };
+    $*SCHEDULER.cue: :every(1), :times(42), { say "Oh wow, a kangaroo!" };
 
 The second is by specifying code that will be checked at the end of each interval.  The task will be stopped as soon as it returns a True value. You can do this with the C<:stop> parameter.
 
