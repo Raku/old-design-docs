@@ -178,14 +178,14 @@ The current status of a C<Promise> is available through the C<status> method, wh
 
 The result itself can be obtained by calling C<result>. If the C<Promise> was already kept, the result is immediately returned. If the C<Promise> was broken then the exception that it was broken with is thrown. If the C<Promise> is not yet kept or broken, then the caller will block until this happens.
 
-A C<Promise> will boolify to whether the C<Promise> is already kept or broken. There is also an C<excuse> method for extracting the exception from a C<Broken> C<Promise> rather than having it thrown.
+A C<Promise> will boolify to whether the C<Promise> is already kept or broken. There is also an C<cause> method for extracting the exception from a C<Broken> C<Promise> rather than having it thrown.
 
     if $promise {
         if $promise.status == Kept {
             say "Kept, result = " ~ $promise.result;
         }
         else {
-            say "Broken because " ~ $promise.excuse;
+            say "Broken because " ~ $promise.cause;
         }
     }
     else {
@@ -197,7 +197,7 @@ You can also simply use a switch:
     given $promise.status {
         when Planned { say "Still working!" }
         when Kept    { say "Kept, result = ", $promise.result }
-        when Broken  { say "Broken because ", $promise.excuse }
+        when Broken  { say "Broken because ", $promise.cause }
     }
 
 There are various convenient "factory" methods on C<Promise>. The most common is C<start>.
@@ -220,7 +220,7 @@ There is also a method to create a C<Promise> that is kept after a number of sec
 
 The C<result> is always C<True> and such a C<Promise> can never be broken. It is mostly useful for combining with other promises.
 
-There are also a couple of C<Promise> combinators. The C<anyof> combinator creates a C<Promise> that is kept whenever any of the specified C<Promise>s are kept. If the first promise to produce a result is instead broken, then the resulting C<Promise> is also broken. The excuse is passed along. When the C<Promise> is kept, it has a C<True> result.
+There are also a couple of C<Promise> combinators. The C<anyof> combinator creates a C<Promise> that is kept whenever any of the specified C<Promise>s are kept. If the first promise to produce a result is instead broken, then the resulting C<Promise> is also broken. The cause is passed along. When the C<Promise> is kept, it has a C<True> result.
 
     my $calc     = start { ... }
     my $timeout  = Promise.in(10);
@@ -235,7 +235,7 @@ The C<then> method on a C<Promise> is used to request that a certain piece of co
     my $feedback_promise = $download_promise.then(-> $res {
         given $res.status {
             when Kept   { say "File $res.result().name() download" }
-            when Broken { say "FAIL: $res.excuse()"                 }
+            when Broken { say "FAIL: $res.cause()"                 }
         }
     });
 
