@@ -8,8 +8,8 @@ Synopsis 22: Distributions, Recommendations, Delivery and Installation
 
     Created: 15 March 2014
 
-    Last Modified: 2 January 2015
-    Version: 4
+    Last Modified: 17 April 2015
+    Version: 5
 
 =head1 TERMINOLOGY
 
@@ -363,8 +363,10 @@ example of this would be:
 
 Optional.  A hash of resource groups, each of them corresponding to a
 directory in the "resource" directory in the distribution.  Each resource
-group has a name and a list of files that are provided.  During installation
-the installer will install these into a location, and make the files available
+group has a name and a list of files that are provided.  At build time any
+not-yet existing files should be created.  The installer will install all
+files into a location at its discretion (taking care of file-system
+case-insensitivity and unicode-support issues), and make the files available
 through the L</%?RESOURCE> hash.
 
 =head3 support
@@ -648,28 +650,40 @@ L</Distribution> of the current compilation unit.
 So, if the C<META6.json> file contains this C<resource> section:
 
   "resource" : {
-    "images" : {
-      "fido.png"
+    "images" : [
+      "fido.png", "zowie.png"
+    ],
+    "libraries" : {
+      "inline_helper" : "build-time",
     }
   }
 
-then the C<Distribution> is supposed to contain a file
-C<resource/images/fido.png>.  After installation, the path of that file would
-be available through
+then the C<Distribution> is supposed to contain the files
+C<resource/images/fido.png> and C<resource/images/zowie.png>.  After
+installation, IO objects of such a file would be available through
 
-  %?RESOURCE<images><fido.png>.path
+  %?RESOURCE<images><fido.png>
+
+The absolute path could be obtained with:
+
+  %?RESOURCE<images><fido.png>.abspath
 
 and a handle could be obtained with:
 
-  %?RESOURCE<images><fido.png>.IO
+  %?RESOURCE<images><fido.png>.open
 
 without there being any guarantee that this path has anything to do with the
 path as specified in the distribution.  Please also note that the installer
-may mangle filenames of actually installed files.
+will probably mangle filenames of actually installed files.
 
 This means you can have files with unicode characters in upper/lower case,
 and still be able to access them when installed on a file system that does
 not support unicode.
+
+If a leaf of the "resource" hash is a hash, it indicates files with special
+properties (such as being provided by the builder, so not part of the
+distribution).  This will allow a good MANIFEST to be created from the
+META6.json information.
 
 =head2 %*CUSTOM_LIB
 
