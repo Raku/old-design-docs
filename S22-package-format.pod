@@ -469,7 +469,7 @@ compilation unit into an identity of a distribution to be downloaded.
 
 =head2 CompUnitRepo
 
-Base class (interface, really) for the object living in the L</@*INC> array.
+Base class (interface, really) for the object living in the L</@?INC> array.
 Used both for installing compunits, as well as finding a certain compunit by
 way of its from, longname, auth and ver information.
 
@@ -489,7 +489,7 @@ Some examples (where CURL is short for CompUnitRepo::Local):
   /foo/bar                    simple CURL::File in /foo/bar
   file:/foo/bar               (same)
   inst:/installed             simple CURL::Installation in /installed
-  inst:name<work>:/installed  (same) but also set %*CUSTOM_LIB<work>
+  inst:name<work>:/installed  (same) but also set %?CUSTOM_LIB<work>
   inst:name[work]:/installed  (same) but more CLI-friendly
   inst:name{work}:/installed  (same) alternate CLI-friendly way
   CompUnitRepo::Local::Installation:/installed  (same) but with full class name
@@ -508,7 +508,7 @@ will be assumed.  So:
   my $repo = CompUnitRepo.new( $specification );
 
 Create a new CompUnitRepo-like object with the given specification, either
-for inclusion in L</@*INC>, or to install a distribution.  Returns the
+for inclusion in L</@?INC>, or to install a distribution.  Returns the
 instantiated object.
 
 Please note that for a given C<specification>, there should always only be
@@ -635,7 +635,7 @@ Return whether the compunit has been loaded.
 Create a pre-compiled version of the CompUnit.  Optionally takes an output
 file argument (default: the same path as the source, with an extension
 identifying it is a precompiled version), an optional named argument C<:INC>
-(with default C<@*INC>) and a optional named argument C<:force> to force
+(with default C<@?INC>) and a optional named argument C<:force> to force
 creation even if the output file already exists.
 
 =head1 SYSTEM VARIABLES
@@ -685,21 +685,21 @@ properties (such as being provided by the builder, so not part of the
 distribution).  This will allow a good MANIFEST to be created from the
 META6.json information.
 
-=head2 %*CUSTOM_LIB
+=head2 %?CUSTOM_LIB
 
 This hash provides key/value pairs of C<CompUnitRepo> specifications, to be
 used by packagers and/or installers.
 
-=head2 @*INC
+=head2 @?INC
 
 This array contains the C<CompUnitRepo> objects that will be queried in turn
 whenever an attempt should be made to load a compilation unit (be that at
 compile time with C<use>, or at runtime with C<require>.
 
 The first C<CompUnitRepo> object to return one candidate, will then be loaded
-and no further C<CompUnitRepo> objects in C<@*INC> will be queried.  If the
+and no further C<CompUnitRepo> objects in C<@?INC> will be queried.  If the
 first C<CompUnitRepo> object to return C<any> candidates, returns more
-than one candidate, then B<all> other C<CompUnitRepo> objects in C<@*INC> will
+than one candidate, then B<all> other C<CompUnitRepo> objects in C<@?INC> will
 also be queried, to allow any error message to present a B<full> list of
 C<CompUnit> candidate objects.
 
