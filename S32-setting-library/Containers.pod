@@ -8,8 +8,8 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
     Created: 19 Feb 2009 extracted from S29-functions.pod
 
-    Last Modified: 23 Mar 2015
-    Version: 50
+    Last Modified: 23 Apr 2015
+    Version: 51
 
 =head1 Function Roles
 
@@ -683,15 +683,44 @@ The functional form assumes it is working on a list of integers C<^$n>.
 
 =item rotor
 
-    multi method rotor ( Int() $elems, Int() $gap = 0 )
+    multi method rotor ( *@cycle )
 
-Returns a new list of sublists formed by returning a sublist of C<$elems>
-elements, advancing/skipping C<$gap> elements, then repeating.  Stops as
-soon as there are no longer enough remaining elements to form a sublist
-that is C<$elems> long.  (From which it follows that an infinite list
-can be rotorized forever.)
+Takes multiple cyclical slices of the current list as specified by
+C<@cycle>, which you can think of as a rotory cutter that punches out
+multiple slices depending on the arrangement of the blades (or teeth, if
+you prefer a gear analogy).  Since it's cyclical, you may apply a rotor
+to an infinite list lazily.  Each specifier in the cycle specifies how
+many elements to take (the "slice") and, optionally, how many to omit
+(the "gap").  The cycle repeats if C<@cycle> runs out before the list
+does.  The rotor stops if the list runs out first, that is, if there are
+insufficient values remaining to create the entire next slice (ignoring
+any associated gap).  The final partial slice is returned at the end,
+if it is not empty.  Here we slice the alphabet into alternating slices
+of size 2 and 3:
 
-Negative gaps are allowed, meaning the result lists will contain overlap.
+    my @list = 'a'...'z';
+    @list.rotor(2,3)   # <a b>,<d e f>,<g h>,<i j k>...<z>
+
+It is allowed to specify an infinite cycle, in which case it will never
+repeat, at least not internally.  The supplied list may of course repeat
+itself instead.  Hence these two calls produce the same result:
+
+    @list.rotor(2,3)
+    @list.rotor((2,3) xx *)
+
+Each slice specifier may be either an integer or a pair.  If it is a pair,
+the key is taken as the number of elements to take in the slice, and the value
+is taken as the size of the gap.  If the specifier is an integer, it is taken
+as the size of the slice, and the gap is taken as 0.  In other words, these
+are equivalent:
+
+    @list.rotor(3)
+    @list.rotor(3 => 0)
+
+A non-zero gap or overlap may be specified only via the pair form:
+
+    @list.rotor(2 => 1)  # take two, skip one
+    @list.rotor(2 => -1) # take two, back up one
 
 =item pairup
 
