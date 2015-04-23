@@ -190,8 +190,11 @@ Particularly cute, because L</phaser>s expect blasts.
 
 =head2 block
 
-A source code section delimited by braces.
+A source code section delimited by braces and may have an explicit L</signature>.
 Used for L</control flow> and as L</scope>.
+A L</return> in a block returns from the enclosing L<subroutine>.
+A block is a L</first class entity> which makes it useful for L<functional programming>.
+
 
 =head2 Bool
 
@@ -336,12 +339,17 @@ A regex definition for one of the term kinds :
 
 =head2 character
 
-A L</string> is a sequence of characters.  Like in Perl 6, there is no
-character type in Perl 6 so when someone says a I<characte> about a
+A L</string> is a sequence of characters.  Like in Perl 5, there is no
+character type in Perl 6 so when someone says a I<character> about a
 L</value>, he means a string with one character. In L</Unicode> a
-character may be composed of many codepoints.  But a string represented
-in the L</NFG> normalization form proper to Perl 6 has a codepoint per
-character. That leads to O(1) performance for many string operations.
+character is called a L</grapheme> and may be composed of many L</codepoints>.
+But a string represented in the L</NFG> normalization form proper to
+Perl 6 has a codepoint per character. That leads to O(1) performance
+for many string operations. Depending on the level of abstraction, the
+length of a given string differs. The abstractions are bytes, codepoints and
+graphemes and the relevant methods are respectively L<.bytes>, L<.codes>,
+L<.graphs>. L<.chars> returns the length for the default level of astraction
+of a given string type.
 
 =head2 channel
 
@@ -720,6 +728,10 @@ when used as a L</queue>.  See also L</LIFO>.
 Sometimes a test will fail under some conditions, but not others; when this
 test passes some test runs and fails others, it's called flapping.
 
+=head2 first class entity
+
+An entity that is accessible as a L</value> during L</runtime>.
+
 =head2 fork
 
 The creation of another process.
@@ -889,6 +901,8 @@ L</actions>.  A grammar is composed of methods introduced by one of the
 three keywords C<rule>, C<L</token>>, C<regex>. There is L</backtrack>ing
 only in C<regex> and C<rule> implies L</whitespace>s between subrules.
 
+=head2 grapheme
+
 =head2 green threads
 
 Threads that are scheduled by the virtual machine, not by the operating
@@ -957,6 +971,10 @@ order it would have been if the source data had been processed in a single
 thread/process.
 
 =head2 hypothetical variable
+
+=head2 hysterical raisins
+
+pun on hysterical reasons.
 
 =head1 I
 
@@ -1932,7 +1950,7 @@ Real Soon Now.
 
 =head2 RT
 
-Request Tracker (L<http://rt.perl.org/>).  To open a ticket, email
+Request Tracker (L<http://rt.perl.org/>).  To open a ticket, email>
 C<rakudobug@perl.org>.
 
 =head2 rule
@@ -2117,11 +2135,21 @@ Name of the string type.
 
 =head2 string
 
+A sequence of characters.  See L</characters> fo the definition of
+string length according to the different abstractions underlying a
+L</Unicode> string.  There is some speculation of string being
+L</lazy> in some future Perl 6 version.
+
 =head2 sub
 
 Short for subroutine.
 
 =head2 Subroutine
+
+A subroutine is like a L</block>, but its L</runtime> context is stacked.
+WHen a subroutine is called, its context is pushed in the context stack
+and the code pointer moves to its block. When executing a return, the context stack
+is popped and the return argument becomes the value of the calling expression.
 
 =head2 Subsignature
 
