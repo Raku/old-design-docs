@@ -8,8 +8,8 @@ Synopsis 22: Distributions, Recommendations, Delivery and Installation
 
     Created: 15 March 2014
 
-    Last Modified: 2 January 2015
-    Version: 4
+    Last Modified: 17 April 2015
+    Version: 5
 
 =head1 TERMINOLOGY
 
@@ -363,8 +363,10 @@ example of this would be:
 
 Optional.  A hash of resource groups, each of them corresponding to a
 directory in the "resource" directory in the distribution.  Each resource
-group has a name and a list of files that are provided.  During installation
-the installer will install these into a location, and make the files available
+group has a name and a list of files that are provided.  At build time any
+not-yet existing files should be created.  The installer will install all
+files into a location at its discretion (taking care of file-system
+case-insensitivity and unicode-support issues), and make the files available
 through the L</%?RESOURCE> hash.
 
 =head3 support
@@ -467,7 +469,7 @@ compilation unit into an identity of a distribution to be downloaded.
 
 =head2 CompUnitRepo
 
-Base class (interface, really) for the object living in the L</@*INC> array.
+Base class (interface, really) for the object living in the L</@?INC> array.
 Used both for installing compunits, as well as finding a certain compunit by
 way of its from, longname, auth and ver information.
 
@@ -487,7 +489,7 @@ Some examples (where CURL is short for CompUnitRepo::Local):
   /foo/bar                    simple CURL::File in /foo/bar
   file:/foo/bar               (same)
   inst:/installed             simple CURL::Installation in /installed
-  inst:name<work>:/installed  (same) but also set %*CUSTOM_LIB<work>
+  inst:name<work>:/installed  (same) but also set %?CUSTOM_LIB<work>
   inst:name[work]:/installed  (same) but more CLI-friendly
   inst:name{work}:/installed  (same) alternate CLI-friendly way
   CompUnitRepo::Local::Installation:/installed  (same) but with full class name
@@ -506,7 +508,7 @@ will be assumed.  So:
   my $repo = CompUnitRepo.new( $specification );
 
 Create a new CompUnitRepo-like object with the given specification, either
-for inclusion in L</@*INC>, or to install a distribution.  Returns the
+for inclusion in L</@?INC>, or to install a distribution.  Returns the
 instantiated object.
 
 Please note that for a given C<specification>, there should always only be
@@ -633,7 +635,7 @@ Return whether the compunit has been loaded.
 Create a pre-compiled version of the CompUnit.  Optionally takes an output
 file argument (default: the same path as the source, with an extension
 identifying it is a precompiled version), an optional named argument C<:INC>
-(with default C<@*INC>) and a optional named argument C<:force> to force
+(with default C<@?INC>) and a optional named argument C<:force> to force
 creation even if the output file already exists.
 
 =head1 SYSTEM VARIABLES
@@ -648,44 +650,56 @@ L</Distribution> of the current compilation unit.
 So, if the C<META6.json> file contains this C<resource> section:
 
   "resource" : {
-    "images" : {
-      "fido.png"
+    "images" : [
+      "fido.png", "zowie.png"
+    ],
+    "libraries" : {
+      "inline_helper" : "build-time",
     }
   }
 
-then the C<Distribution> is supposed to contain a file
-C<resource/images/fido.png>.  After installation, the path of that file would
-be available through
+then the C<Distribution> is supposed to contain the files
+C<resource/images/fido.png> and C<resource/images/zowie.png>.  After
+installation, IO objects of such a file would be available through
 
-  %?RESOURCE<images><fido.png>.path
+  %?RESOURCE<images><fido.png>
+
+The absolute path could be obtained with:
+
+  %?RESOURCE<images><fido.png>.abspath
 
 and a handle could be obtained with:
 
-  %?RESOURCE<images><fido.png>.IO
+  %?RESOURCE<images><fido.png>.open
 
 without there being any guarantee that this path has anything to do with the
 path as specified in the distribution.  Please also note that the installer
-may mangle filenames of actually installed files.
+will probably mangle filenames of actually installed files.
 
 This means you can have files with unicode characters in upper/lower case,
 and still be able to access them when installed on a file system that does
 not support unicode.
 
-=head2 %*CUSTOM_LIB
+If a leaf of the "resource" hash is a hash, it indicates files with special
+properties (such as being provided by the builder, so not part of the
+distribution).  This will allow a good MANIFEST to be created from the
+META6.json information.
+
+=head2 %?CUSTOM_LIB
 
 This hash provides key/value pairs of C<CompUnitRepo> specifications, to be
 used by packagers and/or installers.
 
-=head2 @*INC
+=head2 @?INC
 
 This array contains the C<CompUnitRepo> objects that will be queried in turn
 whenever an attempt should be made to load a compilation unit (be that at
 compile time with C<use>, or at runtime with C<require>.
 
 The first C<CompUnitRepo> object to return one candidate, will then be loaded
-and no further C<CompUnitRepo> objects in C<@*INC> will be queried.  If the
+and no further C<CompUnitRepo> objects in C<@?INC> will be queried.  If the
 first C<CompUnitRepo> object to return C<any> candidates, returns more
-than one candidate, then B<all> other C<CompUnitRepo> objects in C<@*INC> will
+than one candidate, then B<all> other C<CompUnitRepo> objects in C<@?INC> will
 also be queried, to allow any error message to present a B<full> list of
 C<CompUnit> candidate objects.
 

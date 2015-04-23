@@ -113,7 +113,7 @@ For more fine-grained handling, it is possible to schedule code along with a cod
 
     $*SCHEDULER.cue:
         { upload_progress($stuff) },
-        quit => -> $ex { warn "Could not upload latest progress" }
+        catch => -> $ex { warn "Could not upload latest progress" }
 
 Use C<:every> to schedule a task to run at a fixed interval, possibly with a delay before the first scheduling.
 
@@ -123,10 +123,10 @@ Use C<:every> to schedule a task to run at a fixed interval, possibly with a del
     # Every 0.5s, but don't start for 2s.
     $*SCHEDULER.cue: { say "Kenya believe it?" }, :every(0.5), :in(2);
 
-Since this will cause the given task to be executed at the given interval ad infinitum, there are two ways to make sure the scheduling of the task is halted at a future time.  The first is provided by specifying the C<:limit> parameter in the .cue:
+Since this will cause the given task to be executed at the given interval ad infinitum, there are two ways to make sure the scheduling of the task is halted at a future time.  The first is provided by specifying the C<:times> parameter in the .cue:
 
     # Every second, from now, but only 42 times
-    $*SCHEDULER.cue: :every(1), :limit(42), { say "Oh wow, a kangaroo!" };
+    $*SCHEDULER.cue: :every(1), :times(42), { say "Oh wow, a kangaroo!" };
 
 The second is by specifying code that will be checked at the end of each interval.  The task will be stopped as soon as it returns a True value. You can do this with the C<:stop> parameter.
 
@@ -178,14 +178,14 @@ The current status of a C<Promise> is available through the C<status> method, wh
 
 The result itself can be obtained by calling C<result>. If the C<Promise> was already kept, the result is immediately returned. If the C<Promise> was broken then the exception that it was broken with is thrown. If the C<Promise> is not yet kept or broken, then the caller will block until this happens.
 
-A C<Promise> will boolify to whether the C<Promise> is already kept or broken. There is also an C<excuse> method for extracting the exception from a C<Broken> C<Promise> rather than having it thrown.
+A C<Promise> will boolify to whether the C<Promise> is already kept or broken. There is also an C<cause> method for extracting the exception from a C<Broken> C<Promise> rather than having it thrown.
 
     if $promise {
         if $promise.status == Kept {
             say "Kept, result = " ~ $promise.result;
         }
         else {
-            say "Broken because " ~ $promise.excuse;
+            say "Broken because " ~ $promise.cause;
         }
     }
     else {
@@ -197,7 +197,7 @@ You can also simply use a switch:
     given $promise.status {
         when Planned { say "Still working!" }
         when Kept    { say "Kept, result = ", $promise.result }
-        when Broken  { say "Broken because ", $promise.excuse }
+        when Broken  { say "Broken because ", $promise.cause }
     }
 
 There are various convenient "factory" methods on C<Promise>. The most common is C<start>.
@@ -220,7 +220,7 @@ There is also a method to create a C<Promise> that is kept after a number of sec
 
 The C<result> is always C<True> and such a C<Promise> can never be broken. It is mostly useful for combining with other promises.
 
-There are also a couple of C<Promise> combinators. The C<anyof> combinator creates a C<Promise> that is kept whenever any of the specified C<Promise>s are kept. If the first promise to produce a result is instead broken, then the resulting C<Promise> is also broken. The excuse is passed along. When the C<Promise> is kept, it has a C<True> result.
+There are also a couple of C<Promise> combinators. The C<anyof> combinator creates a C<Promise> that is kept whenever any of the specified C<Promise>s are kept. If the first promise to produce a result is instead broken, then the resulting C<Promise> is also broken. The cause is passed along. When the C<Promise> is kept, it has a C<True> result.
 
     my $calc     = start { ... }
     my $timeout  = Promise.in(10);
@@ -235,7 +235,7 @@ The C<then> method on a C<Promise> is used to request that a certain piece of co
     my $feedback_promise = $download_promise.then(-> $res {
         given $res.status {
             when Kept   { say "File $res.result().name() download" }
-            when Broken { say "FAIL: $res.excuse()"                 }
+            when Broken { say "FAIL: $res.cause()"                 }
         }
     });
 
@@ -511,11 +511,9 @@ Produces a C<Supply> that produces the number of elements seen in the given C<Su
 
 =item rotor
 
-  my $b = $s.rotor( $elems, $overlap );
+  my $b = $s.rotor(@cycle);
 
-  my $b = $s.rotor;    # elems = 2, overlap = 1
-
-Produces a "rotoring" C<Supply> where every C<elems> number of elements are combined, and the last C<overlap> elements of such a combination become the initial elements of the next combination.  This can e.g. be used to convert a C<Supply> of coordinates into a C<Supply> of begin/end points.
+Produces a "rotoring" C<Supply> with the same semantics as List.rotor.
 
 =item delayed
 

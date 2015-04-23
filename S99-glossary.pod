@@ -24,6 +24,12 @@ the explanation later for you and everybody else.
 
 =head1 A
 
+=head1 Abstract class
+
+An abstract L</class> defines the L</interface> of a class. Its L</method>s are left
+undefined. In Perl 6, abstract classes is one of the related abstractions implemented as
+L</role>s.
+
 =head2 ack
 
 An improved version of L</grep>, written in Perl (L<http://beyondgrep.com>).
@@ -184,8 +190,11 @@ Particularly cute, because L</phaser>s expect blasts.
 
 =head2 block
 
-A source code section delimited by braces.
+A source code section delimited by braces and may have an explicit L</signature>.
 Used for L</control flow> and as L</scope>.
+A L</return> in a block returns from the enclosing L<subroutine>.
+A block is a L</first class entity> which makes it useful for L<functional programming>.
+
 
 =head2 Bool
 
@@ -215,11 +224,11 @@ called bootstrap.
 L<Documentation|https://github.com/MoarVM/MoarVM/blob/master/docs/bootstrap.markdown>
 about bootstrapping the L</6model> of L<MoarVM>
 
-=hea2 bot
+=head2 bot
 
 A program that does automatic tasks on one or more L</IRC> channel by acting like a
 regular user (as far as the server is concerned) and performing some tasks that
-may involve answering to users requests. L</camelia>, </dalek> and </yoleaux>
+may involve answering to users requests. L</camelia>, L</dalek> and L</yoleaux>
 are bots on the L</#perl6> channel.
 
 =head2 boxing
@@ -238,6 +247,12 @@ Be Right Back.  Only L</afk> for a little while.
 
 Bounded Serialization.
 
+=head2 BSON
+
+BSON is the binary counterpart to the textual L</JSON> data format.
+Used by Mongodb and supported by the
+L<MARTIMM/BSON|https://github.com/MARTIMM/BSON/> L</project>.
+
 =head2 Bug report
 
 The way to report problems to the implementors.  For the interpreters
@@ -254,10 +269,12 @@ See also: L</Task::Star>.
 
 =head2 bytecode
 
-Bytecode is to a L</Virtual Machine> what L</machine code> is to a CPU but, unlike machine code,
-is portable. From L</source code> L</Rakudo> can generate bytecode for the L</JVM> and L</MoarVM> virtual machines.
-When executing a script, rakudo does not need to compile the used L</module>s because they should already be available as
-bytecode installed by L<Panda>.
+Bytecode is to a L</Virtual Machine> what L</machine code> is to a CPU
+but, unlike machine code, is portable.  From L</source code> L</Rakudo>
+can generate bytecode for the L</JVM> and L</MoarVM> virtual machines.
+When executing a script, rakudo does not need to compile the used
+L</module>s because they should already be available as bytecode
+installed by L<Panda>.
 
 
 =head1 C
@@ -320,9 +337,29 @@ A regex definition for one of the term kinds :
 1) Context Free Grammar.
 2) see L</Control Flow Graph>.
 
+=head2 character
+
+A L</string> is a sequence of characters.  Like in Perl 5, there is no
+character type in Perl 6 so when someone says a I<character> about a
+L</value>, he means a string with one character. In L</Unicode> a
+character is called a L</grapheme> and may be composed of many L</codepoints>.
+But a string represented in the L</NFG> normalization form proper to
+Perl 6 has a codepoint per character. That leads to O(1) performance
+for many string operations. Depending on the level of abstraction, the
+length of a given string differs. The abstractions are bytes, codepoints and
+graphemes and the relevant methods are respectively L<.bytes>, L<.codes>,
+L<.graphs>. L<.chars> returns the length for the default level of astraction
+of a given string type.
+
 =head2 channel
 
 Short for L</IRC> channel
+
+=head2 christmas
+
+Release date for a Perl 6 implementation. It was a recurring joke because
+the year was not specified. But at FOSDEM 2015, TimToady announced that the
+target date will be Christmas 2015.
 
 =head2 circularity saw
 
@@ -375,6 +412,10 @@ See also L<S06-routines/Closure parameters>.
 =head2 CLR
 
 Common Language Runtime, as used by Niecza/mono/.NET.
+
+=head2 codepoint
+
+=head2 combining mark
 
 =head2 comment
 
@@ -475,7 +516,7 @@ distributions.
 
 =head2 CUR
 
-Short for C<CompUnitRepo>, the type of objects that inhabit C<@*INC>.
+Short for C<CompUnitRepo>, the type of objects that inhabit C<@?INC>.
 
 =head2 CURL
 
@@ -514,6 +555,8 @@ Code that is never called. For example
 A piece of software that helps you to track down errors in your software.
 It typically allows things like stepping through code, setting breakpoints
 and inspecting variables.
+
+=head2 destructuring
 
 =head2 dev
 
@@ -558,6 +601,10 @@ subroutine to invoke.
 A collection of 1 or more L</compunit>s for installing locally, or for
 loading from a remote location.
 
+=head2 DRY
+
+Don't Repeat Yourself
+
 =head2 DSL
 
 L</Domain specific language>. See L</slang>.
@@ -583,6 +630,8 @@ L</caller>'s lexical L</scope>.
 =head2 dynamic
 
 =head2 dynamic language
+
+=head2 dynamic typing
 
 =head2 DWIM
 
@@ -619,6 +668,8 @@ See the L<relevant Wikipedia entry|https://en.wikipedia.org/wiki/Failure#Interne
 
 A Perl 6 command that takes a string as an argument and executes its content
 as Perl 6 code.
+
+=head2 exception
 
 =head2 Exegesis
 
@@ -676,6 +727,10 @@ when used as a L</queue>.  See also L</LIFO>.
 
 Sometimes a test will fail under some conditions, but not others; when this
 test passes some test runs and fails others, it's called flapping.
+
+=head2 first class entity
+
+An entity that is accessible as a L</value> during L</runtime>.
 
 =head2 fork
 
@@ -735,11 +790,11 @@ Garbage collecting.
 
 =head2 gensym
 
-A B<gen>erated B<sym>bol. Used primarily in macro parlance, a gensym acts as
+A B<gen>erated B<sym>bol. Used primarily in L</macro> parlance, a gensym acts as
 a "handle" on something anonymous, allowing a macro author to refer to
 synthetically created bits of a program after creating them. Gensyms
 generally look ugly, partly so as not to collide with anything else. The
-symbols `#:G847`, `#:G848` and `#:G850` below from
+L</symbol>s `#:G847`, `#:G848` and `#:G850` below from
 L<http://lists.warhead.org.uk/pipermail/iwe/2005-July/000130.html> are
 gensyms:
 
@@ -829,6 +884,14 @@ need in a deep class hierarchy.  In Perl 6, the gorilla/banana problem is
 solved with L</role>s that group methods or attributes. A role can be
 dynamically added to a class or an object.
 
+=head2 gradual typing
+ 
+According to wikipedia I<Gradual typing is a type system in which
+variables may be typed either at compile-time (which is L</static typing>)
+or at L</runtime> (which is L</dynamic typing>)>.
+Perl 6 supports gradual typing.
+
+
 =head2 grammar
 
 A feature of Perl 6 that uses L</regex>es to implement a grammar for parsing
@@ -837,6 +900,8 @@ The results of parsing with a grammar can be further passed on to
 L</actions>.  A grammar is composed of methods introduced by one of the
 three keywords C<rule>, C<L</token>>, C<regex>. There is L</backtrack>ing
 only in C<regex> and C<rule> implies L</whitespace>s between subrules.
+
+=head2 grapheme
 
 =head2 green threads
 
@@ -907,6 +972,10 @@ thread/process.
 
 =head2 hypothetical variable
 
+=head2 hysterical raisins
+
+pun on hysterical reasons.
+
 =head1 I
 
 =head2 IC
@@ -958,18 +1027,31 @@ A built-in arbitrary-sized integer type. See L<http://doc.perl6.org/type/Int>.
 
 =head2 interface
 
+An interface is an L</abstract class>.
+
 =head2 Intermediate Representation
 
 In a compiler, Intermediate data structures that are generated from the
 L</source code> to generate L</object code> or L</bytecode>.  In L</Rakudo>
 : L</parse tree>, and L<Abstract Syntax Tree|/AST>.  The L</parser>
 generates an IR that is transformed to an L</AST>.  Sometimes the
-information can be regenerated from the bytecode.  In Rakudo the Single
-Static Assignment form is inferred from the bytecode.
+information can be regenerated from the bytecode.  In Rakudo the L</Single
+Static Assignment> form is inferred from the bytecode.
 
 =head2 interpreter
 
+An interpreter is the entity that executes L</bytecode> generated from
+L</source code> in a given L</language>.  It relies on the underlying
+L</VM>. It may load L<extops>, that is bytecode L</ops> that are
+specific to the said language.
+
+
 =head2 instruction set
+
+An instruction set is a set of instructions specific to a L</bytecode>
+or a microprocessor.  Also L</NQP> defines an instruction set. Its
+opcodes are documented in
+L<ops.markdown|https://github.com/perl6/nqp/blob/master/docs/ops.markdown>.
 
 =head2 invocant
 
@@ -1035,6 +1117,12 @@ NQP.
 L<Just-in-time compilation|https://en.wikipedia.org/wiki/Just-in-time_compilation>,
 a technique for improving the performance of virtual machines.
 
+=head2 JSON
+
+A popular data format. Its L<specification|http://json.org/>
+The ecosystem includes many JSON related L</projects>.
+Its binary counterpart is L</BSON>.
+
 =head2 Junction
 
 A compound type that is transparent to many operations. See
@@ -1064,6 +1152,8 @@ famous motto in computer science.
 
 An anonymous function.  A block with explicit parameters:  C<<  -> $a { say
 $a }  >> The C<< -> >> itself, or C<< <-> >> for writeable parameter.
+
+=head2 language
 
 =head2 lazy
 
@@ -1164,6 +1254,18 @@ profusion of magic variables, Perl 6 includes only the magic variables
 L</$_>, L</"$/"> and L<$!>. They are L</block> L</scope>d and are implicitly
 defined at the beginning of each block.
 
+=head2 MAIN
+
+When present, a L</multi>L<sub> that is the entry point of a L</program> L</runtime>.
+The code in L</phaser>s intented to run at compile time are executed before MAIN.
+Like in Perl 5, a MAIN sub is not necessary.
+
+=head2 MAST
+
+L</MoarVM> specific L</AST>. When the Perl 6 L</backend> is MoarVM, L</QAST>, the AST obtained from early stages of
+L</source code> L</compilation> is converted into MAST. The MAST is then used to generate MoarVM
+L</bytecode>.
+
 =head2 Match
 
 L<Value|/value> resulting from a L</match>.
@@ -1183,6 +1285,12 @@ Matching against a C<regex> is a special case of L</smart match>ing.
 See also L</parse>.
 
 =head2 memory
+
+=head2 META.info
+
+A L</JSON> file that lies in the root of a L</repository> for a project written
+in Perl 6. It describes a project and list its dependancies.
+Documented in L<spec.pod|https://github.com/perl6/ecosystem/blob/master/spec.pod>.
 
 =head2 metamodel
 
@@ -1367,9 +1475,14 @@ Object oriented.  See L</OOP>.
 
 Acronym for L<Object-oriented programming|https://en.wikipedia.org/wiki/Object-oriented_programming>.
 
+=head2 op
+
+Ops are L</opcode>s that belong to the L</NQP> L<interpreter> or that are dynamically
+charged by the interpeter of another language. The word L</extops> is used to denote the latter ops
+
 =head2 opcode
 
-An opcode is an instruction in a bytecode.  Documentation about L</MoarVM>
+An opcode is an instruction in a L</bytecode> or L</AST>.  Documentation about L</MoarVM>
 L<opcodes|https://github.com/MoarVM/MoarVM/blob/master/docs/bytecode.markdown>.
 
 =head2 open source
@@ -1377,6 +1490,8 @@ L<opcodes|https://github.com/MoarVM/MoarVM/blob/master/docs/bytecode.markdown>.
 =head2 operand
 
 See L</operator>.
+
+=head2 operating system
 
 =head2 operator
 
@@ -1500,7 +1615,7 @@ why the former is faster than the latter.
 
 =head2 PAST
 
-Parrot L</AST>.
+L</Parrot> L</AST>.
 
 =head2 PAUSE
 
@@ -1636,11 +1751,21 @@ L</symbol>s.
 
 =head2 program
 
+=head2 project
+
+A project is a L</version>ed L</repository>.
+It typically contains a C<bin> folder and a C<lib> and <t> hierarchy.
+They respectively contain executable scripts, Perl 6 libraries and tests.
+The list of projects is maintained in the L<ecosystem> repository.
+
+
 =head2 pseudo-scope
 
 =head2 pseudo-package
 
 =head2 proto
+
+A proto is a generic L</dispatcher> to L</multi>s by the same L</shortname>.
 
 =head2 PR
 
@@ -1662,6 +1787,10 @@ and made changes to it that they wish to have in the main project.
 A Perl 6 implementation in Haskell, led by the efforts of Audrey Tang.  The
 first truly usable Perl 6 implementation, it was actively developed 2005
 through 2007.
+
+=head2 punctuational variable
+
+Another name for L</magic variable>.
 
 =head2 pure
 
@@ -1760,7 +1889,12 @@ function in the representation table of that type.
 
 =head2 require
 
+Require is the L</runtime> loading of a L</module> and the related L</import>s
+
 =head2 revert
+
+Revert is L</git> terminology. It add new commit to revert the some changes in a branch.
+It is different from reset that thrpw away changes.
 
 =head2 roast
 
@@ -1816,7 +1950,7 @@ Real Soon Now.
 
 =head2 RT
 
-Request Tracker (L<http://rt.perl.org/>).  To open a ticket, email
+Request Tracker (L<http://rt.perl.org/>).  To open a ticket, email>
 C<rakudobug@perl.org>.
 
 =head2 rule
@@ -1853,6 +1987,8 @@ Something that should never, ever happen.  Complain on #perl6 if you see one.
 
 =head2 semicolon
 
+A L</character> used to separate or terminate L</statement>s.
+
 =head2 serialization
 
 The serialization saves information obtained at compilation time from a
@@ -1874,6 +2010,9 @@ lazily to optimize loading time.
 
 =head2 shared library
 
+L</operating system> level L</library> dynamically loaded by a a L</process>. When different processes
+load the same library, it is loaded once in memory, so the shared adjective.
+
 =head2 shortname
 
 The name of a routine only; without the type signature of its invocant
@@ -1889,6 +2028,9 @@ string, or even C<postcircumfix> L<expression|/Expression>s starting with
 such a variable.
 
 =head2 signature
+
+A signature is used by L</block>s, L</sub>s or L<L/methods> to specify the L</arguments> they
+can receive when they are called.
 
 =head2 Single Static Assignment
 
@@ -1971,9 +2113,17 @@ See L</Rakudo *>.
 
 =head2 statement
 
-=head2 Static frame
+=head2 static frame
 
 Data pertaining to a L</frame> gathered at compile time.
+
+=head2 static typing
+
+In a language with stating typing, at L</runtime>, values don't need
+to be annotated with their type. 
+See L</type erasure>.
+
+Compare with L</dynamoc typing>, L</gradual typing>
 
 =head2 STM
 
@@ -1985,11 +2135,21 @@ Name of the string type.
 
 =head2 string
 
+A sequence of characters.  See L</characters> fo the definition of
+string length according to the different abstractions underlying a
+L</Unicode> string.  There is some speculation of string being
+L</lazy> in some future Perl 6 version.
+
 =head2 sub
 
 Short for subroutine.
 
 =head2 Subroutine
+
+A subroutine is like a L</block>, but its L</runtime> context is stacked.
+WHen a subroutine is called, its context is pushed in the context stack
+and the code pointer moves to its block. When executing a return, the context stack
+is popped and the return argument becomes the value of the calling expression.
 
 =head2 Subsignature
 
@@ -2014,9 +2174,9 @@ Not to be confused with L<Closure parameters|/"Closure Parameter">.
 =head2 symbol
 
 Fancy alternative way to denote a name. Generally used in the context of
-modules linking, be it in the L</OS> level, or at the Perl 6 L</VM> level
+L</module>s linking, be it in the L</OS> level, or at the Perl 6 L</VM> level
 for modules generated from languages targeting these VMs.  The set of
-imported or exported symbols is called the symbol table.
+L</import>ed or exported symbols is called the symbol table.
 
 =head2 :sym
 
@@ -2024,9 +2184,15 @@ imported or exported symbols is called the symbol table.
 
 The current human-readable description of the Perl 6 language.  Still in
 development.  Much more a community effort than the L</Apocalypse>s and
-L<Exegeses|/Exegesis> were.
+L<Exegeses|/Exegesis> were. The current state of the language is reflected
+by L<roast>, its L</test suite>, not the synopses where speculative material
+is not always so flagged. This is even more true of material that is deemed to
+pertain to 1.0 version of the language but has not been yet implemented.
 
 =head2 Syntax analysis
+
+When compiling a program, the operation that analyzes the L</source
+code> to produce an L</parse tree>.
 
 =head2 Syntax sugar
 
@@ -2040,9 +2206,13 @@ L<Test Anything Protocol|http://en.wikipedia.org/wiki/Test_Anything_Protocol>.
 
 =head2 Task::Star
 
-A L</bundle> that directs L</Panda> to install L</Rakudo *> L</module>s
+A L</bundle> that directs L</Panda> to install L</Rakudo *> L</module>s.
 
 =head2 term
+
+=head2 test suite
+
+The Perl 6 test suite is L</roast>
 
 =head2 Texas operator
 
@@ -2156,6 +2326,16 @@ See L<http://design.perl6.org/S02.html#Twigils>.
 
 =head2 type
 
+The type of a value C<$val> can be obtained using C<$val.WHAT> which the corresponding
+type object. When a value is L<native|/native value>, the <.WHAT> macro operates on the
+corresponding L<boxed|/boxing> value. 
+
+=head2 type erasure
+
+Type annotation for a value of L</static type> is unecessary at L</runtime>
+The absence of that annotation at compared to L</compile time> is called type
+erasure.
+
 =head1 U
 
 =head2 UAX
@@ -2225,6 +2405,10 @@ Symbols in the outermost lexical scope of a compilation unit.
 See L</slushy>.
 
 =head2 use
+
+Use is the compilation time loading of a L</module>. That means,
+contrary to L</require> that the L</import>ed L<symbols> are known at
+compilation time to the rest of the compilation of the code
 
 =head1 V
 
@@ -2350,6 +2534,8 @@ of a given language become visible.
 The L</bot> on #perl6 that is your personal assistant.
 See L<https://github.com/dpk/yoleaux> and L<http://dpk.io/yoleaux>.
 
+=head2 YOU_ARE_HERE
+
 =head1 Z
 
 =head2 Zavolaj
@@ -2405,13 +2591,19 @@ L</given> statement or a for loop.
 
 =head2 $/
 
+A L</magic variable> which L</value> is the current L</Match>, or L</nil>
+if none.
+
 =head2 $!
+
+A L</magic variable> which L</value> is the current L</Exception>
 
 =head2 %_
 
 =head2 ++
 
 Way to increase L</karma> on IRC.
+A L</prefix> or L</postfix> incrementation L</operator>.
 
 =head2 &
 
@@ -2424,7 +2616,7 @@ else in the background.  For instance:
 =head2 6model
 
 The "new object model"/L</MOP> that's currently in rakudo. L</MoarVM> uses
-this internally. On Parrot and JVM, it sits on top of the native object
+this internally. On L</Parrot> and L</JVM>, it sits on top of the native object
 model.
 
 =head1 AUTHORS
