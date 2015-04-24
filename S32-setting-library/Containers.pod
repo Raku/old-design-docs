@@ -683,7 +683,7 @@ The functional form assumes it is working on a list of integers C<^$n>.
 
 =item rotor
 
-    multi method rotor ( *@cycle )
+    multi method rotor ( *@cycle, :$partial )
 
 Takes multiple cyclical slices of the current list as specified by
 C<@cycle>, which you can think of as a rotory cutter that punches out
@@ -694,12 +694,13 @@ many elements to take (the "slice") and, optionally, how many to omit
 (the "gap").  The cycle repeats if C<@cycle> runs out before the list
 does.  The rotor stops if the list runs out first, that is, if there are
 insufficient values remaining to create the entire next slice (ignoring
-any associated gap).  The final partial slice is returned at the end,
+any associated gap).  If :partial is specified, the final partial slice is returned at the end,
 if it is not empty.  Here we slice the alphabet into alternating slices
 of size 2 and 3:
 
     my @list = 'a'...'z';
-    @list.rotor(2,3)   # <a b>,<d e f>,<g h>,<i j k>...<z>
+    @list.rotor(2,3)             # ab, def, gh, ijk...uv, wxy
+    @list.rotor(2,3, :partial)   # ab, def, gh, ijk...uv, wxy, z
 
 It is allowed to specify an infinite cycle, in which case it will never
 repeat, at least not internally.  The supplied list may of course repeat
