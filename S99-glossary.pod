@@ -12,10 +12,10 @@ Synopsis 99: Glossary
     Version: 8
 
 This document tries to define many of the terms used within the Perl 6
-community.  It does not have an Apocalypse or Exegesis predecessor.  It is
-intended as both a quick introduction to terms used on the L</#perl6> L</channel>
-on L</freenode>, as well as a more permanent, and deeper source of
-explanations in the context of Perl 6.
+community.  It does not have an L</apocalypse> or L</exegesis
+predecessor>.  It is intended as both a quick introduction to terms
+used on the L</#perl6> L</channel> on L</freenode>, as well as a more
+permanent, and deeper source of explanations in the context of Perl 6.
 
 If you, as a reader, miss a term in a glossary, just add the term with the
 explanation.  Or if you are not sure what the missing term means, just add a
@@ -353,7 +353,9 @@ of a given string type.
 
 =head2 channel
 
-Short for L</IRC> channel
+Short for L</IRC> channel.
+
+Or a concurrent queue.
 
 =head2 christmas
 
@@ -449,6 +451,11 @@ type of the data manipulated by the L</program>, bytecode can be transformed
 into optimised bytecode or into L</machine code>.  These last two operations
 are forms of L</JIT>.
 
+=head2 compiler constant
+
+A L</variable> with a C<?> L</twigil>.
+See L<http://design.perl6.org/S02.html#Twigils>.and L<S24|http://design.perl6.org/S24.html>
+
 =head2 COMPILING::
 
 A L</pseudo-scope> to access lexical L</symbol>s in the L</scope> being
@@ -466,6 +473,18 @@ See L</compilation unit>.
 
 =head2 concurrency
 
+Property of simultaneous computations sharing resources. It necessitates
+some form of collaboration to guaranty the consistency of the said
+ressources. Computations are materialized by L</process>es or
+L</thread>s. Colllaboration involves synchronization primivives
+likes mutexes, locks, semaphores.  Perl 6 provides high level
+abstractions like L</feed>s, L</junction>s, L</hyperoperator>s,
+L</promise>s, L</channels> so that the programmer is usually spared
+the explicit use of threads and the endless problems they involve.
+
+Compare with L</parallelism>.
+See L<S17-concurrency>.
+
 =head2 concrete
 
 An L</object> L</value> is concrete when it is not the L</class> itself.
@@ -480,6 +499,20 @@ A context specifies the kind of value expected from an L<expression|/Expression>
 A context may be L</boolean context>, L</numeric context>, L</item context>,
 L</list context> or L</hash context>.
 Some L</prefix> L</operator>s are used to force the context.
+
+Context is also information that can affect parsing
+
+=head2 context variable
+
+A L</variable> with a C<*> L</twigil>.  Used to set up contextual
+information that can be shadowed by calls deeper in the L</call
+stack>.  Heavily used in the Perl 6 compiler because Perl 6 is a very
+contextual language, so gathered information affects the parsing. See
+L</keyword> for an example.
+
+See also L</lexotic>, L<http://design.perl6.org/S02.html#Twigils>.and
+L<S24|http://design.perl6.org/S24.html>.  Also called dynamic
+variable.
 
 =head2 control flow
 
@@ -555,6 +588,15 @@ Code that is never called. For example
 A piece of software that helps you to track down errors in your software.
 It typically allows things like stepping through code, setting breakpoints
 and inspecting variables.
+
+=head2 declarator
+
+a L</keyword> that introduces a L</symbol> and defines its L</scope>
+and L</extent>.  Perl 6 declarators are L</has>, L</my>, L</state>,
+L</our>, respectively for L</object|object variable> ,
+L</lexical|lexical variable>, </stateful|stateful variable> and L</package|package
+variable>. Also the L</twigil> C</*> in the name of a package or lexical variable sets
+its extent to L</dynamic>.
 
 =head2 destructuring
 
@@ -633,6 +675,11 @@ L</caller>'s lexical L</scope>.
 
 =head2 dynamic typing
 
+=head2 dynamic variable
+
+the dynamic here is unrelated to the one in L</dynamic typing>.
+See L</context variable>.
+
 =head2 DWIM
 
 Acronym for "B<D>o B<W>hat B<I> B<M>ean".  A programming language designer
@@ -689,6 +736,13 @@ An expression is a part of a statement that is constituted of operators and
 their operands and gives a value. The semantic of an expression may depend
 on its L</context>.  An expression is all or part of a L</statement>.
 
+=head2 extent
+
+The extent is the interval of time a L</first class> entity lives.  The
+extent is different from the L</scope> of a name. 
+A L</lexical variable> can be still alive when its name is out of scope if
+some reference stil exists.
+
 =head2 Extop
 
 An extension to the default L</bytecode> L</instruction set> in L</Parrot>
@@ -697,6 +751,11 @@ or L</MoarVM>.  Used to support L</opcode>s specific to a language.
 =head1 F
 
 =head2 FAIL
+
+=head2 FAILBACK
+
+when available in a class, called when all other attempts by the
+L</dispatcher> have failed.
 
 =head2 fat comma
 
@@ -815,10 +874,10 @@ L<Global Interpreter Lock|https://en.wikipedia.org/wiki/Global_Interpreter_Lock>
 =head2 gist
 
 A summary, or a method on objects that is invoked by L</say> to print out
-the object in a human readable format, or a paste server used by denizens of
-L</IRC>.
+the object in a human readable format. 
 
-See L<https://gist.github.com> for the last usage.
+Or a paste server with L</git> capabilities used by denizens of
+L</IRC>. See L<https://gist.github.com> for the last usage.
 
 =head2 git
 
@@ -901,6 +960,12 @@ L</actions>.  A grammar is composed of methods introduced by one of the
 three keywords C<rule>, C<L</token>>, C<regex>. There is L</backtrack>ing
 only in C<regex> and C<rule> implies L</whitespace>s between subrules.
 
+Parsing is done conceptually in two phases, L<lexing> and L<syntax
+analysis>.  Lexing breaks the input string in tokens that are the
+input of L<syntax analysis|/Syntax analysis>. In Perl 6, things are
+not so clear cut and both phases are defined in the L</grammar>.
+
+
 =head2 grapheme
 
 =head2 green threads
@@ -974,7 +1039,7 @@ thread/process.
 
 =head2 hysterical raisins
 
-pun on hysterical reasons.
+Pun on historical reasons.
 
 =head1 I
 
@@ -1119,9 +1184,11 @@ a technique for improving the performance of virtual machines.
 
 =head2 JSON
 
-A popular data format. Its L<specification|http://json.org/>
-The ecosystem includes many JSON related L</projects>.
-Its binary counterpart is L</BSON>.
+A popular data format. Its L<specification|http://json.org/> The
+ecosystem includes many JSON related L</projects>.  Its binary
+counterpart is L</BSON>.  The class L</JSON::Pretty> is part of the
+core.  Thre is also support for more JSON and BSON in the L</Rakudo
+Star> or the L</ecosystem>.
 
 =head2 Junction
 
@@ -1140,6 +1207,16 @@ the JVM.
 
 A measure of appreciation on L</IRC>. Example:
 "jnthn++ # moar commit"
+
+=head2 keyword
+
+An alphabetical string that has a predefined meaning in the language
+source code.  In most languages keywords are reserved, that is they
+cannot be used as L</symbol>. Not in Perl 6, the compiler knows by
+context if an alphabetical string is a keyword, a L</function> name
+used for a call or a sigiless L</parameter>. This will allow to add
+new keywords to Perl 6 in the future without breaking existing
+programs.
 
 =head2 KISS
 
@@ -1181,11 +1258,17 @@ A data structure that holds the values of lexical variables.
 
 =head2 lexical symbol
 
+=head2 lexing
+
 =head2 lexotic
 
 A dynamic operation with a lexically scoped target. For example, C<return>
 has a dynamic effect (it peels back the call stack), but the thing it's
 returning from is a lexically defined routine.
+
+=head2 lexpad
+
+Short for L</lexical pad>.
 
 =head2 LGTM
 
@@ -1205,6 +1288,16 @@ non-dynamic language like C results in a library.
 L<Last In First Out|https://en.wikipedia.org/wiki/LIFO_(computing)>, a
 fairly common data structure in computer science.  In Perl 6 arrays behave
 as such when used as a L</stack>.  See also L</FIFO>.
+
+=head2 line noise
+
+Used to qualified unreadable code. Often used by people that don't understand
+the syntax of the used language. Perl is often deemed line noise, especially because
+of its abondance of L</metacharacters>, like L</sigil>s. For the trained reader,
+they are very useful because the sigil denote an associated L</role>
+
+See </TheDamian> L</answer|http://www.linuxvoice.com/interview-damian-conway/>
+to the question I<Perl looks like a regular expression>.
 
 =head2 List
 
@@ -1238,6 +1331,8 @@ Less Than Awesome.
 =head2 LTM
 
 See L<Longest Token Matching|http://design.perl6.org/S05.html#Longest-token_matching>.
+
+=head2 lavalue
 
 =head1 M
 
@@ -1325,6 +1420,15 @@ MoarVM has some similarities with the Hotspot VM so you may peruse its
 L<glossary|http://openjdk.java.net/groups/hotspot/docs/HotSpotGlossary.html>
 for entries missing from the present one.
 
+=head2 modifier
+
+It is a L</adverb> that affects the behavior of a L</rule> or a
+L</match> The supported modifier for rules are L</:ignorecase>,
+L</:ignoremark>, L</:sigspace>, L</:ratchet> and L</Perl5> and their
+respective abbreviations C<:i>, c<:s>, c<:r> and C<:p5>.
+
+:g :ov :x :ex :pos
+
 =head2 module
 
 =head2 MOP
@@ -1375,11 +1479,17 @@ A L</pseudo-scope> to access L</symbol>s  in the current L</lexical scope>
 
 =head2 namespace
 
+=head2 native
+
+Something that does not pertain the Perl interpreter proper but
+to the L</backend> or the underlying system.
+See also: L</pure Perl>
+
 =head2 Native Call
 
 =head2 Native value
 
-A native value is an L</Int>, L</Num>, L</Str>.  A native value cannot be
+A native value is an L</int>, L</num>, L</str>.  A native value cannot be
 undefined.
 
 =head2 name
@@ -1611,6 +1721,8 @@ the L</NFA> engine. One difference between C<|> and C<||> is that the former
 involves an L</NFA>, while the latter involves the recursive engine. That's
 why the former is faster than the latter.
 
+See also L</grammar>.
+
 =head2 parse tree
 
 =head2 PAST
@@ -1763,13 +1875,22 @@ The list of projects is maintained in the L<ecosystem> repository.
 
 =head2 pseudo-package
 
+=head2 promise
+
 =head2 proto
 
 A proto is a generic L</dispatcher> to L</multi>s by the same L</shortname>.
 
+=head2 proxy
+
 =head2 PR
 
 Short for L</pull request>.
+
+=head2 prove
+
+Perl 5 script to run tests through a L</TAP> harness.
+See L<prove|http://perldoc.perl.org/prove.html>.
 
 =head2 PSA
 
@@ -1792,9 +1913,24 @@ through 2007.
 
 Another name for L</magic variable>.
 
+=head2 pun
+
+When a role is used as a class, punning is the implicit operation that
+converts the role to the class using the metaclass compose method.  In
+a wider, non-Perl 6 context, it can refer to any implicit conversion.
+
 =head2 pure
 
-A function or method is pure if it has no side effect.
+A L</function>, </method> or L</op> is pure if it has no side effect,
+and the value it gives is depends only of its arguments so it is
+L</referential transparent|referentially transparent> givint the opportunity
+of optimizations.
+
+
+=head2 pure perl
+
+Use to qualify Some source code, or L</project> that does not depend
+on non Perl resources like a L</shared library> generated from C code.
 
 =head2 p5
 
@@ -1833,12 +1969,19 @@ of Rakudo which includes modules and L</Panda>.
 
 See L</Rakudo *>.
 
+=head2 Rakudo Star daily
+
+Daily build reports on rakudo-star to track module tests on each L</backend>.
+Its L<README|https://github.com/coke/rakudo-star-daily>
+
 =head2 rakudobug
 
 A bug in L</Rakudo>.  Usually used in contexts such as "/me submits
 rakudobug".
 
 =head2 range
+
+=head2 referential transparency
 
 =head2 regex
 
@@ -1985,6 +2128,8 @@ See L</segmentation fault>.
 
 Something that should never, ever happen.  Complain on #perl6 if you see one.
 
+=head2 self cloakng code
+
 =head2 semicolon
 
 A L</character> used to separate or terminate L</statement>s.
@@ -2078,9 +2223,19 @@ more like a glass of ice water.
 
 =head2 spectest
 
-A program that passes the Perl 6 test suite is a valid Perl 6 L</compiler>.
-L<Link|https://github.com/perl6/roast> to the L</github> L</repository> that
-contains the said test suite. See also: L</roast>.
+Alternative name for L</roast> after the name of its target name in
+L</rakudo compiler>.  A program that passes the Perl 6 L</test suite>
+is a valid Perl 6 L</compiler>.
+L<Link|https://github.com/perl6/roast> to the L</github>
+L</repository> that contains the said test suite.
+
+=head2 special variable
+
+Variable with one of the L</twigil> C<?>, C<*> or C<=>; or L</magic variable>.
+The said twigils respectivly correspand to L</compiler constant>s, L</context variable>s
+or L</pod> data.
+
+See L<S28|http://design.perl6.org/S28.html>.
 
 =head2 spesh
 
@@ -2105,11 +2260,27 @@ Representation independent data structure associated with the type of an
 object. Part of the L</6model>.  See
 L<http://jnthn.net/papers/2013-yapceu-moarvm.pdf>.
 
+=head2 stage
+
+Can denote steps either on bootstrapping nqp, or compilation stages.
+
+For bootstrapping stages, see L</bootstrap>.
+
+Compilation proceeds on successives stages. Later stages are
+L</backend dependent>.  When there is a dumper availabe, you can see
+the output of one stage with the switch C<--target=I<stage_name>>.
+The argument is case insensitive.  The backend independant stages are
+C<parse> and C<ast>.  The L</JVM> backend specific states are C<jast>,
+C<classfile>, C<jar>, C<jvm>.  For L</MoarVM>, they are C<mast>,
+C<mbc>. C<moar>.
+
 =head2 star
 
 See L</Rakudo *>.
 
 =head2 stash
+
+=head2 state
 
 =head2 statement
 
@@ -2171,6 +2342,8 @@ L<S06-routines/"Unpacking tree node parameters">.
 
 Not to be confused with L<Closure parameters|/"Closure Parameter">.
 
+=head2 supply
+
 =head2 symbol
 
 Fancy alternative way to denote a name. Generally used in the context of
@@ -2189,16 +2362,17 @@ by L<roast>, its L</test suite>, not the synopses where speculative material
 is not always so flagged. This is even more true of material that is deemed to
 pertain to 1.0 version of the language but has not been yet implemented.
 
-=head2 Syntax analysis
+=head2 syntax analysis
 
-When compiling a program, the operation that analyzes the L</source
-code> to produce an L</parse tree>.
+See L</parser>.
 
 =head2 Syntax sugar
 
 See L</Huffmanization>.
 
 =head1 T
+
+=head2 tail call
 
 =head2 TAP
 
@@ -2207,6 +2381,10 @@ L<Test Anything Protocol|http://en.wikipedia.org/wiki/Test_Anything_Protocol>.
 =head2 Task::Star
 
 A L</bundle> that directs L</Panda> to install L</Rakudo *> L</module>s.
+
+=head2 TCO
+
+L<tail call> optimization.
 
 =head2 term
 
@@ -2291,10 +2469,7 @@ Too Much Information.
 
 =head2 token
 
-In L<parsing|/parser> theory, the parsed string is broken into tokens that
-are the input of L<syntax analysis|/Syntax analysis>. In Perl 6, things are
-not so clear cut and the two conceptual phases are defined by the
-L</grammar>.
+A token is a keyword that introduces a lexing L</rule> in a grammar
 
 =head2 topic
 
@@ -2322,7 +2497,7 @@ materialized in wooden nickels.
 A secondary L</sigil>. For example, C<%*ENV> has a sigil of C<%> and
 a twigil of C<*>.
 
-See L<http://design.perl6.org/S02.html#Twigils>.
+See L<http://design.perl6.org/S02.html#Twigils>.and L<S24|http://design.perl6.org/S24.html>
 
 =head2 type
 
@@ -2438,6 +2613,11 @@ L</Rakudo> on L</MoarVM>
 
 Strangely the L</NQP> related information is missing.
 
+=head2 visibility
+
+An L</object variable> declared with the L<!> L</twigil> can be in scope but
+is not visible.
+
 =head2 Virtual Machine
 
 A virtual machine is the Perl compiler entity that executes the
@@ -2497,7 +2677,14 @@ also considered whitespace. See also L</unspace>.
 
 Work In Progress.
 
-=head2 World
+=head2 world
+
+The world is the data about a package that is serialized when
+compiling a L</compilation unit>. 
+the nqp and rakudo compiler have a World class handling the said data.
+See L<NQP::World|https://github.com/perl6/nqp/blob/master/src/NQP/World.nqp> and
+L<Rakudo::World|https://github.com/rakudo/rakudo/blob/nom/src/Perl6/World.nqp>.
+
 
 =head2 WP
 
@@ -2565,9 +2752,15 @@ Archived on L<http://irclog.perlgeek.de/perl6/>.
 
 =head2 ...
 
-=head2 :
+=head1 :
 
 Everybody wants the colon.
+
+=head2 :ignorecase
+
+=head2 :ignoremark
+
+=head2 :ratchet
 
 =head2 ?
 
