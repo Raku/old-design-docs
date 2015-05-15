@@ -440,7 +440,8 @@ The old Perl 5 form:
 is a compile-time error in Perl 6 (because it would imply that the body of the
 subroutine extends from that statement to the end of the file, as C<class> and
 C<module> declarations do).  The only allowed use of the semicolon form is to
-declare a C<MAIN> sub--see L</Declaring a MAIN subroutine> below.
+declare a C<MAIN> sub--see L</Declaring a MAIN subroutine> below.  (And this
+form requires the C<unit> declarator in front.)
 
 Redefining a stub subroutine does not produce an error, but redefining
 an already-defined subroutine does. If you wish to redefine a defined sub,
@@ -504,7 +505,7 @@ Despite the fact that subroutine dispatch only looks in lexical scopes, you
 can always call a package subroutine directly if there's a lexical alias
 to it, as the C<our> declarator does:
 
-    module C;
+    unit module C;
     our sub saith($text)  { say "Yea verily, $text" }
     saith("I do!")      # okay
     C::saith("I do!")   # also okay
@@ -3420,11 +3421,11 @@ be used to distinguish the different signatures:
     multi MAIN (Num $i) {...}   # foo 1e6
     multi MAIN ($i) {...}       # foo bar
 
-As with module and class declarations, a sub declaration
-ending in semicolon is allowed at the outermost file scope if it is the
+As with module and class declarations, a sub declared
+with the C<unit> declarator (and ending in semicolon) is allowed at the outermost file scope if it is the
 first such declaration, in which case the rest of the file is the body:
 
-    sub MAIN ($directory, :$verbose, *%other, *@filenames);
+    unit sub MAIN ($directory, :$verbose, *%other, *@filenames);
     for @filenames { ... }
 
 This form is allowed only for simple subs named C<MAIN> that are intended
