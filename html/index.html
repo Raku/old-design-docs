@@ -12,14 +12,24 @@
       document.createElement(h5elems[x]);
   </script>
 <![endif]-->
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+
 <script>
-$(document).ready(function() {
-    $('#intro-text').toggle();
-    $('#read-more').click(function() {
-        $('#intro-text').toggle();
+  try {
+    document.addEventListener('DOMContentLoaded', function() {
+      if ( !('hidden' in document.body) )
+        return;
+
+      var i = document.getElementById('intro-text');
+          i.hidden = true;
+
+      var r = document.getElementById('read-more');
+          r.hidden = false;
+          r.addEventListener('click', function() { i.hidden = !i.hidden });
     });
-});
+  }
+  catch (e) {
+    // whoops...
+  }
 </script>
 </head>
 
@@ -47,7 +57,7 @@ $(document).ready(function() {
 <p>The Synopsis documents are the design documents used to guide Perl 6 language, compiler, and test development.  As design documents, they're frequently subjected to the rigors of cross-examination through implementation and use in practice.  In other words, they may change slightly or radically, but the expectation is that they are ``very close`` to the final shape of Perl 6.</p>
 
 <p>In the past the Synopses have often been referred to as "the formal Perl 6 specification" and "specs", but this usage is being deprecated in favor of treating tests from the "<a href='http://github.com/perl6/roast'>roast</a>" test suite as official specifications.  This is consistent with Synopsis 1, which says "Perl 6 is anything that passes the official test suite."
-<a href="#" id="read-more">[Read more...]</a></p>
+<a href="#" id="read-more" hidden>[Read more...]</a></p>
 
 <aside id="intro-text">
 <p>Note that documents marked DRAFT are really just that.  They are often
