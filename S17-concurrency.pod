@@ -204,7 +204,13 @@ There are various convenient "factory" methods on C<Promise>. The most common is
 
     my $p = Promise.start(&do_hard_calculation);
 
-This creates a C<Promise> that runs the supplied code, and calls C<keep> with its result. If the code throws an exception, then C<break> is called with the C<Exception>. 
+This creates a C<Promise> that runs the supplied code, and calls C<keep> with its result. If the code throws an exception, then C<break> is called with the C<Exception>. Most of the time, however, the above is simply written as:
+
+    my $p = start {
+        # code here
+    }
+
+Which is implemented by calling C<Promise.start>.
 
 There is also a method to create a C<Promise> that is kept after a number of seconds, or at a specific time:
 
@@ -216,7 +222,7 @@ The C<result> is always C<True> and such a C<Promise> can never be broken. It is
 
 There are also a couple of C<Promise> combinators. The C<anyof> combinator creates a C<Promise> that is kept whenever any of the specified C<Promise>s are kept. If the first promise to produce a result is instead broken, then the resulting C<Promise> is also broken. The cause is passed along. When the C<Promise> is kept, it has a C<True> result.
 
-    my $calc     = Promise.start { ... }
+    my $calc     = start { ... }
     my $timeout  = Promise.in(10);
     my $timecalc = Promise.anyof($calc, $timeout);
 
