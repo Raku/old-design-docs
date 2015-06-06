@@ -190,20 +190,16 @@ C<$str.encode('ISO-8859-1')> a C<blob8>.
 
 =item index
 
- multi method index( Str $string: Str $substring, StrPos $pos = StrPos(0) --> StrPos ) is export
- multi method index( Str $string: Str $substring, Int $pos --> StrPos ) is export
+ multi method index( Str $string: Str $substring, Int $pos --> Int ) is export
 
 C<index> searches for the first occurrence of C<$substring> in C<$string>,
-starting at C<$pos>. If $pos is an C<Int>, it is taken to be in the units
-of the calling scope, which defaults to "graphemes".
+starting at C<$pos>.
 
-The value returned is always a C<StrPos> object.  If the substring
-is found, then the C<StrPos> represents the position of the first
-character of the substring. If the substring is not found, a bare
-C<StrPos> containing no position is returned.  This prototype C<StrPos>
-evaluates to false because it's really a kind of undefined value.  Do not evaluate
-as a number, because instead of returning -1 it will return 0 and issue
-a warning.
+If the substring is found, then the C<Int> returned represents the position
+of the first character of the substring. If the substring is not found, a bare
+C<Int> is returned.  This C<Int> type object evaluates to false because it's
+really a kind of undefined value.  Do not evaluate it as a number, because
+instead of returning -1 it will return 0 and issue a warning.
 
 
 =item pack
@@ -245,8 +241,7 @@ asked for it with .packformat or some such.  -law]
 =item rindex
 X<rindex>
 
- multi method rindex( Str $string: Str $substring, StrPos $pos? --> StrPos ) is export
- multi method rindex( Str $string: Str $substring, Int $pos --> StrPos ) is export
+ multi method rindex( Str $string: Str $substring, Int $pos --> Int ) is export
 
 Returns the position of the last C<$substring> in C<$string>. If C<$pos>
 is specified, then the search starts at that location in C<$string>, and
@@ -422,20 +417,10 @@ C<sprintf($format, $p.key, $p.value)>.
 
 =item substr
 
- multi method substr (Str $string: StrPos $start, StrLen $length? --> Str ) is export
- multi method substr (Str $string: StrPos $start, StrPos $end --> Str ) is export
- multi method substr (Str $string: StrPos $start, Int $length --> Str ) is export
- multi method substr (Str $string: Int $start, StrLen $length? --> Str ) is export
- multi method substr (Str $string: Int $start, StrPos $end --> Str ) is export
- multi method substr (Str $string: Int $start, Int $length --> Str ) is export
+ multi method substr (Str $string: Int $start, Int $length? --> Str ) is export
 
 C<substr> returns part of an existing string. You control what part by
-passing a starting position and optionally either an end position or length.
-If you pass a number as either the position or length, then it will be used
-as the start or length with the assumption that you mean "chars" in the
-current Unicode abstraction level, which defaults to graphemes.  A number
-in the 3rd argument is interpreted as a length rather than a position (just
-as in Perl 5).
+passing a starting position and optionally a length.
 
 Here is an example of its use:
 

@@ -912,66 +912,24 @@ algorithm don't matter much.
 
 =head2 Strings, the C<Str> Type
 
-A C<Str> is a Unicode string object.  There is no corresponding native
-C<str> type.  However, since a C<Str> object may fill multiple roles, we say
-that a C<Str> keeps track of its minimum and maximum Unicode abstraction
-levels, and plays along nicely with the current lexical scope's idea of the
-ideal character, whether that is bytes, codepoints, graphemes, or characters
-in some language.
+A C<Str> type is a Unicode string object. It boxes a native C<str> (the
+difference being in representation; a C<Str> is a P6opaque and as such you
+may mix in to it, but this is not possible with a C<str>). A C<Str> functions
+at grapheme level. This means that `.chars` should give the number of
+graphemes, `.substr` should never cut a combining character in two, and so
+forth. Both C<str> and C<Str> are immutable. Their exact representation in
+memory is implementation defined, so implementations are free to use ropes
+or other data structures internally in order to make concatenation, substring,
+and so forth cheaper.
 
-=head3 The C<StrPos> Type
-
-For all builtin operations, all C<Str> positions are reported as position
-objects, not integers.  These C<StrPos> objects point into a particular
-string at a particular location independent of abstraction level, either by
-tracking the string and position directly, or by generating an
-abstraction-level independent representation of the offset from the
-beginning of the string that will give the same results if applied to the
-same string in any context.  This is assuming the string isn't modified in
-the meanwhile; a C<StrPos> is not a "marker" and is not required to follow
-changes to a mutable string.  For instance, if you ask for the positions of
-matches done by a substitution, the answers are reported in terms of the
-original string (which may now be inaccessible!), not as positions within
-the modified string.
-
-=head3 The C<StrLen> Type
-
-The subtraction of two C<StrPos> objects gives a C<StrLen> object, which is
-also not an integer, because the string between two positions also has
-multiple integer interpretations depending on the units.  A given C<StrLen>
-may know that it represents 7 codepoints, 3 graphemes, and 1 letter in
-Malayalam, but it might only know this lazily because it actually just hangs
-onto the two C<StrPos> endpoints within the string that in turn may or may
-not just lazily point into the string.  (The lazy implementation of
-C<StrLen> is much like a C<Range> object in that respect.)
-
-=head3 Units of Position Arguments
-
-If you use integers as arguments where position objects are expected, it
-will be assumed that you mean the units of the current lexically scoped
-Unicode abstraction level.  (Which defaults to graphemes.) Otherwise you'll
-need to coerce to the proper units:
-
-    substr($string, Bytes(42), ArabicChars(1))
-
-Of course, such a dimensional number will fail if used on a string that
-doesn't provide the appropriate abstraction level.
-
-=head3 Numeric Coercion of C<StrPos> or C<StrLen>
-
-If a C<StrPos> or C<StrLen> is forced into a numeric context, it will assume
-the units of the current Unicode abstraction level.  It is erroneous to pass
-such a non-dimensional number to a routine that would interpret it with the
-wrong units.
-
-Implementation note: since Perl 6 mandates that the default Unicode
-processing level must view graphemes as the fundamental unit rather than
-codepoints, this has some implications regarding efficient implementation.
-It is suggested that all graphemes be translated on input to unique grapheme
-numbers and represented as integers within some kind of uniform array for
-fast substr access.  For those graphemes that have a precomposed form, use
-of that codepoint is suggested.  (Note that this means Latin-1 can still be
-represented internally with 8-bit integers.)
+Implementation note: since Perl 6 mandates that C<Str> must view graphemes
+as the fundamental unit rather than codepoints, this has some implications
+regarding efficient implementation. It is suggested that all graphemes be
+translated on input to unique grapheme numbers and represented as integers
+within some kind of uniform array for fast substr access.  For those
+graphemes that have a precomposed form, use of that codepoint is suggested. 
+(Note that this means Latin-1 can still be represented internally with 8-bit
+integers.)
 
 For graphemes that have no precomposed form, a temporary private id should
 be assigned that uniquely identifies the grapheme.  If such ids are assigned
@@ -986,14 +944,14 @@ Maintaining a particular grapheme/id mapping over the life of the process
 may have some GC implications for long-running processes, but most processes
 will likely see a limited number of non-precomposed graphemes.
 
-If the program has a scope that wants a codepoint view rather than a
-grapheme view, the string visible to that lexical scope must also be
-translated to universal form, just as with output translation.  Alternately,
-the temporary grapheme ids may be hidden behind an abstraction layer.  In
-any case, codepoint scope should never see any temporary grapheme ids.  (The
-lexical codepoint declaration should probably specify which normalization
-form it prefers to view strings under.  Such a declaration could be applied
-to input translation as well.)
+Code wishing to work at a codepoint level instead of a grapheme level
+should use the C<Uni> type, which has subclasses representing the various
+Unicode normalization forms (namely, C<NFC>, C<NFD>, C<NFIC>, and C<NFKD>).
+Note that C<ord> is defined as a codepoint level operation. Even though the
+C<Str> may contain synthetics internally, these should never be exposed by
+C<ord>; instead, the behaviour should be as if the C<Str> had been converted
+to an C<NFC> and then the first element accessed (obviously, implementations
+are free to do something far more efficient).
 
 =head2 The C<Buf> Type
 
