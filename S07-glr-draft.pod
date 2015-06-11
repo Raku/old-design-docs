@@ -1,0 +1,163 @@
+
+=encoding utf8
+
+=head1 TITLE
+
+Synopsis 7: Lists and Iteration [DRAFT]
+
+=head1 VERSION
+
+    Created: 11 June 2015
+
+    Last Modified: 11 June 2015
+    Version: 1
+
+=head1 Overview
+
+Lists and arrays have always been one of Perl's fundamental data types,
+and Perl 6 is no different.  However, lists in Perl 6 have been greatly
+extended to accommodate lazy lists, infinite lists, lists of mutable
+and immutable elements, typed lists, flattening behaviors, and so on.
+So where lists and arrays in Perl 5 tended to be finite sequences of
+scalar values, in Perl 6 we have additional dimensions of behavior
+that must be addressed.
+
+This document describes the post-GLR design for lists in Perl 6.
+Some portions may contain a fair bit of guesswork.
+
+=head2 The C<List> type
+
+The C<List> class is the base class for dealing with other types of
+lists, including C<Array>.  To the programmer, a C<List> is a potentially
+lazy and infinite sequence of elements.  
+
+Lists may be mutable, in that one can manipulate the sequence via 
+operations such as C<push>, C<pop>, C<shift>, C<unshift>, C<splice>, 
+etc.  A C<List>'s elements may be either mutable or immutable.
+
+C<List> objects are C<Positional>, meaning they can be bound to
+array variables and support the postfix C<.[]> operator.
+
+Lists are also lazy, in that the elements of a C<List> may
+come from generator functions that produce elements on demand.
+
+The comma operator (C<< infix:<,> >>) creates (possibly immutable)
+C<List> objects.  The elements of such a list may be mutable or
+immutable.  Except for empty lists, parentheses are not used in the
+creation of C<List> objects.
+
+    ()       # empty List
+    (1)      # an Int
+    (1,2)    # a List with two Ints
+    (1,)     # a List with one Int
+
+=head2 The C<Array> type
+
+An C<Array> is simply a C<List> in which all of the elements are held
+in scalar containers.  This allows assignment to the elements of the
+array.
+
+=head2 Flattening contexts
+
+C<List> and objects can have other container objects as elements.  
+In some contexts we want to interpolate the values of container 
+objects into the surrounding C<List>, while in other contexts we 
+want any subcontainers to be preserved.  Such interpolation is
+known as "flattening".
+
+The <Iterable> type is performed by container and generator objects
+that will interpolate their values in flattening contexts.  C<List>,
+and C<Range> objects are C<Iterable>.
+
+Flattening occurs when assigning or initializing an array:
+
+    my @a = 3, 4, 5;
+    my @b = 1, 2, @a, 6..9;     # @b has nine elements
+
+    my @c;
+    @c = 1, 2, @a;              # @c has five elements
+
+Flattening also occurs using the C<flat> contextualizer:
+
+    for 1, 2, @a { ... }       # three iterations
+    for flat 1, 2, @a { ... }  # five iterations
+
+Slurpy array parameters declared with a single C<*> marker lazily 
+flatten the arguments into the array.
+
+Conjecture:  An array constructor preceded by a colon flattens its
+interior contents.  Array constructors without the colon do not flatten
+the interior.
+
+    my $d = :[ 1, <a b c> ]     # four elements, [ 1, 'a', 'b', 'c' ]
+    my $e = [ 1, <a b c>  ]     # two elemetns,  [ 1, ('a', 'b', 'c') ]
+
+Objects held in scalar containers are never interpolated in flattening
+context, even if the object is C<Iterable>.
+
+    my @a = 3, 4, 5;
+    my @b = 1, 2, @a;           # @b has five elements
+
+    my $s = @a;
+    my @c = 1, 2, $s;           # @c has three elements
+
+Here, both C<$s> and C<@a> refer to the same underlying C<Array> object,
+but the presence of the scalar container prevents C<$s> from being
+flattened into C<@c>.  The C<.list> or C<.flat> method may be used
+to restore the flattening behavior:
+
+    my @d = 1, 2, $s.list       # @d has five elements
+    my @d = 1, 2, @($s)         # @d has five elements
+
+Conversely, the C<.item> or C<$()> contextualizer can be used to
+prevent an C<Iterable> from being interpolated:
+
+    my @a = 3, 4, 5;
+    my @b = 1, 2, @a;           # @b has five elements
+    my @c = 1, 2, $(@a);        # @c has three elements
+
+=head2 Iterables and Iterators
+
+This section gives information about C<Iterable> and C<Iterator> objects.
+
+=head3 The C<.infinite> method
+
+Because lists in Perl 6 can be lazy, they can also be infinite.
+Each C<Iterator> must provide an C<.infinite> method, which returns
+a value indicating the knowable finiteness of the iteration:
+
+    .infinite     Meaning
+    ----------------------------------------------
+    True          iteration is known to be infinite
+    False         iteration is known to be finite
+    Mu            finiteness isn't currently known
+
+As an example, C<Range> iterators can generally know finiteness simply
+by looking at the endpoint of the C<Range>.  The iterator for the
+C<< infix:<...> >> sequence operator treats any sequence ending in
+C<*> as being "known infinite", all other C<...> sequences have unknown
+finiteness.  In the general case it's not possible for loop iterators
+to definitively know if the sequence will be finite or infinite.
+(Conjecture:  There will be a syntax or mechanism for the programmer
+to indicate that such sequences are to be treated as known finite
+or known infinite.)
+
+=head1 DISCUSSION
+
+During the draft phases of this document, feel free to add questions
+and/or discussion points here.  Links to #perl6 logs are acceptable.
+
+=over 4
+
+=item *
+
+Pm thinks/remembers that people preferred C<Iterable> to be a role
+instead of a class.
+
+=back
+
+=head1 AUTHORS
+
+    Patrick R. Michaud <pmichaud@pobox.com
+
+=for vim:set expandtab sw=4:
