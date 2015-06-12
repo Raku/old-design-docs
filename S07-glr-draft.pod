@@ -155,7 +155,7 @@ free to add questions or comments below, including references to relevant
 
 The C<Parcel> type is going away (yay!). C<< infix:<,> >> will 
 directly produce C<List> objects.  This changes the way that nested 
-parenthesized comma lists react to things like C<.elems>> and C<.[]>.
+parenthesized comma lists react to things like C<.elems> and C<.[]>.
 
     (1, (2, 3)).elems             # (pre-GLR) 3; (post-GLR) 2
     (1, 2, 3..7).elems            # (pre-GLR) 7; (post-GLR) 3
@@ -204,8 +204,8 @@ Question: Is the special "least surprise" eager behavior of
 for-as-a-last-(bare)-statement preserved?
 
 Pm's answer: I'm thinking it's likely to be preserved, yes.  Someone
-wanting the lazy behavior will be able to prefix for with C<lazy>, put
-the C<for> statement inside parens, or other similar constructs to
+wanting the lazy behavior will be able to write C<lazy for>, put
+the C<for> statement inside parens, or use other similar constructs to
 suppress the last-statement-eagerness.  The same will be true of the
 other looping constructs.  With improved sink context (below), it will
 also be possible for block-ending-for-loops to eagerly evaluate without
@@ -221,7 +221,7 @@ had discussions about how this can be achieved.)
 =item *
 
 The C<gather/take> statement will become much more efficient.
-In particular, it will evolve so that some or all C<take> statements
+In particular, it will evolve so that some or all C<take> invocations
 will be able to populate the list without requiring continuations
 and exceptions at every step.  As a result, it's very possible that
 some or most of the underlying list-handling code will be based on 
@@ -240,10 +240,8 @@ Some miscellaneous notes on list-based methods:
 
 A new type is conjectured (let's call it C<Slip> for now, name yet
 to be determined) that immediately interpolates a list of values 
-into its surrounding list when it is encountered.  A C<Slip> would
-be a list that immediately splices its elements into any "outer"
-list that contains it.  This would be able to replace the pre-GLR
-meaning of C<Nil>, and the temporary C<Empty> type.
+into its "outer" list when it is encountered.  This would be able 
+to replace the pre-GLR meaning of C<Nil>, and the temporary C<Empty> type.
 
 Bikeshed of possible names for the conjectured type:  
 C<Slip>, C<Seq>, C<Listet>, C<Listoid>, C<Clip>, C<Cut>, 
@@ -323,9 +321,9 @@ If "binding counts" sounds a lot like "reference counts" to you...
 you're correct, it is.  And it potentially has all of the drawbacks
 that reference counting brings with it.  However, at least in this
 case the number of ways that binding takes place (i.e., through the
-binder) is somewhat limited.  I'm hoping to avoid this, but Jonathan
-and I know where the key components are if it turns out to be
-necessary.
+binder) is somewhat limited.  I'm hoping to avoid keeping track
+of bindings, but Jonathan and Pm know where the key components are 
+if it turns out to be necessary.
 
 =back
 
