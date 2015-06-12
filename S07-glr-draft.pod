@@ -142,17 +142,94 @@ to definitively know if the sequence will be finite or infinite.
 to indicate that such sequences are to be treated as known finite
 or known infinite.)
 
-=head1 DISCUSSION
+=head1 MAJOR CHANGES AND DISCUSSION
 
-During the draft phases of this document, feel free to add questions
-and/or discussion points here.  Links to #perl6 logs are acceptable.
+During the draft phases of this document, the major changes from pre-GLR
+are listed here, along with any side-conjectures and discussion.  Feel
+free to add questions or comments below, including references to relevant
+#perl6 irclogs as appropriate.
 
 =over 4
 
 =item *
 
+The C<Parcel> type is going away (yay!). C<< infix:<,> >> will 
+directly produce C<List> objects.  This changes the way that nested 
+parenthesized comma lists react to things like C<.elems>> and C<.[]>.
+
+    (1, (2, 3)).elems             # (pre-GLR) 3; (post-GLR) 2
+    (1, 2, 3..7).elems            # (pre-GLR) 7; (post-GLR) 3
+       
+=item *
+
+The C<for> statement will no longer flatten the value provided to it.  
+In fact, C<for> will now be exactly isomorphic to C<.map>:
+
+    foo VALUES { ... }
+    VALUES.map( { ... } }      # same thing
+
+This even extends to the case where the thing being iterated is
+an itemizing container holding an C<Iterable>:
+
+    my $s = <apple banana cherry date eggplant>;
+    for $s { .say }           # five iterations
+    $s.map: { .say }          # five iterations
+
+The end result is fewer requirements for C<.list> or C<@()>
+contextualizers on things being iterated that just happen to be
+in scalar containers.
+
+=item *
+
+The C<< circumfix:<[ ]> >> array constructor and C<< circumfix:<{ }> >>
+hash constructor are no longer itemized by default.  Use C<$[ ]> and
+C<${ }> to explicitly itemize.
+
+This results in several desirable outcomes:
+
+    my @a = [ 1, 2, 3 ];      # @a has three elements
+    say @a.perl;              # "[1, 2, 3]" (trailing "<>" not needed)
+
+=item *
+
 Pm thinks/remembers that people preferred C<Iterable> to be a role
 instead of a class.
+
+=item *
+
+Looping constructs ( C<while>, C<for>, C<until>, C<loop> ) will be able
+to lazily return lists, as described in C<S04>.
+
+=item *
+
+Because of the above, the GLR will need to improve sink context handling...
+in particular by providing caller context.  (Jonathan and Pm have already
+had discussions about how this can be achieved.)
+
+=item *
+
+The C<gather/take> statement will become much more efficient.
+In particular, it will evolve so that some or all C<take> statements
+will be able to populate the list without requiring continuations
+and exceptions at every step.  As a result, it's very possible that
+some or most of the underlying list-handling code will be based on 
+the gather/take system.
+
+=item *
+
+Some miscellaneous notes on list-based methods:
+
+   @list.flat           # never returns self
+   @list.list           # may return self
+   @list.kv             # returns (0, @list[0], 1, @list[1], ...)
+                        # not ( (0, @list[0]), (1, @list[1]), ...)
+
+=item *
+
+A new type is conjectured that immediately interpolates a list
+of values into its surrounding list when it is encountered.  
+This new type would replace the pre-GLR meaning of C<Nil> and 
+the temporary C<Empty> type.
 
 =back
 
