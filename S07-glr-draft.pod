@@ -239,6 +239,22 @@ is mostly post-GLR, though it still shows up in a few places where
 it should not.  "Pre-GLR behavior" refers to Nil disappearing
 during list flattenning.
 
+Question: The possibility of a list concatentation operator has been
+brought up many times. While the symbol for the operator is unclear
+("⟛" is proposed for purposes of discussion only), there hasn't been much
+discussion on the semantics of such an operator and how it could play
+into the GLR. For example, what would be produced by:
+
+    (1, 2, 3) ⟛ (4..6)
+    (1..3) ⟛ [4,5,6]
+    [1, 2, 3] ⟛ (4..6)
+    [1, 2, 3] ⟛ (4, 5, 6)
+    (1, 2, 3) ⟛ [4, 5, 6]
+
+What is its precedence? For example, C<1, 2, 3 ⟛ 4..6> would be useful
+if to flatten ranges (would C<1, 2, 3, ⟛ 4..6> work?). However, there
+might be issues with having it above comma-level precedence.
+
 =back
 
 =head1 AUTHORS
