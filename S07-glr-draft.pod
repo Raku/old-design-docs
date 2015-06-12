@@ -296,6 +296,37 @@ scalar container elements, not just the values.
     (1..3) ⟛ @a                  # (1..3, @a[0], @a[1], @a[2])
     (1, 2, 3) ⟛ @a               # (1, 2, 3, @a[0], @a[1], @a[2])
 
+=item *
+
+The pre-GLR implementation of lists uses "immutable iterators",
+which address the problem of lazy lists becoming bound to more
+than one variable or structure.  However, the current implementation
+keeps the iteration sequence as a linked list, and relies on the VM
+being able to GC any parts of the iteration sequence that are no
+longer needed.  In practice this doesn't work out so well, as any
+VM-level register (temporary, lexical C<self>, routine parameter, etc.) 
+pointing to an early part of the iteration sequence ends up keeping the
+entire list alive in memory until the current loop operation has
+fully completed.  In other words, processing a million line file ends
+up with all of the lines in memory before they're GC'd.
+
+Post-GLR, the list implementation needs to actively manage the
+iteration sequences somehow, and not rely solely on the VM to
+timely clear all of its internal references to long data structure
+chains.  In short, iterators may end up being mutable again.  If 
+that's the case we have to figure out how to deal with iterators 
+being shared among multiple lists.  This may involve maintaining 
+"binding counts", or some sort of other sharing/duplication
+mechanism in the lazy list generation system.
+
+If "binding counts" sounds a lot like "reference counts" to you...
+you're correct, it is.  And it potentially has all of the drawbacks
+that reference counting brings with it.  However, at least in this
+case the number of ways that binding takes place (i.e., through the
+binder) is somewhat limited.  I'm hoping to avoid this, but Jonathan
+and I know where the key components are if it turns out to be
+necessary.
+
 =back
 
 =head1 AUTHORS
