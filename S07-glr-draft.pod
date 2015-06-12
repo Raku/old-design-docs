@@ -282,6 +282,17 @@ C<lcat>, or for a method form perhaps C<.ljoin>.   Huffmanly speaking,
 I don't see a list concat operation as yet being common enough to
 warrant a very short operator.
 
+To answer the examples above, the short answer is that the result of
+a list join is simply a list containing the elements of the lhs followed
+by the elements of the rhs.  No flattening involved -- if you want
+flattening, you can do it manually.  In the examples containing 
+arrays as arguments, the resulting list would end up with the array's 
+scalar container elements, not just the values.
+
+    my @a = 4, 5, 6;
+    (1..3) ⟛ @a                  # (1..3, @a[0], @a[1], @a[2])
+    (1, 2, 3) ⟛ @a               # (1, 2, 3, @a[0], @a[1], @a[2])
+
 =back
 
 =head1 AUTHORS
