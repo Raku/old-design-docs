@@ -168,8 +168,8 @@ In fact, C<for> will now be exactly isomorphic to C<.map>:
     foo VALUES { ... }
     VALUES.map( { ... } }      # same thing
 
-This even extends to the case where the thing being iterated is
-an itemizing container holding an C<Iterable>:
+This isomorphism even extends to the case where the thing being iterated
+is an itemizing container holding an C<Iterable>:
 
     my $s = <apple banana cherry date eggplant>;
     for $s { .say }           # five iterations
@@ -199,6 +199,9 @@ instead of a class.
 
 Looping constructs ( C<while>, C<for>, C<until>, C<loop> ) will be able
 to lazily return lists, as described in C<S04>.
+
+Question: Is the special "least surprise" eager behavior of
+for-as-a-last-(bare)-statement preserved?
 
 =item *
 
@@ -230,6 +233,11 @@ A new type is conjectured that immediately interpolates a list
 of values into its surrounding list when it is encountered.  
 This new type would replace the pre-GLR meaning of C<Nil> and 
 the temporary C<Empty> type.
+
+NOTE: The current implemented behavior of Nil in newest rakudos
+is mostly post-GLR, though it still shows up in a few places where
+it should not.  "Pre-GLR behavior" refers to Nil disappearing
+during list flattenning.
 
 =back
 
