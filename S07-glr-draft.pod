@@ -203,6 +203,15 @@ to lazily return lists, as described in C<S04>.
 Question: Is the special "least surprise" eager behavior of
 for-as-a-last-(bare)-statement preserved?
 
+Pm's answer: I'm thinking it's likely to be preserved, yes.  Someone
+wanting the lazy behavior will be able to prefix for with C<lazy>, put
+the C<for> statement inside parens, or other similar constructs to
+suppress the last-statement-eagerness.  The same will be true of the
+other looping constructs.  With improved sink context (below), it will
+also be possible for block-ending-for-loops to eagerly evaluate without
+making a temporary list to hold the (about to be discarded) return
+results.
+
 =item *
 
 Because of the above, the GLR will need to improve sink context handling...
