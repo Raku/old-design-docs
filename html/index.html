@@ -1,0 +1,407 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8" />
+<title>Perl 6 Design Documents</title>
+<link rel="stylesheet" href="style.css" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<!--[if lte IE 8]>
+  <script>
+    var h5elems = ['header', 'aside', 'footer', 'main', 'section'];
+    for ( var x = 0; x < h5elems.length; x++ )
+      document.createElement(h5elems[x]);
+  </script>
+<![endif]-->
+
+<script>
+  try {
+    document.addEventListener('DOMContentLoaded', function() {
+      if ( !('hidden' in document.body) )
+        return;
+
+      var i = document.getElementById('intro-text');
+          i.hidden = true;
+
+      var r = document.getElementById('read-more');
+          r.hidden = false;
+          r.addEventListener('click', function(ev) {
+            i.hidden = !i.hidden;
+            ev.preventDefault();
+          });
+    });
+  }
+  catch (e) {
+    // whoops...
+  }
+</script>
+</head>
+
+<body>
+
+<header class="specs">
+  <a href="https://github.com/perl6/mu/blob/master/misc/camelia.txt">
+    <img src="http://perl6.org/camelia-logo.png" alt="camelia perl bug logo">
+  </a>
+  <h1>Perl 6 Design Documents</h1>
+
+  <form method="get" action="https://encrypted.google.com/search">
+    <div>
+      <input type="hidden" name="ie" value="UTF-8" />
+      <input type="hidden" name="oe" value="UTF-8" />
+      <input type="hidden" name="domains" value="perlcabal.org" />
+      <input type="hidden" name="sitesearch" value="perlcabal.org/syn/" />
+      <input type="text" name="q" size="31" maxlength="255" value="" />
+      <input type="submit" name="btnG" value="Google Search the Synopses" />
+    </div>
+  </form>
+</header>
+
+<main>
+<p>The Synopsis documents are the design documents used to guide Perl 6 language, compiler, and test development.  As design documents, they're frequently subjected to the rigors of cross-examination through implementation and use in practice.  In other words, they may change slightly or radically, but the expectation is that they are ``very close`` to the final shape of Perl 6.</p>
+
+<p>In the past the Synopses have often been referred to as "the formal Perl 6 specification" and "specs", but this usage is being deprecated in favor of treating tests from the "<a href='http://github.com/perl6/roast'>roast</a>" test suite as official specifications.  This is consistent with Synopsis 1, which says "Perl 6 is anything that passes the official test suite."
+<a href="#" id="read-more" hidden>[Read more...]</a></p>
+
+<aside id="intro-text">
+<p>Note that documents marked DRAFT are really just that.  They are often
+written by random people, and may be speculative as much or more than
+"official specification". </p>
+
+<p>The documents here mostly correspond with the chapters in the Camel Book, 
+that is, &quot;Programming Perl, 3rd Edition&quot;.  However, a few chapters
+of that book will no longer be relevant, and those numbers will be resused 
+for other things.  At the moment, this refers to section 7, whose synopsis is
+"Iterators", but whose Exegesis is about the module Form.pm.  Apocalypses and
+Exegeses were only written for some of the early sections; the later sections
+have no corresponding apocalypse/exegesis.  </p>
+
+<p>Most changes to these design docs have been discussed on
+<code>#perl6</code> FreeNode channel on IRC. </p>
+</aside>
+
+<aside>
+<p><em>While the Apocalypses and Exegeses are linked here for reference, note
+that they are historical documents, whereas the Synopses are kept more 
+up-to-date and are the primary recommended reference.</em></p>
+</aside>
+
+<section>
+<table id="doctable">
+    <tr>
+        <th></th>
+        <th></th>
+        &nbsp; &nbsp; &nbsp; &nbsp;</th>
+        <th>(Syn pod)</th>
+        <th>(Justification)</th>
+        <th>(Explanation)</th>
+    </tr>
+    <tr>
+        <td>1</td>
+        <th><a href="S01.html">Overview</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S01-overview.pod">S01-overview.pod</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/apo/A01.html">Apocalypse</a></td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <th><a href="S02.html">Bits and Pieces</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S02-bits.pod">S02-bits.pod</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/apo/A02.html">Apocalypse</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/exe/E02.html">Exegesis</a></td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <th><a href="S03.html">Summary of Perl&nbsp;6 Operators</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S03-operators.pod">S03-operator.pod</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/apo/A03.html">Apocalypse</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/exe/E03.html">Exegesis</a></td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <th><a href="S04.html">Blocks and Statements</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S04-control.pod">S04-control.pod</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/apo/A04.html">Apocalypse</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/exe/E04.html">Exegesis</a></td>
+    </tr>
+    <tr>
+        <td>5</td>
+        <th><a href="S05.html">Regexes and Rules</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S05-regex.pod">S05-regex.pod</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/apo/A05.html">Apocalypse</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/exe/E05.html">Exegesis</a></td>
+    </tr>
+    <tr>
+        <td>6</td>
+        <th><a href="S06.html">Subroutines</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S06-routines.pod">S06-subroutines.pod</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/apo/A06.html">Apocalypse</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/exe/E06.html">Exegesis</a></td>
+    </tr>
+    <tr>
+        <td>7</td>
+        <th><a href="S07.html">Lists and Iteration [DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S07-lists.pod">S07-lists.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>8</td>
+        <th><a href="S08.html">Captures and Parcels [DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S08-capture.pod">S08-capture.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>9</td>
+        <th><a href="S09.html">Data Structures</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S09-data.pod">S09-data.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>10</td>
+        <th><a href="S10.html">Packages</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S10-packages.pod">S10-packages.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>11</td>
+        <th><a href="S11.html">Compilation Units</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S11-modules.pod">S11-modules.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>12</td>
+        <th><a href="S12.html">Objects</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S12-objects.pod">S12-objects.pod</a></td>
+        <td><a href="http://dev.perl.org/perl6/doc/design/apo/A12.html">Apocalypse</a></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>13</td>
+        <th><a href="S13.html">Overloading</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S13-overloading.pod">S13-overloading.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>14</td>
+        <th><a href="S14.html">Roles&nbsp;and&nbsp;Parametric&nbsp;Types&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S14-roles-and-parametric-types.pod">S14-roles-and-parametric-types.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>15</td>
+        <th><a href="S15.html">Unicode [DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S15-unicode.pod">S15-unicode.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>16</td>
+        <th><a href="S16.html">IO&nbsp;/&nbsp;User&nbsp;/&nbsp;Group&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S16-io.pod">S16-io.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>17</td>
+        <th><a href="S17.html">Concurrency</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S17-concurrency.pod">S17-concurrency.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr><td>18</td><td>Compiling</td><td colspan="4">(TBD)</td></tr>
+    <tr>
+        <td>19</td>
+        <th><a href="S19.html">Command line interface [DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S19-commandline.pod">S19-commandline.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr><td>20</td><td>Introspection</td><td colspan="4">(Draft)</td></td></tr>
+    <tr>
+        <td>21</td>
+        <th><a href="S21.html">Calling foreign code&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S21-calling-foreign-code.pod">S21-calling-foreign-code.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>22</td>
+        <th><a href="S22.html">Distributions, Recommendations, Delivery and Installation</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S22-package-format.pod">S22-package-format.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr><td>23</td><td>Security</td><td colspan="4">(TBD)</td></tr>
+    <tr>
+        <td>24</td>
+        <th><a href="S24.html">Testing</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S24-testing.pod">S24-testing.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr><td>25</td><td>Portable perl</td><td colspan="4">(TBD)</td></tr>
+    <tr>
+        <td>26</td>
+        <th><a href="S26.html">Documentation</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S26-documentation.pod">S26-documentation.pod</a></td>
+        <td colspan="2">(HTML rendering of S26 is known to be incomplete)</td>
+    </tr>
+    <tr><td>27</td><td>Perl culture</td><td colspan="4">(Draft)</td></tr>
+    <tr>
+        <td>28</td>
+        <th><a href="S28.html">Special names</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S28-special-names.pod">S28-special-names.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>29</td>
+        <th><a href="S29.html">Builtin Functions&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S29-functions.pod">S29-functions.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr><td>30</td><td>Standard perl library</td><td colspan="4">(TBD)</td></tr>
+    <tr>
+        <td>31</td>
+        <th><a href="S31.html">Pragmatic modules [DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S31-pragmatic-modules.pod">S31-pragmatic-modules.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr><td>32</td><td>Setting library [DRAFT]</td><td colspan="4">&nbsp;</td></tr>
+    <tr>
+        <td></td>
+        <th><a href="S32/Basics.html">Basics+&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S32-setting-library/Basics.pod">Basics.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+        <th><a href="S32/Callable.html">Callable*&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S32-setting-library/Callable.pod">Callable.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+        <th><a href="S32/Containers.html">Containers*&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S32-setting-library/Containers.pod">Containers.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+        <th><a href="S32/Exception.html">Exception*&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S32-setting-library/Exception.pod">Exception.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+        <th><a href="S32/IO.html">IO*&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S32-setting-library/IO.pod">IO.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+        <th><a href="S32/Numeric.html">Numeric*&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S32-setting-library/Numeric.pod">Numeric.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+        <th><a href="S32/Rules.html">Rules*&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S32-setting-library/Rules.pod">Rules.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+        <th><a href="S32/Str.html">Str&nbsp;[DRAFT]</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S32-setting-library/Str.pod">Str.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr>
+        <td></td>
+        <th><a href="S32/Temporal.html">Temporal+</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S32-setting-library/Temporal.pod">Temporal.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+    <tr><td>33</td><td>Diagnostic messages</td><td colspan="4">(TBD)</td></tr>
+    <tr>
+        <td>99</td>
+        <th><a href="S99.html">Glossary</a></th>
+        <td><a href="https://raw.github.com/perl6/specs/master/S99-glossary.pod">S99-glossary.pod</a></td>
+        <td></td>
+        <td></td>
+    </tr>
+</table>
+
+<section>
+<h3>Indexes</h3>
+
+<ul>
+    <li><a href="index_X.html">X tags</a></li>
+    <li><a href="index_C.html">C tags</a></li>
+</ul>
+</section>
+
+<section>
+<h3>S32 Key</h3>
+
+<dl>
+  <dt>* = Documents related types as well</dt>
+  <dt>+ = Not a type name, but documents a group of types</dt>
+</dl>
+</section>
+</section>
+
+<section>
+<h2>Differences from Perl 5</h2>
+
+<ul>
+    <li><a href="Differences.html">Differences Between Perl 5 and Perl 6</a></li>
+</ul>
+
+<p>
+The Differences document is stored in <code>docs/Perl6/Perl5/Differences.pod</code>
+in the <a href="https://github.com/perl6/mu/" title="Perl6 mu repository on Github">mu repository</a>,
+if you'd like to make updates to it. Your changes will automatically appear on the web server in less than one hour.
+</p>
+</section>
+
+<section>
+<h2>Further reading</h2>
+
+<p>For further information on Perl 6, links to examples, tutorials etc. please
+visit <a href="http://perl6.org/">perl6.org, the official Perl 6
+homepage</a>.</p>
+</section>
+</main>
+
+<footer>
+<h1>About this page</h1>
+
+<p>The HTML version of Synopses contains code snippets from the official 
+ test suite. In other words, the .t files from the test suite are 
+divided into pieces and inserted after corresponding paragraph of 
+the Synopses.  The job is done by the Perl 5 script util/smartlinks.pl
+living in the <a href="https://github.com/perl6/mu/"
+    title="Perl6 mu repository on Github">mu repository</a>. It runs once every hour, and is triggered by the file <code>util/update-design.perl6.org.sh</code> in the mu repository. It runs as user <code>design.perl6.org</code> on <a href="https://github.com/perl6/infrastructure-doc/blob/master/hosts/hack.p6c.org.pod">hack.p6c.org</a>, and is copied to the web server via rsync.</p>
+</footer>
+
+</body>
+
+</html>
