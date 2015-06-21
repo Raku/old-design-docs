@@ -1091,60 +1091,6 @@ Bindings logically happen in declaration order, not call order, so
 any default may reliably depend on formal parameters to its left in
 the signature.
 
-Another benefit of this policy is that, for routines that allow it,
-named arguments may be bound to positional parameters.  (This is
-allowed only on routines that are I<explicitly> declared with either
-the C<proto> or the C<only> declarator.)  If the first positional
-parameter is named C<$a>, for example, it will bind to a C<:a()>
-argument in preference to the first positional argument.
-
-The restriction to explicit C<proto> and C<only> declarations is
-motivated by the desire for both API purity and efficiency.  Normal
-C<multi> or C<sub> declarations and normal method declarations do not
-attempt to look for named bindings to positionals.  At most there is
-one such binding for any dispatch, when it initially calls the C<proto>
-(or explicit C<only>).  The C<proto> binder (for either sub or method)
-must automatically remap such named parameters to positionals before
-calling its internal multi dispatcher (the one represented by C<{*}>).
-In the case of a C<proto> sub, this mapping can be done at the point
-of the call, since there can only be one possible set of positional
-names, and the proto to be called can be known at compile time (in
-the absence of CANDO declarations in the outer scopes).  So after
-
-    proto foo ($x, $y, :$bar, :$baz) {*}
-    multi foo ($a, $b, :$bar, :$baz) {...}
-    multi foo ($n, $m, :$bar, :$baz) {...}
-
-    foo :y(2), :x(1);   # can turn into foo(1,2)
-
-the call to C<foo> can be turned into a pure positional call to
-the C<proto> (which can in turn be inlined because it's using the
-standard C<{*}> dispatcher--and likewise for methods, when the class
-containing the C<proto> is known to be finalizable).  Note also that
-multi definitions are never required to use the same parameter names
-for positional parameters, since after the C<proto> binding is done,
-the names (if any) are never used again for positionals.
-
-The C<$x> and C<$y> names above are part of the public API only
-because they are named in the C<proto>.  Positional parameter names
-are never part of the advertised API unless explicitly enabled.
-An explicit C<proto> may easily refrain from advertising names by
-declaring positionals with bare sigils:
-
-    proto foo ($, $, :$bar, :$baz) {*}
-    multi foo ($x, $y, :$bar, :$baz) {...}
-
-    foo :x(1), :y(2);   # illegal
-
-(And an C<only> routine may control the positional API simply by
-using C<sub> instead, or by defining a C<proto> with a single C<multi>
-if finer control is desired.)
-
-It follows from all this that an intuited proto never has to worry
-about supplying the API names of positional parameters.  And no proto
-ever has to worry about conflicting names in the positionals of the
-multis they dispatch to, since any remapping is handled before that.
-
 =head2 List parameters
 
 List parameters capture a variable length list of data. They're used
