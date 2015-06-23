@@ -143,6 +143,35 @@ to definitively know if the sequence will be finite or infinite.
 to indicate that such sequences are to be treated as known finite
 or known infinite.)
 
+=head2 The C<Slip> type
+
+The C<Slip> type is used for lists of values to be immediately
+"slipped" into any outer containing list as soon as the C<Slip> 
+is encountered.  In most cases C<Slip> objects are expected to
+be "ephemeral" (or "slippery") in the sense that they tend to
+disappear before they can be accessed.  
+
+C<Slip> can be used to interpolate values into a list in a way
+that doesn't flatten or itemize the values.
+
+    my @f := <a b c>, 5..7;
+
+    say @f.perl;               # ( ('a', 'b', 'c'), 5..7 )
+    say (1, 2, @f).perl;       # (1, 2, ( ('a', 'b', 'c'), 5..7 ) )
+    say (1, 2, @f.Slip).perl;  # (1, 2, ('a', 'b', 'c'), 5..7 )
+
+Looping constructs can use an empty C<Slip> to not generate a
+value in the resulting list.  Thus 
+
+    my @a = (for 1..5 { when 3 { Slip }; $_ * 2 });    # (2, 4, 8, 10)
+
+Conjecture: C<Slip> objects are also where flattening and itemizing
+are performed.  A C<Slip> created with a C<:flat> flag will flatten
+its values prior to interpolating into an outer list.  A C<Slip>
+created with the C<:item> flag will itemize its values.  If both
+C<:flat> and C<:item> are set for a given C<Slip>, then flattening
+takes place on the values before they are itemized.
+
 =head1 MAJOR CHANGES AND DISCUSSION
 
 During the draft phases of this document, the major changes from pre-GLR
@@ -338,6 +367,21 @@ case the number of ways that binding takes place (i.e., through the
 binder) is somewhat limited.  I'm hoping to avoid keeping track
 of bindings, but Jonathan and Pm know where the key components are 
 if it turns out to be necessary.
+
+Update 2016-06-22:  I'm thinking that C<Slip> objects can serve
+the same niche that immutable iterators did in the pre-GLR design,
+but without much of the overhead and tendency to hold temporary
+values in memory for long periods of time (since C<Slip> is
+ephemeral in nature).  
+
+I'm also thinking there will be another list-like type that 
+represents sequences of generated values that are intended to
+be iterated over once and then discarded.  I'm tentatively using 
+C<Seq> to refer to these generated lists (the name C<Seq> is 
+bikeshedable).  In particular, the results of C<lines()>, 
+C<< infix:<...> >>, C<.map>, and C<gather>/C<take> will tend to 
+be of type C<Seq> instead of C<List>.  (Of course, a C<Seq> will 
+pun itself into a full list-like object if it's treated like one.)
 
 =back
 
