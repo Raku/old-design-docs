@@ -25,31 +25,55 @@ that must be addressed.
 This document describes the post-GLR design for lists in Perl 6.
 Some portions may contain a fair bit of guesswork.
 
+=head2 Brief status summary
+
+Here's a brief status of major design components:
+
+    Parcel       An immutable sequence of elements, created by infix:<,>
+    List         A mutable sequence of elements (e.g., push, pop)
+    Array        A List in which all elements are in scalar containers
+    Slip         Elements to be "inlined" with an outer list
+    Seq          Elements produced by generators such as lines(), map(), gather/take
+    Iterable     Things that may flatten in context
+    Positional   Binds to @-variables and support .[]
+
+    Slip implements most flattening, itemizing, and laziness behaviors.
+    Seq is not Positional, thus cannot be bound to array variables.
+
+    Known flattening contexts:
+       Array initialization and assignment
+       Using the 'flat' contextualizer
+       Inside of .[]
+       Arguments to list operators (X/Z) no longer flatten
+
+=head2 Parcel
+
+The C<Parcel> class is the base class for dealing with most types of
+lists, including C<List> and C<Array>.  To the programmer, a C<Parcel>
+is a lazy, immutable, and potentially infinite sequence of elements.
+
+Parcels are created using the comma operator (C<< infix:<,> >>).
+The elements within a C<Parcel> may be either mutable or immutable.
+Except for empty parcels, parentheses are not used in the creation
+of C<Parcel> objects.
+
+    ()       # empty Parcel
+    (1)      # an Int
+    (1,2)    # a Parcel with two Ints
+    (1,)     # a Parcel with one Int
+
+C<Parcel> objects are C<Positional>, meaning they can be bound to
+array variables and they support the postcircumfix C<.[]> operator.
+
+Parcels are lazy, in that the elements of the parcel may come from
+generators that produce elements on demand.
+
 =head2 The C<List> type
 
-The C<List> class is the base class for dealing with other types of
-lists, including C<Array>.  To the programmer, a C<List> is a potentially
-lazy and infinite sequence of elements.  
-
-Lists may be mutable, in that one can manipulate the sequence via 
-operations such as C<push>, C<pop>, C<shift>, C<unshift>, C<splice>, 
-etc.  A C<List>'s elements may be either mutable or immutable.
-
-C<List> objects are C<Positional>, meaning they can be bound to
-array variables and support the postfix C<.[]> operator.
-
-Lists are also lazy, in that the elements of a C<List> may
-come from generator functions that produce elements on demand.
-
-The comma operator (C<< infix:<,> >>) creates (possibly immutable)
-C<List> objects.  The elements of such a list may be mutable or
-immutable.  Except for empty lists, parentheses are not used in the
-creation of C<List> objects.
-
-    ()       # empty List
-    (1)      # an Int
-    (1,2)    # a List with two Ints
-    (1,)     # a List with one Int
+A C<List> is a C<Parcel> that is mutable, in that one can manipulate
+the sequence via operations such as C<push>, C<pop>, C<shift>,
+C<unshift>, C<splice>, etc.  As with a C<Parcel>, the elements of
+a list may be either mutable or immutable.
 
 =head2 The C<Array> type
 
@@ -62,15 +86,15 @@ array.
 (Update 2015-06-22: Flattening behavior may be implemented internally 
 via a C<:flat> flag on C<Slip> objects, described below.)
 
-C<List> objects can have other container objects as elements.  
-In some contexts we want to interpolate the values of container 
-objects into the surrounding C<List>, while in other contexts we 
-want any subcontainers to be preserved.  Such interpolation is
-known as "flattening".
+Parcels and other lists can have other container objects as elements.  
+In some contexts we want to preserve the structure of (sub)containers
+within a list, while in other contexts we want to interpolate the
+subcontainer elements into the surrounding list.  Such interpolation
+is known as "flattening".
 
 The C<Iterable> type is performed by container and generator objects
-that will interpolate their values in flattening contexts.  C<List>,
-C<Array>, and C<Range> objects are C<Iterable>.
+that will interpolate their values in flattening contexts.  C<Parcel>,
+C<List>, C<Array>, and C<Range> objects are C<Iterable>.
 
 Flattening occurs when assigning or initializing an array:
 
@@ -88,7 +112,9 @@ Flattening also occurs using the C<flat> contextualizer:
 Slurpy array parameters declared with a single C<*> marker lazily 
 flatten the arguments into the array.
 
-In the pre-GLR, list operators such as reduce, cross, and zip flatten their arguments... not sure if that carries over to post-GLR.
+Flattening occurs inside of C<.[ ]> brackets:
+
+    say @a[2..5,10];               # same as @a[2,3,4,5,10]
 
 Conjecture:  An array constructor preceded by a colon flattens its
 interior contents.  Array constructors without the colon do not flatten
@@ -107,7 +133,7 @@ context, even if the object is C<Iterable>.
     my $s = @a;
     my @c = 1, 2, $s;           # @c has three elements
 
-Here, both C<$s> and C<@a> refer to the same underlying C<Array> object,
+Here, C<$s> and C<@a> both refer to the same underlying C<Array> object,
 but the presence of the scalar container prevents C<$s> from being
 flattened into C<@c>.  The C<.list> or C<.flat> method may be used
 to restore the flattening behavior:
@@ -151,10 +177,10 @@ or known infinite.)
 =head2 The C<Slip> type
 
 The C<Slip> type is used for lists of values to be immediately
-"slipped" into any outer containing list as soon as the C<Slip> 
+"slipped" into any outer containing list when the C<Slip> 
 is encountered.  In most cases C<Slip> objects are expected to
 be "ephemeral" (or "slippery") in the sense that they tend to
-disappear before they can be accessed.  
+disappear once they are encountered or accessed.
 
 C<Slip> can be used to interpolate values into a list in a way
 that doesn't flatten or itemize the values.
@@ -188,14 +214,7 @@ free to add questions or comments below, including references to relevant
 
 =item *
 
-The C<Parcel> type is going away (yay!). C<< infix:<,> >> will 
-directly produce C<List> objects.  This changes the way that nested 
-parenthesized comma lists react to things like C<.elems> and C<.[]>.
-
-    (1, (2, 3)).elems             # (pre-GLR) 3; (post-GLR) 2
-    (1, 2, 3..7).elems            # (pre-GLR) 7; (post-GLR) 3
-
-Update 2015-06-22:  Okay, I'm no longer certain that C<Parcel> is
+Update 2015-06-22:  I'm no longer certain that C<Parcel> is
 disappearing.  We really need two types here; one (base) type that
 represents immutable lists, and another type that represents mutable
 lists.  The C<< infix:<,> >> operator would produce the immutable type.
@@ -252,7 +271,7 @@ instead of a class.
 =item *
 
 Looping constructs ( C<while>, C<for>, C<until>, C<loop> ) will be able
-to lazily return lists, as described in C<S04>.
+to lazily return generators, as described in C<S04>.
 
 Question: Is the special "least surprise" eager behavior of
 for-as-a-last-(bare)-statement preserved?
