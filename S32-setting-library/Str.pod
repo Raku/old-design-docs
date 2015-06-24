@@ -413,8 +413,11 @@ C<sprintf($format, $p.key, $p.value)>.
 
  multi method substr (Str $string: Int $start, Int $length? --> Str ) is export
 
+ multi method substr (Str $string: Range $from-to --> Str ) is export
+
 C<substr> returns part of an existing string. You control what part by
-passing a starting position and optionally a length.
+passing a starting position and optionally a length.  There also exists a C<Range>
+variant for when you want to specify the beginning and end indices of the substring.
 
 Here is an example of its use:
 
@@ -432,6 +435,8 @@ this case the entire rest of the string is returned, whatever is available.
 =item substr-rw
 
  multi sub substr-rw($s is rw, $from = 0; $chars = $s.chars - $from) is rw
+
+ multi sub substr-rw($s is rw, Range $from-to) is rw
 
 A version of C<substr> that returns a writable reference to a part of a
 string variable:
