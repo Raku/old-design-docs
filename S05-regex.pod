@@ -4417,6 +4417,19 @@ The final position can be determined by examining the returned C<Match> object.
 
 =back
 
+=head1 Action objects
+
+Action objects (provided via the C<:actions> named argument in
+C<Grammar.parse>) are objects whose methods correspond to the rules in a
+grammar.  When a rule in a grammar matches, any method in the actions object
+with the same name (if there is one) is used to build the AST for the C<Match>
+the grammar is building.  Action methods should have a single parameter (by
+convention, C<$/>) that contains the C<Match> object for the rule.  Action
+methods are invoked as soon as the corresponding rule has a successful match,
+regardless of if the match occurs in a zero-width match or in a backtracking
+branch that may eventually fail, so state should be tracked via the AST and
+side effects may cause unexpected behavior.
+
 =head1 Syntactic categories
 
 For writing your own backslash and assertion subrules, you may augment
