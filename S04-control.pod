@@ -908,21 +908,27 @@ English topicalizer, C<given>.  The keyword for individual cases is C<when>:
     }
 
 The current topic is always aliased to the special variable C<$_>.  The
-C<given> block is just one way to set the current topic, but a switch
-statement can be any block that sets C<$_>, including a C<for> loop
-(assuming one of its loop variables is bound to C<$_>) or the body of a
-method (if you have declared the invocant as C<$_>).  So switching behavior
-is actually caused by the C<when> statements in the block, not by the nature
-of the block itself.  A C<when> statement implicitly does a "smart match"
-between the current topic (C<$_>) and the argument of the C<when>.  If the
-smart match succeeds, C<when>'s associated block is executed, and the
-innermost surrounding block that has C<$_> as one of its formal parameters
-(either explicit or implicit) is automatically broken out of.  (If that is
-not the block you wish to leave, you must use the C<LABEL.leave> method (or
-some other control exception such as C<return> or C<next>) to be more
-specific, since the compiler may find it difficult to guess which
-surrounding construct was intended as the actual topicalizer.) The value of
-the inner block is returned as the value of the outer block.
+C<given> block is just one way to set the current topic. A C<for> loop is
+another convenient form (assuming one of its loop variables is bound to
+C<$_>). However, since every block that doesn't explicitly take a <$_>
+parameter or declare C<$_> will get an implicit C<$_>, you can set that
+and use the C<when> and C<default> keywords in it:
+
+    sub seek-the-answer() {
+        $_ = (^100).pick;
+        when 42 { say "The answer!" }
+        default { say "A number" }
+    }
+
+So switching behavior is actually caused by the C<when> statements in the
+block, not by the nature of the block itself.  A C<when> statement implicitly
+does a "smart match" between the current topic (C<$_>) and the argument of
+the C<when>.  If the smart match succeeds, C<when>'s associated block is
+executed, and the innermost surrounding block is automatically broken out of.
+(If that is not the block you wish to leave, you must use the C<LABEL.leave>
+method (or some other control exception such as C<return> or C<next>) to be
+more specific.) The value of the inner block is returned as the value of
+the outer block.
 
 If the smart match fails, control proceeds to the next statement normally,
 which may or may not be a C<when> statement.  Since C<when> statements are
@@ -950,21 +956,22 @@ implicitly), that parameter can function as the topic of any C<when>
 statements within the loop.
 
 You can explicitly break out of a C<when> block (and its surrounding
-topicalizer block) early using the C<succeed> verb.  More precisely, it
-first scans outward (lexically) for the innermost containing C<when> block.
-From there it continues to scan outward to find the innermost block outside
-the C<when> that defines C<$_>, either explicitly or implicitly.  (Note that
-both of these scans are done at compile time; if the scans fail, it's a
-compile-time semantic error.)  Typically, such an outer block will be the
-block of a C<given> or a C<for> statement, but any block that sets the topic
-can be broken out of.  At run time, C<succeed> uses a control exception to
-scan up the dynamic chain to find the call frame belonging to that same
-outer block, and when it has found that frame, it does a C<.leave> on it to
-unwind the call frames.  If any arguments are supplied to the C<succeed>
-function, they are passed out via the C<leave> method.  Since leaving a
-block is considered a successful return, breaking out of one with C<succeed>
-is also considered a successful return for the purposes of C<KEEP> and
-C<UNDO>.
+block) early using the C<succeed> verb.  More precisely, it first scans
+outward (lexically) for the innermost containing C<when> block. If that
+C<when> block is itself directly inside of a C<when> block, the scan
+also skips over that, so you can do nesting such as:
+
+    when * > 2 {
+        when 4 { 'four!' }
+        default { 'huge' }
+    }
+    default {
+        'little'
+    }
+
+The surrounding frame is then left, returning the value provided to C<succeed>.
+Breaking out of a block with C<succeed> is also considered a successful return
+for the purposes of C<KEEP> and C<UNDO>.
 
 The implicit break of a normal C<when> block works the same way, returning
 the value of the entire block (normally from its last statement) via an
