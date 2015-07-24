@@ -18,29 +18,12 @@ The document is a draft.
 
 General notes about strings:
 
-A Str can exist at several Unicode levels at once. Which level you
-interact with typically depends on what your current lexical context has
-declared the "working Unicode level to be". Default is C<Grapheme>.
-[Default can't be C<CharLingua> because we don't go into "language"
-mode unless there's a specific language declaration saying either
-exactly what language we're going into or, in the absence of that, how to
-find the exact language somewhere in the environment.]
+The C<Str> class contains strings encoded at the NFG level. Other standard
+Unicode normalizations can be found in their appropriately-named types: C<NFC>,
+C<NFD>, C<NFKC>, and C<NFKD>. The C<Uni> type contains a string in a mixture of
+normalizations (i.e. not normalized). S15 describes these in more detail.
 
-Attempting to use a string at a level higher it can support is handled
-without warning. The current highest supported level of the string
-is simply mapped Char for Char to the new higher level. However,
-attempting to stuff something of a higher level a lower-level string
-is an error (for example, attempting to store Kanji in a Byte string).
-An explicit conversion function must be used to tell it how you want it
-encoded.
-
-Attempting to use a string at a level lower than what it supports is not
-allowed.
-
-If a function takes a C<Str> and returns a C<Str>, the returned C<Str>
-will support the same levels as the input, unless specified otherwise.
-
-The following are all provided by the C<Str> role:
+The following are all provided by the C<Str> class, as well as related classes:
 
 =over
 
@@ -296,11 +279,11 @@ is equivalent to
 
     map {.Str}, $string.match(rx:global:x(0..$n):c/pat/)
 
-You may also comb lists and filehandles.  C<+$*IN.comb> counts the characters
-on standard input, for instance.  C<comb(/./, $thing)> returns a list of single
-C<Char> strings from anything that can give you a C<Str>.  Lists and
-filehandles are automatically fed through C<cat> in order to pretend to
-be string.  This C<Cat> is also lazy.
+You may also comb lists and filehandles.  C<+$*IN.comb> counts the characters on
+standard input, for instance.  C<comb(/./, $thing)> returns a list of single
+character strings from anything that can give you a C<Str>.  Lists and
+filehandles are automatically fed through C<cat> in order to pretend to be
+string.  This C<Cat> is also lazy.
 
 If the C<:match> adverb is applied, a list of C<Match> objects (one
 per match) is returned instead of strings.  This can be used to

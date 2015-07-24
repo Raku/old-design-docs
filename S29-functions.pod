@@ -56,49 +56,6 @@ The following type declarations are assumed:
 
 =over
 
-=item AnyChar
-
-The root class of all "character" types, regardless of level.
-
-This is a subtype of C<Str>, limited to a length of 1 at its highest
-supported Unicode level.
-
-The type name C<Char> is aliased to the maximum supported Unicode level
-in the current lexical scope (where "current" is taken to mean the
-eventual lexical scope for generic code (roles and macros), not the
-scope in which the generic code is defined).  In other words, use C<Char>
-when you don't care which level you're writing for.
-
-Subclasses (things that are C<isa AnyChar>):
-
-=over
-
-=item CharLingua (language-defined characters)
-
-=item Grapheme (language-independent graphemes)
-
-=item Codepoint
-
-=item Byte
-
-Yes, Byte is both a string and a number.
-
-=back
-
-The short name for C<Grapheme> is typically C<Char> since that's the
-default Unicode level.  A grapheme is defined as a base codepoint plus
-any subsequent "combining" codepoints that apply to that base codepoint.
-Graphemes are always assigned a unique integer id which, in the case of
-a grapheme that has a precomposed codepoint, happens to be the same as
-that codepoint.
-
-There is no short name for C<CharLingua> because the type is meaningless
-outside the scope of a particular language declaration.  In fact,
-C<CharLingua> is itself an abstract type that cannot be instantiated.
-Instead you have names like C<CharFrench>, C<CharJapanese>,
-C<CharTurkish>, etc. for instantiated C<CharLingua> types.
-(Plus the corresponding C<StrLingua> types, presumably.)
-
 =item Matcher
 
  subset Matcher of Mu where * !=== any(Bool,Match,Nil)
@@ -341,7 +298,7 @@ detailed information on object creation.
 
  multi sub chrs( Int *@grid  --> Str )
  multi method ords( Str $string: --> List of Int ) is export
- multi method chr( Int $grid: --> Char ) is export
+ multi method chr( Int $grid: --> Str ) is export
  multi method ord( Str $string: --> Int ) is export
 
 C<chrs> takes zero or more integer grapheme ids and returns the
