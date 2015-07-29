@@ -172,16 +172,16 @@ the other normalization forms, convert the C<Str> to the appropriate type first.
 
 =item index
 
-    multi method index(Str $string: Str $substring, Int $pos --> Int) is export
+    multi method index(Str $string: Str $substring, Int $pos) is export
 
 C<index> searches for the first occurrence of C<$substring> in C<$string>,
 starting at C<$pos>.
 
-If the substring is found, then the C<Int> returned represents the position
-of the first character of the substring. If the substring is not found, a bare
-C<Int> is returned.  This C<Int> type object evaluates to false because it's
-really a kind of undefined value.  Do not evaluate it as a number, because
-instead of returning -1 it will return 0 and issue a warning.
+If the substring is found, then the C<Index> returned represents the position
+of the first character of the substring (which is True even if C<0>). If the
+substring is not found, C<Nil> is returned.  This really a kind of undefined
+value.  Do not evaluate it as a number, because that will assume <0> and
+issue a warning.
 
 [Note: if C<$substring> is not of the same string type as C<$string>, should
 that cause an error, or should C<$substring> be converted to C<$string>'s type?]
@@ -225,7 +225,7 @@ asked for it with .packformat or some such.  -law]
 =item rindex
 X<rindex>
 
-    multi method rindex(Str $string: Str $substring, Int $pos --> Int) is export
+    multi method rindex(Str $string: Str $substring, Int $pos) is export
 
 Returns the position of the last C<$substring> in C<$string>. If C<$pos>
 is specified, then the search starts at that location in C<$string>, and
