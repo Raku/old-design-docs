@@ -130,12 +130,6 @@ Generally you'd just use a lexically scoped sub, though.
 
     my sub foo ...
 
-[Conjectural: To put a private sub into the class, say
-
-    our sub !foo ...
-
-]
-
 A role can abstract the decision to delegate:
 
     role Pet {
@@ -558,6 +552,38 @@ Then you can also call it with an array of Int.
 
     my Int @a = 1,2,3;
     f(@a);
+
+=head2 The structure of role types and packages
+
+When a role is declared:
+
+    role Foo { }
+
+Then the symbol `Foo` that gets installed in the enclosing package represents
+a potential group of roles that will be disambiguated by arguments. A later
+declaration:
+
+    role Foo[::T] { }
+
+Adds to the existing group. The C<::?PACKAGE> inside of each of these is
+therefore something different from Foo itself. The group's meta-object type
+is C<ParametricRoleGroupHOW>, while C<ParametricRoleHOW> is the meta-object
+type for individual parametric roles.
+
+Writing C<Foo[Int]> is not sufficient to concretize a role, because that
+needs the target class; therefore this returns a type with the meta-object
+C<CurriedRoleHOW> that will pass along the extra type parameters at the
+point of composition, to aid selection of the correct parametric variant.
+Therefore, it does not address a particular C<ParametricRoleHOW>.
+
+Normal users of Perl 6 will have to care little for these details. However,
+given that any C<our> scoped symbol declared inside of a role body will end
+up in a package that is simply unaddressable without digging into the
+meta-objects, C<our> declarations in a role are forbidden. This does not
+prevent installation directly into C<::?PACKAGE.WHO>, for expert users who
+want the escape hatch. It simply means syntactic C<our> declarations will be
+forbidden to avoid the innevitable confusion that will result from trying to
+access them.
 
 =head2 Interaction of typed and untyped data structures
 
