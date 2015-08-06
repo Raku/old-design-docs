@@ -9,8 +9,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 27 Feb 2015
-    Version: 166
+    Last Modified: 6 Aug 2015
+    Version: 167
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -1199,15 +1199,12 @@ what signature to match against.
     multi foo (|args, Int, Bool?, *@, *%)) { reallyintfoo(args) }
     multi foo (|args, Str, Bool?, *@, *%)) { reallystrfoo(args) }
 
-=head2 Parcel binding
+=head2 Term binding
 
 When you bind an argument to a sigiled variable, it enforces the contract
-of that sigil, but sometimes you don't want that.
-It is possible to bind an argument to a simple name instead, which represents
-that argument in its rawest form, which is what we call a parcel.  (It might
-actually be a C<Parcel> object, or any item that can function as a parcel.)
-In any case, it's a raw reference to whatever was passed, with no commitment
-to structure or mutability.
+of that sigil, but sometimes you don't want that.  It is possible to bind
+an argument to a simple name instead, which represents that argument in
+its rawest form, with no commitment to structure or mutability.
 
     sub foo (\x, \y) { x = y; }    # might or might not succeed
 
@@ -1240,6 +1237,14 @@ needed.
 It is possible to alias to a non-identifier by using the C<term> syntactic category:
 
     my \term:<∞> = Inf;
+
+We sometimes call these "sigilless variables", but they differ from
+normal variables in one significant way.  Unlike a variable binding, a
+term binding is fixed for the rest of the lexical scope.  The term may
+only be rebound be re-entering the scope.  This is useful to enforce a
+programming style known as SSA, Single Static Assignment (really binding),
+which, among other benefits, gives the optimizer more guarantees about
+which symbols can be considered "temporarily immutable".
 
 =head2 Flattening argument lists
 
