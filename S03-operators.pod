@@ -2605,6 +2605,8 @@ is equivalent to
 
 There is no corresponding high-precedence version.
 
+If you wish to have the same semantics in the opposite order, use the C<with> statement modifier.
+
 =back
 
 =head2 Loose or precedence
@@ -2646,17 +2648,19 @@ right argument.
 If the right side is a block or pointy block, the result of the left
 side is bound to any arguments of the block.  If the right side is
 not a block, a block scope is assumed around the right side, and the
-result of the left side is implicitly bound to C<$!> for the scope
+result of the left side is implicitly bound to C<$_> for the scope
 of the right side.  That is,
 
     test1() orelse test2()
 
 is equivalent to
 
-    test1() orelse -> $! { test2() }
+    test1() orelse -> $_ { test2() }
 
-(The high-precedence C<//> operator is similar, but does not set C<$!> or
+(The high-precedence C<//> operator is similar, but does not set C<$_> or
 treat blocks specially.)
+
+If you wish to have the same semantics in the opposite order, use the C<without> statement modifier.
 
 =back
 
