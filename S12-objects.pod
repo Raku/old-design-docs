@@ -1620,21 +1620,19 @@ from it by appending an appropriate adverbial to its name:
 
     Int:_       Allow either defined or undefined Int values
     Int:D       Allow only defined (concrete) Int values
-    Int:U       Allow only undefined (abstract or failure) Int values
-    Int:T       Allow Int only as a type object
+    Int:U       Allow only undefined (abstract) Int values
 
 That is, these mean something like:
 
     Int:D       Int:_ where DEFINITE($_)
     Int:U       Int:_ where not(DEFINITE($_))
-    Int:T       Int:U where none(Failure)
 
 where C<DEFINITE> is a boolean macro that says whether the object
 in question has a valid concrete representation (see L</Introspection> below).
 
 In standard Perl 6, C<Int> is generally assumed to mean C<Int:_>, except
 for invocants, where the default is C<Int:D>.  (The default C<new> method
-has a prototype whose invocant is C<:T> instead, so all new methods all
+has a prototype whose invocant is C<:U> instead, so all new methods all
 default to allowing type objects.)
 
 These defaults may be changed within a lexical scope by various pragmas.
