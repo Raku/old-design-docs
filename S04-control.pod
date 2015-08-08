@@ -8,8 +8,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 26 Dec 2014
-    Version: 138
+    Last Modified: 8 Aug 2015
+    Version: 139
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -320,11 +320,37 @@ contents of parens or brackets is parsed as a statement, so you can say:
 
 and that is equivalent to:
 
-    @x = 41, ($answer ?? 42 !! ()), 43
+    @x = 41, ($answer ?? 42 !! Slip), 43
 
 (Only a single statement is allowed inside parens or brackets; otherwise
 it will be interpreted as a LoL composer.
 See L<S02/"Multidimensional slices and parcels">.)
+
+=head2 The C<with> and C<without> statements
+
+The C<with> statement is like C<if> but tests for definedness rather than
+truth.  In addition, it topicalizes on the condition, much like C<given>:
+
+    with "abc".index("a") { .say }      # prints 0
+
+These may be cascaded:
+
+    with   $s.index("a") { "Found a at $_" }
+    orwith $s.index("a") { "Found b at $_" }
+    orwith $s.index("a") { "Found c at $_" }
+    else                 { "Didn't find abc" }
+
+You may intermix C<if>-based and C<with>-based clauses.
+
+As with C<unless>, you may use C<without> to check for undefinedness,
+but you may not add an C<else> clause:
+
+    without $answer { fail "Got: $_" }
+
+There are also C<with> and C<without> statement modifiers:
+
+    return 42 with $answer;
+    .throw without $answer;
 
 =head1 Loop statements
 
