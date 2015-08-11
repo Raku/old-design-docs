@@ -711,7 +711,7 @@ The list of supported C<Signals> can be found by checking C<Signal::.keys>, as y
 
 Various I/O-related things are also exposed as supplies. For example, it is possible to get notifications on changes to files or files (directly) in a directory, using:
 
-    IO::Notification.watch_path(".").tap(-> $file {
+    IO::Notification.watch-path(".").tap(-> $file {
         say "$file changed";
     });
 
@@ -719,14 +719,7 @@ This is quite a mouthful, so there is a shortcut available with the C<IO> coerce
 
     ".".IO.watch.tap: -> $file { say "$file changed" };
 
-Note that since I/O callbacks are, by default, scheduled on the thread pool, then it's possible that your callback will be executing twice on the same thread. One way to cope is with C<do>, and then a tap at the end:
-
-    ".".IO.watch.do(-> $file {
-        state %changes;
-        say "$file changed (change {++%changes{$file}})";
-    }).tap();
-
-Here, we are tapping it purely for the side-effects, and C<do> promises we will only be in that code block one thread at a time. To make this more convenient, there is also shortcut with the C<act> method:
+Note that since I/O callbacks are, by default, scheduled on the thread pool, then it's possible that your callback will be executing twice on the same thread. One way to cope is with C<act>:
 
     ".".IO.watch.act(-> $file {
         state %changes;
