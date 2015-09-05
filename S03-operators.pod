@@ -257,7 +257,7 @@ Subexpressions circumfixed by parentheses
 
 Parentheses are parsed on the inside as a semicolon-separated list
 of statements, which (unlike the statements in a block) returns the results
-of all the statements concatenated together as a C<List> of C<Parcel>.
+of all the statements concatenated together as a C<List> of C<List>.
 How that is subsequently treated depends on its eventual binding.
 
 =item *
@@ -691,7 +691,7 @@ C<< prefix:<||> >>, flatten object into semicolon list
 
     || $parcel
 
-Interpolates the elements of the C<Parcel> (or any other ordered value)
+Interpolates the elements of the C<List> (or any other ordered or iterable value)
 into the current argument list as if they had been specified literally,
 separated by semicolons, that is, at the multi-dimensional level.
 It is an error to use this operator outside of a lol context; in
@@ -1072,8 +1072,8 @@ C<< infix:<xx> >>, expression repetition operator
     @list xx $count
 
 Evaluates the left argument the number of times specified by the right
-argument.  Each evaluation is in list context, and returns a C<Parcel>.
-The result of all these evaluations is returned as a list of C<Parcels>
+argument.  Each evaluation is in list context, and returns a C<Seq>.
+The result of all these evaluations is returned as a list of arrays
 (which will behave differently depending on whether it's bound into
 a flat context or a lol context).
 
@@ -2264,7 +2264,7 @@ the actual produced length, not C<Inf>.
 
 =back
 
-Many of these operators return a list of C<Parcel>s, which depending on
+Many of these operators return a list of C<List>s or C<Seq>s, which depending on
 context may or may not flatten them all out into one flat list.  The
 default is to flatten, but see the contextualizers below.
 
@@ -2483,7 +2483,7 @@ to return any actual type that does the role in question.
 
 Unless applied directly to a scalar variable, as in C<@$a>, these
 may only be applied with explicit parens around an argument that
-is processed as a bare C<Parcel> object, not a flattening list:
+is processed as a bare C<List> object, not a flattening list:
 
      $(1,2 Z 3,4)      # Scalar((1,3),(2,4))
      @(1,2 Z 3,4)      # ((1,3),(2,4))
@@ -2492,10 +2492,10 @@ is processed as a bare C<Parcel> object, not a flattening list:
      $(1,2 X 3,4)      # Scalar((1,3),(1,4),(2,3),(2,4))
      @(1,2 X 3,4)      # ((1,3),(1,4),(2,3),(2,4))
 
-(Note, internal parens indicate nested C<Parcel> structure here,
+(Note, internal parens indicate nested C<List> structure here,
 since there is no flattening.)
 
-Since a C<Parcel> with one argument is transparent, there can be no
+Since a C<List> with one argument is transparent, there can be no
 difference between the meaning of C<@($a)> and C<@$a>.
 
 =item *
@@ -2509,8 +2509,8 @@ The new name for Perl 5's C<scalar> contextualizer.  Equivalent to C<$(...)>
 We still call the values scalars, and talk about "scalar operators", but
 scalar operators are those that put their arguments into item context.
 
-If given a list, this function makes a C<Parcel> object from it.  The function
-is agnostic about any C<Parcel> embedded in such a sequence, and any contextual
+If given a list, this function makes a C<List> object from it.  The function
+is agnostic about any C<List> embedded in such a sequence, and any contextual
 decisions will be deferred until subsequent use of the contents.
 
 Note that this parses as a list operator, not a unary prefix operator,
@@ -2537,7 +2537,7 @@ The C<flat> contextualizer
 
 Forces the subsequent expression to be evaluated in a flattening
 list context.  The result will be recursively flattened, i.e.,
-contain no embedded C<Parcel> objects.
+contain no embedded C<List>, C<Seq> or C<Range> objects.
 
 =item *
 
@@ -2557,7 +2557,8 @@ The C<hash> contextualizer
     hash foo()
 
 Forces the subsequent expression to be evaluated in hash context.
-The expression is evaluated in list context (flattening any C<Parcel>s),
+The expression is evaluated in list context (flattening any C<List>s or
+C<Seq>s),
 then a hash will be created from the list, taken as a list of C<Pair>s.
 (Any element in the list that is not a C<Pair> will pretend to be a key
 and grab the next value in the list as its value.)  Equivalent to
@@ -2685,7 +2686,7 @@ Semicolon: C<;>
 
 The context determines how the expressions terminated by semicolon
 are interpreted.  At statement level they are statements.  Within a
-bracketing construct they are interpreted as lists of C<Parcel>s,
+bracketing construct they are interpreted as lists of C<List>s,
 which in lol context will be treated as the multiple dimensions of a
 multidimensional slice.  (Other contexts may have other interpretations
 or disallow semicolons entirely.)
@@ -2890,7 +2891,7 @@ Unary C<~> now imposes a string (C<Stringy>) context on its
 argument, and C<+> imposes a numeric (C<Numeric>) context (as opposed
 to being a no-op in Perl 5).  Along the same lines, C<?> imposes
 a boolean (C<Bool>) context, and the C<|> unary operator imposes
-a function-arguments (C<Parcel> or C<Capture>) context on its argument.
+a function-arguments (C<List> or C<Capture>) context on its argument.
 Unary sigils are allowed when followed by a C<$> sigil on a scalar variable;
 they impose the container context implied by their sigil.
 As with Perl 5, however, C<$$foo[bar]> parses as C<( $($foo) )[bar]>,
@@ -2954,7 +2955,7 @@ written: C<<< << ... >> >>>.
 
 =item *
 
-Comma C<,> now constructs a C<Parcel> object from its operands.  You have to
+Comma C<,> now constructs a C<List> object from its operands.  You have to
 use a C<[*-1]> subscript to get the last one.
 (Note the C<*>.  Negative subscripts no longer implicitly count from
 the end; in fact, the compiler may complain if you use C<[-1]> on an
@@ -3893,9 +3894,9 @@ Various proposed-but-deprecated smartmatch behaviors may be easily
     Array   Num    array element truth    .[X]
     Array   Num    array contains number  *,X,*
     Array   Str    array contains string  *,X,*
-    Array   Parcel array begins /w Parcel X,*
-    Array   Parcel array contains Parcel  *,X,*
-    Array   Parcel array ends with Parcel *,X
+    Array   List   array begins /w List   X,*
+    Array   List   array contains List    *,X,*
+    Array   List   array ends with List   *,X
     Hash    Str    hash element truth     .{X}
     Hash    Str    hash key existence     .{X}:exists
     Hash    Num    hash element truth     .{X}
@@ -5338,7 +5339,7 @@ its bits at once using the C<< prefix:<|> >> operator:
 =head1 Traversing arrays in parallel
 
 In order to support parallel iteration over multiple arrays, Perl 6
-has a C<zip> function that builds a list of C<Parcel> objects from the
+has a C<zip> function that builds a list of C<List> objects from the
 elements of two or more arrays.  In ordinary list context this behaves
 as a list of C<Captures> and automatically flattens.
 
