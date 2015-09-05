@@ -392,7 +392,7 @@ Normal flat list context ignores parcel boundaries and flattens the list.
 Iterations that return C<()> (such as by calling C<next> with no extra
 return arguments) return that C<()> as the next value, which will therefore
 disappear when interpolated in flat context, but will interpolate an empty
-C<Parcel> into slice context.
+C<List> into slice context.
 
 For finer-grained control of which iterations return values, use C<gather>
 and C<take>.
@@ -817,7 +817,7 @@ dynamic C<take> must match the C<gather>'s label (or lack thereof) exactly.
 label syntax, such as .gather and .take methods on some identity object.)]
 
 If you take multiple items in a comma list (since it is, after all, a list
-operator), they will be wrapped up in a C<Parcel> object for return as the
+operator), they will be wrapped up in a C<List> object for return as the
 next argument.  No additional context is applied by the C<take> operator,
 since all context is lazy in Perl 6.  The flattening or slicing of any such
 returned parcel will be dependent on how the C<gather>'s return iterator is
@@ -862,7 +862,7 @@ bind or coerce the resulting parcels differently:
         push @y, $y;
     }
     # @x contains 4 Ints:    1,10,2,20 flattened by list assignment to @x
-    # @y contains 2 Parcels: $(1,10),$(2,20) sliced by binding to positional $y
+    # @y contains 2 Lists:   $(1,10),$(2,20) sliced by binding to positional $y
 
 Likewise, we can just remember the gather's result parcel by binding and
 later coercing it:
@@ -871,8 +871,8 @@ later coercing it:
         take $_, $_ * 10;
     });
     # $c.flat produces 1,10,2,20 -- flatten fully into a list of Ints.
-    # $c.lol produces LoL.new($(1,10),$(2,20)) -- list of Parcels, a 2-D list.
-    # $c.item produces ($(1,10),$(2,20)).list.item -- a list of Parcels, as an item.
+    # $c.lol produces LoL.new($(1,10),$(2,20)) -- list of Lists, a 2-D list.
+    # $c.item produces $((1,10),(2,20)) -- a list of Lists, as an item.
 
 Note that the C<take> itself is in sink context in this example because the
 C<for> loop is in the sink context provided inside the gather.
