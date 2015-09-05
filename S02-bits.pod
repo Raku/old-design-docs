@@ -1433,7 +1433,6 @@ eqv C<$y.WHICH>).
     Enum        An immutable Pair
     EnumMap     A mapping of Enums with no duplicate keys
     Signature   Function parameters (left-hand side of a binding)
-    Parcel      Arguments in a comma list
     LoL         Arguments in a semicolon list
     Capture     Function call arguments (right-hand side of a binding)
     Blob        An undifferentiated mass of ints, an immutable Buf
@@ -1572,7 +1571,7 @@ These types do (at least) the following roles:
     Enum        Associative
     EnumMap     Associative Positional Iterable
     Signature
-    Parcel      Positional
+    List        Positional Iterable
     Capture     Positional Associative
     Blob        Stringy Positional
     Instant     Numeric Real
@@ -1907,7 +1906,7 @@ the object is a container object containing multiple items.
 
 C<@x> may be bound to an object of the C<Array> class, but it may also be
 bound to any object that does the C<Positional> role, such as a C<Range>,
-C<Buf>, C<Parcel>, or C<Capture>.  The C<Positional> role implies the
+C<Buf>, C<List>, or C<Capture>.  The C<Positional> role implies the
 ability to support C<< postcircumfix:<[ ]> >>.
 
 Likewise, C<%x> may be bound to any object that does the C<Associative>
@@ -2133,24 +2132,20 @@ new C<:=> binding operator that lets you bind names to C<Array> and C<Hash>
 objects without copying, in the same way as subroutine arguments are bound
 to formal parameters.  See S06 for more about binding.
 
-=head2 Parcels
+=head2 List
 
-A list of zero or more comma-separated objects may be grouped together by
-parentheses into a "parenthesis cell", or C<Parcel>.  This kind of list
-should not be confused with the flattening list context.  Instead, this is a
-raw syntactic list that has not yet committed to flattening; no
-interpretation is made of the list inside without knowing what context it
-will be evaluated in.  For example, when you say:
+Comma-separated values (as well as word-quoting constructs such as
+C<< <a b c> >>) form a C<List>:
 
     (1,2,3,:mice<blind>)
 
-the result is a C<Parcel> object containing three C<Int> objects and a
+The result is a C<List> object containing three C<Int> objects and a
 C<Pair> object, that is, four positional objects.  When, however, you say
 something like:
 
     rhyme(1,2,3,:mice<blind>)
 
-the syntactic C<Parcel> is translated (at compile time, in this case) into a
+the syntactic list is translated (at compile time, in this case) into a
 C<Capture> object with three positionals and one named argument in
 preparation for binding.  More generally, a parcel is transmuted to a
 capture any time it is bound to a complete signature.
@@ -2220,7 +2215,7 @@ no bare parcel object is seen as a normal bound argument.  (There is a way
 to bind the underlying parcel using backslash, however.  This is how
 internal routines can deal with parcels as real objects.)
 
-In contrast to parameter binding, if a C<Parcel> is bound to an entire
+In contrast to parameter binding, if a C<List> is bound to an entire
 signature (typically as part of a function or method call), it will be
 transformed first into a capture object, which is much like a parcel but has
 its arguments divvied up into positional and named subsets for faster
@@ -2275,7 +2270,7 @@ of Perl 5 references as a degenerate form of C<Capture> when you want to
 refer only to a single item.
 
 The C<sink> statement prefix will eagerly evaluate any block or statement,
-throw away the results, and instead return the empty C<Parcel> value, C<()>.
+throw away the results, and instead return the empty C<List> value, C<()>.
 This can be useful to peg some behavior to an empty list while still
 returning an empty list:
 
@@ -2491,7 +2486,7 @@ junction of items:
     if %hash{none <a b c>} :exists {...}
 
 Using the C<:exists> adverb together with a list slice results in in a
-C<Parcel> of C<Bool>, which you could also put in a junction with similar
+C<List> of C<Bool>, which you could also put in a junction with similar
 semantics:
 
     if any %hash<a b c> :exists {...}
@@ -3526,7 +3521,7 @@ is equivalent to:
 
     $a = ('a', 'b');
 
-which assigns a C<Parcel> to the variable.  On the other hand, if you
+which assigns a C<List> to the variable.  On the other hand, if you
 backslash the parcel:
 
     $a = \<a b>;
@@ -3536,7 +3531,7 @@ it is like:
     $a = \('a', 'b');
 
 and ends up storing a C<Capture> object (which weeds out any named arguments
-into a separate structure, in contrast to a C<Parcel>, which keeps
+into a separate structure, in contrast to a C<List>, which keeps
 everything in its original list).
 
 Binding is different from assignment.  If bound to a signature, the C<< <a
@@ -3557,20 +3552,20 @@ Strings within angle brackets are subject to C<val()> processing, and any
 component that parses successfully as a numeric literal will become both a
 string and a number.  See L<Allomorphic value semantics> below.
 
-=head3 Explicit Parcel construction
+=head3 Explicit List construction
 
-As the previous section shows, a parcel is not automatically constructed by
-parens; the parcel is actually constructed by the comma, not by the parens.
+As the previous section shows, a list is not automatically constructed by
+parens; the list is actually constructed by the comma, not by the parens.
 To force a single value to become a composite object in item context, either
 add a comma inside parens, or use an appropriate constructor or composer for
 clarity as well as correctness:
 
     $a = (< a >,);
     $a = ('a',);
-    $a = Parcel.new('a');
+    $a = List.new('a');
     $a = ['a'];
 
-=head3 Empty Parcel
+=head3 Empty List
 
 Even though there is no comma in it, the empty parcel is represented by
 C<()>.  Normally, one could itemize this by prefixing a C<$> (as in C<$()>),
@@ -4731,7 +4726,7 @@ When bound to a slice parameter (indicated with C<**>), a capture reforms
 the rest of its positional arguments with one level of "treeness",
 equivalent to C<@args.tree(1)>, that is, a list of lists, or C<LoL>.  The
 sublists are not automatically flattened; that is, if a sublist is a
-C<Parcel>, it remains a list until subsequent processing decides how flat or
+C<List>, it remains a list until subsequent processing decides how flat or
 treelike the sublist should be.
 
 To force a non-flattening item context, use the "C<item>" operator.
