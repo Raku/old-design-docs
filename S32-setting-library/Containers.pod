@@ -49,7 +49,7 @@ to other operators.]
 
 =item roundrobin
 
- multi roundrobin( **@list --> Parcel )
+ multi roundrobin( **@list --> Seq )
 
 C<roundrobin> is very similar to C<zip>.  The difference is that
 C<roundrobin> will not stop on lists that run out of elements but
@@ -64,8 +64,8 @@ will get the following values for C<$x>: C<1, 1, 1, 2, 2, 3>
 
 =item zip
 
- multi zip ( **@list --> Parcel of Parcel )
- multi infix:<Z> ( **@list --> Parcel of Parcel )
+ multi zip ( **@list --> Seq )
+ multi infix:<Z> ( **@list --> Seq )
 
 zip takes any number of arrays and returns one tuple for every index.
 This is easier to read in an example:
@@ -174,10 +174,10 @@ failure key (whatever is returned by the mapper in use).  [Conjecture:
 if a hash comes with a default value, it can map anything.]
 
 C<classify> always assumes that the mapper returns a single value.  However,
-this may also be a L<Parcel> to indicate a multi-level classification.  In
+this may also be a L<List> to indicate a multi-level classification.  In
 such a case, only the classification of the lowest level, will actually yield
 a Hash of Lists.  All higher up classifications, will necessarily always be a
-Hash of Hashes.  Please note that all Parcels must have the same number of
+Hash of Hashes.  Please note that all Lists must have the same number of
 elements.
 
 To categorize values into multiple categories, see C<categorize>.
@@ -208,10 +208,10 @@ is discarded rather than being stored under any key.  On the
 other hand, if the mapper returns a list of categories, the value in
 question will be pushed into multiple hash locations (while C<classify>
 would merely make a key out of the list returned from the mapper).  However, a
-category may also be a L<Parcel> to indicate a multi-level categorization.  In
+category may also be a L<List> to indicate a multi-level categorization.  In
 such a case, only the categorization of the lowest level, will actually yield
 a Hash of Lists.  All higher up categorizations, will necessarily always be a
-Hash of Hashes.  Please note that all Parcels must have the same number of
+Hash of Hashes.  Please note that all Lists must have the same number of
 elements.
 
 =item grep
@@ -250,24 +250,24 @@ values, or C<Nil> if not found.
 
 =item first
 
- multi method first ( @values: Matcher $test --> Parcel )
- multi first ( Matcher $test, *@values --> Parcel )
+ multi method first ( @values: Matcher $test )
+ multi first ( Matcher $test, *@values )
 
 C<first> searches exactly like C<grep> but returns only the first matching
 value, or C<Nil> if not found.
 
 =item first-index
 
- multi method first-index ( @values: Matcher $test --> Parcel )
- multi first-index ( Matcher $test, *@values --> Parcel )
+ multi method first-index ( @values: Matcher $test )
+ multi first-index ( Matcher $test, *@values )
 
 Like C<first>, but returns the ordinal number of the first matching value,
 or C<Nil> if not found.
 
 =item last-index
 
- multi method last-index ( @values: Matcher $test --> Parcel )
- multi last-index ( Matcher $test, *@values --> Parcel )
+ multi method last-index ( @values: Matcher $test )
+ multi last-index ( Matcher $test, *@values )
 
 Like C<first-index>, but starts checking from the end of the C<List>.  Returns
 the ordinal number of the first matching value (counted from the beginning,
@@ -275,10 +275,11 @@ just as C<first-index>), or C<Nil> if not found.
 
 =item pick
 
- multi method pick ( @values: Int $num = 1 --> Any )
- multi method pick ( @values: Whatever --> Any )
- multi pick ( Int $num, *@values --> Any )
- multi pick ( Whatever, *@values --> Any )
+ multi method pick ( -> Mu )
+ multi method pick ( @values: Int $num --> Seq )
+ multi method pick ( @values: Whatever --> Seq )
+ multi pick ( Int $num, *@values --> Seq )
+ multi pick ( Whatever, *@values --> Seq )
 
 C<pick> takes a list or array of values and returns a random
 selection of elements from the list (without replacement;
@@ -290,15 +291,16 @@ elements are returned in random order:
     @team = @volunteers.pick(5);
     @shuffled = @deck.pick(*);
 
-Due to the normal semantics of returning a C<Parcel>, a pick of a
-single element may be used as an item without requiring C<.[0]>.
+A C<.pick> call without arguments returns a single element instead
+of an iterabl container of one element.
 
 =item roll
 
- multi method roll ( @values: Int $num = 1 --> Any )
- multi method roll ( @values: Whatever --> Any )
- multi roll ( Int $num, *@values --> Any )
- multi roll ( Whatever, *@values --> Any )
+ multi method roll ( --> Mu )
+ multi method roll ( @values: Int $num --> Seq )
+ multi method roll ( @values: Whatever --> Seq )
+ multi roll ( Int $num, *@values --> Seq )
+ multi roll ( Whatever, *@values --> Seq )
 
 C<roll> takes a list or array of values and returns a random selection
 of elements from the list, like rolling N independent dice, where
@@ -311,8 +313,8 @@ provides an infinite list of random choices from C<@values>:
     @byte = (0,1).roll(8);                   # 8d2
     for (1..20).roll(*) -> $die_roll { ... } # 1d20 xx *
 
-Due to the normal semantics of returning a C<Parcel>, a roll of a
-single element may be used as an item without requiring C<.[0]>.
+A C<.roll> call without arguments returns an element of
+the invocant list instead of a one-elemented list or sequence.
 
 Note that C<roll 1, 6> is not the same as a 1d6, but always returns
 C<6> as a degenerate one-sided die.  Use C<roll 1, 1..6> to simulate a six-sided die.
@@ -332,11 +334,10 @@ just coerce to C<Str>.
 
 =item map
 
- multi method map ( @values: Code *&expression --> List of Parcel )
- multi map ( Code $expression, *@values --> List of Parcel )
- multi map ( Code $expression --> List of Parcel )
+ multi method map ( @values: Code *&expression --> Seq )
+ multi map ( Code $expression, *@values --> Seq )
 
-C<map> returns a lazily evaluated list which is comprised of
+C<map> returns a lazily evaluated sequence which is comprised of
 the return value of the expression, evaluated once for every
 one of the C<@values> that are passed in.
 
@@ -370,8 +371,8 @@ setup.
 
 =item duckmap
 
- multi method duckmap ( @values: Code *&expression --> List of Parcel )
- multi duckmap ( Code $expression, *@values --> List of Parcel )
+ multi method duckmap ( @values: Code *&expression --> Seq )
+ multi duckmap ( Code $expression, *@values --> Seq )
 
 Like C<map>, C<duckmap> evaluates the expression for each of the
 values that is passed in.  Unlike C<map>, if the evaluation produces
@@ -388,8 +389,8 @@ controls apply only to the current level of the tree.
 
 =item deepmap
 
- multi method deepmap ( @values: Code *&expression --> List of Parcel )
- multi deepmap ( Code $expression, *@values --> List of Parcel )
+ multi method deepmap ( @values: Code *&expression --> Seq )
+ multi deepmap ( Code $expression, *@values --> Seq )
 
 Like C<map> and C<duckmap>, C<deepmap> evaluates the expression for
 each of the values you give it.  Unlike C<map> and C<duckmap>, an
@@ -780,7 +781,7 @@ Constructs a new C<Array> containing the arguments passed to C<new>.
 
 =item shape
 
- method shape (@array: --> Parcel ) is export
+ method shape (@array: --> List ) is export
 
 Returns the declared shape of the array, as described in S09.
 
@@ -823,7 +824,7 @@ subscripting operation.
 
 This adverb may be applied to any subscripting operation.  The
 operation returns true if specified element exists.  If a slice
-is specified by the subscript, a C<Parcel> of C<Bool> is returned,
+is specified by the subscript, a C<List> of C<Bool> is returned,
 which can be processed using junctions.
 
 =item pop
@@ -940,7 +941,7 @@ sequence starting at C<1>.
 If C<@array> is multidimensional, C<splice> operates only on the first
 dimension, and works with Array References.
 
-C<splice> returns a C<Parcel> of the deleted elements, which behaves as
+C<splice> returns a C<List> of the deleted elements, which behaves as
 expected in either list or item context.
 
 C<$offset> and C<$size> will be treated as C<Int>. The function fails if
@@ -1025,7 +1026,7 @@ subscripting operation.
 
 This adverb may be applied to any subscripting operation.  The
 operation returns true if specified element exists.  If a slice
-is specified by the subscript, a C<Parcel> of C<Bool> is returned,
+is specified by the subscript, a C<List> of C<Bool> is returned,
 which can be processed using junctions.
 
 =item keys
@@ -1149,7 +1150,7 @@ BagHash, Pair, and PairMap.
     class Range does Positional does Iterable {
         method min() {...}
         method max() {...}
-        method bounds() returns Parcel {...}
+        method bounds() returns List {...}
         method excludes-min {...}
         method excludes-max {...}
         method sample {...}
@@ -1527,7 +1528,7 @@ All method calls on junctions autothread because the type provides no public met
 
 =item !eigenstates
 
-    method !eigenstates (Junction $j: --> Parcel)
+    method !eigenstates (Junction $j: --> List)
 
 Returns an unordered list of the values that constitute the junction (formerly
 called C<.values>). It flattens nested junctions of the same type, so
