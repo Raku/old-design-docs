@@ -19,6 +19,15 @@ DRAFT: Synopsis 32: Setting Library - Containers.pod
 
 The C<Positional> role implies the ability to support C<< postcircumfix:<[ ]> >>.
 
+=head2 Iterable
+
+    role Iterable {...}
+
+The C<Iterable> role implies the ability to support sequential access through
+iterators.  There is also limited support for en-passant use of
+C<< postcircumfix:<[ ]> >>, but since some Iterables may only be iterated
+once, not all Iterables are considered Positional.
+
 =head2 Associative
 
     role Associative {...}
@@ -216,12 +225,12 @@ elements.
 
 =item grep
 
- multi method grep ( @values: Matcher $test --> List )
- multi grep ( Matcher $test, *@values --> List )
+ multi method grep ( @values: Matcher $test --> Iterable )
+ multi grep ( Matcher $test, *@values --> Iterable )
 
-C<grep> takes a list or array of values and returns a lazily evaluated
-list comprised of all of the values from the original list for which
-the C<$test> smart-matches as true.
+C<grep> takes a list, array, or sequence of values and returns a lazily
+evaluated sequence comprised of all of the values from the original list for
+which the C<$test> smart-matches as true, maintaining their relative order.
 
 Here is an example of its use:
 
@@ -229,8 +238,8 @@ Here is an example of its use:
  @friends = grep { .is_friend }, @coworkers; # same
 
 This takes the array C<@coworkers>, checks every element to see
-which ones return true for the C<.is_friend> method, and returns
-the resulting list to store into C<@friends>.
+which ones return true for the C<.is_friend> method, and stores
+the resulting sequence's values into C<@friends>.
 
 Note that, unlike in Perl 5, a comma is required after the C<Matcher>
 in the multi form.
@@ -242,10 +251,10 @@ if you mean the other thing.
 
 =item grep-index
 
- multi method grep-index ( @values: Matcher $test --> List )
- multi grep-index ( Matcher $test, *@values --> List )
+ multi method grep-index ( @values: Matcher $test --> Iterable )
+ multi grep-index ( Matcher $test, *@values --> Iterable )
 
-Like C<grep>, but returns a lazy list of ordinal numbers of the matching
+Like C<grep>, but returns ordinal numbers of the matching
 values, or C<Nil> if not found.
 
 =item first
@@ -253,13 +262,13 @@ values, or C<Nil> if not found.
  multi method first ( @values: Matcher $test )
  multi first ( Matcher $test, *@values )
 
-C<first> searches exactly like C<grep> but returns only the first matching
-value, or C<Nil> if not found.
+C<first> searches exactly like C<grep> but stops testing at the first match
+and returns just that value.  Returns C<Nil> if no match is found.
 
 =item first-index
 
- multi method first-index ( @values: Matcher $test )
- multi first-index ( Matcher $test, *@values )
+ multi method first-index ( @values: Matcher $test --> Any )
+ multi first-index ( Matcher $test, *@values --> Any )
 
 Like C<first>, but returns the ordinal number of the first matching value,
 or C<Nil> if not found.
@@ -269,20 +278,30 @@ or C<Nil> if not found.
  multi method last-index ( @values: Matcher $test )
  multi last-index ( Matcher $test, *@values )
 
-Like C<first-index>, but starts checking from the end of the C<List>.  Returns
-the ordinal number of the first matching value (counted from the beginning,
-just as C<first-index>), or C<Nil> if not found.
+C<.last-index> is similar to C<first-index>, but the values are tested
+starting with the last value and working backwards until the first
+successful test.  The returned indices are still as counted from the
+beginning of the sequence.
+
+Lazy sequences will be iterated to the end, remembering values, before
+any tests are evaluated.  If the test is not as resource intensive as
+remembering all the values, consider instead:
+
+    @values.grep-index($test).max;
+
+...which will run the test on all elements but will not keep unneeded
+values in memory.
 
 =item pick
 
  multi method pick ( -> Mu )
- multi method pick ( @values: Int $num --> Seq )
- multi method pick ( @values: Whatever --> Seq )
- multi pick ( Int $num, *@values --> Seq )
- multi pick ( Whatever, *@values --> Seq )
+ multi method pick ( @values: Int $num --> Iterable )
+ multi method pick ( @values: Whatever --> Iterable )
+ multi pick ( Int $num, *@values --> Iterable )
+ multi pick ( Whatever, *@values --> Iterable )
 
-C<pick> takes a list or array of values and returns a random
-selection of elements from the list (without replacement;
+C<pick> takes a list, array, or sequence of values and returns a sequence
+of random elements from the list (selected without replacement;
 see C<roll> for dice roll aka replacement semantics).  If C<*>
 is specified as the number (or if the number of elements in
 the list is less than the specified number), all the available
@@ -292,32 +311,34 @@ elements are returned in random order:
     @shuffled = @deck.pick(*);
 
 A C<.pick> call without arguments returns a single element instead
-of an iterabl container of one element.
+of an iterable container of one element.
 
 =item roll
 
  multi method roll ( --> Mu )
- multi method roll ( @values: Int $num --> Seq )
- multi method roll ( @values: Whatever --> Seq )
- multi roll ( Int $num, *@values --> Seq )
- multi roll ( Whatever, *@values --> Seq )
+ multi method roll ( @values: Int $num --> Iterable )
+ multi method roll ( @values: Whatever --> Iterable )
+ multi roll ( Int $num, *@values --> Iterable )
+ multi roll ( Whatever, *@values --> Iterable )
 
-C<roll> takes a list or array of values and returns a random selection
-of elements from the list, like rolling N independent dice, where
-each list element corresponds to one side of your dice.  This is also known
-as "pick with replacement", that is, like pulling one marble out of
-bag and putting it back, and doing this N times; see C<pick> for the
-non-replacement semantics.  If C<*> is specified as the number, C<*>
-provides an infinite list of random choices from C<@values>:
+C<roll> takes a list, array, or sequence of values and returns a
+random sequence of elements from the list, like rolling N independent
+dice, where each list element corresponds to one side of your dice.
+This is also known as "pick with replacement", that is, like pulling
+one marble out of a bag and putting it back, and doing this N times;
+see C<pick> for the non-replacement semantics.  If C<*> is specified
+as the number, C<*> provides an infinite list of random choices from
+C<@values>:
 
     @byte = (0,1).roll(8);                   # 8d2
     for (1..20).roll(*) -> $die_roll { ... } # 1d20 xx *
 
 A C<.roll> call without arguments returns an element of
-the invocant list instead of a one-elemented list or sequence.
+the invocant list instead of a one-element sequence.
 
 Note that C<roll 1, 6> is not the same as a 1d6, but always returns
-C<6> as a degenerate one-sided die.  Use C<roll 1, 1..6> to simulate a six-sided die.
+C<6> as a degenerate one-sided die.  Use C<roll 1, 1..6> to simulate
+a six-sided die.
 
 =item join
 
@@ -334,45 +355,27 @@ just coerce to C<Str>.
 
 =item map
 
- multi method map ( @values: Code *&expression --> Seq )
- multi map ( Code $expression, *@values --> Seq )
+ multi method map ( @values: Code *&expression --> Iterable )
+ multi map ( Code $expression, *@values --> Iterable )
 
-C<map> returns a lazily evaluated sequence which is comprised of
-the return value of the expression, evaluated once for every
-one of the C<@values> that are passed in.
-
-If the expression returns no values or multiple values, then the
-resulting list may not be the same length as the number of values
-that were passed.
+C<map> returns a lazily evaluated sequence of values which is
+comprised of the return value of the expression, evaluated once
+for every one of the C<@values> that are passed in.
 
 The actual return value is a multislice containing one slice per
-map iteration.  In most contexts these slices are flattened into a
-single list.
+map iteration, unless the expression returns a C<Slip>, in which
+case the resulting sequence may not be the same length as the
+number of values that were passed.
 
 Note that C<map> is an implicit loop, so C<next> and C<last> without
 an argument will iterate or terminate the C<map> itself, not some
 loop surrounding the statement containing the C<map>.  Use a label
 if you mean the other thing.
 
-In some situations, specifically with concurrent processes, the return
-values of a C<map> may not directly relate to a list of values: in that
-case it is possible to specify a map with just a C<Whatever>:
-
-  map {                    # actual implementation of Channel.list
-      winner $self {
-          more * { $_ }
-          done * { last }
-      }
-  }, *;
-
-This effectively becomes a lazy loop returning values until it is exited with
-C<last>.  This may be a cheaper alternative to a C<gather>, C<loop>, C<take>
-setup.
-
 =item duckmap
 
- multi method duckmap ( @values: Code *&expression --> Seq )
- multi duckmap ( Code $expression, *@values --> Seq )
+ multi method duckmap ( @values: Code *&expression --> Iterable )
+ multi duckmap ( Code $expression, *@values --> Iterable )
 
 Like C<map>, C<duckmap> evaluates the expression for each of the
 values that is passed in.  Unlike C<map>, if the evaluation produces
@@ -389,8 +392,8 @@ controls apply only to the current level of the tree.
 
 =item deepmap
 
- multi method deepmap ( @values: Code *&expression --> Seq )
- multi deepmap ( Code $expression, *@values --> Seq )
+ multi method deepmap ( @values: Code *&expression --> Any )
+ multi deepmap ( Code $expression, *@values --> Any )
 
 Like C<map> and C<duckmap>, C<deepmap> evaluates the expression for
 each of the values you give it.  Unlike C<map> and C<duckmap>, an
@@ -404,49 +407,62 @@ controls apply only to the current level of the tree.
 
 =item reduce
 
- multi method reduce ( @values: Code *&expression --> Item )
- multi reduce ( Code $expression ;; *@values --> Item ) {
-   my $res;
-   for @values -> $cur {
-     FIRST {$res = $cur; next;}
-     $res = &$expression($res, $cur);
-   }
-   $res;
- }
+ multi method reduce ( @values: Code *&expression )
+ multi reduce ( Code $expression ;; *@values )
+
+C<reduce> takes a sequence of values, accumulates enough values from
+that sequences to apply C<&expression> to, then feeds that result back
+into C<&expression> followed by enough additional values taken from
+subsequent values in the sequence.  It repeats this process until no
+more values are available.  The result from the last evaluation of
+C<&expression> is then returned.
+
+If C<&expression> is an operator known to have right associativity, values are
+pulled in reverse order from the sequence.
+
+If an empty sequence is provided and C<&expression> has a known identity
+value, it is returned.  If the identity value is known and the sequence
+is not empty, but contains one less than enough values, those values are
+returned (as if C<&expression> had been called with the identity value
+and those values, but usually without actually evaluating C<&expression>.)
+
+If an identity value is not known, and there are not enough values
+to evaluate C<&expression> once, an empty sequence is usually returned.
+
+If a sequence does not produce enough values to perform the last evaluation
+of C<&expression> the stray values are usually ignored.
 
 Note that C<reduce> is an implicit loop, so C<next> and C<last> without
 an argument will iterate or terminate the C<reduce> itself, not some
 loop surrounding the statement containing the C<reduce>.  Use a label
 if you mean the other thing.
 
-
 =item reverse
 
- multi method reverse ( @values: --> List ) is export
- multi reverse ( *@values --> List ) {
-    gather {
-        1 while take pop @values;
-    }
- }
+ multi method reverse ( @values: --> Iterable ) is export
+ multi reverse ( *@values --> Iterable )
 
-Note that strings are now reversed with C<flip>.
+Given a sequence of values, C<reverse> presents a sequence with the
+same values in the opposite order.  If the sequence is not already
+reified, this usually involves reifying and retaining the values.
+
+Note that "reversing" strings is done with C<flip>.
 
 =item rotate
 
- multi method rotate ( @values is copy: Int $n = 1 --> List ) is export
+ multi method rotate ( @values is copy: Int $n = 1 --> Iterable ) is export
 
-Produces a new list with the same elements as the old list,
+Produces a new sequence with the same elements as the input sequence,
 rotated by the specified amount.  See Array::rotate for more
 info.
 
 =item sort
 
- multi method sort( @values: *&by --> Array )
- multi method sort( @values: Ordering @by --> Array )
- multi method sort( @values: Ordering $by = &infix:<cmp> --> Array )
-
- multi sort( Ordering @by,  *@values --> List )
- multi sort( Ordering $by, *@values --> List )
+ multi method sort( @values: *&by --> Iterable )
+ multi method sort( @values: Ordering @by --> Iterable )
+ multi method sort( @values: Ordering $by = &infix:<cmp> --> Iterable )
+ multi sort( Ordering @by,  *@values --> Iterable )
+ multi sort( Ordering $by, *@values --> Iterable )
 
 Returns C<@values> sorted, using criteria C<$by> or C<@by> for
 comparisons. C<@by> differs from C<$by> in that each criterion is
@@ -465,7 +481,8 @@ is used as an C<Ordering> then sort-specific traits such as C<is
 canon($how)> are allowed on the positional elements.
 
 If all criteria are exhausted when comparing two elements, sort should
-return them in the same relative order they had in C<@values>.
+return them in the same relative order they had in C<@values> (it is
+an "order preserving" sort.)
 
 To sort an array in place use the C<.=sort> mutator form.
 
@@ -475,9 +492,8 @@ C<is canonicalized(&lc)>.)
 
 =item unique
 
- multi method unique(List:D: --> List:D, :&as)
-
- multi sub unique(*@values --> List:D, :&as)
+ multi method unique(:@as --> Iterable)
+ multi sub unique(*@values, :&as --> Iterable)
 
 Returns a list of unique values from the invocant/argument list, such
 that only the first occurrence of each duplicated value remains in the
@@ -492,8 +508,8 @@ duplicates are removed.
 objects are adjacent.)
 
 The optional C<:as> parameter allows you to normalize/canonicalize the elements
-before unique-ing. The values are transformed for the purposes of comparison, but
-it's still the original values that make it to the result list:
+before unique-ing. The values are transformed for the purposes of comparison,
+but the original values are still emitted in the resulting sequence:
 
     say <a A B b c b C>.unique(:as(&lc))          # a B c
 
@@ -505,9 +521,8 @@ might work for you:
 
 =item squish
 
- multi method squish(List:D: --> List:D, :&as)
-
- multi sub squish(*@values --> List:D, :&as)
+ multi method squish(:&as --> Iterable)
+ multi sub squish(*@values, :@as --> Iterable)
 
 Returns a list of values from the invocant/argument list where runs
 of more than one value are replaced with only the first instance.
@@ -520,15 +535,14 @@ are removed.
     say <a a b b b c c>.squish  # a b c
     say <a b b c c b a>.squish  # a b c b a
 
-The optional C< :as > parameter, just like with C< unique >, allows values to be
-temporarily transformed before comparison.
+The optional C< :as > parameter, just like with C< unique >, allows values
+to be temporarily transformed before comparison.
 
 =item min
 
  multi method min( @values: *&by --> Any )
  multi method min( @values: Ordering @by --> Any )
  multi method min( @values: Ordering $by = &infix:<cmp> --> Any )
-
  multi min( *@values, Ordering :@by --> Any )
  multi min( *@values, Ordering :$by --> Any )
 
@@ -552,7 +566,6 @@ C<[min]> reduction operator.
  multi method max( @values: *&by --> Any )
  multi method max( @values: Ordering @by --> Any )
  multi method max( @values: Ordering $by = &infix:<cmp> --> Any )
-
  multi max(*@values, Ordering :@by, --> Any )
  multi max(*@values, Ordering :$by, --> Any )
 
@@ -576,7 +589,6 @@ C<[max]> reduction operator.
  multi method minmax( @values: *&by --> Any )
  multi method minmax( @values: Ordering @by --> Any )
  multi method minmax( @values: Ordering $by = &infix:<cmp> --> Any )
-
  multi minmax( *@values, Ordering :@by --> Any )
  multi minmax( *@values, Ordering :$by --> Any )
 
@@ -636,9 +648,10 @@ the values in the list matches.
 =item comb
 
  multi method comb ( Regex $matcher, Int $limit = * )
+ multi method comb ( Str $matcher, Int $limit = * )
 
-Treats the list as a string (by simply C<join>ing them together), and calls
-C<.comb> on that string with the same parameters. See C<Str::comb>.
+Treats a sequence values as a string (by simply C<join>ing them together),
+and calls C<.comb> on that string with the same parameters. See C<Str::comb>.
 
 =item combinations
 
@@ -653,14 +666,15 @@ combinations taken N at a time to the resulting list.  If the max of
 the range is greater than the size of the list, iteration stops at
 the size of the list.  Hence, if the default of C<0..*> is taken, the
 first return value will be an empty array, and the final return value
-will be an array containing every value in the list.  The return value
-is a list of (presumably immutable) array values.  (Note: When used
-on actual sets and other iterable structures, specialized versions of
-this method are allowed to bypass turning it into a list first.  Also,
-the return values are allowed to be specialized to any non-flattening
-container, so that subsets of sets can actually be a set of sets.
-If the ordering of the input doesn't matter, neither does the ordering
-of the subsets.)
+will be an array containing every value in the list.
+
+The return value is a sequence or container of (presumably immutable) values.
+(Note: When used on actual sets and other iterable structures,
+specialized versions of this method are allowed to bypass turning it into
+a list first.  Also, the return values are allowed to be specialized to
+any non-flattening container, so that subsets of sets can actually be
+a set of sets. If the ordering of the input doesn't matter, neither
+does the ordering of the subsets.)
 
 Note that, without an argument, the first returned combination will
 always be the empty list, and the last combination will always
@@ -669,16 +683,16 @@ be the entire list.
 It is erroneous to ask for the combinations of any infinite list.
 The compiler is allowed to complain if it notices, however.
 
-The functional form assumes it is working on a list of integers C<^$n> taken C<$k> at a time.
+The functional form assumes it is working on a list of integers C<^$n>
+taken C<$k> at a time.
 
 =item permutations
 
  multi method permutations ( )
  multi permutations ( $n )
 
-Permutes the values of the list, returning the permutations as a
-list of (presumably immutable) array values.  (Types such as C<Range>
-are converted to a list of individual values before permuting them.)
+Similar to C<combinations>, but returns permutations instead.  (Types such as
+C<Range> are converted to a list of individual values before permuting them.)
 
 The functional form assumes it is working on a list of integers C<^$n>.
 
@@ -686,18 +700,18 @@ The functional form assumes it is working on a list of integers C<^$n>.
 
     multi method rotor ( *@cycle, :$partial )
 
-Takes multiple cyclical slices of the current list as specified by
+Takes multiple cyclical slices of a sequence as specified by
 C<@cycle>, which you can think of as a rotory cutter that punches out
 multiple slices depending on the arrangement of the blades (or teeth, if
 you prefer a gear analogy).  Since it's cyclical, you may apply a rotor
 to an infinite list lazily.  Each specifier in the cycle specifies how
 many elements to take (the "slice") and, optionally, how many to omit
-(the "gap").  The cycle repeats if C<@cycle> runs out before the list
-does.  The rotor stops if the list runs out first, that is, if there are
+(the "gap").  The cycle repeats if C<@cycle> runs out before the sequence
+does.  The rotor stops if the sequence runs out first, that is, if there are
 insufficient values remaining to create the entire next slice (ignoring
-any associated gap).  If :partial is specified, the final partial slice is returned at the end,
-if it is not empty.  Here we slice the alphabet into alternating slices
-of size 2 and 3:
+any associated gap).  If :partial is specified, the final partial slice
+is returned at the end, if it is not empty.  Here we slice the alphabet
+into alternating slices of size 2 and 3:
 
     my @list = 'a'...'z';
     @list.rotor(2,3)             # ab, cde, fg, hij...uv, wxy
@@ -728,9 +742,9 @@ A non-zero gap or overlap may be specified only via the pair form:
 
  multi method pairup ( )
 
-Turns a list of mixed keys, values, and pairs into a list of pairs in
+Turns a sequence of mixed keys, values, and pairs into a sequence of pairs in
 the same way that a hash composer does, only without creating the hash.
-While there is more list to process, the next value is examined.  If it
+While there is more to process, the next value is examined.  If it
 is a Pair, it is passed through unchanged.  Otherwise a second value is
 also taken from the list and those two values together are turned into
 a pair.  It is an X::Pairup::OddNumber error if there is no next value.
@@ -742,7 +756,7 @@ function.  Use a map or some such for that.
 
 =item invert
 
- multi method invert ( --> List ) is export {
+ multi method invert ( --> Iterable ) is export {
      self.map: -> $p { $.value »=>» $.key }
  }
 
@@ -755,8 +769,8 @@ C<.pairup> first:
 
     @kv.pairup.invert
 
-Likewise if you wish to invert the implicit indices of an array or list, you must
-call C<.pairs> first:
+Likewise if you wish to invert the implicit indices of an array or list, you
+must call C<.pairs> first:
 
     <a b c>.pairs.invert  # ('a' => 0, 'b' => 1, 'c' => 2)
 
