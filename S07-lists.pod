@@ -1,4 +1,3 @@
-
 =encoding utf8
 
 =head1 TITLE
@@ -7,266 +6,344 @@ Synopsis 7: Lists and Iteration
 
 =head1 VERSION
 
-    Created: 12 July 2012
+    Created: 07 September 2015
 
-    Last Modified: 29 May 2013
-    Version: 2
+    Last Modified: 07 September 2015
+    Version: 1
 
-=head1 Overview
+=head1 Design Overview
 
-Lists and arrays have always been one of Perl's fundamental data types,
-and Perl 6 is no different.  However, lists in Perl 6 have been greatly
-extended to accommodate lazy lists, infinite lists, lists of mutable
-and immutable elements, typed lists, flattening behaviors, and so on.
-So where lists and arrays in Perl 5 tended to be finite sequences of
-scalar values, in Perl 6 we have additional dimensions of behavior
-that must be addressed.
+Perl 6 provides a wide array of list-related features, including eager, lazy,
+and parallel evaluation of sequences of values, and arrays offering compact
+and multi-dimensional storage. Laziness in particular needs careful handling,
+so as to provide the power advanced users desire while not creating surprises
+for typical language users who have the (reasonable) expectation that an
+assignment into an array will have immediate effect. Additionally, it is
+important to give the programmer control of when values will and won't be
+retained. Finally, all of this needs to be done in a way that provides much
+of the convenience that a Perl is expected to provide, while still having a
+model that can be understood through understanding a small number of rules.
 
-=head2 The C<List> type
+=head2 Sequences vs. Lists
 
-The C<List> class is the base class for dealing with other types of
-lists, including C<Array>.  To the programmer, a C<List> is a potentially
-lazy and infinite sequence of elements.  A C<List> is mutable, in that
-one can manipulate the sequence via operations such as C<push>, C<pop>,
-C<shift>, C<unshift>, C<splice>, etc.  A C<List>'s elements may be
-either mutable or immutable.
+In Perl 6, we use the term "sequence" to refer to something that can, when
+requested, produce a sequence of values. Of note, it can only be asked to
+produce them once. We use the term "list" to refer to things that hold (and
+so remember) values. There are various concrete types that represent various
+kinds of list and sequence with different semantics:
 
-C<List> objects are C<Positional>, meaning they can be bound to
-array variables and support the postfix C<.[]> operator.
+    (1, 2, 3)       # a List, the simplest kind of list
+    [1, 2, 3]       # an Array, a list of (assignable) Scalar containers
+    |(1, 2)         # a Slip, a list which flattens into a surrounding List
+    $*IN.lines      # a Seq, a sequence that can be processed serially
+    (^1000).race    # a HyperSeq, a sequence that can be processed in parallel
 
-Lists are also lazy, in that the elements of a C<List> may
-come from generator functions (called C<Iterator>s) that produce
-elements on demand.
+=head2 The single argument rule
 
-=head2 The C<Array> type
+The C<@> sigil in Perl indicates "these", while C<$> indicates "the". This
+kind of plural/single distinction shows up in various places in the language,
+and much convenience in Perl comes from it. Flattening is the idea that an
+C<@>-like thing will, in certain contexts, have its values automatically
+incorporated into the surrounding list. Traditionally this has been a source
+of both great power and great confusion in Perl. Perl 6 has been through a
+number of models relating to flattening during its evolution, before settling
+on a straightforward one known as the "single argument rule".
 
-An C<Array> is simply a C<List> in which all of the elements are held
-in scalar containers.  This allows assignment to the elements of the
-array.
+The single argument rule is best understood by considering the number of
+iterations that a C<for> loop will do. The thing to iterate over is always
+treated as a single argument to the C<for> loop, thus the name of the rule.
 
-=head2 The C<Parcel> type
+    for 1, 2, 3 { }         # List of 3 things; 3 iterations
+    for (1, 2, 3) { }       # List of 3 things; 3 iterations
+    for [1, 2, 3] { }       # Array of 3 things (put in Scalars); 3 iterations
+    for @a, @b { }          # List of 2 things; 2 iterations
+    for @a, { }             # List of 1 thing; 1 iteration
 
-The comma operator (C<< infix:<,> >>) creates C<Parcel> objects.
-These should not be confused with lists; a C<Parcel> represents
-a raw syntactic sequence of elements.  A C<Parcel> is immutable,
-although the elements of a C<Parcel> may be either mutable or
-immutable.
+The first two are equivalent because parentheses do not actually construct a
+list, but only group. It is the C<< infix:<,> >> operator that forms a list.
+The third also performs three iterations, since in Perl 6 C<[...]> constructs
+an C<Array> but does not wrap it into a C<Scalar> container. The forth will do
+two iterations, since the argument is a list of two things; that they both
+happen to have the C<@>-sigil does not, alone, lead to any kind of flattening.
+The same goes for the fifth; C<< infix:<,> >> will happily form a list of one
+thing.
 
-The name "Parcel" is derived from the phrase "parenthesis cell",
-since many C<Parcel> objects appear inside of parentheses.
-However, except for the empty parcel, it's the comma operator
-that creates C<Parcel> objects.
+The single argument rule does respect C<Scalar> containers. Therefore:
 
-    ()       # empty Parcel
-    (1)      # an Int
-    (1,2)    # a Parcel with two Ints
-    (1,)     # a Parcel with one Int
+    for $(1, 2, 3) { }      # List in a Scalar; 1 iteration
+    for $[1, 2, 3] { }      # Array in a Scalar; 1 iteration
+    for $@a { }             # Array in a Scalar; 1 iteration
 
-A C<Parcel> is also C<Positional>, and uses flattening context for
-list operations such as C<.[]> and C<.elems>.  See "Flattening contexts"
-below.  For raw access to the arguments without flattening, you may use
-C<.arg($n)> instead of C<.[$n]>, and C<.args> instead of C<.elems>.
+The single argument rule is implemented consistently throughout the language.
+For example, consider the C<push> method:
 
-=head2 Flattening contexts, the C<Iterable> type
+    @a.push: 1, 2, 3;       # pushes 3 values to @a
+    @a.push: [1, 2, 3];     # pushes 3 values to @a
+    @a.push: @b;            # pushes @b.elems values to @a
+    @a.push: $(1, 2, 3);    # pushes 1 value (a List) to @a
+    @a.push: $[1, 2, 3];    # pushes 1 value (an Array) to @a
+    @a.push: @b,;           # pushes 1 value (whatever is in @b)
 
-C<List> and C<Parcel> objects can have other container objects
-as elements.  In some contexts we want to interpolate the values
-of container objects into the surrounding C<List> or C<Parcel>,
-while in other contexts we want any subcontainers to be preserved.
-Such interpolation is known as "flattening".
+Additionally, the list constructor (the C<< infix:<,> >> operator) and the
+array composer (the C<[...]> circumfix) follow the rule:
 
-The C<Iterable> type is performed by container and generator objects
-that will interpolate their values in flattening contexts.  Both
-C<List> and C<Parcel> are C<Iterable>.  C<Iterable> implies support
-for C<.iterator>, which returns an object capable of producing the
-elements of the C<Iterable>.
+    [1, 2, 3]               # Array of 3 elements
+    [@a, @b]                # Array of 2 elements
+    [@a, 1..10]             # Array of 2 elements
+    [@a]                    # Array with the elements of @a copied into it
+    [1..10]                 # Array with 10 elements
+    [$@a]                   # Array with 1 element (@a)
+    [@a,]                   # Array with 1 element (@a)
+    [[1]]                   # Same as [1]
+    [[1],]                  # Array with a single element that is [1]
+    [$[1]]                  # Array with a single element that is [1]
 
-Objects held in scalar containers are never interpolated in
-flattening context, even if the object is C<Iterable>.
+The only one of these that is likely to provide a surprise is C<[[1]]>, but is
+is deemed sufficiently rare that it does not warrant an exception to the very
+general single argument rule.
 
-    my @a = 3,4,5;
-    for 1,2,@a { ... }        # five iterations
+=head1 User-level Types
 
-    my $s = @a;
-    for 1,2,$s { ... }        # three iterations
+=head2 List
 
-Here, both C<$s> and C<@a> refer to the same underlying C<Array> object,
-but the presence of the scalar container prevents C<$s> from being
-flattened into the C<for> loop.  The C<.list> or C<.flat> method
-may be used to restore the flattening behavior:
+A C<List> is an immutable, potentially infinite, list of values. The simplest
+way to form a List is with the C<< infix:<,> >> operator:
 
-    for 1,2,$s.list { ... }   # five iterations
-    for 1,2,@($s) { ... }     # five iterations
+    1, 2, 3
 
-Conversely, the C<.item> or C<$()> contextualizer can be used to
-prevent an C<Iterable> from being interpolated:
+A C<List> can be indexed and, provided it is finite, asked for its number of
+elements:
 
-    my @b = 1,2,@a;           # @b has five elements
-    my @c = 1,2,@a.item;      # @c has three elements
-    my @c = 1,2,$(@a);        # same thing
+    say (1, 2, 3)[1];       # 2
+    say (1, 2, 3).elems;    # 3
 
-=head2 Iterators
+As it is immutable, it is not possible to C<push>, C<pop>, C<shift>,
+C<unshift>, or C<splice> a C<List>. The C<reverse> and C<rotate> operations
+return new C<List>s.
 
-An C<Iterator> is an object that is able to generate or produce
-elements of a list (called "reification").  Because a single
-C<Iterator> may be directly or indirectly referenced by
-multiple container objects simultaneously, C<Iterator>s provide
-an immutable view of the sequence of elements produced, leaving
-it up to containers to provide any mutability.
+While a C<List> itself is immutable, it may freely contain mutable things,
+including C<Scalar> containers. Thus:
 
-=head3 The C<.reify> method
+    my $a = 2;
+    my $b = 4;
+    ($a, $b)[0]++;
+    ($a, $b)[1] *= 2;
+    say $a;             # 3
+    say $b;             # 8
 
-The C<.reify($n)> method requests an C<Iterator> to return a C<Parcel>
-consisting of at least C<$n> reified elements, followed by any additional
-iterators needed for the remaining elements in the sequence.  For example:
+Trying to assign to an immutable value in a C<List> is an error, however.
 
-    my $r = 10..50;
-    say $r.iterator.reify(5).perl;  # (10, 11, 12, 13, 14, 15..50)
+    (1, 2, 3)[0]++;     # Dies: Cannot assign to an immutable value
 
-Iterators are allowed to return more or fewer elements than requested
-by C<$n>; it's up to the caller to properly handle any shortage or
-excess.  (In general an iterator is expected to always reify at
-least one element, however.)  If C<$n> is C<*>, then the iterator
-is asked to generate elements according to whatever is most natural
-for the thing being iterated.  For a C<Range> this might be a substantial
-number (or even all) of the elements of the range; for a filehandle
-it might read a single record; for a C<List> it may return only the
-non-lazy portion of the list.
+=head2 Slip
 
-Once C<.reify> is called on an iterator, the iterator is expected
-to return the same results for all subsequent calls to C<.reify>.
-This is true even if the C<$n> argument is different from one call
-to the next.  The general pattern is often something like:
+The C<Slip> type is a subclass of C<List>. A C<Slip> will have its values
+incorporated into a surrounding C<List>.
 
-    class SomeIter is Iterator {
-        has $!reified;
+    (1, (2, 3), 4).elems        # 3
+    (1, slip(2, 3), 4).elems    # 4
 
-        method reify($n = 1) {
-            unless $!reified.defined {
-                # generate return Parcel and bind to $!reified
-            }
-            $!reified;
-        }
+It is possible to coerce a C<List> to a C<Slip>, so the above can also be
+written as:
+
+    (1, (2, 3).Slip, 4).elems   # 4
+
+This is a common way to get flattening in places it will not magically take
+place:
+
+    my @a = 1, 2, 3;
+    my @b = 4, 5;
+    for @a.Slip, @b.Slip { }    # 5 iterations
+
+It's also a bit verbose, which is why the C<< prefix:<|> >> operator will,
+anywhere other than a function call argument list, do a C<Slip> coercion:
+
+    my @a = 1, 2, 3;
+    my @b = 4, 5;
+    for |@a, |@b { }            # 5 iterations
+
+It can also be useful in forms such as:
+
+    my @prefixed-values = 0, |@values;
+
+Where the single argument rule would otherwise make C<@prefixed-values> have
+two elements, the zero and C<@values>.
+
+The C<Slip> type is also respected by C<map>, C<gather>/C<take>, and lazy
+loops. It is the way a C<map> can place multiple values into its result
+stream:
+
+    my @a = 1, 2;
+    say @a.map({ $_ xx 2 }).elems;      # 2
+    say @a.map({ |($_ xx 2) }).elems;   # 4
+
+=head2 Array
+
+An C<Array> is a subclass of C<List> that places values assigned to it into
+C<Scalar> containers, meaning they can be mutated. It is the default type
+that an C<@>-sigil variable gets.
+
+    my @a = 1, 2, 3;
+    say @a.WHAT;        # (Array)
+    @a[1]++;
+    say @a;             # 1 3 3
+
+In the absence of a shape specification, it will grow automatically.
+
+    my @a;
+    @a[5] = 42;
+    say @a.elems;       # 6
+
+An C<Array> supports C<push>, C<pop>, C<shift>, C<unshift>, and C<splice>.
+
+Assignment to an array is eager by default, and creates a new set of Scalar
+containers:
+
+    my @a = 1, 2, 3;
+    my @b = @a;
+    @a[1]++;
+    say @b;             # 1, 2, 3
+
+Note that the C<[...]> C<Array> constructor is equivalent to creating and
+then assigning to an anonymous C<Array>, and so has the same semantics with
+regard to eagerness and fresh containers.
+
+=head2 Seq
+
+A C<Seq> is a one-shot producer of values. Most list processing operations
+return a C<Seq>, as do most synchronous sources of multiple values.
+
+    say (1, 2, 3).map(* + 1).WHAT;  # Seq
+    say (1, 2 Z 'a', 'b').WHAT;     # Seq
+    say (1, 1, * + * ... *).WHAT;   # Seq
+    say $*IN.lines.WHAT;            # Seq
+
+Since a C<Seq> will not by default remember is values, it can only be
+consumed once. For example, if a C<Seq> is stored:
+
+    my \seq = (1, 2, 3).map(* + 1);
+
+Then only one attempt to iterate it will work; subsequent attempts will die
+as the values have already been consumed:
+
+    for seq { .say }    # 2\n3\n4
+    for seq { .say }    # Dies: This Seq has already been iterated
+
+This means you can be confident that a loop going over a file's lines:
+
+    for open('data').lines {
+        .say if /beer/;
     }
 
-=head3 The C<.infinite> method
+Will not be retaining the lines of the file in memory. Additionally, it is
+easy to set up processing pipelines that also will not retain all of the
+lines in memory:
 
-Because lists in Perl 6 can be lazy, they can also be infinite.
-Each C<Iterator> must provide an C<.infinite> method, which returns
-a value indicating the knowable finiteness of the iteration:
+    my \lines = open('products').lines;
+    my \beer = lines.grep(/beer/);
+    my \excited = beer.map(&uc);
+    .say for excited;
 
-    .infinite     Meaning
-    ----------------------------------------------
-    True          iteration is known to be infinite
-    False         iteration is known to be finite
-    Mu            finiteness isn't currently known
+However, any attempt to re-use C<lines>, C<beer>, or C<excited> will result
+in an error. This program is equivalent in performance to:
 
-As an example, C<Range> iterators can generally know finiteness simply
-by looking at the endpoint of the C<Range>.  The iterator for the
-C<< infix:<...> >> sequence operator treats any sequence ending in
-C<*> as being "known infinite", all other C<...> sequences have unknown
-finiteness.  In the general case it's not possible for loop iterators
-to definitively know if the sequence will be finite or infinite.
-(Conjecture:  There will be a syntax or mechanism for the programmer
-to indicate that such sequences are to be treated as known finite
-or known infinite.)
+    .say for open('products').lines.grep(/beer/).map(&uc);
 
-=head2 Levels of laziness
+But provides a chance to name the stages. Note that it's possible to use
+C<Scalar> variables instead, but the single argument rule means that the
+final loop would have to be:
 
-Laziness is one of the primary virtues of a Perl programmer; it is
-also one of the virtues of Perl 6.  However, it's also possible to
-succumb to false laziness, so there are times when Perl 6 chooses
-to be eager instead of lazy.
+    .say for |$execited;
 
-Perl 6 defines four levels of laziness:
+Assigning a C<Seq> to an C<Array> will - so long as the sequence is not
+marked lazy - eagerly perform the operation and store the results into
+the C<Array>. Therefore, there are no surprises to anyone writing:
 
-=over
+    my @lines = open('products').lines;
+    my @beer = @lines.grep(/beer/);
+    my @excited = @beer.map(&uc);
+    .say for @excited;
 
-=item Strictly Lazy
+Re-using any of these arrays will work out fine. Of course, the memory
+behavior of this program is radically different, and it will be slower
+due to all of the extra C<Scalar> containers created (resulting in extra
+garbage collection) and poor locality of reference (we have to talk about
+the same string many times over the programs lifetime).
 
-Does not evaluate anything unless explicitly required by the caller,
-including not traversing non-lazy objects.  This behavior generally
-occurs only by a pragma or by explicit lazy primitives.
+Occasionally it can be useful to request that a C<Seq> cache itself. This
+can be done by calling the C<cache> method on a C<Seq>, which makes a lazy
+C<List> from the C<Seq> and returns it. Subsequent calls to C<cache> will
+return the same lazy list. Note that the first call to C<cache> counts as
+consuming the C<Seq>, and so it will not work out if any prior iteration
+has taken place, and any later attempt to iterate the C<Seq> after calling
+C<cache> will also fail. It is only C<.cache> that may be called once.
 
-=item Mostly Lazy
+A C<Seq> does not do the C<Positional> role like a C<List>. Therefore,
+it can not be bound to an C<@>-sigil variable:
 
-Try to obtain available elements without causing eager evaluation
-of other lazy objects.  However, the implementation is allowed to
-do batching for efficiency.  The programmer must not rely on
-circular side effects when the implementation is working ahead
-like this, or the results will be indeterminate.  (However, this
-does not rule out pure I<definitional> circularity; earlier array
-values may be used in the definition of subsequent values.)
+    my @lines := $*IN.lines;    # Dies
 
-=item Mostly Eager
+One consequence of this is that, naively, you could not pass a C<Seq> as an
+argument to be bound to an C<@>-sigil parameter:
 
-Obtain all leading items that are not known to be infinite.
-The remainder of the items are left for lazy evaluation.
-As with the "mostly lazy" case, the programmer must not depend
-on circular side effects in any situation where the implementation
-is allowed to work ahead.  Note that there are no language-defined
-limits on the amount of conjectural evaluation allowed, up to the
-size of available memory; however, an implementation may allow
-the arbitrary limitation of workahead by use of pragmas.
+    sub process(@data) {
+    }
+    process($*IN.lines);
 
-In any case there should be no profound semantic differences
-between "mostly lazy" and "mostly eager".  These levels are
-primarily just hints to the implementation as to whether you are
-likely to want to use all the values in the list.  Nothing
-transactional should be allowed to depend on the difference.
+This would be rather too inconvenient. Therefore, the signature binder (which
+actually uses C<::=> assignment semantics rather than C<:=>) will spot failure
+to bind the an C<@>-sigil parameter, and then check if the argument does the
+C<PositionalBindFailover> role. If it does, then it will call the C<cache>
+method on the argument and bind the result of that instead.
 
-=item Strictly Eager
+=head2 Iterable
 
-Obtain all items, failing immediately with an appropriate message
-if asked to evaluate any data structures known to be infinite.
-(Data structures that are effectively infinite but not provably
-so will likely exhaust memory instead.)
+Both C<Seq> and C<List>, along with various other types in Perl 6, do the
+C<Iterable> role. The primary purpose of this role is to promise that an
+C<iterator> method is available. The average Perl 6 user will rarely need
+to care about the C<iterator> method and what it returns.
 
-=back
+The secondary purpose of C<Iterable> is to mark out things that will
+flatten on demand, when the C<flat> method or function is used on them.
 
-=head2 The laziness level of some common operations
+    my @a = 1, 2, 3;
+    my @b = 4, 5;
+    for flat @a, @b { }         # 5 iterations
+    say [flat @a, @b].elems;    # 5
 
-=over
+Another use of C<flat> is to flatten nested C<List> structure. For example,
+the C<Z> (zip) operator produces a C<List> of C<List>:
 
-=item List assignment; my @a = @something;
+    say (1, 2 Z 'a', 'b').perl; # ((1, "a"), (2, "b")).Seq
 
-In order to provide p5-like behavior in list assignment, it is performed
-at the Mostly Eager level.  This means that if you do
+A C<flat> can be used to flatten these, which is useful in conjunction with
+a C<for> loop using a pointy block with multiple parameters:
 
-    my @a = foo();
+    for flat 1, 2 Z 'a', 'b' -> $num, $letter { }
 
-it will eagerly evaluate the return value from C<foo()> to place
-elements into C<@a>, stopping only when encountering something
-that is "known infinite" or upon reaching the end of the sequence.
+Note that C<flat> respects C<Scalar> containers, and so:
 
-=item C<for>, C<map>, C<grep>, etc.
+    for flat $(1, 2) { }
 
-The C<for> loop and looping routines such as C<map>, C<grep>, etc. are
-Mostly Lazy by default, but will be eager when evaluated in sink context.
-(Note, however, that we force C<for>, C<while>, C<until>, C<repeat> and
-C<loop> loops to always be in sink context when used as a statement within
-a statementlist.)
+Will only do one iteration. Remember that an C<Array> stores everything in a
+C<Scalar> container, and so C<flat> on an C<Array> - short of weird tricks
+with binding - will always be the same as iterating over the C<Array> itself.
+In fact, the C<flat> method on an C<Array> returns identity.
 
-=item Slurpy parameters
+=head2 HyperSeq
 
-Slurpy parameters are Mostly Lazy.
+=head2 array
 
-=item Feed operators
+=head1 The Iterator API and Implementation Types
 
-The feed operator is strictly lazy, meaning that no operation
-should be performed before the user requests any element.  That's how
+=head2 The Iterator role
 
-  my @a <== grep { ... } <== map { ... } <== grep { ... } <== 1, 2, 3
+=head2 The IterationBuffer class
 
-is completely lazy, even if 1,2,3 is a fairly small known compact
-list.
-
-=back
-
-=head2 Common list operations
+=head1 Parallelism
 
 =head1 AUTHORS
 
-    Patrick R. Michaud <pmichaud@pobox.com
+    Jonathan Worthington <jnthn@jnthn.net>
 
 =for vim:set expandtab sw=4:
