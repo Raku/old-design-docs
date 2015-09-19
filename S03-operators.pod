@@ -25,7 +25,7 @@ each level.  (Column 'A' is for "associativity", see following table.)
     A  Level             Examples
     =  =====             ========
     O  Terms             42 3.14 "eek" qq["foo"] $x :!verbose @$array
-    L  Method postfix    .meth .+ .? .* .() .[] .{} .<> .«» .:: .= .^ .:
+    L  Method postfix    .meth .+ .? .* .() .[] .{} .<> .«» .:: .= .^ .: i
     N  Autoincrement     ++ --
     R  Exponentiation    **
     L  Symbolic unary    ! + - ~ ? | || +^ ~^ ?^ ^
@@ -315,10 +315,10 @@ comma on the right--see List prefix precedence below.
 
 =head2 Method postfix precedence
 
-All method postfixes start with a dot, though the dot is optional
-for subscripts.  Since these are the tightest standard operator,
-you can often think of a series of method calls as a single term that
-merely expresses a complicated name.
+All method postfixes (except for C<i>) start with a dot, though the dot is
+optional for subscripts. Since these are the tightest standard operator, you can
+often think of a series of method calls as a single term that merely expresses a
+complicated name.
 
 See L<S12> for more discussion of single dispatch method calls.
 
@@ -392,6 +392,17 @@ Dotted form of any other postfix operator
 Dotted postfix form of any other prefix operator
 
     $x.:<++>       # prefix:<++>($x)
+
+=item *
+
+Imaginary number postfix
+
+    42i
+    $foo\i
+
+The only operator on this level that does not start with a dot. Turns a number
+into a purely-imaginary number (a C<Complex> with a zero real part). Must be
+backslashed if after a name, including C<Inf> and C<NaN>.
 
 =item *
 
