@@ -9,8 +9,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 6 Aug 2015
-    Version: 167
+    Last Modified: 25 Sep 2015
+    Version: 168
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -1333,6 +1333,31 @@ C<\()> in several ways:
     sub bar (|args = \(1,2,3)) {...}
     bar;        # $args === \(1,2,3)
     bar();      # $args === \()
+
+=head2 One-argument slurpy binding
+
+If you use a C<+> character to indicate a slurpy parameter, then it is
+assumed that the rest of the positional arguments are intended to be iterated
+with "single argument" semantics.  That is, we will take whatever is passed
+in and iterate the top level of that.  If the top level is a comma list,
+then it works just as a C<**> slurpy.  If the top level is a single argument,
+then that will be iterated.
+
+    sub foo (+args) {...}
+    foo;             # +args == 0
+    foo();           # +args == 0
+    foo((1,2),3,4)   # +args == 3
+    foo((1,2))       # +args == 2
+    foo($(1,2))      # +args == 1
+    foo((1,2).item)  # +args == 1
+    foo([1,2],3,4)   # +args == 3
+    foo([1,2])       # +args == 2
+    foo($[1,2])      # +args == 1
+    foo([1,2].item)  # +args == 1
+
+Basically, this slurpy doesn't care whether the list you hand it was made
+by syntactic commas or by some other means.  The other slurpies treat
+syntactic commas as dominant even when there aren't any!
 
 =head2 Feed operators
 
