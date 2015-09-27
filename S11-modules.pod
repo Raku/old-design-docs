@@ -431,12 +431,13 @@ mechanism without the user asking for the details to be leaked.
 
 As discussed in C<Units>, the required parts for library insertion are the
 (long) name of the compilation unit, a URI identifying the author/authority
-(called auth to be intentionally ambiguous) and its version number (ver for
-short).  For example, if a compunit contains this configuration in its
-L<META6.json>:
+(called auth to be intentionally ambiguous), its version number (ver for
+short) and an optional API indicator.  For example, if a compunit contains
+this configuration in its L<META6.json>:
 
   "name"    : "Dog",
   "version" : "1.2.1"
+  "api"     : "woof"
 
 and has been installed from an author identified by C<cpan:JRANDOM>, then
 when you then attempt to load a compilation unit, like:
@@ -445,7 +446,7 @@ when you then attempt to load a compilation unit, like:
 
 you're really wildcarding the unspecified bits:
 
-    use Dog:auth(Any):ver(Any);
+    use Dog:auth(Any):ver(Any):api(Any);
 
 And when you say:
 
@@ -453,7 +454,7 @@ And when you say:
 
 you're really asking for:
 
-    use Dog:auth(Any):ver<1.2.1>;
+    use Dog:auth(Any):ver<1.2.1>:api(Any);
 
 Saying C<1.2.1> specifies an I<exact> match on that part of the
 version number, not a minimum match.  To match more than one version,
@@ -574,6 +575,28 @@ is a conflict over which version to use, the new one is used by both users,
 but each gets a view that is consistent with the version it thinks it is
 using.  Of course, this depends crucially on how well the new version
 actually emulates the old version.
+
+=head2 Tie-braking
+
+When specifing an insufficiently strict -use- statement, it will be possible
+that more than one compunit will match the given specification.  In that case
+the following rules apply:
+
+=over 4
+
+=item die if the selected compunits have a different :api value
+
+A different :api value indicates a difference in API, which means that
+probably at least one of the compunits is incompatible with the code wanting
+to use it.
+
+=item select the highest version (within the same api)
+
+All compunits with the same API can be considered compatible.  It's most
+likely that the newest version will be the best to be used.  So if you didn't
+care about the version, the newest will be used.
+
+=back
 
 =head1 Forcing Perl 6
 
