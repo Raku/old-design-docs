@@ -541,24 +541,28 @@ or
 
 if you mean the other thing.
 
-Also note that if any term in a list is a bare closure or pointy
-sub, it will be considered to be the final argument of its list
-unless the closure's right curly is followed immediately by comma
-or colon.  In particular, a method call does *not* extend
-the list, so you can say:
+Also note that if any term in a list is a bare closure or pointy block,
+it will be considered to be the final argument of its list if the
+closure's right curly is followed by a newline.
 
-    @list.grep: { $_ % 2 }.map: { $_ - 1 }.say
+If instead the closure's right curly is followed by a method call, the
+closure is the invocant:
 
-and that will be taken as equivalent to
+    @list.map:{ "'$^x $^y'".say }.assuming: 'got:'
 
-    @list.grep({ $_ % 2 }).map({ $_ - 1 }).say
+To call the method of the result of the former method call, add parens:
 
-Since the colon does not require a space in this case, and it looks
-slightly odd there anyway, it may be clearer to omit the space to make
-the method calls on the right look more like they attach to the term
-on the left in one cascade of method calls:
+    @list.map({ "got: $^x" }).say
 
-    @list.grep:{ $_ % 2 }.map:{ $_ - 1 }.say
+Even when the colon of a method call does not require whitespace when
+followed by a block, it will look odd, so it may be clearer to add the
+space to make the method calls on the right look more like they attach
+to the block itself instead of the term on the left:
+
+    @list.map: { "'$^x $^y'".say }.assuming: 'got:'
+
+This will also visually distinguish between a method call introducing
+colon and an object pair constructor.
 
 =head2 Lvalue methods
 
