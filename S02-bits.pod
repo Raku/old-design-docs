@@ -8,8 +8,8 @@ Synopsis 2: Bits and Pieces
 
     Created: 10 Aug 2004
 
-    Last Modified: 13 May 2015
-    Version: 295
+    Last Modified: 16 Oct 2015
+    Version: 296
 
 This document summarizes Apocalypse 2, which covers small-scale lexical
 items and typological issues.  (These Synopses also contain updates to
@@ -2147,20 +2147,19 @@ something like:
 
 the syntactic list is translated (at compile time, in this case) into a
 C<Capture> object with three positionals and one named argument in
-preparation for binding.  More generally, a parcel is transmuted to a
+preparation for binding.  More generally, a list is transmuted to a
 capture any time it is bound to a complete signature.
 
 You may force immediate conversion to a C<Capture> object by prefixing the
-parcel composer with a backslash:
+list with a backslash:
 
     $args = \(1,2,3,:mice<blind>)
 
-Individual arguments in a parcel or capture composer are parsed as ordinary
+Individual arguments in an argument list (or capture composer) are parsed as ordinary
 expressions, and any functions mentioned are called immediately, with each
-function's results placed as an argument (often a subparcel, if the function
-returns multiple values) within the outer parcel (or capture).  Whether any
+function's results placed as an argument within the outer argument list.  Whether any
 given argument is flattened will depend on its eventual binding, and in
-general cannot be known at parcel/capture composition time.
+general cannot be known at composition time.
 
 We use "argument" here to mean anything that would be taken as a single
 argument if bound to a positional or named parameter:
@@ -2171,7 +2170,7 @@ argument if bound to a positional or named parameter:
     rhyme((1,2),(3,:mice<blind>)) # rhyme has 2 arguments
     rhyme((1,2,3,:mice<blind>))   # rhyme has 1 argument
 
-In these examples, the first argument to the function is a parcel in all but
+In these examples, the first argument to the function is a list in all but
 the first case, where it is simply the literal integer 1.  An argument is
 either of:
 
@@ -2179,7 +2178,7 @@ either of:
 
 =item *
 
-A parcel that groups together a sublist, or
+A parenthesized list that groups together a sublist, or
 
 =item *
 
@@ -2188,20 +2187,20 @@ Any other object that can function as a single argument.
 =back
 
 Looking at it the other way, all arguments that don't actually need to be
-wrapped up in a parcel are considered degenerate parcels in their own right
+wrapped up in a list are considered degenerate lists in their own right
 when it comes to binding.  Note that a capture is not considered a kind of
-parcel, so does not flatten in flat context.
+list, so does not flatten in flat context.
 
-=head2 Parcels, parameters, and Captures
+=head2 Lists, parameters, and Captures
 
-When a C<Parcel> is bound to a parameter, the behavior depends on whether
+When an argument is bound to a parameter, the behavior depends on whether
 the parameter is "flattening" or "argumentative".  Positional parameters and
-slice parameters are argumentative and call C<.getarg> on the internal
-iterator and just return the next syntactic argument (parcel or other
-object) without flattening.  (A slice differs from an ordinary positional
+slice parameters are argumentative 
+and just return the next syntactic argument
+without flattening.  (A slice differs from an ordinary positional
 parameter in being "slurpy", that is, it is intended to fetch multiple
 values from the variadic region of the surrounding capture.  Slurpy contexts
-come in both flattening (C<*> parameters) and slicing (C<**> parameters)
+come in flattening (C<*> parameters), slicing (C<**> parameters), and one-arg (C<+> parameters)
 forms.)
 
 The fact that a parameter is being bound implies that there is an outer
@@ -2210,14 +2209,14 @@ C<.get> and a C<.getarg> method to tell the iterator what context to bind
 in.  For positional/slice parameters, the C<.getarg> method returns the
 entire next argument from the iterator. It returns other objects unchanged.
 In contrast, flat parameters call C<.get> on the capture's iterator, which
-flattens any subparcels before pulling out the next item.  In either case,
-no bare parcel object is seen as a normal bound argument.  (There is a way
-to bind the underlying parcel using backslash, however.  This is how
-internal routines can deal with parcels as real objects.)
+flattens any sublists before pulling out the next item.  In either case,
+no bare list object is seen as a normal bound argument.  (There is a way
+to bind the underlying list using backslash, however.  This is how
+internal routines can deal with lists as real objects.)
 
 In contrast to parameter binding, if a C<List> is bound to an entire
 signature (typically as part of a function or method call), it will be
-transformed first into a capture object, which is much like a parcel but has
+transformed first into a capture object, which is much like a list but has
 its arguments divvied up into positional and named subsets for faster
 binding.  (Usually this transformation happens at compile time.) If the
 first positional is followed by a colon instead of a comma, it is marked as
@@ -2241,7 +2240,7 @@ eventual value may well be unknown.  All we know is that we have the promise
 to make the bits of it immutable as they become known.
 
 C<Capture> objects may contain multiple unresolved iterators such as feeds
-or parcels or lists of parcels.  How these are resolved depends on what they
+or lazy lists.  How these are resolved depends on what they
 are eventually bound to.  Some bindings are sensitive to multiple dimensions
 while others are not.  Binding to a list of lists is often known as
 "slicing", because it's commonly used to index "slices" of a potentially
@@ -2262,7 +2261,7 @@ parentheses.  The special syntax form C<$()> translates into C<$( $/.made //
 Str($/) )> to operate on the current match object; similarly C<@()> and
 C<%()> can extract positional and named submatches.
 
-C<Parcel> and C<Capture> objects fill the ecological niche of references in
+C<Capture> objects fill the ecological niche of references in
 Perl 6.  You can think of them as "fat" references, that is, references that
 can capture not only the current identity of a single object, but also the
 relative identities of several related objects.  Conversely, you can think
@@ -2387,27 +2386,21 @@ applied (primed) by using the C<.assuming> method:
 
     &foo.assuming(1,2,3,:mice<blind>)
 
-=head2 Multidimensional slices and parcels
+=head2 Multidimensional slices and lists
 
 Slicing syntax is covered in S09.  A multidimensional slice will be done
 with semicolons between individual slice sublists.  The semicolons imply one
-extra level of tree-ness, where the top list is of type C<LoL> and sublists
-are C<Lists>s (or non-iterable items that can function as single-item
-parcels).  So when you say
+extra level of tree-ness.  So when you say
 
     @matrix[1..*; 0]
 
 really means
 
-    @matrix[LoL.new( (1..*), 0 )]
+    @matrix[List.new( (1..*), 0 )]
 
-or more briefly,
+Each such slice sub-list is evaluated lazily.
 
-    @matrix[lol (1..*), 0]
-
-Each such slice sub-parcel is evaluated lazily.
-
-Just as parens and brackets can be used to compose parcels and arrays, if
+Just as parens and brackets can be used to compose lists and arrays, if
 you put any semicolons into either form, it becomes a multi-dimensional
 composer:
 
@@ -3522,7 +3515,7 @@ is equivalent to:
     $a = ('a', 'b');
 
 which assigns a C<List> to the variable.  On the other hand, if you
-backslash the parcel:
+backslash the list:
 
     $a = \<a b>;
 
@@ -3535,7 +3528,7 @@ into a separate structure, in contrast to a C<List>, which keeps
 everything in its original list).
 
 Binding is different from assignment.  If bound to a signature, the C<< <a
-b> >> parcel will be promoted to a C<Capture> object, but if bound to a
+b> >> list will be promoted to a C<Capture> object, but if bound to a
 parameter, it will make the flattening/slicing decision based on the nature
 of the individual parameter.  That is, if you pass C<< <a b> >> as an
 argument, it will bind as a single item to a positional or slice parameter,
@@ -3567,7 +3560,7 @@ clarity as well as correctness:
 
 =head3 Empty List
 
-Even though there is no comma in it, the empty parcel is represented by
+Even though there is no comma in it, the empty list is represented by
 C<()>.  Normally, one could itemize this by prefixing a C<$> (as in C<$()>),
 but that translates to the special syntax form C<$( $/.made // Str($/) )>.
 Instead, one can C<().item>, or less legibly, introduce a space as in C<$(
@@ -4708,19 +4701,19 @@ There is a "C<list>" operator which imposes a list context on its arguments
 even if C<list> itself occurs in item context.
 
 To force explicit flattening, use the C<flat> contextualizer.  This
-recursively flattens all parcels into a 1-dimensional list.  When bound to a
+recursively flattens all lists into a 1-dimensional list.  When bound to a
 slurpy parameter, a capture flattens the rest of its positional arguments.
 
-To reform a list so that sub-parcels turn into tree nodes, use the C<.tree>
+To reform a list so that sub-lists turn into tree nodes, use the C<.tree>
 method, which is essentially a level-sensitive C<map>, with one closure
-provided for remapping the parcels at each level:
+provided for remapping the lists at each level:
 
     $p.tree                # recursively set all levels to item
     $p.tree(*)             # same thing
-    $p.tree(*.item)        # force level 1 parcels to item
+    $p.tree(*.item)        # force level 1 lists to item
     $p.tree(1)             # same thing
-    $p.tree(*.item,*.list) # force level 1 parcels to item, level 2 to list
-    $p.tree(*.Array,*)     # Turn all subparcels into item recursively
+    $p.tree(*.item,*.list) # force level 1 lists to item, level 2 to list
+    $p.tree(*.Array,*)     # Turn all sublists into item recursively
 
 When bound to a slice parameter (indicated with C<**>), a capture reforms
 the rest of its positional arguments with one level of "treeness",

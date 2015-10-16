@@ -9,8 +9,8 @@ Synopsis 6: Subroutines
 
     Created: 21 Mar 2003
 
-    Last Modified: 25 Sep 2015
-    Version: 168
+    Last Modified: 16 Oct 2015
+    Version: 169
 
 This document summarizes Apocalypse 6, which covers subroutines and the
 new type system.
@@ -549,10 +549,10 @@ C<FETCH> and C<STORE> methods:
 Other methods may be defined for specialized purposes such as temporizing
 the value of the proxy.
 
-=head2 Parcel subroutines
+=head2 Raw subroutines
 
 If the subroutine doesn't care whether the returned value is a container or not,
-it may declare this with C<is parcel>, to indicate that the return value should
+it may declare this with C<is raw>, to indicate that the return value should
 be returned raw, without attempting any decontainerization.  This can be useful for
 routines that wish to process mixed containers and non-containers without distinction.
 
@@ -738,9 +738,9 @@ of the parameter.
 If you have a readonly parameter C<$ro>, it may never be passed on to
 a C<rw> parameter of a subcall, whether or not C<$ro> is currently
 bound to a mutable object.  It may only be rebound to readonly or
-copy parameters.  It may also be rebound to a parcel parameter (see
-"C<is parcel>" below), but modification will fail as in the case where
-an immutable value is bound to a C<parcel> parameter.
+copy parameters.  It may also be rebound to a raw parameter (see
+"C<is raw>" below), but modification will fail as in the case where
+an immutable value is bound to a C<raw> parameter.
 
 Aliases of C<$ro> are also readonly, whether generated explicitly with C<:=>
 or implicitly within a C<Capture> object (which are themselves immutable).
@@ -1211,7 +1211,7 @@ arguments.
 
     sub foo (\x) { x 42; }    # syntax error; two terms in a row
 
-Parcel parameters make it relatively easy to program in a "sigilless" style,
+Raw parameters make it relatively easy to program in a "sigilless" style,
 if you desire:
 
     sub say-sins (\angles) {
@@ -1226,7 +1226,7 @@ Note how C<𝑖> would be misinterpreted if it treated C<+ 2> as an argument, bu
 since it's a simple term, it doesn't.
 
 The term does act like a function call in one way, however.  Since it returns a
-parcel, the value will flatten in a list context, but itemize in an item context.
+raw value, whether it flattens or not depends on the context in which it is eventually used.
 You can use C<< prefix:<|> >> to force flattening into an outer argument list, if
 needed.
 
@@ -1312,9 +1312,8 @@ so C<self> is not present in the C<**@slice> below:
     method foo (**@slice) { ... }
 
 The C<**> marker is just a variant of the C<*> marker that ends up
-requesting parcels when binding (underlyingly calling C<.getarg>) rather
-than requesting individual elements as the flattening C<*> does (underlyingly
-calling C<.get>).
+requesting the arguments at the comma-separated syntax level, rather
+than requesting individual elements as the flattening C<*> does.
 
 =head2 Zero-dimensional argument list
 
@@ -1484,8 +1483,7 @@ To append multiple sources to the next sink, double the angle:
     # outputs "(0, 'a', 3)\n"...
     for $sink.zip { .perl.say }
 
-Each such append adds another slice element (that is, a parcel), to
-the sink.  (The original feed also created a parcel.)
+Each such append adds another slice element to the sink.
 
 You may use a variable (or variable declaration) as a receiver, in
 which case the list value is bound as the "todo" of the variable.
@@ -1535,7 +1533,7 @@ sometimes you want to capture the outputs as a list of two iterators,
 namely the two iterators that represent the two input feeds.  You can
 get at those two iterators by using a scalar instead, which
 will preserve the slice structure, which can be fed to any operation
-that knows how to deal with a list of parcels as a slice, such as C<zip>:
+that knows how to deal with a list of values as a slice, such as C<zip>:
 
     0..*       ==>  $foo;
     'a'..*     ==>> $foo;
@@ -1551,7 +1549,7 @@ that knows how to deal with a list of parcels as a slice, such as C<zip>:
         [5,'f',9]
         ...
 
-Here C<$foo> is a list of three parcels, so
+Here C<$foo> is a list of three lists, so
 
     $foo.zip
 
@@ -1870,9 +1868,9 @@ the submethod above is really more like:
 
 If you wish to allow the user to initialize an attribute by reference,
 you may either write your own initializer submethod explicitly, or
-simply mark the attributes you want to work that way with C<is parcel>:
+simply mark the attributes you want to work that way with C<is raw>:
 
-    has $!age is parcel;   # BUILD will automatically use binding, not copy
+    has $!age is raw;   # BUILD will automatically use binding, not copy
 
 To rename an attribute parameter you can use the explicit pair form:
 
@@ -1920,7 +1918,7 @@ The C<$_> variable functions as a placeholder in a block without any
 other placeholders or signature.  Any bare block without placeholders
 really has a parameter like this:
 
-    -> $_ is parcel = OUTER::<$_> { .mumble }
+    -> $_ is raw = OUTER::<$_> { .mumble }
 
 (However, statement control C<if> notices this and passes no argument,
 so C<$_> ends up being bound to the outer C<$_> anyway.)
@@ -2049,9 +2047,9 @@ implicitly, by providing a block after the subroutine's signature definition.
 
 Marks a subroutine as returning an lvalue.
 
-=item C<is parcel>
+=item C<is raw>
 
-Marks a subroutine as returning a parcel.
+Marks a subroutine as returning a raw alias.
 
 =item C<is parsed>
 
@@ -2357,13 +2355,10 @@ element of the list:
 (The variadic array as a whole is always modifiable, but such
 modifications have no effect on the original argument list.)
 
-=item C<is parcel>
+=item C<is raw>
 
-Specifies that the parameter is passed as a "parcel", that is, as a
-raw reference to a "parenthetical cell" or "parse list", an argument
-object that has not yet had a context imposed.  (It may or may not
-actually be of the C<Parcel> type, since a C<Parcel> containing only
-one object automatically unwraps itself to be that object directly.)
+Specifies that the parameter is passed as a raw alias, an argument
+object that has not yet had a context imposed.
 In other words, this provides for lazy contextualization even through
 function calls.  This is important if you wish to pass the parameter
 onward to something else that will determine its context later.
@@ -2375,7 +2370,7 @@ them within the body of the routine.  That is, if autovivification
 happens, it happens at the point of use, not at the point of binding.
 
 For better visual distinction, such a parameter is declared by
-prefixing with a backslash rather than by using C<is parcel> directly.
+prefixing with a backslash rather than by using C<is raw> directly.
 The backslash is also more succinct; the trait is there primarily
 for introspection.
 
@@ -2424,7 +2419,7 @@ readonly properties:
   named          True if the parameter is to be passed named
   named_names    List of names a named parameter can be passed as
   capture        True if the parameter binds the caller's Capture
-  parcel         True if the parameter is too lazy to contextualize
+  raw            True if the parameter is too lazy to contextualize
   slurpy         True if the parameter is slurpy
   optional       True if the parameter is optional
   default        A closure returning the default value
@@ -2474,7 +2469,7 @@ operators such as:
     leave
     take
 
-Specifically, this processing involves examining the returned parcel's
+Specifically, this processing involves examining the returned value's
 arguments and dereferencing any container that could be used as an lvalue,
 replacing it with the container's value.
 

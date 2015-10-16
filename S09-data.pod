@@ -9,8 +9,8 @@ Synopsis 9: Data Structures
 
     Created: 13 Sep 2004
 
-    Last Modified: 5 Mar 2012
-    Version: 51
+    Last Modified: 16 Oct 2015
+    Version: 52
 
 =head1 Overview
 
@@ -396,7 +396,7 @@ is really short for something like:
     @array.postcircumfix:<[ ]>( (0..10), (42), (@x) );
 
 The method's internal C<**@slices> parameter turns the subscripts into three
-independent C<Parcel> lists, which can be read lazily independently of one other.
+independent lists, which can be read lazily independently of one other.
 (Though a subscripter will typically use them left-to-right as it slices each
  dimension in turn.)
 
@@ -823,8 +823,8 @@ semicolon form.
 At the statement level, a semicolon terminates the current expression.
 Within any kind of bracketing construct, semicolon notionally separates
 the sublists of a multidimensional slice, the interpretation of
-which depends on the context.  Such a semicolon list puts each of its
-sublists into a C<Parcel>, deferring the context of the sublist until
+which depends on the context.  Such a semicolon list treats each of its
+sublists separately, deferring the context of the sublist until
 it is bound somewhere.  The storage of these sublists is hidden in
 the inner workings of the list.  It does not produce a list of lists
 unless the list as a whole is bound into a slice context.
@@ -1228,9 +1228,9 @@ or copy container) does not autovivify.
 Note that assignment is treated the same way as binding to a copy container,
 so it does not autovivify its right side either.
 
-Any mention of an expression within a C<Parcel> delays the autovivification
-decision to binding time.  (Binding to a parcel parameter also defers the
-decision.)
+Any mention of an expression within a Capture (that is, an argument list)
+delays the autovivification decision to binding time.  (Binding to a
+raw parameter defers the decision even further.)
 
 This is as opposed to Perl 5, where autovivification could happen
 unintentionally, even when the code looks like a non-destructive test:
@@ -1250,8 +1250,8 @@ But these bindings I<do> autovivify:
     my $val := %hash<foo><bar>;
 
     my @array;
-    my $parcel = \@array[0][0]; # $parcel is a Parcel object - see S02
-    my :($obj) := $parcel;   # @array[0][0] created here
+    my $capture = \@array[0][0]; # $capture is a Capture object - see S02
+    my :($obj) := $capture;   # @array[0][0] created here
 
     my @array;
     foo(@array[0][0]);

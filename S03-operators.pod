@@ -8,8 +8,8 @@ Synopsis 3: Operators
 
     Created: 8 Mar 2004
 
-    Last Modified: 8 Apr 2015
-    Version: 287
+    Last Modified: 16 Oct 2015
+    Version: 288
 
 =head1 Overview
 
@@ -700,7 +700,7 @@ argument.
 
 C<< prefix:<||> >>, flatten object into semicolon list
 
-    || $parcel
+    || $list
 
 Interpolates the elements of the C<List> (or any other ordered or iterable value)
 into the current argument list as if they had been specified literally,
@@ -1937,7 +1937,7 @@ if they do match you may interleave unrelated sequences:
 
     1,1,{ $^a + 1, $^b * 2 }...*   # 1,1,2,2,3,4,4,8,5,16,6,32...
 
-Note in this case that the any limit test is applied to the entire parcel
+Note in this case that the any limit test is applied to the entire list
 returned from the function, which contains two values.
 
 A sequence generated from an explicit function places no type
@@ -2549,17 +2549,6 @@ The C<flat> contextualizer
 Forces the subsequent expression to be evaluated in a flattening
 list context.  The result will be recursively flattened, i.e.,
 contain no embedded C<List>, C<Seq> or C<Range> objects.
-
-=item *
-
-The C<lol> contextualizer
-
-    lol foo()
-
-Forces the subsequent expression to be evaluated in list-of-lists
-context.  This is typically used to form a multidimensional slice.
-A parcel potentially containing subparcels will be transformed into
-a list of lists, specifically of type C<LoL>.
 
 =item *
 
@@ -4621,7 +4610,7 @@ together, just as if you had written it out explicitly:
     [<] 1, 3, 5;      # 1 < 3 < 5
 
 For list infix operators, flattening is not done on the input list, so
-that multiple parcels may be passed in as comma-separated arguments:
+that multiple lists may be passed in as comma-separated arguments:
 
     [X~] (1,2), <a b>;  # 1,2 X~ <a b>
 

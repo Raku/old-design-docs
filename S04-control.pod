@@ -8,8 +8,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 19 Sep 2015
-    Version: 140
+    Last Modified: 16 Oct 2015
+    Version: 141
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -324,7 +324,7 @@ and that is equivalent to:
 
 (Only a single statement is allowed inside parens or brackets; otherwise
 it will be interpreted as a LoL composer.
-See L<S02/"Multidimensional slices and parcels">.)
+See L<S02/"Multidimensional slices and lists">.)
 
 =head2 The C<with> and C<without> statements
 
@@ -812,7 +812,7 @@ If you take multiple items in a comma list (since it is, after all, a list
 operator), they will be wrapped up in a C<List> object for return as the
 next argument.  No additional context is applied by the C<take> operator,
 since all context is lazy in Perl 6.  The flattening or slicing of any such
-returned parcel will be dependent on how the C<gather>'s return iterator is
+returned list will be dependent on how the C<gather>'s return iterator is
 iterated (with C<.get> vs C<.getarg>).
 
 The value returned by the C<take> to the C<take>'s own context is that same
@@ -822,9 +822,9 @@ added to the list of values being gathered, which is returned by the
 C<gather> as a lazy list (that is, an iterator, really), with each argument
 element of that list corresponding to one C<take>.
 
-Any parcels in the returned list are normally flattened when bound into flat
-context.  When bound into a lol context, however, the parcel objects become
-real C<List> objects that keep their identity as discrete sublists.  The
+Any sublists in the returned list are normally flattened when bound into flat
+context.  When bound into a slice context, however, the sublist objects
+keep their identity as discrete sublists.  The
 eventual binding context thus determines whether to throw away or keep the
 groupings resulting from each individual C<take> call.  Most list contexts
 are flat rather than sliced, so the boundaries between individual C<take>
@@ -846,17 +846,17 @@ to keep track of what you last "took":
 The C<take> function essentially has two contexts simultaneously, the
 context in which the C<gather> is operating, and the context in which the
 C<take> is operating.  These need not be identical contexts, since they may
-bind or coerce the resulting parcels differently:
+bind or coerce the resulting lists differently:
 
     my @y;
-    my @x = gather for 1..2 {            # flat context for list of parcels
+    my @x = gather for 1..2 {            # flat context for list of lists
         my ($y) := \(take $_, $_ * 10);  # binding forces item context
         push @y, $y;
     }
     # @x contains 4 Ints:    1,10,2,20 flattened by list assignment to @x
     # @y contains 2 Lists:   $(1,10),$(2,20) sliced by binding to positional $y
 
-Likewise, we can just remember the gather's result parcel by binding and
+Likewise, we can just remember the gather's result list by binding and
 later coercing it:
 
     my ($c) := \(gather for 1..2 {
@@ -1589,10 +1589,7 @@ from that point.
 
 For phasers such as C<KEEP> and C<POST> that are run when exiting a scope
 normally, the return value (if any) from that scope is available as the
-current topic within the phaser.  (It is presented as a argument, that is,
-either as parcel or an object that can stand alone in a list.  In other
-words, it's exactly what C<return> is sending to the outside world in raw
-form, so that the phaser doesn't accidentally impose context prematurely.)
+current topic within the phaser.
 
 The topic of the block outside a phaser is still available as C<<
 OUTER::<$_> >>.  Whether the return value is modifiable may be a policy of
@@ -1773,7 +1770,7 @@ exception, though returning a defined value after catching an exception is
 okay.
 
 In the absence of error exception propagation, a successful exit is one that
-returns a defined value or parcel.  (A defined parcel may contain undefined
+returns a defined value or list.  (A defined list may contain undefined
 values.) So any Perl 6 function can say
 
     fail "message";
