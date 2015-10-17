@@ -249,14 +249,6 @@ an argument will iterate or terminate the C<grep> itself, not some
 loop surrounding the statement containing the C<grep>.  Use a label
 if you mean the other thing.
 
-=item grep-index
-
- multi method grep-index ( @values: Matcher $test --> Iterable )
- multi grep-index ( Matcher $test, *@values --> Iterable )
-
-Like C<grep>, but returns ordinal numbers of the matching
-values, or C<Nil> if not found.
-
 =item first
 
  multi method first ( @values: Matcher $test )
@@ -264,33 +256,6 @@ values, or C<Nil> if not found.
 
 C<first> searches exactly like C<grep> but stops testing at the first match
 and returns just that value.  Returns C<Nil> if no match is found.
-
-=item first-index
-
- multi method first-index ( @values: Matcher $test --> Any )
- multi first-index ( Matcher $test, *@values --> Any )
-
-Like C<first>, but returns the ordinal number of the first matching value,
-or C<Nil> if not found.
-
-=item last-index
-
- multi method last-index ( @values: Matcher $test )
- multi last-index ( Matcher $test, *@values )
-
-C<.last-index> is similar to C<first-index>, but the values are tested
-starting with the last value and working backwards until the first
-successful test.  The returned indices are still as counted from the
-beginning of the sequence.
-
-Lazy sequences will be iterated to the end, remembering values, before
-any tests are evaluated.  If the test is not as resource intensive as
-remembering all the values, consider instead:
-
-    @values.grep-index($test).max;
-
-...which will run the test on all elements but will not keep unneeded
-values in memory.
 
 =item pick
 
