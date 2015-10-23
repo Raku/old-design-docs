@@ -205,6 +205,12 @@ handled with lexical scoping in Perl 6.  The fact that importation
 is lexical by default also means that any names your class imports
 are also private by default.
 
+In grammars, one cannot use grammar attributes so one can call
+a grammar rule from an unrelated grammar.
+One can emulate that behavior with lexically scoped grammars created 
+within a closure. The lexical variables captured by the closure can then 
+be used where grammar attributes would be.
+
 =head2 Class composition
 
 Class declarations (in particular, role composition) are strictly
@@ -535,24 +541,28 @@ or
 
 if you mean the other thing.
 
-Also note that if any term in a list is a bare closure or pointy
-sub, it will be considered to be the final argument of its list
-unless the closure's right curly is followed immediately by comma
-or colon.  In particular, a method call does *not* extend
-the list, so you can say:
+Also note that if any term in a list is a bare closure or pointy block,
+it will be considered to be the final argument of its list if the
+closure's right curly is followed by a newline.
 
-    @list.grep: { $_ % 2 }.map: { $_ - 1 }.say
+If instead the closure's right curly is followed by a method call, the
+closure is the invocant:
 
-and that will be taken as equivalent to
+    @list.map:{ "'$^x $^y'".say }.assuming: 'got:'
 
-    @list.grep({ $_ % 2 }).map({ $_ - 1 }).say
+To call the method of the result of the former method call, add parens:
 
-Since the colon does not require a space in this case, and it looks
-slightly odd there anyway, it may be clearer to omit the space to make
-the method calls on the right look more like they attach to the term
-on the left in one cascade of method calls:
+    @list.map({ "got: $^x" }).say
 
-    @list.grep:{ $_ % 2 }.map:{ $_ - 1 }.say
+Even when the colon of a method call does not require whitespace when
+followed by a block, it will look odd, so it may be clearer to add the
+space to make the method calls on the right look more like they attach
+to the block itself instead of the term on the left:
+
+    @list.map: { "'$^x $^y'".say }.assuming: 'got:'
+
+This will also visually distinguish between a method call introducing
+colon and an object pair constructor.
 
 =head2 Lvalue methods
 
@@ -1012,7 +1022,7 @@ treating the method call as a postfix:
     @object»!meth(@args)   # calls private method on each
 
 The return value is a list with exactly the same number of elements
-as C<@object>.  Each such return value is a C<Parcel> or C<List> of C<Parcel>
+as C<@object>.  Each such return value is a C<List> or C<List> of C<List>
 as specified above for the non-hyper "dot" variants.
 
 Hyperoperators treat a junction as a scalar value, so saying:
@@ -1620,21 +1630,19 @@ from it by appending an appropriate adverbial to its name:
 
     Int:_       Allow either defined or undefined Int values
     Int:D       Allow only defined (concrete) Int values
-    Int:U       Allow only undefined (abstract or failure) Int values
-    Int:T       Allow Int only as a type object
+    Int:U       Allow only undefined (abstract) Int values
 
 That is, these mean something like:
 
     Int:D       Int:_ where DEFINITE($_)
     Int:U       Int:_ where not(DEFINITE($_))
-    Int:T       Int:U where none(Failure)
 
 where C<DEFINITE> is a boolean macro that says whether the object
 in question has a valid concrete representation (see L</Introspection> below).
 
 In standard Perl 6, C<Int> is generally assumed to mean C<Int:_>, except
 for invocants, where the default is C<Int:D>.  (The default C<new> method
-has a prototype whose invocant is C<:T> instead, so all new methods all
+has a prototype whose invocant is C<:U> instead, so all new methods all
 default to allowing type objects.)
 
 These defaults may be changed within a lexical scope by various pragmas.

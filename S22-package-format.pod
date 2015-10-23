@@ -8,8 +8,8 @@ Synopsis 22: Distributions, Recommendations, Delivery and Installation
 
     Created: 15 March 2014
 
-    Last Modified: 17 April 2015
-    Version: 5
+    Last Modified: 27 September 2015
+    Version: 6
 
 =head1 TERMINOLOGY
 
@@ -228,7 +228,7 @@ available to be C<use>d.  For example:
 Please note that the filenames specified only indicate the names of the files
 in the B<distribution>.  The installer may need to mangle filenames to be able
 support file systems that do not support the file names given (e.g. when they
-contain unicode characters where the file system does not support them).  This
+contain Unicode characters where the file system does not support them).  This
 also implies that any installer needs to keep a local database that is able to
 convert from the module names given, to the actual associated file).
 
@@ -366,7 +366,7 @@ directory in the "resource" directory in the distribution.  Each resource
 group has a name and a list of files that are provided.  At build time any
 not-yet existing files should be created.  The installer will install all
 files into a location at its discretion (taking care of file-system
-case-insensitivity and unicode-support issues), and make the files available
+case-insensitivity and Unicode-support issues), and make the files available
 through the L</%?RESOURCE> hash.
 
 =head3 support
@@ -450,7 +450,7 @@ application.
 =head3 t
 
 All C<.t> files in this directory, will be tested in alphabetical order,
-possibly in parallel.  Any files in this directory will never be installed.
+possibly in parallel.
 
 =head3 hooks
 
@@ -487,21 +487,21 @@ path or a URL).
 Some examples (where CURL is short for CompUnitRepo::Local):
 
   /foo/bar                    simple CURL::File in /foo/bar
-  file:/foo/bar               (same)
-  inst:/installed             simple CURL::Installation in /installed
-  inst:name<work>:/installed  (same) but also set %?CUSTOM_LIB<work>
-  inst:name[work]:/installed  (same) but more CLI-friendly
-  inst:name{work}:/installed  (same) alternate CLI-friendly way
-  CompUnitRepo::Local::Installation:/installed  (same) but with full class name
-  CompUnitRepo::GitHub:masak/html-template      get it from GitHub
+  file#/foo/bar               (same)
+  inst#/installed             simple CURL::Installation in /installed
+  inst#name<work>#/installed  (same) but also set %?CUSTOM_LIB<work>
+  inst#name[work]#/installed  (same) but more CLI-friendly
+  inst#name{work}#/installed  (same) alternate CLI-friendly way
+  CompUnitRepo::Local::Installation#/installed  (same) but with full class name
+  CompUnitRepo::GitHub#masak/html-template      get it from GitHub
 
 Multiple specifications may be concatenated with C<,>.  If no class is
 specified on subsequent specifications, then the previous class specification
 will be assumed.  So:
 
   /foo/bar,/foo/baz           both use CURL::File
-  inst:/installed,/also       both use CURL::Installation
-  /foo/bar,inst:/installed    first CURL::File, second CURL::Installation
+  inst#/installed,/also       both use CURL::Installation
+  /foo/bar,inst#/installed    first CURL::File, second CURL::Installation
 
 =head3 new
 
@@ -539,6 +539,12 @@ was installed, or a C<Failure> if it didn't.
 Of course, any implementation of L<CompUnitRepo>'s C<install> interface, may
 decide to accept additional meta-information and store this and make available
 for later introspection.
+
+=head3 uninstall
+
+  my $removed = $repo.uninstall( $dist );
+
+The opposite of L</install>.
 
 =head3 candidates
 
@@ -635,7 +641,7 @@ Return whether the compunit has been loaded.
 Create a pre-compiled version of the CompUnit.  Optionally takes an output
 file argument (default: the same path as the source, with an extension
 identifying it is a precompiled version), an optional named argument C<:INC>
-(with default C<@?INC>) and a optional named argument C<:force> to force
+(with default C<@?INC>) and an optional named argument C<:force> to force
 creation even if the output file already exists.
 
 =head1 SYSTEM VARIABLES
@@ -676,9 +682,9 @@ without there being any guarantee that this path has anything to do with the
 path as specified in the distribution.  Please also note that the installer
 will probably mangle filenames of actually installed files.
 
-This means you can have files with unicode characters in upper/lower case,
+This means you can have files with Unicode characters in upper/lower case,
 and still be able to access them when installed on a file system that does
-not support unicode.
+not support Unicode.
 
 If a leaf of the "resource" hash is a hash, it indicates files with special
 properties (such as being provided by the builder, so not part of the

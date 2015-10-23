@@ -8,8 +8,8 @@ Synopsis 4: Blocks and Statements
 
     Created: 19 Aug 2004
 
-    Last Modified: 26 Dec 2014
-    Version: 138
+    Last Modified: 16 Oct 2015
+    Version: 141
 
 This document summarizes Apocalypse 4, which covers the block and
 statement syntax of Perl.
@@ -320,11 +320,37 @@ contents of parens or brackets is parsed as a statement, so you can say:
 
 and that is equivalent to:
 
-    @x = 41, ($answer ?? 42 !! ()), 43
+    @x = 41, ($answer ?? 42 !! Slip), 43
 
 (Only a single statement is allowed inside parens or brackets; otherwise
 it will be interpreted as a LoL composer.
-See L<S02/"Multidimensional slices and parcels">.)
+See L<S02/"Multidimensional slices and lists">.)
+
+=head2 The C<with> and C<without> statements
+
+The C<with> statement is like C<if> but tests for definedness rather than
+truth.  In addition, it topicalizes on the condition, much like C<given>:
+
+    with "abc".index("a") { .say }      # prints 0
+
+These may be cascaded:
+
+    with   $s.index("a") { "Found a at $_" }
+    orwith $s.index("b") { "Found b at $_" }
+    orwith $s.index("c") { "Found c at $_" }
+    else                 { "Didn't find a, b or c" }
+
+You may intermix C<if>-based and C<with>-based clauses.
+
+As with C<unless>, you may use C<without> to check for undefinedness,
+but you may not add an C<else> clause:
+
+    without $answer { fail "Got: $_" }
+
+There are also C<with> and C<without> statement modifiers:
+
+    return 42 with $answer;
+    .throw without $answer;
 
 =head1 Loop statements
 
@@ -357,16 +383,8 @@ There is no longer a C<continue> block.  Instead, use a C<NEXT> block within
 the body of the loop.  See below.
 
 The value of a loop statement is the list of values from each iteration.
-Each iteration's value is returned as a single "argument" object.  See
-L<S02> for a long definition of argument, but in short, it's either an
-ordinary object or a parcel containing multiple values.
-
-Normal flat list context ignores parcel boundaries and flattens the list.
-
-Iterations that return C<()> (such as by calling C<next> with no extra
-return arguments) return that C<()> as the next value, which will therefore
-disappear when interpolated in flat context, but will interpolate an empty
-C<Parcel> into slice context.
+Each iteration's value is returned as a single object, only C<Slip>s flatten
+into the return list.
 
 For finer-grained control of which iterations return values, use C<gather>
 and C<take>.
@@ -791,10 +809,10 @@ dynamic C<take> must match the C<gather>'s label (or lack thereof) exactly.
 label syntax, such as .gather and .take methods on some identity object.)]
 
 If you take multiple items in a comma list (since it is, after all, a list
-operator), they will be wrapped up in a C<Parcel> object for return as the
+operator), they will be wrapped up in a C<List> object for return as the
 next argument.  No additional context is applied by the C<take> operator,
 since all context is lazy in Perl 6.  The flattening or slicing of any such
-returned parcel will be dependent on how the C<gather>'s return iterator is
+returned list will be dependent on how the C<gather>'s return iterator is
 iterated (with C<.get> vs C<.getarg>).
 
 The value returned by the C<take> to the C<take>'s own context is that same
@@ -804,9 +822,9 @@ added to the list of values being gathered, which is returned by the
 C<gather> as a lazy list (that is, an iterator, really), with each argument
 element of that list corresponding to one C<take>.
 
-Any parcels in the returned list are normally flattened when bound into flat
-context.  When bound into a lol context, however, the parcel objects become
-real C<List> objects that keep their identity as discrete sublists.  The
+Any sublists in the returned list are normally flattened when bound into flat
+context.  When bound into a slice context, however, the sublist objects
+keep their identity as discrete sublists.  The
 eventual binding context thus determines whether to throw away or keep the
 groupings resulting from each individual C<take> call.  Most list contexts
 are flat rather than sliced, so the boundaries between individual C<take>
@@ -828,25 +846,25 @@ to keep track of what you last "took":
 The C<take> function essentially has two contexts simultaneously, the
 context in which the C<gather> is operating, and the context in which the
 C<take> is operating.  These need not be identical contexts, since they may
-bind or coerce the resulting parcels differently:
+bind or coerce the resulting lists differently:
 
     my @y;
-    my @x = gather for 1..2 {            # flat context for list of parcels
+    my @x = gather for 1..2 {            # flat context for list of lists
         my ($y) := \(take $_, $_ * 10);  # binding forces item context
         push @y, $y;
     }
     # @x contains 4 Ints:    1,10,2,20 flattened by list assignment to @x
-    # @y contains 2 Parcels: $(1,10),$(2,20) sliced by binding to positional $y
+    # @y contains 2 Lists:   $(1,10),$(2,20) sliced by binding to positional $y
 
-Likewise, we can just remember the gather's result parcel by binding and
+Likewise, we can just remember the gather's result list by binding and
 later coercing it:
 
     my ($c) := \(gather for 1..2 {
         take $_, $_ * 10;
     });
     # $c.flat produces 1,10,2,20 -- flatten fully into a list of Ints.
-    # $c.lol produces LoL.new($(1,10),$(2,20)) -- list of Parcels, a 2-D list.
-    # $c.item produces ($(1,10),$(2,20)).list.item -- a list of Parcels, as an item.
+    # $c.lol produces LoL.new($(1,10),$(2,20)) -- list of Lists, a 2-D list.
+    # $c.item produces $((1,10),(2,20)) -- a list of Lists, as an item.
 
 Note that the C<take> itself is in sink context in this example because the
 C<for> loop is in the sink context provided inside the gather.
@@ -910,7 +928,7 @@ English topicalizer, C<given>.  The keyword for individual cases is C<when>:
 The current topic is always aliased to the special variable C<$_>.  The
 C<given> block is just one way to set the current topic. A C<for> loop is
 another convenient form (assuming one of its loop variables is bound to
-C<$_>). However, since every block that doesn't explicitly take a <$_>
+C<$_>). However, since every block that doesn't explicitly take a C<$_>
 parameter or declare C<$_> will get an implicit C<$_>, you can set that
 and use the C<when> and C<default> keywords in it:
 
@@ -1022,7 +1040,7 @@ exceptions.) A C<try> block by default has a C<CATCH> block that handles all
 fatal exceptions by ignoring them.  If you define a C<CATCH> block within
 the C<try>, it replaces the default C<CATCH>.  It also makes the C<try>
 keyword redundant, because any block can function as a C<try> block if you
-put a C<CATCH> block within it.  To prevent lazy lists for leaking out
+put a C<CATCH> block within it.  To prevent lazy lists from leaking out
 unexpectedly, the inside of a C<try> is always considered an eager context,
 unless the C<try> itself is in a sink context, in which case the inside of
 C<try> is also in sink context.
@@ -1571,10 +1589,7 @@ from that point.
 
 For phasers such as C<KEEP> and C<POST> that are run when exiting a scope
 normally, the return value (if any) from that scope is available as the
-current topic within the phaser.  (It is presented as a argument, that is,
-either as parcel or an object that can stand alone in a list.  In other
-words, it's exactly what C<return> is sending to the outside world in raw
-form, so that the phaser doesn't accidentally impose context prematurely.)
+current topic within the phaser.
 
 The topic of the block outside a phaser is still available as C<<
 OUTER::<$_> >>.  Whether the return value is modifiable may be a policy of
@@ -1755,7 +1770,7 @@ exception, though returning a defined value after catching an exception is
 okay.
 
 In the absence of error exception propagation, a successful exit is one that
-returns a defined value or parcel.  (A defined parcel may contain undefined
+returns a defined value or list.  (A defined list may contain undefined
 values.) So any Perl 6 function can say
 
     fail "message";

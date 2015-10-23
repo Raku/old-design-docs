@@ -261,8 +261,40 @@ An overview:
 
   indir('/foo', { ... })         # execute code with temporary $*CWD
 
+<<<<<<< HEAD
   tmpdir('/foo')                 # set $*TMPDIR
   temp $*TMPDIR = tmpdir('/foo') # set $*TMPDIR for the current scope
+=======
+=head3 IO::Spec Class
+
+The C<IO::Spec> itself only has one method: C<select>.  It takes an OS
+descriptive name (usually something like what C<$*DISTRO.name> gives) and
+returns the type object of the appropriate C<IO::Spec> subclass.
+
+  my $*SPEC = IO::Spec.select("MSWin32");  # gives IO::Spec::Win32
+
+Such a subclass should provide at least the following methods (in alphabetical
+order):
+
+  abs2rel        convert an absolute path into a relative one
+  canonpath      return a canonical version of the given path
+  catdir         concatenate directories
+  catpath        create a path from volume/directories/filename
+  curdir         the path to the current directory (usually '.')
+  curupdir       test for matching curdir|updir
+  devnull        the path to the bit bucket (on Unixy systems '/dev/null')
+  extension      the extension of the path
+  is-absolute    whether the path is absolute
+  join           create a path from hash with volume/directories/filename
+  PATH           %ENV<PATH> interpreted as paths
+  rel2abs        convert a relative path into an absolute one
+  rootdir        the path to the root directory (on Unixy systems '/')
+  split          split a path into volume/directories/filename in hash
+  splitdir       split directories
+  splitpath      split a path into volume/directories/filename as list
+  tmpdir         path of the first writeable directory for temporary files
+  updir          the path to the path directory (usually '..')
+>>>>>>> master
 
   homedir('/me')                 # set $*HOME
   temp $*HOME = homedir('/me')   # set $*HOME for the current scope
@@ -330,7 +362,13 @@ the C<IO::Huh> class):
   g          has setgid bit set
   k          has sticky bit set
 
+<<<<<<< HEAD
 A typical use case would be:
+=======
+To allow for easy chaining of file tests, there is an C<.all> method that can
+be fed the tests to be tried as a list of strings.  The value returned
+will be the first non-True value, or the final True value.
+>>>>>>> master
 
   if $io.f && $io.rwx && $io.s -> $size {
       say "plain file with rwx of $size bytes";

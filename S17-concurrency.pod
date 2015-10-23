@@ -277,7 +277,7 @@ Trying to C<send> any further messages on a closed channel will throw the C<X::C
 
 While C<receive> blocks until it can read, C<poll> takes a message from the channel if one is there or immediately returns C<Nil> if nothing is there.
 
-There is also a C<earliest> statement:
+There is also an C<earliest> statement:
 
     earliest * {
         more $c1 { say "First channel got a value" }
@@ -503,6 +503,14 @@ Produces a C<Supply> that produces the C<Range>s with the B<minimum> and B<maxim
 
 Produces a C<Supply> that batches the values of the given Supply by either the number of elements (using the C<elems> named parameter) or the maximum number of seconds (using the C<seconds> named parameter) or both.  Values are grouped in a single array element when flushed.
 
+=item throttle
+
+  my $t = $s.throttle( $elems, $seconds );
+
+Produces a C<Supply> that throttles emitting the values of the given Supply
+on the created C<Supply> by the number of elements (specified by the first
+parameter) per number of seconds (specified by the second parameter).
+
 =item elems
 
   my $e = $s.elems($seconds?); # default: see all
@@ -711,7 +719,7 @@ The list of supported C<Signals> can be found by checking C<Signal::.keys>, as y
 
 Various I/O-related things are also exposed as supplies. For example, it is possible to get notifications on changes to files or files (directly) in a directory, using:
 
-    IO::Notification.watch_path(".").tap(-> $file {
+    IO::Notification.watch-path(".").tap(-> $file {
         say "$file changed";
     });
 
@@ -719,14 +727,7 @@ This is quite a mouthful, so there is a shortcut available with the C<IO> coerce
 
     ".".IO.watch.tap: -> $file { say "$file changed" };
 
-Note that since I/O callbacks are, by default, scheduled on the thread pool, then it's possible that your callback will be executing twice on the same thread. One way to cope is with C<do>, and then a tap at the end:
-
-    ".".IO.watch.do(-> $file {
-        state %changes;
-        say "$file changed (change {++%changes{$file}})";
-    }).tap();
-
-Here, we are tapping it purely for the side-effects, and C<do> promises we will only be in that code block one thread at a time. To make this more convenient, there is also shortcut with the C<act> method:
+Note that since I/O callbacks are, by default, scheduled on the thread pool, then it's possible that your callback will be executing twice on the same thread. One way to cope is with C<act>:
 
     ".".IO.watch.act(-> $file {
         state %changes;
@@ -913,7 +914,7 @@ It's the programmer's duty to ensure that the original data structure is never m
 
 =head1 Low-level primitives
 
-Perl6 offers high-level concurrency methods, but in extreme cases, like if you need to implement a fundamentally different mechanism, these primitives are available.
+Perl 6 offers high-level concurrency methods, but in extreme cases, like if you need to implement a fundamentally different mechanism, these primitives are available.
 
 =head2 Locks
 

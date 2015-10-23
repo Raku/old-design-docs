@@ -405,7 +405,7 @@ dynamic variable.  So typically, you would call methods on that:
 
   my $cleanpath = $*SPEC.canonpath("a/.//b/")  # gives "a/b"
 
-This set of modules was inspired by Perl5's C<File::Spec>.  An implementation
+This set of modules was inspired by Perl 5's C<File::Spec>.  An implementation
 may choose to inherit from C<IO::Spec>, or any of its subclasses, if that
 helps in avoiding code duplication.
 
@@ -761,7 +761,7 @@ The following (single letter) methods can be used on the C<IO::Path> object:
     k  Path has sticky bit set.                    Bool
 
 To allow for easy chaining of file tests, there is an C<.all> method that can
-be fed the tests to be tried as a C<Parcel> of strings.  The value returned
+be fed the tests to be tried as a C<List> of strings.  The value returned
 will be the first non-True value, or the final True value.
 
   say "rwx" if $io.all: <r w x>;
@@ -886,30 +886,10 @@ absolute path.
 =head3 .lines
 X<.lines>
 
-    method lines($limit = Inf,
-        :$eager = (context),
-        --> List[Str] )
-
-    method lines($limit = Inf, :count --> Int)
+    method lines( --> List[Str] )
 
 Returns a (lazy) list of lines of which the file consists, or a C<Failure>
-if something went wrong.  Optionally limits to the number given.  Also takes
-the following optional named parameters:
-
-=over 4
-
-=item :eager
-
-If specified with a C<True> value, will generate the list of lines eagerly,
-which may provide a performance benefit.  By default, it takes its cue from the
-context in which the method executes.
-
-=item :count
-
-If specified with a C<True> value, will return a count of the number of lines,
-rather than the lines themselves.  By default, lines will be returned.
-
-=back
+if something went wrong.
 
 =head3 .mkdir
 X<.mkdir>
@@ -1040,16 +1020,10 @@ concept of volume in the path, returns the empty string.
 =head3 .words
 X<.words>
 
-    method words($limit = Inf,
-        :$nw    = "WS",
-        :$eager = (context),
-        --> List[Str] )
-
-    method words($limit = Inf, :count --> Int)
+    method words( :$nw = "WS" --> List[Str] )
 
 Returns a (lazy) list of words of which the file consists, or a C<Failure>
-if something went wrong.  Optionally limits to the number given.  Also takes
-the following optional named parameters:
+if something went wrong.  Also takes the following optional named parameters:
 
 =over 4
 
@@ -1057,17 +1031,6 @@ the following optional named parameters:
 
 The delimiter between what are to be considered words.  By default assumes
 C<"WS">, which indicates any whitespace character.
-
-=item :eager
-
-If specified with a C<True> value, will generate the list of words eagerly,
-which may provide a performance benefit.  By default, it takes its cue from the
-context in which the method executes.
-
-=item :count
-
-If specified with a C<True> value, will return a count of the number of words,
-rather than words themselves.  By default, words will be returned.
 
 =back
 
