@@ -92,7 +92,8 @@ from UTC. The default time zone is C<0> (i.e., UTC).
 The system's local time zone is available as C<$*TZ>.
 
 A shorter way to send in date and time information is to provide a
-single string with a full ISO 8601 date and time. The example from above
+single string with a full L<RFC 3339|http://tools.ietf.org/html/rfc3339>
+date and time (a subset of ISO 8601). The example from above
 would then be
 
     my $moonlanding = DateTime.new( '1969-07-16T20:17:00Z' ); # UTC time
@@ -105,8 +106,9 @@ C<DateTime> always expresses UTC as C<Z>.) The general notation for the
 C<[offset]> is C<+hhmm> or C<-hhmm>. The time zone of the new object is
 assumed to be a static offset equal to the C<[offset]>. The C<[offset]> is
 optional; if omitted, a C<:timezone> argument is permitted; if this too is
-omitted, UTC is assumed. Finally, the constructor also accepts a
-C<:formatter> argument.
+omitted, UTC is assumed. If the year is less than zero or greater than 9999,
+the default formatter will always print the sign.
+Finally, the constructor also accepts a C<:formatter> argument.
 
 With all the above constructors, if you attempt to pass in values that
 are outside of the ranges specified in the list above, you'll get an
@@ -126,6 +128,12 @@ method:
     say $dt.hour;                       # 15
     $dt = $dt.in-timezone(6 * 60 * 60); # 6 hours ahead of UTC
     say $dt.hour;                       # 12
+
+Date calculations are done on the proleptic Gregorian calendar, which means
+that we ignore any diurnal upheaval that may have taken place in 1582 and
+calculate all dates the same way.  The year 1 BCE is represented as 0000
+(a leap year), which adjusts all other BCE dates by one. For example, 5000 BCE
+is represented as -4999.
 
 The C<utc> method is shorthand for C<in-timezone(0)>, and the C<local>
 method is short for C<in-timezone($*TZ)>.
