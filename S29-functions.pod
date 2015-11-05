@@ -521,8 +521,8 @@ signal at all, and is used to determine if processes are still running:
 =item shell
 
 
- multi shell ( $expression,   :$cwd = $CWD, :%env = %*ENV --> Proc::Status )
- multi run   ( *$cmd, *@args, :$cwd = $CWD, :%env = %*ENV --> Proc::Status )
+ multi shell ( $expression,   :$cwd = $CWD, :%env = %*ENV --> Proc )
+ multi run   ( *$cmd, *@args, :$cwd = $CWD, :%env = %*ENV --> Proc )
 
 C<shell> and C<run> execute an external program, and return control to
 the caller once the program has exited.
@@ -535,19 +535,9 @@ positional arguments as command line arguments that are passed to the
 executable without any processing (except that it encodes Strings to buffers
 first, as does C<shell>).
 
-The return value of either function is the exit status
-of the program, and can be evaluated in the following contexts:
-
- Bool - True = success; False = failure
- Int  - Exit status (per the .exit method)
-
-Success is defined as returning an exit status of 0.  Any other exit
-status returns False for failure.
-
-See C<wait> for more detail on how the C<Proc::Status> object
-is used.
-
-On failure to execute, the routines C<fail()>.
+Both return a C<Proc> object, which boolifies to C<True> if the program had
+a successful exit and C<False> otherwise. The C<status> method on a C<Proc>
+provides the exit code.
 
 If you want to execute an external program asynchronously (as in, not waiting
 for it to be finished), you will need C<Proc::Async>, as specced in
