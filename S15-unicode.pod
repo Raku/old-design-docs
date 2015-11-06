@@ -93,12 +93,11 @@ With NFG, strings start by being run through the normal NFC process, compressing
 any given character sequences into precomposed characters.
 
 Any graphemes remaining without precomposed characters, such as ậ or नि, are
-given their own negative numbers to refer to them, at least 32 bits in
-length. This is done to avoid clashing with any potential future changes to
-Unicode.
-
-The mapping between negative numbers and graphemes in this form is not
-guaranteed constant, even between strings in the same process.
+given their own internal designation to refer to them, at least 32 bits in
+length, in such a way that they avoid clashing with any potential future
+changes to Unicode.  The mapping between these internal designations and
+graphemes in this form is not guaranteed constant, even between strings in
+the same process.
 
 The Perl 6 C<Str> type, and more generally the C<Stringy> role, deals
 exclusively in NFG form.
@@ -152,12 +151,9 @@ Unicode. C<Str> deals exclusively in the NFG form of Unicode strings.
     ord(Str $string)
     ords(Str $string)
 
-These give you the numeric values of the characters in a string. C<ord> only
-works on the first character, while C<ords> works on every character.
-
-Some the values returned may be negative numbers, and are useless outside that
-specific string. You must convert to one of the codepoint-based types for a
-to-Standard list of numbers.
+These give you the numeric values of the B<base character> of graphemes in a
+string. C<ord> only works on the first graphemes, while C<ords> works on every
+grapheme.
 
 =head2 Length Methods
 
@@ -371,12 +367,11 @@ An error may be issued if the given category name is not valid.
     Stringy.ords() --> Array[Int]
 
 The C<&ord> function (and corresponding C<Stringy.ord> method) return the
-codepoint number of the first codepoint of the string. The C<&ords> function and
-method returns an C<Array> of codepoint numbers for every codepoint in the
-string.
+codepoint number of the base character of the first grapheme of the string.
+The C<&ords> function and method returns an C<Array> of codepoint numbers
+of the base character for every grapheme in the string.
 
-This works on any type that does the C<Stringy> role. Note that using this on
-type C<Str> may return invalid negative numbers as "codepoints".
+This works on any type that does the C<Stringy> role.
 
 =head2 Character Representation
 
