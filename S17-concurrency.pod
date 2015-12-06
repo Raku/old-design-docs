@@ -273,47 +273,20 @@ A C<Channel> may be "forever", but it is possible to close it to further sends b
 
     $c.close();
 
-Trying to C<send> any further messages on a closed channel will throw the C<X::Channel::SendOnDone> exception. Closing a channel has no effect on the receiving end until all sent values have been received. At that point, any further calls to receive will throw C<X::Channel::ReceiveOnDone>. The C<done> method returns a C<Promise> that is kept when a sender has called C<close> and all sent messages have been received.  Note that multiple calls to a channel return the same promise, not a new one.
+Trying to C<send> any further messages on a closed channel will throw the C<X::Channel::SendOnDone> exception. Closing a channel has no effect on the receiving end until all sent values have been received. At that point, any further calls to receive will throw C<X::Channel::ReceiveOnDone>. The C<closed> method returns a C<Promise> that is kept when a sender has called C<close> and all sent messages have been received.  Note that multiple calls to the same channel's C<closed> method return the same promise, not a new one.
 
 While C<receive> blocks until it can read, C<poll> takes a message from the channel if one is there or immediately returns C<Nil> if nothing is there.
 
-There is also an C<earliest> statement:
+A C<whenever> clause (described below) on a C<Channel> will fire for each received value, and also mark the whenever as "done" using the same criteria as C<.closed>, so it can also be used in order to write a reactor to receive from a channel until it is closed:
 
-    earliest * {
-        more $c1 { say "First channel got a value" }
-        more $c2 { say "Second channel got a value" }
-    }
-
-That will invoke the closure associated with the first channel that receives a value.
-
-It's possible to add a timer using the keyword C<wait> followed by the number of seconds to wait (which may be fractional).  As a degenerate case, in order to avoid blocking at all you may use a C<wait 0>.  The timeout is always checked last, to guarantee that the other entries are all tried at least once before timing out.
-
-    my $gotone = earliest * {
-        more $c1 { say "First channel got a value" }
-        more $c2 { say "Second channel got a value" }
-        wait 0   { say "Not done yet"; Nil }
-    }
-
-The construct as a whole returns the result of whichever block was selected.
-
-It's also possible to process a variadic list of channels together, using generic code that works over some set of the channels (use C<*> to represent any of them).  The index and the received value are passed to the code as named arguments C<$:k> and C<$:v> (possibly via priming if the code is instantiated ahead of time).
-
-    earliest * {
-        more @channels { say "Channel $:k received, result was: ", $:v }
-    }
-
-In this case C<$:k> returns the index of the channel, base 0. Likewise C<$:v> returns the value.
-
-The C<earliest> construct also automatically checks the C<.done> promise corresponding to the channel, so it can also be used in order to write a loop to receive from a channel until it is closed:
-
-    gather loop {
-        earliest $channel {
-            more * { take $_ }
-            done * { last }
+    react {
+        whenever $channel {
+            "Got a $_".say;
         }
     }
+    "Done".say;
 
-This is such a common pattern that we make a channel in list context behave that way:
+A C<Channel> in list context will iterate all received values lazily, and stop iterating when the channel is closed:
 
     for @$channel -> $val { ... }
     for $channel.list -> $val { ... }
