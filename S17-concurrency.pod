@@ -297,9 +297,7 @@ A C<Channel> in list context will iterate all received values lazily, and stop i
 
 Channels are good for producer/consumer scenarios, but because each worker blocks on receive, it is not such an ideal construct for doing fine-grained processing of asynchronously produced streams of values. Additionally, there can only be one receiver for each value. Supplies exist to address both of these issues.
 
-A C<Supply> pushes or pumps values to one or more receivers who have registered their interest.  There are two types of Supplies: C<live> and C<on demand>. When tapping into a C<live> supply, the tap will only see values that are pumped B<after> the tap has been created. Such supplies are normally infinite in nature, such as mouse movements. Closing the tap does not stop events from occurring, it just means nobody is listening. All tappers see the same stream.  A tap on an C<on demand> supply will initiate the production of values, and tapping the supply again may result in a new set of values. For example, C<Supply.interval> produces a fresh timer with the appropriate interval each time it is tapped. If the tap is closed, the timer stops pushing out new values.
-
-Anything that does the C<Supply> role can be tapped (that is, subscribed to) by calling the C<tap> method on it. This takes up to three callables as arguments, the optional ones expresses as named arguments:
+A C<Supply> pushes or pumps values to one or more receivers who have registered their interest, by (often indirecty) calling the C<.tap> method on the C<Supply>. This returns a C<Tap> object unique to the receiver, which one may then C<.close> to tell the C<Supply> that the receiver is no longer interested.  Note that this does B<not> happen automatically if the C<Tap> is thrown away, as the C<Supply> also keeps a reference to the C<Tap>. The C<.tap> method takes up to three callables as arguments, one block and two optional named arguments:
 
     $supply.tap: -> $value { say "Got a $value" },
         done => { say "Reached the end" },
@@ -308,30 +306,45 @@ Anything that does the C<Supply> role can be tapped (that is, subscribed to) by 
             default        { warn "Supply shut down early: $_" }
         }
 
-The first, known as the C<emit> closure, is invoked whenever a value is emitted into the thing that has been tapped.  The optional named parameter C<done> specifies the code to be invoked when all expected values have been produced and no more values will be emitted. The optional named parameter C<quit> specifies the code to be invoked if there is an error. This also means there will be no further values.
+The first unnamed closure is known as the C<emit> closure. It is invoked whenever a value is emitted into the thing that has been tapped.  The optional named parameter C<done> specifies the code to be invoked when all expected values have been produced and no more values will be emitted. The optional named parameter C<quit> specifies the code to be invoked if there is an error. This also means there will be no further values.
 
-The simplest Supply is a C<Supply> class, which is punned from the role. It creates a C<live> supply.  On the "pumping" end, this has corresponding methods C<emit>, C<done>, and C<quit>, which notify all current taps.
+For the same reasons that we have C<Vow>s for C<Promise>s, supplies are split into a C<Supply> role and a C<Supplier> role.  The C<Supplier> role has a C<.Supply> method used to create a live C<Supply>, and C<emit>, C<done>, and C<quit> methods which send the corresponding events to any C<Supply> objects so created.  A C<Supplier> is not tapped directly.  The C<Supply> role does not have C<emit>, C<done>, or C<quit> methods, and may be tapped.  This allows the provider of a C<Supply>, if they so desire, to be sure that one user cannot inject data to other users of a C<Supply>.  Multiple supplies may be created from a C<Supplier>, and all taps of all such supplies receive events sent using said C<Supplier>.
 
-    my $s = Supply.new;
+    my $e = Supplier.new;
+    my $y = $e.Supply;
 
-    my $t1 = $s.tap({ say $_ });
-    $s.emit(1);                              # 1\n
-    $s.emit(2);                              # 2\n
+    my $t1 = $y.tap({ say $_ });
+    $e.emit(1);                              # 1\n
+    $e.emit(2);                              # 2\n
 
-    my $t2 = $s.tap({ say 2 * $_ },
+    my $t2 = $y.tap({ say 2 * $_ },
               :done({ say "End"  }));
-    $s.emit(3);                              # 3\n6\n
-
-The object returned by C<tap> represents the subscription. To stop subscribing, call C<close> on it.
+    $e.emit(3);                              # 3\n6\n
 
     $t1.close;
-    $s.emit(4);                              # 8\n
-    $s.done;                                 # End\n
+    $e.emit(4);                              # 8\n
+    $e.done;                                 # End\n
 
-This doesn't introduce any asynchrony directly. However, it is possible for values to be pumped into a C<Supply> from an asynchronous worker. In fact, it is possible for many threads to safely pump values into a supply. In the event this happens, the callback of the tap may be executed on many threads at the same time.
+The above example demonstrates a simple C<live> supply -- note that C<$t2> missed events 1 and 2 because it was not listening at the time they happened.  From an outside perspective, a live supply will behave as if it were alive and happily producing values even when it never had taps or all its taps have been closed:
 
-The C<Supply> class has various methods that produce more interesting kinds of
-C<Supply>.  These default to working asynchronously.
+    my $r = Supplier.new;
+    my $z = $r.Supply;
+    $r.emit("A tree fell in the woods");     #
+
+A more common type of supply is an C<on-demand> supply, which creates multiple independent streams of events, starting a new stream each time it is tapped.  Each C<Tap> receives only the events emitted on its private stream. For example, the factory method C<Supply.interval> produces a fresh timer with the appropriate interval each time it is tapped, each of which will stop emitting values when its corresponding C<Tap> is closed:
+
+    my $i = Supply.interval(2);
+    my $tick = $i.tap({ say " tick $_" });
+    sleep 3;                                 # tick 0\n tick 1\n
+    my $tock = $i.tap({ say " tock $_" });
+    sleep 3.5;                               # tock 0\n tick 2\n tock 1\n tick 3\n
+    $tock.close;
+    sleep 3;                                 # tick 4\n
+    $tick.close;
+
+It is possible for values to be pumped into a C<Supply> from an asynchronous worker. In fact, it is possible for many threads to safely pump values into a supply. In the event this happens, the callback of a tap may be executed on many threads at the same time.
+
+The C<Supply> class has various methods that produce more interesting kinds of C<Supply>.  These default to working asynchronously.  Most handle creation/retention/destruction of a C<Supplier> internally, or combine prexisting C<Supply> objects, so their users only need concern themselves with C<Supply> objects.
 
 =over 4
 
