@@ -707,17 +707,20 @@ the final loop statement is evaluated in sink context.
 
 =head1 Parameters and arguments
 
-By default, all parameters are readonly aliases to their corresponding
-arguments--the parameter is just another name for the original
-argument, but the argument can't be modified through it.  This is
-vacuously true for value arguments, since they may not be modified in
-any case.  However, the default forces any container argument to also
-be treated as an immutable value.  This extends down only one level;
-an immutable container may always return an element that is mutable if
-it so chooses.  (For this purpose a scalar variable is not considered
-a container of its singular object, though, so the top-level object
-within a scalar variable is considered immutable by default.  Perl 6
-does not have references in the same sense that Perl 5 does.)
+By default, all Scalar parameters are readonly. When a value is passed, it
+is simply directly bound to the parameter name. When a scalar is passed, the
+value held in the scalar is obtained. It is then assigned into another scalar
+container that will, from that point on, be readonly (that is, no further
+assignments can be made to it). Implementations may, as an optimization, also
+simply bind the value obtained from a passed Scalar if they can prove it is
+not Iterable (and therefore elimination of the container would not affect
+flattening behavior).
+
+Array and hash parameters are simply bound "as is". (Conjectural: future
+versions of Perl 6 may do static analysis and forbid assignments to array
+and hash parameters that can be caught by it. This will, however, only
+happen with the appropriate "use" declaration to opt in to that language
+version.)
 
 To allow modification, use the C<is rw> trait.  This requires a mutable
 object or container as an argument (or some kind of type object that
@@ -735,12 +738,10 @@ value will be copied into a suitably mutable container.  The parameter
 may bind to any argument that meets the other typological constraints
 of the parameter.
 
-If you have a readonly parameter C<$ro>, it may never be passed on to
-a C<rw> parameter of a subcall, whether or not C<$ro> is currently
-bound to a mutable object.  It may only be rebound to readonly or
-copy parameters.  It may also be rebound to a raw parameter (see
-"C<is raw>" below), but modification will fail as in the case where
-an immutable value is bound to a C<raw> parameter.
+If you have a readonly scalar parameter C<$ro>, it may never be passed
+on to a C<rw> scalar parameter of a subcall, since the rw-ness was already
+eliminated. A C<$ro> parameter may also not be rebound; trying to do so
+results in a compile time error.
 
 Aliases of C<$ro> are also readonly, whether generated explicitly with C<:=>
 or implicitly within a C<Capture> object (which are themselves immutable).
