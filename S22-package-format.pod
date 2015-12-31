@@ -172,20 +172,35 @@ not being able to test Perl 6 distributions (yet)).
 The META6.json file is a JSON-file that must at least contain a C<perl>,
 C<name>, C<version> and C<description> section.
 
+First, we need to define a few terms:
+
+=over
+
+=item Version string
+
+A quoted string that one would pass to C<Version.new>, e.g. "6.c".
+This B<should not> be prefixed with "v" (unless your package has a really weird
+versioning scheme, but please try not to do that).
+
+=back
+
 =head3 meta6
 
-Optional.  The version of the META6.json schema in use, as a quoted Version
-literal (without the "v" prefix).  If omitted a default value of "0" is assumed,
-which means the file conforms to S22 version 6 (i.e. pre-v6.c format).
+Optional.  L</Version string> of the META6.json schema in use.  If omitted a default
+value of "0" is assumed, which means the file conforms to S22 version 6 (i.e.
+pre-v6.c format).
 
 =head3 perl
 
 Mandatory.  The minimal perl version for which this distribution can be
-installed.  Specified as a version string.  So:
+installed.  Specified as a L</Version string>.  So:
 
-  "perl" : "v6.0.1"
+  "perl" : "6.d"
 
-would not allow installation on Perl version 6.0.0.
+would not allow installation on Perl implementations that only support v6.c.
+
+(Prior to I<meta6 v1>, the example here made reference to "v6.0.1", but that
+numeric scheme has long since been abandoned.)
 
 =head3 name
 
@@ -197,10 +212,13 @@ be:
 
 =head3 version
 
-Mandatory.  The version literal for this distribution.  An example of this
-would be:
+Mandatory.  The L</Version string> for the distribution as a whole.  An example
+of this would be:
 
-  "version" : "v1.23"
+  "version" : "1.23"
+
+(Prior to I<meta6 v1>, the format here wasn't explicit. All kinds of different
+formats have been seen in the wild, including C<"*">.)
 
 =head3 description
 
