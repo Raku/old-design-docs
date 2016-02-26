@@ -263,9 +263,13 @@ A C<Channel> is essentially a concurrent queue. One or more threads can put valu
     my $c = Channel.new;
     $c.send($msg);
 
-Meanwhile, others can C<receive> them:
+The call to C<.send> does not block.
+
+Meanwhile, other threads can C<.receive> the values:
 
     my $msg = $c.receive;
+
+The C<.receive> call does block.  Alternatively, the C<.poll> method takes a message from the channel if one is there or immediately returns C<Nil> if nothing is there.  Only one call to C<.receive> or C<.poll> returns per call of C<.send>, and which listening thread receives each value is left up to the implementation's scheduler.
 
 Channels are ideal for producer/consumer scenarios, and since there can be many senders and many receivers, they adapt well to scaling certain pipeline stages out over multiple workers also. [Conjectural: The two feed operators C<< ==> >> and C<< <== >> are implemented using Channel to connect each of the stages.]
 
@@ -275,9 +279,7 @@ A C<Channel> may be "forever", but it is possible to close it to further sends b
 
 Trying to C<send> any further messages on a closed channel will throw the C<X::Channel::SendOnDone> exception. Closing a channel has no effect on the receiving end until all sent values have been received. At that point, any further calls to receive will throw C<X::Channel::ReceiveOnDone>. The C<closed> method returns a C<Promise> that is kept when a sender has called C<close> and all sent messages have been received.  Note that multiple calls to the same channel's C<closed> method return the same promise, not a new one.
 
-While C<receive> blocks until it can read, C<poll> takes a message from the channel if one is there or immediately returns C<Nil> if nothing is there.
-
-A C<whenever> clause (described below) on a C<Channel> will fire for each received value, and also mark the whenever as "done" using the same criteria as C<.closed>, so it can also be used in order to write a reactor to receive from a channel until it is closed:
+A C<whenever> clause (described below) on a C<Channel> will fire for each received value, and may also mark the whenever as "done" using the same criteria as C<.closed>, so it can also be used in order to write a reactor to receive from a channel until it is closed:
 
     react {
         whenever $channel {
@@ -286,12 +288,16 @@ A C<whenever> clause (described below) on a C<Channel> will fire for each receiv
     }
     "Done".say;
 
+A C<whenever> clause on a C<Channel> competes for values inside the scheduler alongside any C<.receive> and C<.poll>
+calls on that C<Channel> from other threads.  This also is true when the clause is part of a C<supply> block (described
+below).
+
 A C<Channel> in list context will iterate all received values lazily, and stop iterating when the channel is closed:
 
     for @$channel -> $val { ... }
     for $channel.list -> $val { ... }
 
-(Note that this is not a combinator, but a means for transfering data from the reactive realm to the lazy realm.  Some reasonable amount of buffering is assumed between the two.)
+Note that this is not a combinator, but a means for transfering data from the reactive realm to the lazy realm.  Some reasonable amount of buffering is assumed between the two.  Just like all the above constructs, it competes for values in the scheduler against any other readers.
 
 =head1 Supplies
 
@@ -331,7 +337,7 @@ The above example demonstrates a simple C<live> supply -- note that C<$t2> misse
     my $z = $r.Supply;
     $r.emit("A tree fell in the woods");     #
 
-A more common type of supply is an C<on-demand> supply, which creates multiple independent streams of events, starting a new stream each time it is tapped.  Each C<Tap> receives only the events emitted on its private stream. For example, the factory method C<Supply.interval> produces a fresh timer with the appropriate interval each time it is tapped, each of which will stop emitting values when its corresponding C<Tap> is closed:
+A more common type of supply is an I<on-demand> supply, which creates multiple independent streams of events, starting a new stream each time it is tapped.  Each C<Tap> receives only the events emitted on its private stream. For example, the factory method C<Supply.interval> produces a fresh timer with the appropriate interval each time it is tapped, each of which will stop emitting values when its corresponding C<Tap> is closed:
 
     my $i = Supply.interval(2);
     my $tick = $i.tap({ say " tick $_" });
@@ -342,9 +348,11 @@ A more common type of supply is an C<on-demand> supply, which creates multiple i
     sleep 3;                                 # tick 4\n
     $tick.close;
 
-It is possible for values to be pumped into a C<Supply> from an asynchronous worker. In fact, it is possible for many threads to safely pump values into a supply. In the event this happens, the callback of a tap may be executed on many threads at the same time.
+By default most C<Supply> objects are serial, meaning they will not emit simultaneous events (be they C<emit>, C<done>, or C<quit> events.)  Other supplies are entirely asyncronous: it is possible for values to be pumped from an any number of asynchronous workers running on different threads.  To tell the difference between the two, the C<.serial> method may be used.  Note that calls to a C<Supplier>'s C<.emit>, C<.done>, or C<.quit> methods always block (and may deadlock in the presence of feedback) until all taps have been run -- the difference between a serial and a non-serial C<Supply> is when multiple threads call C<.emit> simultaneously: on a non-serial C<Supply>, multiple taps may run in parallel, one on each thread, each processing values emitted by that thread.  On a serial C<Supply>, only one tap may run at the same time, and the threads calling C<.emit> may block on the taps processing each other's values, not just their own.  Because of the semantic of "not emit simultaneous events" it is also guaranteed, on a serial C<Supply>, that all taps corresponding to one thread emission will complete before any of the taps from another thread's emission are run.
 
-The C<Supply> class has various methods that produce more interesting kinds of C<Supply>.  These default to working asynchronously.  Most handle creation/retention/destruction of a C<Supplier> internally, or combine prexisting C<Supply> objects, so their users only need concern themselves with C<Supply> objects.
+The C<Supply> class has various methods that produce more interesting kinds of C<Supply>.  These mostly produce serial supplies.  Even the C<Supplier.Supply> method produces a serial supply -- to get a fully asyncronous live supply one must use the C<Supplier.unsanitized-supply> method.  Most factory methods handle creation/retention/destruction of a C<Supplier> internally, or combine prexisting C<Supply> objects, so their users need only to concern themselves with C<Supply> objects.
+
+The following methods are class methods which create a new C<Supply> without requiring an existing C<Supply>.  The methods C<merge>, C<zip> and C<zip-latest> also have class method forms, documented further below with their instance method counterparts.
 
 =over 4
 
@@ -352,31 +360,26 @@ The C<Supply> class has various methods that produce more interesting kinds of C
 
   my $fl = Supply.from-list(^10);
 
-Takes a (potentially lazy) list of values, and returns an on demand C<Supply>
-that, when tapped, will iterate over the values and invoke the C<emit> callable
-for each of them, and any C<done> callable at the end. If the iteration at some
-point produces an exception, then the C<quit> callable will be invoked to pass
-along the exception.
+Takes a (potentially lazy) list of values, and returns an on-demand C<Supply> that, when tapped, will iterate over the values and invoke the C<emit> callable for each of them, and any C<done> callable at the end. If the iteration at some point produces an exception, then the C<quit> callable will be invoked to pass along the exception.
 
 =item interval
 
   my $e1    = Supply.interval(1);     # Once a second, starting now
   my $e5i10 = Supply.interval(5, 10); # Each 5 seconds, starting in 10 seconds
 
-Produces an on demand C<Supply> that, when tapped, will produce an ascending
-value at a regular time interval.
+Produces an on-demand C<Supply> that, when tapped, will produce successive integer values at a regular time interval, with the integer values counting up from 0.
 
 Take the returned tap object and close it to stop the ticks:
 
     my $e1 = Supply.interval(1).tap(&say);
     # ...later...
-    $e1.done();
+    $e1.close();
 
 =back
 
 Supplies are mathematically dual to iterators, and so it is possible to define the same set of operations on them as are available on lazy lists. The key difference is that, while C<grep> on a lazy list I<pulls> a value to process, working synchronously, C<grep> on a Supply has values I<pushed> through it, and pushes those that match the filter onwards to anything that taps it.
 
-The following methods are available on an instantiated C<Supply> (C<$s> in these examples):
+The following methods are available on an instantiated C<Supply> (C<$s> in these examples).  Note that calling most of these methods on an on-demand C<Supply> does not constitute demanding a new set of values from the supply -- instead, tapping the resulting C<Supply> will do so, per C<Tap>.
 
 =over
 
@@ -390,7 +393,7 @@ Produces a lazy C<List> with the values of the C<Supply>.
 
   $s.wait;
 
-Waits until the specified C<Supply> is C<done> or C<quit>.
+Waits until the specified C<Supply> is C<done> or C<quit>.  In the latter case, throws the exception with which the C<Supply> was quit. 
 
 =item Channel
 
@@ -402,39 +405,39 @@ Produces a C<Channel> of the values of the given C<Supply>.
 
   my $p = $s.Promise;
 
-Produces a C<Promise> that will be kept for the next value of the given C<Supply>, or will be broken when the C<Supply> is done before a value is produced.
+Produces a C<Promise> that will be kept when the C<Supply> is done or broken if it is quit.
 
 =item last
 
   my $l = $s.last(42);  # default: 1
 
-Produces a C<Supply> that will only emit the last N values of the given C<Supply> when it is C<done>.  Default is the final value.
+Produces a C<Supply> that will only emit the last N values of the given C<Supply> (after that C<Supply> is C<done>).  Default is the final value.
 
 =item grab
 
   my $g = $s.grab( { .sort } ); # sort the values of a Supply
 
-Produces a C<Supply> will grab all values emitted by the given C<Supply> until it is done.  It will then call the given closure and then C<emit> each of the return values of the closure, and then C<done> the Supply that was produced.
+Produces a C<Supply> which will cache all values emitted by the given C<Supply> until it is done.  It will then call the given closure and then C<.emit> each of the return values of the closure, and then call C<.done> on itself.
 
 =item flat
 
   my $f = $s.flat;
 
-Produces a C<Supply> in which all values of the original supply are flattened.
+Produces a C<Supply> in which all values of the original supply are flattened then individually emitted.
 
 =item do
 
   my $seen;
   my $d = $s.do( {$seen++} );
 
-Produces a C<Supply> that is identical to the original supply, but will execute the given code for its side-effects. It promises that only one thread will ever be executing the code object passed to it at a time; others will block behind it.
+Produces a C<Supply> that is identical to the original supply, but will execute the given code for its side-effects, once for each emitted value, before running any taps.  Only one thread will ever be executing the side-effect code at a time; others will block behind it.  In addition to serializing the side-effect, the resulting supply is also serial, even if the one it was created from is not.  The side-effect code is only run for emitted values, not when the original is quit or done.
 
 =item act
 
   my $seen;
   $s.act( {$seen++} );
 
-A special case of C<Supply>.do, that will also create a tap on the given C<Supply>, so that you only need to worry about writing the side-effect code.
+This is a special case of C<Supply>.do, that will also create a tap on the given C<Supply>, so that you only need to worry about writing the side-effect code.  Returns the C<Tap>.
 
 =item grep
 
@@ -444,6 +447,8 @@ A special case of C<Supply>.do, that will also create a tap on the given C<Suppl
 Produces a C<Supply> that only provides values that you want.  Takes either a C<Callable> (which is supposed to return a C<True> value to pass on emitted values) or a value to be smartmatched against.
 
 =item map
+
+Analogous to C<List>'s C<.map> method, but produces a C<Supply>.
 
   my $m = $s.map( * * 5 );
 
@@ -481,7 +486,7 @@ Produces a C<Supply> that produces the B<minimum> values of the specified C<Supp
 
   my $m = $s.minmax(&by); # default &infix:<cmp>
 
-Produces a C<Supply> that produces the C<Range>s with the B<minimum> and B<maximum> values of the specified C<Supply>.  The optional parameter specifies the comparator, just as with C<Any.minmax>.
+Produces a C<Supply> that, for each value emitted, produces C<Range>s with the B<minimum> and B<maximum> values seen thus far on the specified C<Supply>.  The optional parameter specifies the comparator, just as with C<Any.minmax>.
 
 =item batch
 
@@ -493,15 +498,13 @@ Produces a C<Supply> that batches the values of the given Supply by either the n
 
   my $t = $s.throttle( $elems, $seconds );
 
-Produces a C<Supply> that throttles emitting the values of the given Supply
-on the created C<Supply> by the number of elements (specified by the first
-parameter) per number of seconds (specified by the second parameter).
+Produces a C<Supply> that throttles emitting the values of the given Supply on the created C<Supply> by the number of elements (specified by the first parameter) per number of seconds (specified by the second parameter).
 
 =item elems
 
   my $e = $s.elems($seconds?); # default: see all
 
-Produces a C<Supply> that produces the number of elements seen in the given C<Supply>.  You can also specify an interval to only see the number of elements seen once per that interval.
+Produces a C<Supply> that, for each value emitted, produces the number of elements seen thus far in the given C<Supply>.  You can also specify an interval to only see the number of elements seen once per that interval.
 
 =item rotor
 
@@ -543,7 +546,7 @@ This allows a C<Supply>'s emit/done/quit to be scheduled on another scheduler. U
 
   my $r = $s.reduce( {...} );
 
-Produces a C<Supply> that will emit each reduction from the given C<Supply>, just like C<reduce> on C<List>s.
+Produces a C<Supply> that will emit each reduction from the given C<Supply>, much like the triangular reduction metaoperator (C<[\...]>) on C<List>s.
 
 =item lines
 
@@ -564,7 +567,7 @@ Produces a C<Supply> that will emit the characters coming in word by word from a
   my $h = $s.classify( %mapper );
   my $a = $s.classify( @mapper );
 
-Produces a C<Supply> in which the emit values are C<Pair>s consisting of the classification value and the C<Supply> to which values of the given C<Supply> will be emitted.  Similar to C<List.classify>, but does not support multi-level classification.
+Produces a C<Supply> in which the emit values are C<Pair>s consisting of the classification value and a C<Supply> to which values of the given C<Supply> will be emitted.  Similar to C<List.classify>, but does not support multi-level classification.
 
 =item categorize
 
@@ -572,19 +575,19 @@ Produces a C<Supply> in which the emit values are C<Pair>s consisting of the cla
   my $h = $s.categorize( %mapper );
   my $a = $s.categorize( @mapper );
 
-Produces a C<Supply> in which the emitted values are C<Pair>s consisting of zero or more classification values and the C<Supply> to which values of the given C<Supply> will be emitted.  Similar to C<List.categorize>.
+Produces a C<Supply> in which the emitted values are C<Pair>s consisting of zero or more classification values and a C<Supply> to which values of the given C<Supply> will be emitted.  Similar to C<List.categorize>.
 
 =item reverse
 
   my $r = $s.reverse;
 
-Produces a C<Supply> that emits the values of the given Supply in reverse order. Please note that this C<Supply> will only start delivering values when the given C<Supply> is C<done>.
+Produces a C<Supply> that emits the values of the given Supply in reverse order. Please note that this C<Supply> will only start delivering values when the given C<Supply> is C<.done>, much like C<.grab>.
 
 =item sort
 
   my $o = $s.sort(&by);  # default &infix:<cmp>
 
-Produces a C<Supply> that emits the values of the given Supply in sorted order. Please note that this C<Supply> will only start delivering values when the given C<Supply> is C<done>.  Optionally accepts a comparator C<Block>.
+Produces a C<Supply> that emits the values of the given Supply in sorted order. Please note that this C<Supply> will only start delivering values when the given C<Supply> is C<.done>.  Optionally accepts a comparator C<Block>.
 
 =back
 
@@ -598,7 +601,7 @@ There are some combinators that deal with bringing multiple supplies together:
 
   my $m = Supply.merge(@s);  # also as class method
 
-Produces a C<Supply> containing the values produced by given and the specified supply or supplies, and triggering C<done> once all of the supplies have done so.
+Produces a C<Supply> containing the values produced by given and the specified supply or supplies, and triggering C<done> once all of the supplies have done so.  The resulting supply is serial, even if any or all of the merged supplies are not.
 
 =item C<zip>
 
@@ -606,7 +609,7 @@ Produces a C<Supply> containing the values produced by given and the specified s
 
   my $z = Supply.zip(@s, :with( &[,] ));  # also as class method
 
-Produces a C<Supply> that pairs together items from the given and the specified supply or supplies, using C<< infix:<,> >> by default or any other user-supplied function with the C<with> named parameter.
+Produces a C<Supply> that pairs together items from the given and the specified supply or supplies, using C<< infix:<,> >> by default or any other user-supplied function with the C<with> named parameter. The resulting supply is serial, even if any or all of the zipped supplies are not.
 
 =item C<zip-latest>
 
@@ -616,7 +619,7 @@ Produces a C<Supply> that pairs together items from the given and the specified 
 
   my $z = Supply.zip-latest( @s, :initial(42,63) ); # initial state
 
-Produces a C<Supply> that will emit tuples of values as soon as any combined Supply produces a value. Before any tuples are emitted, all supplies have to have produced at least one value. By default, it uses C<< infix:<,> >> to produce the tuples, but the named parameter C<with> can override that.
+Produces a C<Supply> that will emit tuples of values as soon as any combined Supply produces a value. Before any tuples are emitted, all supplies have to have produced at least one value. By default, it uses C<< infix:<,> >> to produce the tuples, but the named parameter C<with> can override that. The resulting supply is serial, even if any or all of the merged supplies are not.
 
 The named parameter C<initial> can optionally be used to indicate the initial state of the values to be emitted.
 
