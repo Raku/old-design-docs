@@ -627,60 +627,27 @@ The named parameter C<initial> can optionally be used to indicate the initial st
 
 [TODO: plenty more of these: while, until...]
 
-These combinators that involve multiple supplies need care in their implementation, since values may arrive at any point on each, and possibly at the same time. To help write such combinators, the C<on> meta-combinator is useful. C<on> taps many supplies, and ensures that only B<one> callback will be running at a time, freeing the combinator writer of worrying about synchronization issues.
+These combinators that involve multiple supplies need care in their implementation, since values may arrive at any point on each, and possibly at the same time. To help write such combinators, the C<supply> block and C<whenever> clause are used.  These, along with the C<react> block, are available for general use as well.
 
-The C<on> combinator takes a block that receives the C<Supply> it will generate (and return) as the parameter.  That block is supposed to return list of C<Pairs>, in which the keys are one or more Supplies.  And the values are either a C<Block> (to be called for each value for that C<Supply>), or a hash with Pairs for C<emit>, C<done> and C<quit>.
+A C<supply> block is a convenient way to create an on-demand supply.  It is just a declaration and does not run until the supply is tapped (which may happen multiple times resulting in multiple runs/clones of the block.)  Within a C<supply> block, emit can be used to emit values to the tapper, and done can be used to convey that there will be no more values.
 
-A simple combinator for C<Pair>ing values from two Supplies ($a and $b), would look like this:
-
-  my $result = on -> $res {
-      my @as;
-      my @bs;
-      on -> $res {
-          $a => sub ($val) {
-              @as.push($val);
-              if @as && @bs {
-                  $res.emit( @as.shift => @bs.shift );
-              }
-          },
-          $b => sub ($val) {
-              @bs.push($val);
-              if @as && @bs {
-                  $res.emit( @as.shift => @bs.shift );
-              }
-          }
-      }
+  my $s = supply {
+      emit 'a value!';
+      emit 'another!';
+      done;
   }
 
-Thus there is never any race or other thread-safety problems with mutating the C<@as> and C<@bs>. The default behaviour, if a C<Callable> is specified along with the supply, is to use it for C<emit> and provide a default C<done> and C<quit>. The default C<done> triggers C<done> on the result C<Supply>.
+The emit and done can be in nested scopes, and follow the same rules as C<gather> and C<take>, except they look for enclosing C<supply> or C<react> rather than a C<gather>.   An unhandled exception thrown inside of a supply block will be passed onwards using quit.
 
-Note that the code blocks for both Supplies are identical.  There must be a better way of doing this.  And indeed, there is: you can also specify more than one C<Supply> per block.  The same as above implemented using that:
+Likewise, a C<whenever> clause also looks around itself lexotically for an enclosing C<supply> or C<react>.  A C<whenever> clause takes a predicate which may be a C<Supply>, C<Channel>, C<Promise> or C<Iterable>, followed by a consequent block.  These clauses guarantee that only one thread will enter them or any other C<whenever> clause inside that same block at the same time -- blocking any C<.emit> call on a C<Supply> or leaving any additional values in a Channel's C<.send> queue in the scheduler.
 
-  my $result = on -> $res {
-      my @values = ([],[]);
-      ($a,$b) => sub ($val,$index) {
-          @values[$index].push($val);
-          if all(@values) {
-              $res.emit( (@values>>.shift) );
-          }
-      }
-  }
+A whenever with a C<Supply> as a predicate will tap that predicate when the enclosing block is run, providing its consequent block as the emit closure for the resulting C<Tap>.  However, it is sometimes best just to think of it as a loop which runs once for each value produced by the predicate C<Supply>.  Following this model, a C<QUIT> or C<LAST> phaser inside the consequent block may be used to provide a quit or done closure (respectively) to the C<Tap>.  The resulting C<Tap> itself is ensconced internally.
 
-Note that the block that is being called for each value from any of the Supplies also receives an index value to be able to group the values received.  By default, any C<done> or C<quit> will be immediately propagated. This is basically how C<zip> is implemented.
+A whenever block with a C<Channel> as a predicate behaves analogously, running the closure once for every value sent by the scheduler.  A C<Promise> predicate runs the block when the C<Promise> is kept or broken.  An C<Iterable> predicate will start a new iterator when the whenever clause is run, entering the consequent closure for each value pulled from the C<Iterator>.
 
-Sometimes, we want the resulting C<Supply> to be C<done> only when all specified Supplies are done.  This is possible by specifying a hash with keys for C<emit>, C<done> and/or C<quit>, instead of just a C<Callable>. Given an array @s with Supplies:
+A C<supply> block containing C<whenever> clauses will call C<done> on itself when all C<whenever> clause predicates have had C<.done>/C<quit>, C<.close>/C<.fail> or C<.keep>/C<.break> called on them, appropriately, or in the case of a C<Iterable> predicate, when the end has been reached.  A C<react> block will not wait to be tapped -- it will immediately run and then wait for a done or quit condition, after which point, control will resume after the C<react> block.
 
-  my $done = 0;
-  my $result = on -> $res {
-      @s => {
-          emit => -> \val { $res.more(val) },
-          done => { $res.done if ++$done == +@s }
-      }
-  }
-
-This is essentially how C<merge> is implemented.  Note that if we don't need the index (as indicated by its absence in the signature of the C<Callable>s), it will not be passed.
-
-A C<quit> handler can be provided in a similar way, although the default - convey the failure to the result supply - is normally what is wanted. The exception is writing combinators related to error handling.
+Destructuring subsignatures may be used with whenever topics via pointy block syntax.
 
 =head1 System events exposed as Supplies
 
