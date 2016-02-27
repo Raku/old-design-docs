@@ -360,7 +360,7 @@ The following methods are class methods which create a new C<Supply> without req
 
   my $fl = Supply.from-list(^10);
 
-Takes a (potentially lazy) list of values, and returns an on-demand C<Supply> that, when tapped, will iterate over the values and invoke the C<emit> callable for each of them, and any C<done> callable at the end. If the iteration at some point produces an exception, then the C<quit> callable will be invoked to pass along the exception.
+Takes a (potentially lazy) list of values, and returns an on-demand C<Supply> that, when tapped, will iterate over the values and invoke the C<Tap>'s C<emit> callable for each of them, and any C<done> callable at the end. If the iteration at some point produces an exception, then the C<Tap>'s C<quit> callable will be invoked to pass along the exception.
 
 =item interval
 
@@ -379,7 +379,7 @@ Take the returned tap object and close it to stop the ticks:
 
 Supplies are mathematically dual to iterators, and so it is possible to define the same set of operations on them as are available on lazy lists. The key difference is that, while C<grep> on a lazy list I<pulls> a value to process, working synchronously, C<grep> on a Supply has values I<pushed> through it, and pushes those that match the filter onwards to anything that taps it.
 
-The following methods are available on an instantiated C<Supply> (C<$s> in these examples).  Note that calling most of these methods on an on-demand C<Supply> does not constitute demanding a new set of values from the supply -- instead, tapping the resulting C<Supply> will do so, per C<Tap>.
+The following methods are available on an instantiated C<Supply> (C<$s> in these examples).  Note that calling most of these methods on an on-demand C<Supply> does not constitute demanding a fresh set of values from the C<Supply> -- a tap is not immediately performed.   Instead, tapping the resulting C<Supply> will do so, per C<Tap>.  In other words, connected networks of Supplies do not sit around in the background pointlessly feeding each other values internally, they wait until something is listening.  (This behavior is generally accomplished via C<whenever> clauses, described below.)
 
 =over
 
@@ -534,7 +534,7 @@ Takes a closure and, for each supplied value, schedules the closure to run on an
 
   my $m = $t.migrate;
 
-Produces a continuous C<Supply> from a C<Supply>, in which each value is a C<Supply>.  As soon as a new C<Supply> appears, it will close the current C<Supply> and provide values from the new C<Supply>.  Can be used in combination with C<schedule-on>.
+Produces a continuous C<Supply> from a C<Supply>, in which each value is a C<Supply> which emits a value from the original C<Supply> unchanged.  As soon as a new C<Supply> appears, it will close the previously emitted C<Supply> and send the next value from the original C<Supply> to the most recently emitted C<Supply> instead.  Can be used in combination with C<schedule-on>.
 
 =item schedule-on
 
@@ -567,7 +567,7 @@ Produces a C<Supply> that will emit the characters coming in word by word from a
   my $h = $s.classify( %mapper );
   my $a = $s.classify( @mapper );
 
-Produces a C<Supply> in which the emit values are C<Pair>s consisting of the classification value and a C<Supply> to which values of the given C<Supply> will be emitted.  Similar to C<List.classify>, but does not support multi-level classification.
+Produces a C<Supply> which emits C<Pair>s consisting of a classification value as C<.key>, and a C<Supply> as the C<.value>.  That supply will then emit any values from the original C<Supply> which match the classifier.  Parameters behave similar to C<List.classify>, but does not support multi-level classification.
 
 =item categorize
 
@@ -575,7 +575,7 @@ Produces a C<Supply> in which the emit values are C<Pair>s consisting of the cla
   my $h = $s.categorize( %mapper );
   my $a = $s.categorize( @mapper );
 
-Produces a C<Supply> in which the emitted values are C<Pair>s consisting of zero or more classification values and a C<Supply> to which values of the given C<Supply> will be emitted.  Similar to C<List.categorize>.
+Produces a C<Supply> in which emits C<Pair>s  consisting of a classification value as C<.key>, and a C<Supply> as the C<.value>.  That supply will then emit any values from the original C<Supply> which match the classification value.  Unlike C<.classify>, more than one C<Pair> may be emitted per value emitted from the original C<Supply>.  See C<List.categorize> for a description of the behavior of the parameters.
 
 =item reverse
 
@@ -627,9 +627,9 @@ The named parameter C<initial> can optionally be used to indicate the initial st
 
 [TODO: plenty more of these: while, until...]
 
-These combinators that involve multiple supplies need care in their implementation, since values may arrive at any point on each, and possibly at the same time. To help write such combinators, the C<supply> block and C<whenever> clause are used.  These, along with the C<react> block, are available for general use as well.
+The above combinators which involve multiple source supplies need care in their implementation, since values may arrive at any point from each source, and possibly at the same time.  To help write such combinators, the C<supply> block and C<whenever> clause are used.  These, along with the C<react> block, are available for general use as well.
 
-A C<supply> block is a convenient way to create an on-demand supply.  It is just a declaration and does not run until the supply is tapped (which may happen multiple times resulting in multiple runs/clones of the block.)  Within a C<supply> block, emit can be used to emit values to the tapper, and done can be used to convey that there will be no more values.
+A C<supply> block is a convenient way to create an on-demand C<Supply>.  It is just a declaration and does not run until the C<Supply> is tapped (which may happen multiple times resulting in multiple runs/clones of the block.)  Within a C<supply> block, emit can be used to emit values to the tapper, and done can be used to convey that there will be no more values.
 
   my $s = supply {
       emit 'a value!';
@@ -637,17 +637,60 @@ A C<supply> block is a convenient way to create an on-demand supply.  It is just
       done;
   }
 
-The emit and done can be in nested scopes, and follow the same rules as C<gather> and C<take>, except they look for enclosing C<supply> or C<react> rather than a C<gather>.   An unhandled exception thrown inside of a supply block will be passed onwards using quit.
+The emit and done can be in nested scopes, and follow the same rules as C<gather> and C<take>, except they look for an enclosing C<supply> or C<react> rather than a C<gather>.   There is no corresponding C<quit> statement: instead, any unhandled exception thrown inside of a supply block will be passed onwards using C<.quit>.
 
-Likewise, a C<whenever> clause also looks around itself lexotically for an enclosing C<supply> or C<react>.  A C<whenever> clause takes a predicate which may be a C<Supply>, C<Channel>, C<Promise> or C<Iterable>, followed by a consequent block.  These clauses guarantee that only one thread will enter them or any other C<whenever> clause inside that same block at the same time -- blocking any C<.emit> call on a C<Supply> or leaving any additional values in a Channel's C<.send> queue in the scheduler.
+Likewise, a C<whenever> clause also looks around itself lexotically for an enclosing C<supply> or C<react>.  A C<whenever> clause takes a predicate which may be a C<Supply>, C<Channel>, C<Promise> or C<Iterable>, followed by a consequent block.  These clauses guarantee that only one thread will enter their consequent or that of any other C<whenever> clause inside the same enclosing C<supply> or C<react> block at the same time -- blocking any C<.emit> call on a C<Supply> or leaving any additional values in a Channel's C<.send> queue in the scheduler.
 
-A whenever with a C<Supply> as a predicate will tap that predicate when the enclosing block is run, providing its consequent block as the emit closure for the resulting C<Tap>.  However, it is sometimes best just to think of it as a loop which runs once for each value produced by the predicate C<Supply>.  Following this model, a C<QUIT> or C<LAST> phaser inside the consequent block may be used to provide a quit or done closure (respectively) to the C<Tap>.  The resulting C<Tap> itself is ensconced internally.
+  my $s = Supply.interval(1);
+  my $c = Channel.new;
+  my $l := (while $++ < 4 { NEXT { sleep 1 }; Int(now - BEGIN now) });
+  my $p = Promise.in(3);
+  my %contended_hash;
+  start {
+      for 0..4 { sleep 1; $c.send($_); LAST { $c.close } }
+  }
+  react {
+      # This is safe, because the whenevers protect %contended_hash
+      whenever $s { %contended_hash{$_}++; done if $_ > 4 };
+      whenever $c { %contended_hash{$_}++ };
+      whenever $l { %contended_hash{$_}++ };
+      whenever $p { %contended_hash{$_}++ };
+  }
+  %contended_hash.say; # 0 => 3, 1 => 3, 2 => 3, 3 => 3, 4 => 2, 5 => 1, True => 1
 
-A whenever block with a C<Channel> as a predicate behaves analogously, running the closure once for every value sent by the scheduler.  A C<Promise> predicate runs the block when the C<Promise> is kept or broken.  An C<Iterable> predicate will start a new iterator when the whenever clause is run, entering the consequent closure for each value pulled from the C<Iterator>.
+A whenever with a C<Supply> as a predicate will tap that predicate when the enclosing block is run (assuming control reaches the whenever clause.)  It will then offer its consequent block as the emit closure for the resulting C<Tap>.  However, it is sometimes best just to think of a C<whenever> as a loop which runs once for each value produced by the predicate C<Supply>, using the produced values as the topic.  Following this model, a C<QUIT> or C<LAST> phaser inside the consequent block may be used to provide a quit or done closure (respectively) to the C<Tap>.  The resulting C<Tap> itself is ensconced internally, but may also be accessed as the return value of the entire whenever clause.  This is not necessary just in order for a whenever to close its own tap: C<last> may be called from within the consequent to do so.  Labels may be used as normal to close the taps of outer clauses.  Closing the last active tap closes the generated C<Supply>.
 
-A C<supply> block containing C<whenever> clauses will call C<done> on itself when all C<whenever> clause predicates have had C<.done>/C<quit>, C<.close>/C<.fail> or C<.keep>/C<.break> called on them, appropriately, or in the case of a C<Iterable> predicate, when the end has been reached.  A C<react> block will not wait to be tapped -- it will immediately run and then wait for a done or quit condition, after which point, control will resume after the C<react> block.
+A whenever block with a C<Channel> as a predicate behaves analogously, running the closure once for every value sent to it by the scheduler, as if it were constantly calling C<.receive> on the C<Channel>.  A C<Promise> predicate runs the block when the C<Promise> is kept or broken as if it were calling C<await>.  An C<Iterable> predicate will start a new iterator when the whenever clause is run, entering the consequent closure for each value pulled from the C<Iterator>.  In all such cases, a C<QUIT> block inside the C<whenever> will catch exceptions generated from within the predicate.  Handling these exceptions will prevent C<.quit> from being called on the C<Supply> created by the block.
 
-Destructuring subsignatures may be used with whenever topics via pointy block syntax.
+Note that it is possible for control never to reach a C<whenever> clause when a C<supply> or C<react> block is run.  In this case, the whenever clause has no effect.  If control reaches a C<whenever> clause more than once (for example, if it is inside a loop) multiple taps on the predicate (which may be different each time) are created.  A C<whenever> clause may also be executed later, after a C<supply> block has produced a C<Supply> which has then been tapped, or while waiting for a C<react> block to fall off the bottom.  This could happen from inside another C<whenever> clause in response to an event, or from an externally added C<Tap>.  This is legal, and dynamically adds a new tap (of the predicate) to the C<Supply> which caused this to happen.  That is to say, once active, a C<Supply> may indeed use C<whenever> clauses to self-modify, as long as it was originally syntactically anchored to a C<supply> or C<react> block:
+
+   my $s1 = Supply.interval(1).share;
+   my $s2 = supply {
+       whenever $s1 {
+           emit($_);
+           done if $_ > 4;
+       }
+   };
+   $s2.tap({
+       if 2 < $_ < 5 {
+           "MORE $_".say;
+            whenever $s1 {
+                "OHAI $_".say;
+            }
+       }
+   });
+   sleep 10;
+   # MORE 3
+   # MORE 4
+   # OHAI 4
+   # OHAI 5
+   # OHAI 5
+
+Destructuring subsignatures may be used with C<whenever> clause topics via pointy block syntax.
+
+A C<supply> block containing C<whenever> clauses will call C<done> on itself when all C<whenever> clause predicates (which have executed) have had C<.done>/C<quit>, C<.close>/C<.fail> or C<.keep>/C<.break> called on them, appropriately, or in the case of an C<Iterable> predicate, when the end has been reached.  These conditions are equivalent to manually closing the clause with C<last>.
+
+A C<react> block will not wait to be tapped -- it will immediately run and then wait for a done or quit condition, after which point, control will resume below the C<react> block.
 
 =head1 System events exposed as Supplies
 
