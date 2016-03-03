@@ -279,6 +279,10 @@ A C<Channel> may be "forever", but it is possible to close it to further sends b
 
 Trying to C<send> any further messages on a closed channel will throw the C<X::Channel::SendOnDone> exception. Closing a channel has no effect on the receiving end until all sent values have been received. At that point, any further calls to receive will throw C<X::Channel::ReceiveOnDone>. The C<closed> method returns a C<Promise> that is kept when a sender has called C<close> and all sent messages have been received.  Note that multiple calls to the same channel's C<closed> method return the same promise, not a new one.
 
+Like C<.close>, calling C<.fail> will close the channel.  However this represents an abnormal termination, and so, the method must be provided an exception which should be thrown instead of C<X::Channel::ReceiveOnDone>.
+
+A C<Promise> may be obtained from a C<Channel> via the C<.closed> method.  This C<Promise> will be kept when the C<Channel> is closed or broken if it is failed.
+
 A C<whenever> clause (described below) on a C<Channel> will fire for each received value, and may also mark the whenever as "done" using the same criteria as C<.closed>, so it can also be used in order to write a reactor to receive from a channel until it is closed:
 
     react {
