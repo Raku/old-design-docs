@@ -1,0 +1,73 @@
+=encoding utf8
+
+=head1 TITLE
+
+Plans for Perl 6 version 6.d
+
+=head1 VERSION
+
+    Created: 09 Aug 2016
+
+    Last Modified: 09 Aug 2016
+    Version: 1
+
+This documents contains planned changes for v6.d, and who wants to do them.
+
+Please only submit planned changes if you are willing to provide a patch to
+implement them.
+
+=head1 Sigils imply :D
+
+In a declaration, the C<@> sigil for example implies a type constraint to
+C<Positional>. I want the sigil to imply the type constraint C<Positional:D>
+instead, so that it constrains the variable to defined values.
+
+The same applies to the C<%> sigil, and possibly the C<&> sigil.
+
+Current behavior:
+
+    sub f(@x) { say @x.perl }; f Array;     # Array
+
+New behavior:
+
+    sub f(@x) { say @x.perl }; f Array;
+    # dies with
+    # Parameter '@x' requires an instance of type Array, but a type object was passed.  Did you forget a .new?
+
+
+=head2 Rationale
+
+I've never seen anybody write code as if they expected an array or hash
+variable to contain a type object, yet the type checker silently allows this,
+which usually leads to much worse error messages when using the type object as
+if it were an instance.
+
+Since normal variables are typically used with assignment, not binding,
+constraining the types of parameters is of higher importance.
+
+=head2 Stakeholder
+
+Moritz Lenz
+
+
+=head1 Non-blocking await
+
+In v6.c, waiting for a promise, either with an explicit `await` or by using its
+`.result` method, currently uses up a thread just for the blocking wait.
+
+After this proposed change has been implemented, waiting doesn't tie up
+a whole thread for each wait.
+
+=head2 Rationale
+
+It is quite easy to write code that waits for multiple promises in parallel,
+which can lead to the full thread pool begin tied up in blocking waits,
+leading to a deadlock.
+
+Examples of this happening have showed up in the past.
+
+=head2 Stakeholder
+
+Jonathan Worthington
+
+=cut
