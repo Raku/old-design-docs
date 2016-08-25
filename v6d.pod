@@ -127,42 +127,4 @@ a variable that defaults to C<42>.
 
 Zoffix Znet
 
-
-=head1 Forbid Bare C<\b> in Regexes
-
-=head2 Current Behaviour
-
-The backspace character is silently attempted to be matched:
-
-    $ perl6 -e 'say "foo" ~~ /"foo" \b/'
-    Nil
-    $ perl6 -e 'say "foo\b" ~~ /"foo" \b/'
-    ｢fo｣
-
-=head2 New Behaviour
-
-Attempting to use bare C<\b> in regexes will throw:
-
-    $ perl6 -e 'say "foo" ~~ /"foo" \b/'
-    ==SORRY==
-    Cannot use bare \b in regexes. For literal backspace use "\b",
-    for word boundaries use << or >> for left/right boundaries, respectively
-
-    $ perl6 -e 'say "foo\b" ~~ /"foo" "\b"/'
-    ｢fo｣
-
-=head2 Rationale
-
-It's very easy to accidentally use C<\b> for word boundaries, since that's
-the syntax in Perl/GNU/.NET regex. It's also uncommon to want to match
-a literal C<\b>, so requiring explicit quotes (or use of \c8 or \x8),
-is justifiable and won't be a burden.
-
-Implementing this will resolve
-L<RT#128986|https://rt.perl.org/Ticket/Display.html?id=128986>
-
-=head2 Steakholder
-
-Zoffix Znet
-
 =cut
