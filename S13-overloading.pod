@@ -164,7 +164,8 @@ Note that the angle bracket subscripting form C<< .<a b c> >>
 automatically translates itself into a call to C< .{'a','b','c'} >,
 so defining methods for angles is basically useless.
 
-The expected semantics of C<&.()> is that of a type coercion which may
+The expected semantics of C<&.()> is that of a type 
+on which may
 or may not create a new object.  So if you say:
 
     $fido = Dog.new($spot)
@@ -181,8 +182,10 @@ do C<Dog.new($spot)> instead.
 
 It is also possible (and often preferable) to specify coercions from
 the other end, that is, for a class to specify how to coerce one of
-its values to some other class.  If you define a method whose name
-is a declared type, it is taken as a coercion to that type:
+its values to some other class.  So, if you define a method whose name
+happens to be type name, you can view it as a coercion to that type. But that method
+is a regular method even its name happens to be a type name. That means the
+compiler does not enforce the type of the returned value.
 
     method Str { self.makestringval() }
 
