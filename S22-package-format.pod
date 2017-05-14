@@ -301,14 +301,14 @@ provide a compatible interface with emulated compunit.
 
 =head3 supersedes
 
-Optional.  Has the same meaning as "emulates" for the L</CompUnitRepo>.
+Optional.  Has the same meaning as "emulates" for the L</CompUnit::Repository>.
 But has additional meaning for external packagers: it indicates a potential
 superseding of the indicated compilation unit from the packagers point of
 view.  See L</superseded-by>.
 
 =head3 superseded-by
 
-Optional.  Has the reverse meaning of "emulates" for the L</CompUnitRepo>.
+Optional.  Has the reverse meaning of "emulates" for the L</CompUnit::Repository>.
 It is a hash in which the key is compunit provided by the distribution, and
 the value is the C<use> string of the compunit it should be aliased to if
 that compunit is available.  So in this case:
@@ -494,82 +494,82 @@ executed at various stages of the install process of this distribution.
 
 Distributions can be installed with an installer.  This may be a command-line
 script, or be some kind of GUI.  The installer needs the user to (implicitly)
-select the C<CompUnitRepo> in which the distribution should be installed, and
+select the C<CompUnit::Repository> in which the distribution should be installed, and
 the recommendation manager that should be used to convert requests for a
 compilation unit into an identity of a distribution to be downloaded.
 
 =head1 CLASSES
 
-=head2 CompUnitRepo
+=head2 CompUnit::Repository
 
 Base class (interface, really) for the object living in the L</@?INC> array.
 Used both for installing compunits, as well as finding a certain compunit by
 way of its from, longname, auth and ver information.
 
-=head3 Specifying a CompUnitRepo
+=head3 Specifying a CompUnit::Repository
 
-The specification of a CompUnitRepo can happen at various places: in a
+The specification of a CompUnit::Repository can happen at various places: in a
 configuration file, on the command-line when starting (with C<-I>), and in
-code when trying to create a CompUnitRepo object programmatically.
+code when trying to create a CompUnit::Repository object programmatically.
 
-Each specification consists of a CompUnitRepo class specification (either
+Each specification consists of a CompUnit::Repository class specification (either
 explicitly, implicitly, or the short-hand form using the L</short-id>
 identifier), optional named parameters and a location indicator (usually a
 path or a URL).
 
-Some examples (where CURL is short for CompUnitRepo::Local):
+Some examples (where CUR is short for CompUnit::Repository):
 
-  /foo/bar                    simple CURL::File in /foo/bar
+  /foo/bar                    simple CUR::FileSystem in /foo/bar
   file#/foo/bar               (same)
-  inst#/installed             simple CURL::Installation in /installed
+  inst#/installed             simple CUR::Installation in /installed
   inst#name<work>#/installed  (same) but also set %?CUSTOM_LIB<work>
   inst#name[work]#/installed  (same) but more CLI-friendly
   inst#name{work}#/installed  (same) alternate CLI-friendly way
-  CompUnitRepo::Local::Installation#/installed  (same) but with full class name
-  CompUnitRepo::GitHub#masak/html-template      get it from GitHub
+  CompUnit::Repository::Installation#/installed  (same) but with full class name
+  CompUnit::Repository::GitHub#masak/html-template      get it from GitHub
 
 Multiple specifications may be concatenated with C<,>.  If no class is
 specified on subsequent specifications, then the previous class specification
 will be assumed.  So:
 
-  /foo/bar,/foo/baz           both use CURL::File
-  inst#/installed,/also       both use CURL::Installation
-  /foo/bar,inst#/installed    first CURL::File, second CURL::Installation
+  /foo/bar,/foo/baz           both use CUR::FileSystem
+  inst#/installed,/also       both use CUR::Installation
+  /foo/bar,inst#/installed    first CUR::FileSystem, second CUR::Installation
 
 =head3 new
 
-  my $repo = CompUnitRepo.new( $specification );
+  my $repo = CompUnit::Repository.new( $specification );
 
-Create a new CompUnitRepo-like object with the given specification, either
+Create a new CompUnit::Repository-like object with the given specification, either
 for inclusion in L</@?INC>, or to install a distribution.  Returns the
 instantiated object.
 
 Please note that for a given C<specification>, there should always only be
-one C<CompUnitRepo> object in a process.
+one C<CompUnit::Repository> object in a process.
 
 =head3 short-id
 
-  say CompUnitRepo::Local::File.short-id;   # "file"
+  say CompUnit::Repository::FileSystem.short-id;   # "file"
 
 Returns a short C<\w+> identifier string (a C<tag> if you will) to identify
 the use of this repo, e.g. in strings provided with the C<-I> command line
-parameter.  It should be unique for all of the CompUnitRepo subclasses loaded.
+parameter.  It should be unique for all of the CompUnit::Repository subclasses loaded.
 The following C<short-id>'s are pre-defined:
 
-  file   CompUnitRepo::Local::File
-  inst   CompUnitRepo::Local::Installation
+  file   CompUnit::Repository::FileSystem
+  inst   CompUnit::Repository::Installation
 
 =head3 install
 
   my $installed = $repo.install( $dist );
 
 Install the compilation units of a L</Distribution> in the appropriate way
-for this CompUnitRepo-like object.  May cause a fatal exception if this
+for this CompUnit::Repository-like object.  May cause a fatal exception if this
 repository does not support installing.  The parameter contains the
 L</Distribution> object to be installed.  Returns True if the distribution
 was installed, or a C<Failure> if it didn't.
 
-Of course, any implementation of L<CompUnitRepo>'s C<install> interface, may
+Of course, any implementation of L<CompUnit::Repository>'s C<install> interface, may
 decide to accept additional meta-information and store this and make available
 for later introspection.
 
@@ -585,7 +585,7 @@ The opposite of L</install>.
 
 Return L<CompUnit> candidates given the matching credentials.
 
-=head2 CompUnitRepo::Local::File
+=head2 CompUnit::Repository::FileSystem
 
 The simplest, default case for locating compilation units on a file system.
 The module name specified should directly map to a file, similar to how
@@ -598,7 +598,7 @@ installed.
 Will fail unconditionally: installing compilation units is done by putting
 files in the right location.
 
-=head2 CompUnitRepo::Local::Installation
+=head2 CompUnit::Repository::Installation
 
 The default case for installed compilation units.  Similar to the way Perl 5
 installs modules, but with meta-information per object, rather than globally
@@ -613,7 +613,7 @@ Install the given L</Distribution> object in this repo.
 =head2 Distribution
 
 The class for installing distributions using
-L</CompUnitRepo::Local::Installation>.  Basically provides the API to access
+L</CompUnit::Repository::Installation>.  Basically provides the API to access
 the C<META6.json> file of a distribution.  It should at least contain the
 following methods:
 
@@ -681,35 +681,32 @@ creation even if the output file already exists.
 
 Several dynamic variables are available.
 
-=head2 %?RESOURCE
+=head2 %?RESOURCES
 
 This hash provides compile and runtime access to files associated with the
 L</Distribution> of the current compilation unit.
 
 So, if the C<META6.json> file contains this C<resource> section:
 
-  "resource" : {
-    "images" : [
-      "fido.png", "zowie.png"
-    ],
-    "libraries" : {
-      "inline_helper" : "build-time",
-    }
-  }
+  "resource" : [
+    "images/fido.png",
+    "images/zowie.png",
+    "libraries/inline_helper
+  ]
 
 then the C<Distribution> is supposed to contain the files
 C<resource/images/fido.png> and C<resource/images/zowie.png>.  After
 installation, IO objects of such a file would be available through
 
-  %?RESOURCE<images><fido.png>
+  %?RESOURCES<images><fido.png>
 
 The absolute path could be obtained with:
 
-  %?RESOURCE<images><fido.png>.abspath
+  %?RESOURCES<images><fido.png>.absolute
 
 and a handle could be obtained with:
 
-  %?RESOURCE<images><fido.png>.open
+  %?RESOURCES<images><fido.png>.open
 
 without there being any guarantee that this path has anything to do with the
 path as specified in the distribution.  Please also note that the installer
@@ -719,28 +716,20 @@ This means you can have files with Unicode characters in upper/lower case,
 and still be able to access them when installed on a file system that does
 not support Unicode.
 
-If a leaf of the "resource" hash is a hash, it indicates files with special
-properties (such as being provided by the builder, so not part of the
-distribution).  This will allow a good MANIFEST to be created from the
-META6.json information.
+=head2 CompUnit::RepositoryRegistry
 
-=head2 %?CUSTOM_LIB
+This class manages the repositories. Use
+C<CompUnit::RepositoryRegistry.repository-for-name('site')> to get the
+C<CompUnit::Repository::Installation> instance for the "site" repository.
 
-This hash provides key/value pairs of C<CompUnitRepo> specifications, to be
-used by packagers and/or installers.
+=head2 $*REPO
 
-=head2 @?INC
-
-This array contains the C<CompUnitRepo> objects that will be queried in turn
-whenever an attempt should be made to load a compilation unit (be that at
+This is the head of the linked list of C<CompUnit::Repository> objects that will be
+queried in turn whenever an attempt should be made to load a compilation unit (be that at
 compile time with C<use>, or at runtime with C<require>.
 
-The first C<CompUnitRepo> object to return one candidate, will then be loaded
-and no further C<CompUnitRepo> objects in C<@?INC> will be queried.  If the
-first C<CompUnitRepo> object to return C<any> candidates, returns more
-than one candidate, then B<all> other C<CompUnitRepo> objects in C<@?INC> will
-also be queried, to allow any error message to present a B<full> list of
-C<CompUnit> candidate objects.
+The C<CompUnit::Repository> object pointed to by C<$*REPO> will either satisfy a
+given dependency itself, or hand the request off to it's C<.next-repo>.
 
 =head1 AUTHORS
 
