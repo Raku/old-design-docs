@@ -252,6 +252,32 @@ instead of just a single use string.  So:
 would indicate a dependency on Sereal, and either Archive::Compress or
 Archive::Zlib.
 
+The dependencies may also be split between different phases, e.g. build time
+dependencies are only needed on the machine where a package is built, not
+on the one where it's installed.
+
+  "depends": {
+    "runtime": {
+      "requires": [
+        "Sereal:auth<cpan:*>:ver(1..*)",
+        "JSON::Fast"
+      ],
+      "recommends": [
+        "JSON::Pretty"
+      ]
+    },
+    "build": {
+      "requires": [
+        "System::Info"
+      ]
+    },
+    "test": {
+      "requires": [
+        "File::Temp"
+      ]
+    }
+  }
+
 An installer has the option to automatically install any dependencies, if the
 user has so indicated.  Dependencies and alternatives should be tried in the
 order they are specified.  In the case of alternatives, the first one
@@ -262,6 +288,73 @@ alternatives.
 Please note that the C<use> strings of compilation units are specified.  It
 is the responsibility of the recommendation manager to turn these into
 identities of distributions that can be downloaded.
+
+Dependencies need not be Perl 6 only. By using the C<:from> adverb on the C<use>
+string, dependencies external to Perl 6 can be specified. These could be Perl 5
+modules like C<Mojolicious:from<Perl5>>. Two names are reserved:
+
+=head4 bin
+
+With C<curl:from<bin>> one can specify on a C<curl> executable be available at
+the given stage. The installer may only check the availability of this dependency,
+or it may try to provide this, e.g. by installing the appropriate package to the
+system.
+
+=head4 native
+
+A dependency like C<curl:from<native>> tells the installer, that the system
+library with the given name must be present. The name is expanded following the
+same rules as NativeCall uses, e.g. C<curl> will be expanded to C<libcurl.so>
+on UNIX-like systems and C<curl.dll> on Windows.
+
+=head4 Dependency hints
+
+The META data may provide hints to the installer for how to satisfy the
+dependency. So if there's a location where a library can be obtained from
+for a certain system, this information may be provided as a dependency hint:
+
+  "depends": [
+    {
+      "name": "archive:from<native>",
+      "hints": {
+        "by-kernel.name": {
+          "win32": {
+            "url": "http://www.p6c.org/~jnthn/libarchive/libarchive.dll",
+            "checksum": {"sha-256": "E6836E32802555593AEDAFE1CC00752CBDA"},
+            "target": "resources/libraries/"
+          }
+          "": { }
+        }
+      }
+    }
+  ]
+
+The installer would download the library from the specified C<url> and store it
+in the C<resources> directory of the build tree. This resource will also
+automatically added to the C<resources> section of the meta data so it can be
+accessed through C<%?RESOURCES>.
+
+If the library needs to be built, additional build information can be supplied.
+The same infrastructure as for the distribution itself can be used.
+
+  "depends": {
+    "runtime": [
+      {
+        "name": "svm:from<native>",
+        "hints": {
+          "source": {
+            "builder": "MakeFromJSON",
+            "build": {
+              "src-dir": "src",
+              "makefile-variables": {
+                "VERSION": "3.22",
+                "svm": {"resource": "libraries/svm"}
+              }
+           }
+        }
+      }
+    ]
+  }
 
 =head3 emulates
 
