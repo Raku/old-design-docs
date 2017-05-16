@@ -217,4 +217,33 @@ Docs for .child-secure: https://github.com/perl6/specs/blob/master/v6d.pod
 
 Zoffix
 
+=head1 Make all redeclarations fatal
+
+Currently, some redeclarations are fatal, such us trying to declare two `only` subs
+of the same name. However, redeclarations of variables aren't fatal and are merely warnings.
+
+        $ perl6 -e 'my $x; my $x; say "hi"'
+        Potential difficulties:
+            Redeclaration of symbol '$x'
+            at -e:1
+            ------> my $x; my $x⏏; say "hi"
+        hi
+        
+        $ perl6 -e 'sub foo {}; sub foo {}; say "hi"'
+        ===SORRY!=== Error while compiling -e
+        Redeclaration of routine 'foo' (did you mean to declare a multi-sub?)
+        at -e:1
+        ------> sub foo {}; sub foo {}⏏; say "hi"
+            expecting any of:
+                horizontal whitespace
+
+I propose ALL redeclarations to be made fatal errors, as I can't think of when
+code that warns would be more desirable than one that dies and warnings can
+be hard to spot sometimes with large-output programs,
+L<like test suites|https://github.com/perl6/roast/commit/7b592f5e1203cf20525b3ff515f53662e1ea9693>
+
+=head2 Stakeholder
+
+Zoffix
+
 =cut
