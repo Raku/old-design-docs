@@ -8,8 +8,8 @@ Plans for Perl 6 version 6.d
 
     Created: 09 Aug 2016
 
-    Last Modified: 16 Dec 2016
-    Version: 3
+    Last Modified: 5 Jul 2016
+    Version: ??
 
 This documents contains planned changes for v6.d, and who wants to do them.
 
@@ -17,7 +17,36 @@ Please list yourself as stakeholder so we'd know whom to contact if we need
 clarification. If possible, find a volunteer willing to implement your
 proposal (it could be you).
 
-=head1 Sigils imply :D
+=head1 ALREADY IMPLEMENTED FEATURES
+
+These features are already available with the C<use v6.d.PREVIEW> pragma.
+
+=head2 [IMPLEMENTED] Non-blocking await
+
+In v6.c, waiting for a promise, either with an explicit `await` or by using its
+`.result` method, currently uses up a thread just for the blocking wait.
+
+After this proposed change has been implemented, waiting doesn't tie up
+a whole thread for each wait.
+
+=head3 Rationale
+
+It is quite easy to write code that waits for multiple promises in parallel,
+which can lead to the full thread pool begin tied up in blocking waits,
+leading to a deadlock.
+
+Examples of this happening have showed up in the past.
+
+=head3 Stakeholder
+
+Jonathan Worthington
+
+
+
+
+=head1 PROPOSED FEATURES
+
+=head2 Sigils imply :D
 
 In a declaration, the C<@> sigil for example implies a type constraint to
 C<Positional>. I want the sigil to imply the type constraint C<Positional:D>
@@ -36,7 +65,7 @@ New behavior:
     # Parameter '@x' requires an instance of type Array, but a type object was passed.  Did you forget a .new?
 
 
-=head2 Rationale
+=head3 Rationale
 
 I've never seen anybody write code as if they expected an array or hash
 variable to contain a type object, yet the type checker silently allows this,
@@ -46,32 +75,11 @@ if it were an instance.
 Since normal variables are typically used with assignment, not binding,
 constraining the types of parameters is of higher importance.
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Moritz Lenz
 
-
-=head1 Non-blocking await
-
-In v6.c, waiting for a promise, either with an explicit `await` or by using its
-`.result` method, currently uses up a thread just for the blocking wait.
-
-After this proposed change has been implemented, waiting doesn't tie up
-a whole thread for each wait.
-
-=head2 Rationale
-
-It is quite easy to write code that waits for multiple promises in parallel,
-which can lead to the full thread pool begin tied up in blocking waits,
-leading to a deadlock.
-
-Examples of this happening have showed up in the past.
-
-=head2 Stakeholder
-
-Jonathan Worthington
-
-=head1 Formal Rules for Defining Matched Delimiters/Brackets
+=head2 Formal Rules for Defining Matched Delimiters/Brackets
 
 In v6.d we should formalize which brackets we support.
 How do we decide which delimiters should be added on future updates
@@ -81,7 +89,7 @@ us define matching delimiters and brackets for Perl 6.
 All delimiters we support should conform to two simple rules for the sake of
 uniformity, elegance and clairity.
 
-=head2 Rules
+=head3 Rules
 
 B<1.> Delimiter's Unicode General_Category must match one of these:
 
@@ -96,7 +104,7 @@ L<here|http://www.unicode.org/Public/UCD/latest/ucd/BidiBrackets.txt>
 Non brackets have their matching glyph specified in this
 L<file|http://www.unicode.org/Public/UCD/latest/ucd/BidiMirroring.txt>
 
-=head2 Possible issues
+=head3 Possible issues
 
 The only possible issue, is what to do with ornate parens.
 
@@ -118,22 +126,22 @@ They break both of these proposed rules.
 In practice this is already implement with the exception of the ornate parenthesis,
 but I propose this be made an official part of the Perl 6 standard.
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Samantha McVey (samcv)
 
 
-=head1 Remove deprecated Test::is_approx
+=head2 Remove deprecated Test::is_approx
 
 This is mostly a reminder so we don't forget. Test::is_approx is currently marked as deprecated
 (replaced by `is-approx`). It was decided to leave it in until 6.d, so that we can still use it
 in 6.c-errata without any changes.
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Oh, I thought you said steak... (Zoffix)
 
-=head1 Properly reserve all C<< :sym<> >> colonpairs on subroutines
+=head2 Properly reserve all C<< :sym<> >> colonpairs on subroutines
 
 This is mostly a reminder so we don't forget. As
 L<previously discussed|https://irclog.perlgeek.de/perl6/2017-01-25#i_13988093>,
@@ -145,13 +153,12 @@ L<code implementing this|https://github.com/rakudo/rakudo/commit/48abeeef26> alr
 exists. It just needs to be uncommented for 6.d and 
 L<corresponding tests|https://github.com/perl6/roast/commit/53d6e8491d> unfudged.
 
-
-=head2 Stakeholder
+=head3 Stakeholder
 
 Zoffix
 
 
-=head1 Use IEEE 754-2008 semantics for num/Num infix:</>, infix:<%>, and infix:<%%>
+=head2 Use IEEE 754-2008 semantics for num/Num infix:</>, infix:<%>, and infix:<%%>
 
 B<(Sidenote: be sure to check log(42, 1) does not explode when this is implemented.
 If it's decided not to implement this; change log(42, 1) to give a better error)>
@@ -184,40 +191,40 @@ not declared by IEEE.
         nqp::mod_n($a, $b)
     }
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Zoffix
 
-=head1 Remove dummy precision parameters from Rational/Int .Rat and .FatRat coercers
+=head2 Remove dummy precision parameters from Rational/Int .Rat and .FatRat coercers
 
 They're dummy parameters that offser more confusion than usefulness. The roast itself
 seems confused. There are a whole bunch of trig tests that use these coercers with a
 precision arg for no good reason; almost feels like the writer assumed `1.5` is a Num and
 not a Rat.
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Zoffix
 
-=head1 Deprecate IO::Path.chdir and IO::Handle.slurp-rest
+=head2 Deprecate IO::Path.chdir and IO::Handle.slurp-rest
 
 Per IO Grant work
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Zoffix
 
-=head1 Swap IO::Path.child to use .child-secure's code
+=head2 Swap IO::Path.child to use .child-secure's code
 
 .child-secure's code is commented out below .child's code. Per IO Grant work.
 Discussion: https://irclog.perlgeek.de/perl6-dev/2017-04-17#i_14439386
 Docs for .child-secure: https://github.com/perl6/specs/blob/master/v6d.pod
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Zoffix
 
-=head1 Make all redeclarations fatal
+=head2 Make all redeclarations fatal
 
 Currently, some redeclarations are fatal, such us trying to declare two `only` subs
 of the same name. However, redeclarations of variables aren't fatal and are merely warnings.
@@ -242,37 +249,37 @@ code that warns would be more desirable than one that dies and warnings can
 be hard to spot sometimes with large-output programs,
 L<like test suites|https://github.com/perl6/roast/commit/7b592f5e1203cf20525b3ff515f53662e1ea9693>
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Zoffix
 
-=head1 Remove Str.lines :$count parameter
+=head2 Remove Str.lines :$count parameter
 
 An entirely pointless, undocumented, unused, and unloved parameter whose removal is blocked by
 L<two 6.c tests|https://github.com/perl6/roast/blob/5c703c355d0457f78f1f32a0f3af394ab54be256/S32-str/lines.t#L59-L60>.
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Zoffix
 
-=head1 Remove $/ magicalness from %() and @()
+=head2 Remove $/ magicalness from %() and @()
 
 And perhaps $() too; Per https://rt.perl.org/Ticket/Display.html?id=131392
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Zoffix
 
-=head1 Remove $*MAIN-ALLOW-NAMED-ANYWHERE
+=head2 Remove $*MAIN-ALLOW-NAMED-ANYWHERE
 
 It was never specced and currently exists for backwards compatibility with older panda. By 6.d it should not matter and could be
 removed.
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Zoffix
 
-=head1 Make $*ARGFILES := $*IN or IO::ArgFiles.new($*IN) inside MAIN
+=head2 Make $*ARGFILES := $*IN or IO::ArgFiles.new($*IN) inside MAIN
 
 It being based on @*ARGS is virtually never useful when you handle any sort of non-file arguments (which is what using MAIN implies).
 To allow lines(), get(), words(), and slurp() to Do The Right Thing when called and use $*IN, we should swap $*ARGFILES to $*IN
@@ -290,7 +297,7 @@ Relevant discussions:
 
 =back
 
-=head2 Stakeholder
+=head3 Stakeholder
 
 Zoffix
 
