@@ -314,4 +314,24 @@ Relevant discussions:
 
 Zoffix
 
+=head2 De-magicalize '-' in IO::Handle.open
+
+Currently, C<'-'.IO> will operate on a filesystem object (e.g. C<'-'.IO.mkdir>
+will create a directory named C<->). However, trying to C<.open> such a path
+causes special-cased behaviour in C<IO::Handle.open> where it return $*OUT
+if the open was done for reading or $*IN, if the open was done for write.
+
+This is a holdover from Perl 5 and is a lot less useful in Perl 6 (since you can
+just use $*IN/$*OUT directly or create your own IO::Handle with IO::Special as paths).
+While the special-cased behaviour can be unwanted and surprising.
+
+The proposal is to remove this feature in 6.d, so that C<'-'.IO.spurt: 'foo'> would
+spurt into a file named C<-> rather than to $*IN handle.
+
+Relevant discussion: https://irclog.perlgeek.de/perl6-dev/2017-06-23#i_14777024
+
+=head3 Stakeholder
+
+Zoffix
+
 =cut
