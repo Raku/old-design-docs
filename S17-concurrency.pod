@@ -17,7 +17,7 @@ This synopsis is based around the concurrency primitives and tools currently bei
 
 =head2 Focus on composability
 
-Perl 6 generally prefers constructs that compose well, enabling large problems to be solved by putting together solutions for lots of smaller problems. This also helps make it easier to extend and refactor code.
+Raku generally prefers constructs that compose well, enabling large problems to be solved by putting together solutions for lots of smaller problems. This also helps make it easier to extend and refactor code.
 
 Many common language features related to parallel and asynchronous programming lack composability. For example:
 
@@ -37,7 +37,7 @@ Directly spawning threads on a per-component basis tends to compose badly, as wh
 
 =back
 
-In Perl 6, concurrency features aimed at typical language users should have good composability properties, both with themselves and also with other language features.
+In Raku, concurrency features aimed at typical language users should have good composability properties, both with themselves and also with other language features.
 
 =head2 Boundaries between synchronous and asynchronous should be explicit
 
@@ -47,7 +47,7 @@ The vast majority of programmers are much more comfortable with synchrony, as in
 
 It's also worthwhile trying to make it easy to keep asynchronous things flowing asynchronously. While synchronous code is pull-y (for example, eating its way through iterable things, blocking for results), asynchronous code is push-y (results get pushed to things that know what to do next).
 
-Places where we go from synchronous to asynchronous, or from asynchronous to synchronous, are higher risk areas for bugs and potential bottlenecks. Thus, Perl 6 should try to provide features that help minimize the need to make such transitions.
+Places where we go from synchronous to asynchronous, or from asynchronous to synchronous, are higher risk areas for bugs and potential bottlenecks. Thus, Raku should try to provide features that help minimize the need to make such transitions.
 
 =head2 Implicit parallelism is OK
 
@@ -55,7 +55,7 @@ Parallelism is primarily about taking something we could do serially and using m
 
 While under the hood there is asynchrony and the inherent coordination it requires, on the outside a problem solved using parallel programming is still, when taken as a whole, a single, synchronous operation.
 
-Elsewhere in the specification, Perl 6 provides several features that allow the programmer to indicate that parallelizing an operation will produce the same result as evaluating it serially:
+Elsewhere in the specification, Raku provides several features that allow the programmer to indicate that parallelizing an operation will produce the same result as evaluating it serially:
 
 =over
 
@@ -79,13 +79,13 @@ C<hyper> and C<race> list operators (L<S02/The hyper operator>) express that ite
 
 =head2 Make the hard things possible
 
-The easy things should be easy, and able to be built out of primitives that compose nicely. However, such things have to be built out of what VMs and operating systems provide: threads, atomic instructions (such as CAS), and concurrency control constructs such as mutexes and semaphores. Perl 6 is meant to last for decades, and the coming decades will doubtless bring new ways do do parallel and asynchronous programming that we do not have today. They will still, however, almost certainly need to be built out of what is available.
+The easy things should be easy, and able to be built out of primitives that compose nicely. However, such things have to be built out of what VMs and operating systems provide: threads, atomic instructions (such as CAS), and concurrency control constructs such as mutexes and semaphores. Raku is meant to last for decades, and the coming decades will doubtless bring new ways do do parallel and asynchronous programming that we do not have today. They will still, however, almost certainly need to be built out of what is available.
 
-Thus, the primitive things should be provided for those who need to work on such hard things. Perl 6 should not hide the existence of OS-level threads, or fail to provide access to lower level concurrency control constructs. However, they should be clearly documented as I<not> the way to solve the majority of problems.
+Thus, the primitive things should be provided for those who need to work on such hard things. Raku should not hide the existence of OS-level threads, or fail to provide access to lower level concurrency control constructs. However, they should be clearly documented as I<not> the way to solve the majority of problems.
 
 =head1 Schedulers
 
-Schedulers lie at the heart of all concurrency in Perl 6. While most users are unlikely to immediately encounter schedulers when starting to use Perl 6's concurrency features, many of them are implemented in terms of it. Thus, they will be described first here to avoid lots of forward references.
+Schedulers lie at the heart of all concurrency in Raku. While most users are unlikely to immediately encounter schedulers when starting to use Raku's concurrency features, many of them are implemented in terms of it. Thus, they will be described first here to avoid lots of forward references.
 
 A scheduler is something that does the C<Scheduler> role. Its responsibility is taking code objects representing tasks that need to be performed and making sure they get run, as well as handling any time-related operations (such as, "run this code every second").
 
@@ -741,7 +741,7 @@ It can also take C<done> and C<quit> named parameters; these go to the tap, whil
 
 =head1 Inter-Process Communication exposed as Promises and Supplies
 
-Starting external processes is rather easy: C<shell()>, C<run()> and C<qx//>. Having external processes run asynchronously, is slightly more involved. But not much.  The workhorse of asynchronous IPC in Perl 6 is C<Proc::Async>:
+Starting external processes is rather easy: C<shell()>, C<run()> and C<qx//>. Having external processes run asynchronously, is slightly more involved. But not much.  The workhorse of asynchronous IPC in Raku is C<Proc::Async>:
 
     my $proc = Proc::Async.new( $path, @args );
 
@@ -857,9 +857,9 @@ Finally, the C<yield> method can be called on C<Thread> (not on any particular t
 
 =head2 Atomic Compare and Swap
 
-The Atomic Compare and Swap (CAS) primitive is directly supported by most modern hardware. It has been shown that it can be used to build a whole range of concurrency control mechanisms (such as mutexes and semaphores). It can also be used to implement lock-free data structures. It is decidedly a primitive, and not truly composable due to risk of livelock. However, since so much can be built out of it, Perl 6 provides it directly.
+The Atomic Compare and Swap (CAS) primitive is directly supported by most modern hardware. It has been shown that it can be used to build a whole range of concurrency control mechanisms (such as mutexes and semaphores). It can also be used to implement lock-free data structures. It is decidedly a primitive, and not truly composable due to risk of livelock. However, since so much can be built out of it, Raku provides it directly.
 
-A Perl 6 implementation of CAS would look something like this:
+A Raku implementation of CAS would look something like this:
 
     sub cas($ref is rw, $expected, $new) {
         my $seen = $ref;
@@ -917,7 +917,7 @@ It's the programmer's duty to ensure that the original data structure is never m
 
 =head1 Low-level primitives
 
-Perl 6 offers high-level concurrency methods, but in extreme cases, like if you need to implement a fundamentally different mechanism, these primitives are available.
+Raku offers high-level concurrency methods, but in extreme cases, like if you need to implement a fundamentally different mechanism, these primitives are available.
 
 =head2 Locks
 

@@ -16,7 +16,7 @@ Synopsis 22: Distributions, Recommendations, Delivery and Installation
 Because many of the concepts used in this document may be overloaded by
 other concepts in the mind of the reader, it seems like a good idea to define
 some terminology first.  Please note that these definitions only apply within
-the context of Perl 6.
+the context of Raku.
 
 =head2 compilation unit
 
@@ -34,7 +34,7 @@ or more compilation units (each stored in a separate file), with any possibly
 associated files needed for execution.  For example:
 
   lib/JSON/Fast.pm6
-  lib/JSON/PurePerl.pm6
+  lib/JSON/PureRaku.pm6
 
 It has a name for identification, which may or may not coincide with the
 compilation units in the distribution.  An example of a distribution name:
@@ -56,7 +56,7 @@ C<-> for the filename of the archive, we are effectively disallowing an owner
 to upload a distribution for "JSON-Fast" and "JSON::Fast" at the same time.
 This seems unlikely to become a problem.
 
-A Perl 6 distribution B<must> contain a configuration file named C<META6.json>,
+A Raku distribution B<must> contain a configuration file named C<META6.json>,
 containing JSON-encoded information about the contents of the distribution.
 
 =head2 owner
@@ -122,21 +122,21 @@ the request.
 The recommendation manager is only used during the installation process of
 the distribution for a wanted compilation unit.
 
-A recommendation manager can be run by a community (like the current Perl 6
-ecosystem or the packages list for Perl 5 on CPAN), or by company (for use
+A recommendation manager can be run by a community (like the current Raku
+ecosystem or the packages list for Perl on CPAN), or by company (for use
 inside the company itself), or by any reviewing / grading service (for use
 by anybody wanting to use that service), or by any other person willing to
 put in the effort.
 
 A request for:
 
-  JSON::PurePerl
+  JSON::PureRaku
 
 would yield the identity:
 
   cpan:JRANDOM:JSON-Fast:1.23
 
-because the compilation unit C<JSON::PurePerl> is part of the C<JSON::Fast>
+because the compilation unit C<JSON::PureRaku> is part of the C<JSON::Fast>
 distribution.
 
 However, a request for:
@@ -159,14 +159,14 @@ source for bundling distributions in their specific packaging system.
 
 =head1 DISTRIBUTION
 
-A Perl 6 distribution consists of an archive of some form (presumably a
+A Raku distribution consists of an archive of some form (presumably a
 .tar.gz, .tar.bz2 or .zip file) which is expected to at least contain a file
 called "META6.json".  The existence of this file indicates that this
-distribution is a Perl 6 distribution.  This is important for those archive
+distribution is a Raku distribution.  This is important for those archive
 networks that also serve as a content-distribution system for other types
 of distributions (such as PAUSE / CPAN), so that they can adapt the processing
 of the contents, or decide to ignore any processing at all (such as CPAN-testers
-not being able to test Perl 6 distributions (yet)).
+not being able to test Raku distributions (yet)).
 
 =head2 META6.json
 
@@ -185,7 +185,7 @@ installed.  Specified as a version string.  So:
 
   "perl" : "6.d"
 
-would not allow installation on Perl version 6.c
+would not allow installation on Raku version 6.c
 
 =head3 name
 
@@ -228,7 +228,7 @@ available to be C<use>d.  For example:
 
   "provides" : {
     "JSON::Fast"     : "lib/JSON/Fast.pm6",
-    "JSON::PurePerl" : "lib/JSON/PurePerl.pm6"
+    "JSON::PureRaku" : "lib/JSON/PureRaku.pm6"
   }
 
 Please note that the filenames specified only indicate the names of the files
@@ -289,8 +289,8 @@ Please note that the C<use> strings of compilation units are specified.  It
 is the responsibility of the recommendation manager to turn these into
 identities of distributions that can be downloaded.
 
-Dependencies need not be Perl 6 only. By using the C<:from> adverb on the C<use>
-string, dependencies external to Perl 6 can be specified. These could be Perl 5
+Dependencies need not be Raku only. By using the C<:from> adverb on the C<use>
+string, dependencies external to Raku can be specified. These could be Perl
 modules like C<Mojolicious:from<Perl5>>. Two names are reserved:
 
 =head4 :from<bin>
@@ -431,10 +431,10 @@ will be disallowed when attempted to be loaded in the same lexical scope.
 An example of this would be:
 
   "excludes" : {
-    "JSON::PurePerl" : "JSON::Slow:auth<cpan:*>:ver(1..*)"
+    "JSON::PureRaku" : "JSON::Slow:auth<cpan:*>:ver(1..*)"
   }
 
-So, if a lexical scope loads C<JSON::PurePerl> from this distribution, then
+So, if a lexical scope loads C<JSON::PureRaku> from this distribution, then
 attempting to load C<JSON::Slow> will cause a Failure.  Please note that this
 has B<no> meaning for packagers: it is simply a way to provide a better error
 message if a collision of some sort will occur when both modules are loaded
@@ -579,7 +579,7 @@ possibly in parallel.
 
 =head3 hooks
 
-All files in this directory should contain executable Perl 6 code, to be
+All files in this directory should contain executable Raku6 code, to be
 executed at various stages of the install process of this distribution.
 
 =head2 Installation
@@ -681,7 +681,7 @@ Return L<CompUnit> candidates given the matching credentials.
 
 The simplest, default case for locating compilation units on a file system.
 The module name specified should directly map to a file, similar to how
-Perl 5 this does.  Mainly intended to be used in development situations
+Perl this does.  Mainly intended to be used in development situations
 to allow developers to have modules to be available without them having to be
 installed.
 
@@ -692,7 +692,7 @@ files in the right location.
 
 =head2 CompUnit::Repository::Installation
 
-The default case for installed compilation units.  Similar to the way Perl 5
+The default case for installed compilation units.  Similar to the way Perl
 installs modules, but with meta-information per object, rather than globally
 in a C<packlist>.  This should be used by installers such as C<panda>.
 
