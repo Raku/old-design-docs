@@ -10,7 +10,7 @@
     Last Modified    10 October 2014
     Version          8
 
-This document describes how Unicode and Raku work together. Needless to say,
+This document describes how Unicode and Perl 6 work together. Needless to say,
 it would be good for your chosen reader to support various Unicode characters.
 
 =head1 String Base Units
@@ -47,10 +47,10 @@ bytes, the perceived length of the string differs:
     | graphemes  | 1     | 1      | 1      |
     |------------+-------+--------+--------|
 
-Raku offers various mechanisms to count by each of these "base units" of a
+Perl 6 offers various mechanisms to count by each of these "base units" of a
 string.
 
-Raku by default operates on graphemes, so counting by graphemes involves:
+Perl 6 by default operates on graphemes, so counting by graphemes involves:
 
     "string".chars
 
@@ -77,15 +77,15 @@ is always the same.
 
 =head2 NFG
 
-Raku, by default, stores all strings given to it in NFG form, Normalization
-Form Grapheme. It's a Raku–invented character representation, designed to deal
+Perl 6, by default, stores all strings given to it in NFG form, Normalization
+Form Grapheme. It's a Perl 6–invented character representation, designed to deal
 with un-precomposed graphemes properly.
 
-Formally Raku graphemes are defined exactly according to Unicode Grapheme Cluster Boundaries
+Formally Perl 6 graphemes are defined exactly according to Unicode Grapheme Cluster Boundaries
 at level "extended" (in contrast to "tailored" or "legacy"),
 see Unicode Standard Annex #29 UNICODE TEXT SEGMENTATION
 L<3 Grapheme Cluster Boundaries|http://www.unicode.org/reports/tr29/tr29-25.html#Grapheme_Cluster_Boundaries>>.
-This is the same as the Perl character class
+This is the same as the Perl 5 character class
 
   \X   Match Unicode "eXtended grapheme cluster"
 
@@ -99,7 +99,7 @@ changes to Unicode.  The mapping between these internal designations and
 graphemes in this form is not guaranteed constant, even between strings in
 the same process.
 
-The Raku C<Str> type, and more generally the C<Stringy> role, deals
+The Perl 6 C<Str> type, and more generally the C<Stringy> role, deals
 exclusively in NFG form.
 
 =head2 NFC and NFD
@@ -113,7 +113,7 @@ possible, after first running it through the NFD process.
 These two Normalization Forms are similar to NFG, except that graphemes without
 precomposed versions exist as multiple codepoints.
 
-NFC is the form Raku uses whenever NFG is not viable, such as printing the
+NFC is the form Perl 6 uses whenever NFG is not viable, such as printing the
 string to stdout or passing it to a C<{ use v5; }> section.
 
 =head2 NFKC and NFKD
@@ -133,7 +133,7 @@ though each differ in their exact formulation of the contents of a string:
     say "ẛ̣".NFKD.codes;          # OUTPUT: 3 (NFKD, s + ̣+ ̇)
 
 Those who wish to operate with strings on the codepoint level may wish to use
-NFC, as it is the least different from NFG, as well as Raku's default form for
+NFC, as it is the least different from NFG, as well as Perl 6's default form for
 NFG-less contexts.
 
 All of C<Uni>, C<NFC>, C<NFD>, C<NFKC>, and C<NFKD>, and more generally the
@@ -184,7 +184,7 @@ UTF-16 and UTF-32 default to big endian if you don't specify endianness.
 
 =head1 The C<NF*> Types
 
-Raku has four types corresponding to a specific Unicode Standard Normalization
+Perl 6 has four types corresponding to a specific Unicode Standard Normalization
 Form: C<NFC>, C<NFD>, C<NFKC>, and C<NFKD>.
 
 Each one of these types perform normalization on strings stored in it.
@@ -255,7 +255,7 @@ transposition of the string without changes in normalization.
 
 =head1 Unicode Information
 
-There's plenty of information each Unicode codepoint possesses, and Raku
+There's plenty of information each Unicode codepoint possesses, and Perl 6
 provides various ways of accessing that information.
 
 Unless plural forms of these functions are provided, each function operates only
@@ -597,7 +597,7 @@ The typical C<:nf> adverbs are in use here.
 
 =head2 Identifiers
 
-Identifiers in Raku can start with any alphabetic character (those characters
+Identifiers in Perl 6 can start with any alphabetic character (those characters
 in the C<L> category, as well as underscore), followed by any number of
 alphanumeric characters (those characters in the C<L> or C<N> category, as well
 as underscore). Dashes (C<->) and apostrophes (C<'>) may also appear, provided
@@ -610,7 +610,7 @@ that they are followed by an alphabetic character.
 Combining marks (characters in the C<M> category) may not be the first character
 in an identifier, but they may appear at any time afterwards.
 
-Raku internally stores all identifiers in NFG form, so these two lines create
+Perl 6 internally stores all identifiers in NFG form, so these two lines create
 the same variable (and throw a redeclaration warning if used like this in code):
 
     my $ä; # precomposed
@@ -618,7 +618,7 @@ the same variable (and throw a redeclaration warning if used like this in code):
 
 =head2 Numbers
 
-Similar to its support for any kind of Unicode in identifiers, Raku allows any
+Similar to its support for any kind of Unicode in identifiers, Perl 6 allows any
 kind of character within the category C<Nd> (Decimal Number) for decimal
 numbers:
 
@@ -702,7 +702,7 @@ combining characters.]
 
 Regexes likely need more work, though I don't see anything immediate.
 
-Some easy way to change how Raku handles language specific weirdness, possibly
+Some easy way to change how Perl 6 handles language specific weirdness, possibly
 through another type (C<Rope>? C<Twine>? C<Yarn>?). A very small selection of
 those weirdnesses:
 

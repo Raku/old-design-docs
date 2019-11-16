@@ -18,32 +18,32 @@ been in Apocalypse 11.
 
 =head1 Units
 
-Raku code is compiled per compilation unit, or I<compunit> for short.  These
+Perl 6 code is compiled per compilation unit, or I<compunit> for short.  These
 are loaded with a C<use>, C<need> or C<require> statement (usually at compile
 time).  Or they are created as a string in a variable and compiled with an
 C<EVAL> statement (usually at runtime).  This synopsis is mostly about
 compunits loaded at compile time.
 
-In the common vernacular of a Raku developer, a I<module> is the same as the
-file that contains the source code of a package.  For Raku developers, this
+In the common vernacular of a Perl 5 developer, a I<module> is the same as the
+file that contains the source code of a package.  For Perl 6 developers, this
 is generally not much different.  However, such a I<module> is really a
 compunit that may contain 0 or more package-like statements, some of which
-may be I<module>.  Confusing?  Yes it is.  On top of that, Raku allows
+may be I<module>.  Confusing?  Yes it is.  On top of that, Perl 6 allows
 different versions of the same compunit to be installed in a single
 I<repository>.  And it allows compunits from other languages to be loaded.
 
-In Raku, the C<use> statement is really just telling Raku to find a compunit
+In Perl, the C<use> statement is really just telling Perl to find a compunit
 for the given name and load its contents.  Whether that name is the name of a
 C<package>, C<module>, C<class>, C<grammar> or C<role>, a combination of these
 or something else entirely in a C<slang>, is B<not> known at the moment the
 compunit is searched for (and hopefully found).  Only when the contents of the
-compunit are compiled, does Raku find out what's inside.
+compunit are compiled, does Perl find out what's inside.
 
-In Perl, the compunit's name to filename translation is generally mechanical.
+In Perl 5, the compunit's name to filename translation is generally mechanical.
 C<Foo::Bar> will always refer to C<Foo/Bar.pm> in a directory: it does not need
 any outside information to find out the name of the file to be loaded.
 
-Raku however, only knows about I<repositories> that contain compunits.  Each
+Perl 6 however, only knows about I<repositories> that contain compunits.  Each
 repository is represented as an object with the L<CompUnitRepo> interface in
 the C<@?INC> array.  Whenever a compunit needs to be loaded, each element in
 the C<@?INC> is queried for the compunit, and any candidates are returned.
@@ -54,7 +54,7 @@ obtained and loaded.
 There are 2 standard implementations of the C<CompUnitRepo> interface:
 L<CompUnitRepo::Local::File> and L<CompUnitRepo::Local::Installation>.  The
 first is used whenever you're specifying the C<-I> parameter when running
-Raku.  The second is always used when searched for locally installed
+Perl 6.  The second is always used when searched for locally installed
 compunits as files in directories.  Of course, one is free to devise any
 other way of storing and searching for compunits, as long as C<API> is the
 same.
@@ -64,10 +64,10 @@ more information about the C<CompUnitRepo> interface.
 
 =head1 Modules
 
-As in Perl, a C<module> is just a kind of package.  Unlike in Perl, modules
+As in Perl 5, a C<module> is just a kind of package.  Unlike in Perl 5, modules
 and classes are declared with separate keywords, but they're still just
 packages with extra behaviors.  In the case of modules, the extra behavior is
-the availability of the C<export> trait and any associated support for Raku
+the availability of the C<export> trait and any associated support for Perl 6
 standard export semantics.
 
 A module is declared with the C<module> keyword.  There are two basic
@@ -81,9 +81,9 @@ declaration syntaxes:
 A named module declaration can occur as part of an expression, just like
 named subroutine declarations.
 
-Since there are no barewords in Raku, module names must be predeclared,
+Since there are no barewords in Perl 6, module names must be predeclared,
 or use the sigil-like C<::ModuleName> syntax.  The C<::> prefix does not
-imply globalness as it does in Perl.  (Use C<GLOBAL::> for that.)
+imply globalness as it does in Perl 5.  (Use C<GLOBAL::> for that.)
 
 A bare (unscoped) C<module> declarator declares a nested C<our> module
 name within the current package.  However, at the start of a compunit,
@@ -95,12 +95,12 @@ You can use C<our module> to explicitly declare a module in the current
 package.  To declare a lexically scoped module, use C<my module>.
 Module names are always searched for from innermost scopes to outermost.
 As with an initial C<::>, the presence of a C<::> within the name
-does not imply globalness (unlike in Perl).
+does not imply globalness (unlike in Perl 5).
 
 The default package for the main program is C<GLOBAL>.
 (Putting C<module GLOBAL;> at the top of your program
-is redundant, except insofar as it tells Perl that the code is Raku
-code and not Perl code.  But it's better to say C<use v6> for that.)
+is redundant, except insofar as it tells Perl that the code is Perl
+6 code and not Perl 5 code.  But it's better to say C<use v6> for that.)
 
 Module traits are set using C<is>:
 
@@ -185,7 +185,7 @@ X<use>
 [Note: the :MY forms are being rethought currently.]
 
 Importing via C<use> binds into the current lexical scope by default
-(rather than the current package, as in Perl).
+(rather than the current package, as in Perl 5).
 
     use Sense <&common @horse>;
 
@@ -254,7 +254,7 @@ to import):
     need ACME::Rocket;
     my $r = ACME::Rocket.new;
 
-This declaration is equivalent to Perl's:
+This declaration is equivalent to Perl 5's:
 
     use ACME::Rocket ();
 
@@ -390,26 +390,26 @@ Other than that, the semantics are identical to the direct form.
 =head1 Versioning
 
 Whenever an authority (such as a CPAN author or a company) posts a
-compilation unit as part of a distribution of Raku code, or enters it into
-any Raku library, the module is required to declare its full
+compilation unit as part of a distribution of Perl 6 code, or enters it into
+any Perl 6 library, the module is required to declare its full
 name so that installations can know its unique, immutable identity,
 such that multiple versions by different authors can coexist, all of
-them available to any installed version of Raku.  (For the purposes of
-"standard Raku library" we do not just mean publicly shared libraries
+them available to any installed version of Perl.  (For the purposes of
+"standard Perl 6 library" we do not just mean publicly shared libraries
 such as CPAN, but also any internal or site-wide libraries that are
 shared outside the given module's dev group.)
 
 Such modules are also required to specify exactly which version (or
-versions) of Raku they are expecting to run under, so that future
-versions of Raku can emulate older versions of Raku (or give a cogent
+versions) of Perl they are expecting to run under, so that future
+versions of Perl can emulate older versions of Perl (or give a cogent
 explanation of why they cannot).  This will allow the language to
-evolve without breaking existing widely used modules.  (Perl library
+evolve without breaking existing widely used modules.  (Perl 5 library
 policy is notably lacking here; it would induce massive breakage even
-to change Perl to make strictness the default.)  If an installed module
-breaks because it declares that it supports future versions of Raku
+to change Perl 5 to make strictness the default.)  If an installed module
+breaks because it declares that it supports future versions of Perl
 when it doesn't, then it must be construed to be the module's fault,
-not Raku's.  If Raku evolves in a way that does not support emulation
-of an older version (at least, back to 6.0.0), then it's Raku's fault
+not Perl's.  If Perl evolves in a way that does not support emulation
+of an older version (at least, back to 6.0.0), then it's Perl's fault
 (unless the change is required for security, in which case it's the
 fault of the insensitive clod who broke security :).
 
@@ -474,21 +474,21 @@ If you say:
 
 which is short for:
 
-    use Raku:ver<6.*>;
+    use Perl:ver<6.*>;
 
-you're asking for any version of Raku.  You need to say something like
+you're asking for any version of Perl 6.  You need to say something like
 
-    use Raku:<6.0>;
-    use Raku:<6.0.0>;
-    use Raku:<6.2.7.1>;
+    use Perl:<6.0>;
+    use Perl:<6.0.0>;
+    use Perl:<6.2.7.1>;
 
 if you want to lock in a particular set of semantics at some greater
-degree of specificity.  And if some large company ever forks Raku, you can say
+degree of specificity.  And if some large company ever forks Perl, you can say
 something like:
 
-    use Raku:auth<cpan:TPF>
+    use Perl:auth<cpan:TPF>
 
-to guarantee that you get the unembraced Raku.  C<:-)>
+to guarantee that you get the unembraced Perl.  C<:-)>
 
 When it happens that the same module is available from more than one
 auth, and the desired auth is not specified by the C<use>,
@@ -559,7 +559,7 @@ And saying
 specifically rules out any prereleases.
 
 If two different compunits in your program require two different
-versions of the same compunit, Raku will simply load both versions at
+versions of the same compunit, Perl will simply load both versions at
 the same time.  For compunits that do not manage exclusive resources,
 the only penalty for this is memory, and the disk space in the library
 to hold both the old and new versions.  For compunits that do manage
@@ -598,27 +598,27 @@ care about the version, the newest will be used.
 
 =back
 
-=head1 Forcing Raku
+=head1 Forcing Perl 6
 
-To get Raku parsing rather than the default Perl parsing,
-we said you could force Raku mode in your main program with:
+To get Perl 6 parsing rather than the default Perl 5 parsing,
+we said you could force Perl 6 mode in your main program with:
 
     use v6;
 
-Actually, if you're running a parser that is aware of Raku, you
+Actually, if you're running a parser that is aware of Perl 6, you
 can just start your main program with any of:
 
     use v6;
     unit module;
     unit class;
 
-Those all specify the latest Raku semantics, and are equivalent to
+Those all specify the latest Perl 6 semantics, and are equivalent to
 
-    use Raku:auth(Any):ver(v6..*);
+    use Perl:auth(Any):ver(v6..*);
 
 To lock the semantics to 6.0.0, say one of:
 
-    use Raku:ver<6.0.0>;
+    use Perl:ver<6.0.0>;
     use :<6.0.0>;
     use v6.0.0;
 
@@ -629,34 +629,34 @@ in your main program. To start it in I<lax> mode, start it with
 
 (Invoking perl with C<-e> has the same effect.)
 
-In the other direction, to inline Perl code inside a Raku program, put
+In the other direction, to inline Perl 5 code inside a Perl 6 program, put
 C<use v5> at the beginning of a lexical block.  Such blocks can nest arbitrarily
-deeply to switch between versions:
+deeply to switch between Perl versions:
 
     use v6;
-    # ...some Raku code...
+    # ...some Perl 6 code...
     {
         use v5;
-        # ...some Perl code...
+        # ...some Perl 5 code...
         {
             use v6;
-            # ...more Raku code...
+            # ...more Perl 6 code...
         }
     }
 
-It's not necessary to force Raku if the interpreter or command
+It's not necessary to force Perl 6 if the interpreter or command
 specified already implies it, such as use of a "C<#!/usr/bin/perl6>"
-shebang line.  Nor is it necessary to force Raku in any file that
+shebang line.  Nor is it necessary to force Perl 6 in any file that
 begins with the C<unit>, C<class>, C<module>, C<grammar> or C<role> keywords.
 
 =head1 Tool use vs language changes
 
 In order that language processing tools know exactly what language
 they are parsing, it is necessary for the tool to know exactly which
-variant of Raku is being parsed in any given scope.  All Raku
+variant of Perl 6 is being parsed in any given scope.  All Perl 6
 compilation units that are complete files start out at the top of the
 file in the Standard Dialect (which itself has versions that correspond
-to the same version of the official Raku test suite).  C<EVAL> strings,
+to the same version of the official Perl test suite).  C<EVAL> strings,
 on the other hand, start out in the language variant in use at the
 point of the C<EVAL> call, so that you don't suddenly lose your macro
 definitions inside C<EVAL>.
@@ -667,7 +667,7 @@ macros and such, or such definitions may be imported from a package.
 As the compiler progresses through the compilation unit, other grammars
 may be substituted in an inner lexical scope for an outer grammar,
 and parsing continues under the new grammar (which may or may not be
-a derivative of the standard Raku grammar).
+a derivative of the standard Perl grammar).
 
 Language tweaks are considered part of the interface of any package
 you import.  Version numbers are assumed to represent a combination of
@@ -684,7 +684,7 @@ to hold branches without relinquishing overall naming authority.)
 
 So anyway, the basic rule is this: you may import language tweaks from
 your own private (user-library as specified in @?INC) code as you like;
-however, all imports of language tweaks from the installed Raku
+however, all imports of language tweaks from the installed Perl 6
 library must specify the exact interface version of the package.
 
 Such installed interface versions must be considered

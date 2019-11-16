@@ -15,9 +15,9 @@ Synopsis 9: Data Structures
 =head1 Overview
 
 This synopsis summarizes the non-existent Apocalypse 9, which
-discussed in detail the design of Raku data structures.  It was
-primarily a discussion of how the existing features of Raku combine
-to make it easier for the PDL folks to write numeric Raku.
+discussed in detail the design of Perl 6 data structures.  It was
+primarily a discussion of how the existing features of Perl 6 combine
+to make it easier for the PDL folks to write numeric Perl.
 
 =head1 Lazy lists
 
@@ -91,7 +91,7 @@ if both types used are native types, the resulting type is considered a native t
 
 You are, of course, free to use macros or type declarations to
 associate additional names, such as "short" or "single".  These are
-not provided by default.  An implementation of Raku is not required
+not provided by default.  An implementation of Perl is not required
 to support 64-bit integer types or 128-bit floating-point types unless
 the underlying architecture supports them.  16-bit floating-point is
 also considered optional in this sense.
@@ -267,7 +267,7 @@ aren't so small they produce negative indices.
 
 Another use might be to map positive numbers to even slots and negative
 numbers to odd slots, so you get indices that are symmetric around 0
-(though Raku is not going to track the max-used even and odd slots
+(though Perl is not going to track the max-used even and odd slots
 for you when the data isn't symmetric).
 
 =head1 Typed arrays
@@ -301,16 +301,16 @@ In declarations of the form:
     my complex128 @longdoublecomplex;
     my Array @ragged2d;
 
-the presence of a low-level type tells Raku that it is free to
+the presence of a low-level type tells Perl that it is free to
 implement the array with "compact storage", that is, with a chunk
 of memory containing contiguous (or as contiguous as practical)
 elements of the specified type without any fancy object boxing that
-typically applies to undifferentiated scalars.  (Raku tries really
+typically applies to undifferentiated scalars.  (Perl tries really
 hard to make these elements look like objects when you treat them
 like objects--this is called autoboxing.)
 
 Unless explicitly declared to be of fixed size, such
-arrays are autoextending just like ordinary Raku arrays
+arrays are autoextending just like ordinary Perl arrays
 (at the price of occasionally copying the block of data to another
 memory location, or using a tree structure).
 
@@ -341,7 +341,7 @@ of any declaration to the contrary.  For interfacing to C pointer
 types, any buffer type may be used for its memory pointer; note,
 however, that the buffer knows its length, while in C that length
 typically must be passed as a separate argument, so the C interfacing
-code needs to support this whenever possible, lest Raku inherit all
+code needs to support this whenever possible, lest Perl inherit all
 the buffer overrun bugs bequeathed on us by C.  Random C pointers
 should never be converted to buffers unless the length is also known.
 (Any call to strlen() should generally be considered a security hole.)
@@ -355,7 +355,7 @@ higher-level abstraction into some buffer type.)
 
 =head1 Multidimensional arrays
 
-Raku arrays are not restricted to being one-dimensional (that's simply
+Perl 6 arrays are not restricted to being one-dimensional (that's simply
 the default). To declare a multidimensional array, you specify it with a
 semicolon-separated list of dimension lengths:
 
@@ -679,7 +679,7 @@ except in the case of range truncation described earlier.)
 Negative subscripts are never allowed for standard subscripts unless
 the subscript is declared modular.
 
-The Raku semantics avoids indexing discontinuities (a source of subtle
+The Perl 6 semantics avoids indexing discontinuities (a source of subtle
 runtime errors), and provides ordinal access in both directions at both
 ends of the array.
 
@@ -878,12 +878,12 @@ The zero-dimensional slice:
     @x[]
 
 is assumed to want everything, not nothing.  It's particularly handy
-because Raku (unlike Perl) won't interpolate a bare array without brackets:
+because Perl 6 (unlike Perl 5) won't interpolate a bare array without brackets:
 
     @x = (1,2,3);
     say "@x = @x[]";    # prints @x = 1 2 3
 
-Lists are lazy in Raku, and the slice lists are no exception.
+Lists are lazy in Perl 6, and the slice lists are no exception.
 In particular, list generators are not flattened until they
 need to be, if ever.  So a PDL implementation is free to steal the
 values from these generators and "piddle" around with them:
@@ -898,7 +898,7 @@ values from these generators and "piddle" around with them:
 
 =head1 PDL signatures
 
-To rewrite a Perl PDL definition like this:
+To rewrite a Perl 5 PDL definition like this:
 
        pp_def(
             'inner',
@@ -943,8 +943,8 @@ come back into the signature via C<where> constraints on the types.
 This would presumably make multimethod dispatch possible on similarly
 typed arrays with differing constraints.
 
-(The special destruction problems of Perl's PDL should go away with
-Raku's GC approach, as long as PDL's objects are registered with the
+(The special destruction problems of Perl 5's PDL should go away with
+Perl 6's GC approach, as long as PDL's objects are registered with the
 run-time system correctly.)
 
 =head1 Autothreading types
@@ -1048,7 +1048,7 @@ are subject to change over time; it is therefore erroneous to pass
 junctions to any control construct that is not implemented via as a
 normal single dispatch or function call.  In particular, threading junctions
 through conditionals correctly could involve continuations, which
-are almost but not quite mandated in Raku.  Alternately, we
+are almost but not quite mandated in Perl 6.0.0.  Alternately, we
 may decide that boolean contexts always collapse the junction by
 default, and the exact value that allowed the collapse to "true"
 is not available.  A variant of that is to say that if you want
@@ -1232,14 +1232,14 @@ Any mention of an expression within a Capture (that is, an argument list)
 delays the autovivification decision to binding time.  (Binding to a
 raw parameter defers the decision even further.)
 
-This is as opposed to Perl, where autovivification could happen
+This is as opposed to Perl 5, where autovivification could happen
 unintentionally, even when the code looks like a non-destructive test:
 
-    # This is Perl code
+    # This is Perl 5 code
     my %hash;
     exists $hash{foo}{bar}; # creates $hash{foo} as an empty hash reference
 
-In Raku these read-only operations are indeed non-destructive:
+In Perl 6 these read-only operations are indeed non-destructive:
 
     my %hash;
     %hash<foo><bar> :exists; # %hash is still empty

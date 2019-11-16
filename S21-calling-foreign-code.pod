@@ -25,7 +25,7 @@ The document is a draft.
 
 =head1 DESCRIPTION
 
-Raku has a standard foreign function interface, NativeCall. The only
+Perl 6 has a standard foreign function interface, NativeCall. The only
 libraries NativeCall is able to interface with are those written in C.
 Languages like Fortran and C++ require name mangling, which is
 compiler-specific and thus falls well beyond the scope of this specification.
@@ -53,7 +53,7 @@ compatible with the types specified in the next section.
     sub trait_mod:<is>(Routine $r, :$native!) is export(:DEFAULT, :traits) { ... }
 
 The C<is native> trait is the main gateway used to access C libraries. A
-routine with this trait applied will not be a normal Raku callable, but will
+routine with this trait applied will not be a normal Perl 6 callable, but will
 call into the function with the same name in the specified library.
 
 The library name passed to C<is native> is passed unmodified to
@@ -66,7 +66,7 @@ C<dlsym(RTLD_DEFAULT, symbol)> in C.
 Hypotheticals:
 
 =for item
-Raku allows a greater range of characters in identifiers than C. Should we
+Perl 6 allows a greater range of characters in identifiers than C. Should we
 look for cases where the identifier isn't legal in C?
 
 =for item
@@ -78,7 +78,7 @@ This is rather UNIX-centric. Other platforms may very well complicate things.
 
 Since all symbols in a C library share a single namespace with all other
 libraries, it is common practice to prefix externally visible symbols with a
-library prefix so as not to interfere with other libraries. In Raku this may
+library prefix so as not to interfere with other libraries. In Perl 6 this may
 be a nuisance, and the C<is symbol> trait lets a user specify a different
 symbol name to search for than the name of the sub.
 
@@ -111,14 +111,14 @@ the C<is native> trait; after all, all exported symbols are the same from the
 point of view of the linker: a pointer to something. The C<is symbol> and
 C<is encoding> (for strings) traits also apply to variables.
 
-=head2 Marshalling and demarshalling of Raku data
+=head2 Marshalling and demarshalling of Perl 6 data
 
-The raw internal representation of most Raku objects can't be expected to
+The raw internal representation of most Perl 6 objects can't be expected to
 work sensibly with native code. To specify how to marshal and demarshal
-complex Raku objects, representation polymorphism is most frequently used,
+complex Perl 6 objects, representation polymorphism is most frequently used,
 but some classes are provided for frequent use cases.
 
-For pointer types, the type object associated with the Raku class represents
+For pointer types, the type object associated with the Perl 6 class represents
 the null pointer.
 
 =head3 Numeric types
@@ -225,7 +225,7 @@ The C<CPointer> REPR enables types that are similar to C<OpaquePointer> in
 that they cannot be introspected or mutated, but different in that they can
 have methods. This makes it easy to interface with "object-oriented" C code
 that returns an opaque pointer handle that encapsulate the resources used by
-the library and lets us implement this naturally using Raku OO.
+the library and lets us implement this naturally using Perl 6 OO.
 
 A C<CPointer> object can not have attributes.
 
@@ -233,7 +233,7 @@ A C<CPointer> object can not have attributes.
 
     class CArray[::Type] does Positional[Type] is export(:DEFAULT, :types) { ... }
 
-General Raku arrays support features such as laziness, which means that they
+General Perl 6 arrays support features such as laziness, which means that they
 can not easily be marshalled into a C representation. Thus, NativeCall
 provides the CArray type which supports a set of array features compatible
 with marshalling to and from C. The C<Type> parameter is, of course, mandatory
@@ -246,19 +246,19 @@ the array. NativeCall will make no attempt to figure this out, and requests
 for array elements outside of the array is likely to result in death by
 segmentation fault.
 
-If the C<CArray> has been created in Raku, the bounds of the array are
+If the C<CArray> has been created in Perl 6, the bounds of the array are
 known, and operations can be bounds-checked and the array grown appropriately.
 Note, however, that growing an array may result in its C representation being
 moved to a different memory location. Thus, if a piece of C code has stored
 the location of an array and it is later on moved due to operations on the
-Raku side, strange bugs and segfaults are likely to ensue.
+Perl side, strange bugs and segfaults are likely to ensue.
 
 =head3 The C<CStruct> REPR
 
     class StructObject is repr('CStruct') { ... }
 
 Structs are an important part of most non-trivial C APIs; using the C<CStruct>
-REPR, arbitrary structs can be accessed just like ordinary Raku classes.
+REPR, arbitrary structs can be accessed just like ordinary Perl 6 classes.
 
 =head3 Callable objects
 
@@ -275,11 +275,11 @@ rather than parameters (note: callbacks returned from C NYI).
 Caveat emptor: This section, like the one on global variables, is all
 conjecture. Nothing is implemented.
 
-In Raku the distinction between value type and reference is intrinsic to the
+In Perl 6 the distinction between value type and reference is intrinsic to the
 type. In C, on the other hand, any type can be used both as a value and
 reference type, depending on how it's used. Thus, NativeCall needs some
 mechanism to duplicate this. One possible source of inspiration for this is
-C#. C# distinguishes between value and reference types similarly to Raku and
+C#. C# distinguishes between value and reference types similarly to Perl 6 and
 also has a well-supported foreign function interface.
 
 =head3 Varargs

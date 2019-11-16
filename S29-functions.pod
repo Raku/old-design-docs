@@ -15,11 +15,11 @@ The document is a draft.
 
 =head1 Notes
 
-In Raku, all builtin functions belong to a named package (generally a
+In Perl 6, all builtin functions belong to a named package (generally a
 class or role). Not all
 functions are guaranteed to be imported into the CORE scope.
 In addition, the list of functions imported into C<CORE> will be
-subject to change with each release of Raku. Authors wishing to
+subject to change with each release of Perl. Authors wishing to
 "Future Proof" their code should either specifically import the
 functions they will be using, or always refer to the functions by their
 full name.
@@ -27,8 +27,8 @@ full name.
 After 6.0.0 comes out, global aliases will not be removed lightly,
 and will never be removed at all without having gone through a
 deprecation cycle of at least a year.  In any event, you can specify
-that you want the interface for a particular version of Raku, and
-that can be emulated by later versions of Raku to the extent that
+that you want the interface for a particular version of Perl, and
+that can be emulated by later versions of Perl to the extent that
 security updates allow.
 
 Where code is given here, it is intended to define semantics, not to
@@ -89,7 +89,7 @@ the information on how two things compare relative to each other.
 
 A closure with arity of 2, which for ordering returns
 negative/zero/positive, signaling the first argument should
-be before/tied with/after the second. aka "The Perl way".
+be before/tied with/after the second. aka "The Perl 5 way".
 
 For equivalence the closure returns either not 0 or 0 indicating
 if the first argument is equivalent or not to the second.
@@ -98,8 +98,8 @@ if the first argument is equivalent or not to the second.
 
 A closure with arity of 1, which returns the "key" by which
 to compare.  Values are compared using C<cmp> for orderings
-and C<eqv> for equivalences, which in Raku do different
-comparisons depending on the types.  (To get a Perl string
+and C<eqv> for equivalences, which in Perl 6 do different
+comparisons depending on the types.  (To get a Perl 5 string
 ordering you must compare with C<leg> instead.)
 
 Internally the result of the KeyExtractor on a value should
@@ -170,14 +170,14 @@ location of the C<EVAL> call.
 
 Returns whatever C<$code> returns, or fails when the compilation fails.
 
-Note that unlike in Perl's C<eval>, C<EVAL> does not catch any exceptions or control
+Note that unlike in Perl 5's C<eval>, C<EVAL> does not catch any exceptions or control
 exceptions.
 
 =item EVALFILE
 
- multi EVALFILE (Str $filename ; Grammar :$lang = Raku)
+ multi EVALFILE (Str $filename ; Grammar :$lang = Perl6)
 
-Behaves like, and replaces Perl C<do EXPR>, with optional C<$lang>
+Behaves like, and replaces Perl 5 C<do EXPR>, with optional C<$lang>
 support.
 
 =item exit
@@ -212,7 +212,7 @@ to support sub-second resolutions if that is at all possible.  You may pass
 any of C<Int>, C<Num>, C<Rat>, or C<Duration> types as an argument, since those
 all do C<Real>, but regardless of which type you use, they are always scaled to
 seconds.  (An implementation is allowed to provide access to a platform-specific
-function based on, say, nanoseconds, but Raku does not presume to know
+function based on, say, nanoseconds, but Perl 6 does not presume to know
 how much resolution clocks will have in the future, so requires everything to
 be specified in fractional seconds.)
 
@@ -416,7 +416,7 @@ see
 
 and such.
 
-Replaces Perl C<hex> and C<oct>.
+Replaces Perl 5 C<hex> and C<oct>.
 
 
 =back
@@ -455,7 +455,7 @@ appropriate text format (e.g. "10.1.2.3" for an IPV4 address).
 The optional C<type> adverb can be passed when resolving a hostname,
 and will filter the result to only those addresses that are of
 the appropriate address family. This feature may be supported by
-the underlying operating system, or Raku may emulate it.
+the underlying operating system, or Perl may emulate it.
 
 Examples:
 
@@ -558,9 +558,9 @@ replaces the currently running program in memory.
 
 =head2 Concurrency
 
-There are higher-level models of concurrency management in Raku (see
+There are higher-level models of concurrency management in Perl (see
 L<S17/Concurrency>). These functions are simply the lowest level
-tools.
+tools
 
 =over
 
@@ -723,7 +723,7 @@ These functions are exported into the default namespace
 
 =head2 Non-default Functions
 
-These functions which existed in Perl still exist but are not part of the default
+These functions which existed in Perl 5 still exist but are not part of the default
 namespace any more.
 
 =head3 Container
@@ -787,7 +787,7 @@ Does a floating point modulo operation, i.e. 5.5 % 1 == 0.5 and 5 % 2.5 == 0.
 Dumped.  Restoring from core dumps is in any event not very useful on modern
 virtual-memory operating systems.  Startup acceleration should be accomplished
 using a precompiler of some kind (details will be very implementation specific),
-or a pre-forking daemon such as Perl's App::Persistent (which will be an
+or a pre-forking daemon such as Perl 5's App::Persistent (which will be an
 external module when it is ported).
 
 =item each
@@ -812,7 +812,7 @@ The NameServices role in S16 covers most of these.
 
 =item length()
 
-This word is banned in Raku.  You must specify units.  In practice, this probably means
+This word is banned in Perl 6.  You must specify units.  In practice, this probably means
 you want Str.chars(), although it could be Str.bytes(), or even something else.  See
 S32-setting-library/String for details.
 
@@ -845,7 +845,7 @@ that speaks the language of a specific shell.
 
 =item pos
 
-There is no C<pos> function in Raku because that would not allow a string
+There is no C<pos> function in Perl 6 because that would not allow a string
 to be shared among threads.  Generally you want to use C<$/.to> for that now,
 or keep your own position variable as a lexical.
 
@@ -857,9 +857,9 @@ or keep your own position variable as a lexical.
 =item ref
 
 There is no ref() any more, since it was almost always used to get
-the type name in Perl.  If you really want the type name, you can
-use C<$var.WHAT.raku>.  If you really want P5 ref
-semantics, use C<Perl::p5ref>.
+the type name in Perl 5.  If you really want the type name, you can
+use C<$var.WHAT.perl>.  If you really want P5 ref
+semantics, use C<Perl5::p5ref>.
 
 But if you're just wanting to test against a type, you're likely better off
 performing an C<isa> or C<does> or C<can>, or just C<$var ~~ TYPE>.
@@ -920,7 +920,7 @@ See Exegesis 7.
 
 =head3 Keywords
 
-The following were listed in Perl's perlfunc, but should now be considered keywords
+The following were listed in Perl 5's perlfunc, but should now be considered keywords
 rather than functions.
 
 last, my, next, no, our, package, return, sub, use

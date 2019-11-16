@@ -28,9 +28,9 @@ the terms I<rule> and I<token> are generally preferred over I<regex>.
 
 =head1 Overview
 
-In essence, Raku natively implements Parsing Expression Grammars (PEGs)
+In essence, Perl 6 natively implements Parsing Expression Grammars (PEGs)
 as an extension of regular expression notation.  PEGs require that you
-provide a "pecking order" for ambiguous parses.  Raku's pecking order
+provide a "pecking order" for ambiguous parses.  Perl 6's pecking order
 is determined by a multi-level tie-breaking test:
 
     1) Most-derived only/proto hides less-derived of the same name
@@ -64,7 +64,7 @@ backtracks, the next best rule is chosen.  That is, the pecking order
 determines a candidate list; just because one candidate is chosen does not
 mean the rest are thrown away.  They may, however, be explicitly thrown away
 by an appropriate backtracking control (sometimes called a "cut" operator,
-but Raku has several of them, depending on how much you want to cut).
+but Perl 6 has several of them, depending on how much you want to cut).
 
 Also, any rule chosen to execute under #1 may choose to delegate to its ancestors;
 PEG backtracking has no control over this.
@@ -77,11 +77,11 @@ most recent match is through this variable, even when
 it doesn't look like it.  The individual capture variables (such as C<$0>,
 C<$1>, etc.) are just elements of C<$/>.
 
-By the way, unlike in Perl, the numbered capture variables now
+By the way, unlike in Perl 5, the numbered capture variables now
 start at C<$0> instead of C<$1>.  See below.
 
-In order to detect accidental use of Perl's unrelated C<$/>
-variable, Raku's C<$/> variable may not be assigned to directly.
+In order to detect accidental use of Perl 5's unrelated C<$/>
+variable, Perl 6's C<$/> variable may not be assigned to directly.
 
     $/ = $x;   # "Unsupported use of $/ variable as input record separator"
     $/ := $x;  # OK, binding
@@ -90,7 +90,7 @@ variable, Raku's C<$/> variable may not be assigned to directly.
 
 =head1 Unchanged syntactic features
 
-The following regex features use the same syntax as in Perl:
+The following regex features use the same syntax as in Perl 5:
 
 =over
 
@@ -120,12 +120,12 @@ While the syntax of C<|> does not change, the default semantics do
 change slightly.  We are attempting to concoct a pleasing mixture
 of declarative and procedural matching so that we can have the
 best of both.  In short, you need not write your own tokener for
-a grammar because Raku will write one for you.  See the section
+a grammar because Perl will write one for you.  See the section
 below on "Longest-token matching".
 
 =head1 Simplified lexical parsing of patterns
 
-Unlike traditional regular expressions, Raku does not require
+Unlike traditional regular expressions, Perl 6 does not require
 you to memorize an arbitrary list of metacharacters.  Instead it
 classifies characters by a simple rule.  All glyphs (graphemes)
 whose base characters are either the underscore (C<_>) or have
@@ -138,7 +138,7 @@ but any immediately following alphanumeric character is not).
 All other glyphs--including whitespace--are exactly the opposite:
 they are always considered metasyntactic (i.e. non-self-matching) and
 must be escaped or quoted to make them literal.  As is traditional,
-they may be individually escaped with C<\>, but in Raku they may
+they may be individually escaped with C<\>, but in Perl 6 they may
 be also quoted as follows.
 
 Sequences of one or more glyphs of either type (i.e. any glyphs at all)
@@ -168,7 +168,7 @@ escaped), non-identifier glyphs are metasyntactic (or literal when
 escaped), and single quotes make everything inside them literal.
 
 Note, however, that not all non-identifier glyphs are currently
-meaningful as metasyntax in Raku regexes (e.g. C<\1> C<\_> C<->
+meaningful as metasyntax in Perl 6 regexes (e.g. C<\1> C<\_> C<->
 C<!>). It is more accurate to say that all unescaped non-identifier
 glyphs are I<potential> metasyntax, and reserved for future use.
 If you use such a sequence, a helpful compile-time error is issued
@@ -319,9 +319,9 @@ the specified string position:
      m:pos($p)/ pattern /  # match at position $p
 
 If the argument is omitted, it defaults to C<($/ ?? $/.to !! 0)>.  (Unlike in
-Perl, the string itself has no clue where its last match ended.)
+Perl 5, the string itself has no clue where its last match ended.)
 All subrule matches are implicitly passed their starting position.
-Likewise, the pattern you supply to a Raku macro's C<is parsed>
+Likewise, the pattern you supply to a Perl macro's C<is parsed>
 trait has an implicit C<:p> modifier.
 
 Note that
@@ -492,13 +492,13 @@ which language's rules to use for this match.]
 
 =item *
 
-The new C<:Perl5>/C<:P5> modifier allows Perl regex syntax to be
+The new C<:Perl5>/C<:P5> modifier allows Perl 5 regex syntax to be
 used instead.  (It does not go so far as to allow you to put your
 modifiers at the end.)  For instance,
 
      m:P5/(?mi)^(?:[a-z]|\d){1,2}(?=\s)/
 
-is equivalent to the Raku syntax:
+is equivalent to the Perl 6 syntax:
 
     m/ :i ^^ [ <[a..z]> || \d ] ** 1..2 <?before \s> /
 
@@ -663,10 +663,10 @@ or you'll end up with:
 
 Any grammar regex is really just a kind of method, and you may
 declare variables in such a routine using a colon followed by any
-scope declarator parsed by the Raku grammar, including C<my>,
+scope declarator parsed by the Perl 6 grammar, including C<my>,
 C<our>, C<state>, and C<constant>.  (As quasi declarators, C<temp>
 and C<let> are also recognized.)  A single statement (up through
-a terminating semicolon or line-final closing brace) is parsed as normal Raku code:
+a terminating semicolon or line-final closing brace) is parsed as normal Perl 6 code:
 
     token prove-nondeterministic-parsing {
         :my $threshold = rand;
@@ -856,7 +856,7 @@ use extra brackets:
 
 The precedence of C<~~> and C<!~~> fits in between the junctional and
 sequential versions of the logical operators just as it does in normal
-Raku expressions (see S03).  Hence
+Perl expressions (see S03).  Hence
 
     <ident> !~~ 'moose' | 'squirrel'
 
@@ -957,7 +957,7 @@ within a regex establishes its own lexical scope.
 
 =item *
 
-You can call Raku code as part of a regex match by using a closure.
+You can call Perl code as part of a regex match by using a closure.
 Embedded code does not usually affect the match--it is only used
 for side-effects:
 
@@ -1043,7 +1043,7 @@ It is illegal to return a list, so this easy mistake fails:
 The closure form is always considered procedural, so the item it is
 modifying is never considered part of the longest token.
 
-For backwards compatibility with previous versions of Raku, if the token
+For backwards compatibility with previous versions of Perl 6, if the token
 following ** is not a closure or literal integer, it is interpreted as +%
 with a warning:
 
@@ -1091,7 +1091,7 @@ Any quantifier may be so modified:
 The C<%> modifier may only be used on a quantifier; any attempt
 to use it on a bare term will result in a parse error (to minimize
 possible confusion with any hash notations we choose to support in
-Raku regexes).
+Perl 6 regexes).
 
 A successful match of a C<%> construct generally ends "in the middle" at the C<%>,
 that is, after the initial item but before the next separator.
@@ -1197,7 +1197,7 @@ to put space on both sides of the C<*>:
 =item *
 
 C<< <...> >> are now extensible metasyntax delimiters or I<assertions>
-(i.e. they replace Perl's crufty C<(?...)> syntax).
+(i.e. they replace Perl 5's crufty C<(?...)> syntax).
 
 =back
 
@@ -1207,7 +1207,7 @@ C<< <...> >> are now extensible metasyntax delimiters or I<assertions>
 
 =item *
 
-In Raku regexes, variables don't interpolate.
+In Perl 6 regexes, variables don't interpolate.
 
 =item *
 
@@ -1218,11 +1218,11 @@ how to handle them (more on that below).
 
 The default way in which the engine handles a string scalar is to match it
 as a C<< "..." >> literal (i.e. it does not treat the interpolated string
-as a subpattern).  In other words, a Raku:
+as a subpattern).  In other words, a Perl 6:
 
      / $var /
 
-is like a Perl:
+is like a Perl 5:
 
      / \Q$var\E /
 
@@ -1338,7 +1338,7 @@ you can write:
 
 as long as you're careful to put a space after the initial angle so that
 it won't be interpreted as a subrule.  With the space it is parsed
-like angle quotes in ordinary Raku and treated as a literal array value.
+like angle quotes in ordinary Perl 6 and treated as a literal array value.
 
 =item *
 
@@ -1490,7 +1490,7 @@ To pass a regex with leading whitespace you must use the parenthesized form.
 
 If the first character is a colon followed by whitespace, the rest
 of the text is taken as a list of arguments to the method, just as
-in ordinary Raku syntax.  So these mean the same thing:
+in ordinary Perl syntax.  So these mean the same thing:
 
     <foo('foo', $bar, 42)>
     <foo: 'foo', $bar, 42>
@@ -2028,7 +2028,7 @@ These tokens are considered declarative.
 
 A C<«> or C<<< << >>> token indicates a left word boundary.  A C<»> or
 C<<< >> >>> token indicates a right word boundary.  (As separate tokens,
-these need not be balanced.)  Perl's C<\b> is replaced by a C<< <|w> >>
+these need not be balanced.)  Perl 5's C<\b> is replaced by a C<< <|w> >>
 "word boundary" assertion, while C<\B> becomes C<< <!|w> >>.  (None of
 these are dependent on the definition of C<< <.ws> >>, but only on the C<\w>
 definition of "word" characters.  Non-space mark characters are ignored in
@@ -2301,11 +2301,11 @@ available as backslash sequences:
 
 =item *
 
-The Perl C<qr/pattern/> regex constructor is gone.
+The Perl 5 C<qr/pattern/> regex constructor is gone.
 
 =item *
 
-The Raku equivalents are:
+The Perl 6 equivalents are:
 
      regex { pattern }    # always takes {...} as delimiters
      rx    / pattern /    # can take (almost) any chars as delimiters
@@ -2318,7 +2318,7 @@ but only if you interpose whitespace:
      rx ( pattern )      # okay
      rx( 1,2,3 )         # tries to call rx function
 
-(This is true for all quotelike constructs in Raku.)
+(This is true for all quotelike constructs in Perl 6.)
 
 The C<rx> form may be used directly as a pattern anywhere a normal C<//> match can.
 The C<regex> form is really a method definition, and must be used in such a way that
@@ -2351,7 +2351,7 @@ longer an interpolating quote-like operator.  C<rx> is short for I<regex>,
 =item *
 
 As the syntax indicates, it is now more closely analogous to a C<sub {...}>
-constructor.  In fact, that analogy runs I<very> deep in Raku.
+constructor.  In fact, that analogy runs I<very> deep in Perl 6.
 
 =item *
 
@@ -2442,7 +2442,7 @@ A C<rule> is really short for:
 
 =item *
 
-The Perl C<?...?> syntax (I<succeed once>) was rarely used and can be
+The Perl 5 C<?...?> syntax (I<succeed once>) was rarely used and can be
 now emulated more cleanly with a state variable:
 
     $result = do { state $x ||= m/ pattern /; }    # only matches first time
@@ -2475,15 +2475,15 @@ To force the preceding atom to do frugal backtracking (also sometimes
 known as "eager matching" or "minimal matching"),
 append a C<:?> or C<?> to the atom.  If the preceding token is
 a quantifier, the C<:> may be omitted, so C<*?> works just as
-in Perl.
+in Perl 5.
 
 =item *
 
 To force the preceding atom to do greedy backtracking in a
 spot that would default otherwise, append a C<:!> to the atom.
 If the preceding token is a quantifier, the C<:> may be omitted.
-(Perl has no corresponding construct because backtracking always
-defaults to greedy in Perl.)
+(Perl 5 has no corresponding construct because backtracking always
+defaults to greedy in Perl 5.)
 
 =item *
 
@@ -2753,7 +2753,7 @@ tend to parse text in their heads, so the computer ought to try to do
 the same.  And parsing with LTM is all about how the computer decides
 which alternative of a set of alternatives is going to match.
 
-Instead of representing temporal alternation as it does in Perl, in Raku C<|> represents
+Instead of representing temporal alternation as it does in Perl 5, in Perl 6 C<|> represents
 logical alternation with declarative longest-token semantics.  (You may
 now use C<||> to indicate the old temporal alternation.  That is, C<|>
 and C<||> now work within regex syntax much the same as they do outside
@@ -2766,7 +2766,7 @@ efficiently by processing rules in parallel rather than one after
 another, at least up to a point.  If you look at something like a
 yacc grammar, you find a lot of pattern/action declarations where the
 patterns are considered in parallel, and eventually the grammar decides
-which action to fire off.  While the default Raku view of parsing is
+which action to fire off.  While the default Perl view of parsing is
 essentially top-down (perhaps with a bottom-up "middle layer" to handle
 operator precedence), it is extremely useful for user understanding
 if at least the token processing proceeds deterministically.  So for
@@ -2774,10 +2774,10 @@ regex matching purposes we define token patterns as those patterns
 that can be matched without potential side effects or self-reference.
 (Since whitespace often has side effects at line transitions, it
 is usually excluded from such patterns, give or take a little
-lookahead.)  Basically, Raku automatically derives a lexer
+lookahead.)  Basically, Perl automatically derives a lexer
 from the grammar without you having to write one yourself.
 
-To that end, every regex in Raku is required to be able to
+To that end, every regex in Perl 6 is required to be able to
 distinguish its "pure" patterns from its actions, and return its
 list of initial token patterns (transitively including the token
 patterns of any subrule called by the "pure" part of that regex, but
@@ -2800,7 +2800,7 @@ are defined in more than one file, the order is undefined, and an explicit
 assertion must be used to force failure if the wrong one is tried first.)
 
 This longest token prefix corresponds roughly to the notion of "token"
-in other parsing systems that use a lexer, but in the case of Raku
+in other parsing systems that use a lexer, but in the case of Perl
 this is largely an epiphenomenon derived automatically from the grammar
 definition.  However, despite being automatically calculated, the set of
 tokens can be modified by the user; various
@@ -2993,7 +2993,7 @@ type.  Using the C<make>/C<.made> mechanism, it is convenient to build up an
 abstract syntax tree of arbitrary node types.
 
 However, the C<make> function is not limited to be used for storing AST
-nodes and building abstract syntax trees only.  This is just a specific Raku
+nodes and building abstract syntax trees only.  This is just a specific Perl 6
 internal use of this functionality.  Nor does the C<make> function impose any
 item or list context onto its argument, so if you say something ambiguously
 listy like
@@ -3273,7 +3273,7 @@ pushed onto the array inside the C<Match> object for the entire regex
 
 =item *
 
-As a result of these semantics, capturing parentheses in Raku are
+As a result of these semantics, capturing parentheses in Perl 6 are
 hierarchical, not linear (see L<Nested subpattern captures>).
 
 =back
@@ -3297,7 +3297,7 @@ is the same as:
 
 =item *
 
-Note that, in Raku, the numeric capture variables start from $0, not
+Note that, in Perl 6, the numeric capture variables start from $0, not
 $1, with the numbers corresponding to the element's index inside C<$/>.
 
 =item *
@@ -3329,9 +3329,9 @@ object, not to the array of C<$/>.
 
 =item *
 
-This behavior is quite different from Perl semantics:
+This behavior is quite different from Perl 5 semantics:
 
-      # Perl...
+      # Perl 5...
       #
       # $1---------------------  $4---------  $5------------------
       # |   $2---------------  | |          | | $6----  $7------  |
@@ -3341,9 +3341,9 @@ This behavior is quite different from Perl semantics:
 
 =item *
 
-In Raku, nested parens produce properly nested captures:
+In Perl 6, nested parens produce properly nested captures:
 
-      # Raku...
+      # Perl 6...
       #
       # $0---------------------  $1---------  $2------------------
       # |   $0[0]------------  | |          | | $2[0]-  $2[1]---  |
@@ -3525,12 +3525,12 @@ C<|> or C<||> (but not after each C<&> or C<&&>). Hence:
 
 This means that if the second alternation matches, the list value of the match will
 contain C<('every', 'green', 'BEM', 'devours', 'faces')> rather than
-Perl's C<(undef, undef, undef, undef, undef, undef, 'every', 'green', 'BEM',
+Perl 5's C<(undef, undef, undef, undef, undef, undef, 'every', 'green', 'BEM',
 'devours', 'faces')>.
 
 =item *
 
-Note that it is still possible to mimic the monotonic Perl capture
+Note that it is still possible to mimic the monotonic Perl 5 capture
 indexing semantics.  See L<Numbered scalar aliasing> below for details.
 
 
@@ -3870,7 +3870,7 @@ value). That is:
 =item *
 
 This I<follow-on> behavior is particularly useful for reinstituting
-Perl semantics for consecutive subpattern numbering in alternations:
+Perl 5 semantics for consecutive subpattern numbering in alternations:
 
      $tune_up = rx/ ("don't") (ray) (me) (for) (solar tea), ("d'oh!")
                   | $6 = (every) (green) (BEM) (devours) (faces)
@@ -3879,10 +3879,10 @@ Perl semantics for consecutive subpattern numbering in alternations:
 
 =item *
 
-It also provides an easy way in Raku to reinstitute the unnested
-numbering semantics of nested Perl subpatterns:
+It also provides an easy way in Perl 6 to reinstitute the unnested
+numbering semantics of nested Perl 5 subpatterns:
 
-      # Perl...
+      # Perl 5...
       #               $1
       #  _____________/\___________
       # |    $2        $3      $4  |
@@ -3891,7 +3891,7 @@ numbering semantics of nested Perl subpatterns:
      m/ ( ( [A-E] ) (\d{3,6}) (X?) ) /x;
 
 
-      # Raku...
+      # Perl 6...
       #                $0
       #  ______________/\______________
       # |   $0[0]       $0[1]    $0[2] |
@@ -3900,7 +3900,7 @@ numbering semantics of nested Perl subpatterns:
      m/ ( (<[A..E]>) (\d ** 3..6) (X?) ) /;
 
 
-      # Raku simulating Perl...
+      # Perl 6 simulating Perl 5...
       #                 $1
       #  _______________/\________________
       # |        $2          $3       $4  |
@@ -4273,7 +4273,7 @@ match is also available:
 
          for lol() -> $m {
              say "Match between $m.from() and $m.to()";
-             say 'Right on, dude!' if $m[0] eq 'Raku';
+             say 'Right on, dude!' if $m[0] eq 'Perl';
              say "Rocks like $m<rocks>";
          }
      }
@@ -4359,9 +4359,9 @@ C<line>, etc.
 
 =item *
 
-Raku will come with at least one grammar predefined:
+Perl 6 will come with at least one grammar predefined:
 
-     grammar STD {    # Raku's own standard grammar
+     grammar STD {    # Perl's own standard grammar
 
          rule prog { <statement>* }
 
@@ -4412,7 +4412,7 @@ Grammar objects are considered immutable, so
 every match returns a different match state, and multiple match states may
 exist simultaneously.  Each such match state is considered a hypothesis on
 how the pattern will eventually match.  A backtrackable choice in pattern
-matching may be easily represented in Raku 6 as a lazy list of match state
+matching may be easily represented in Perl 6 as a lazy list of match state
 cursors; backtracking consists of merely throwing away the front value of
 the list and continuing to match with the next value.  Hence, the management
 of these match cursors controls how backtracking works, and falls naturally
@@ -4472,7 +4472,7 @@ to the particular declarator in question:
     use token :foo;     # control token defaults
     use rule :foo;      # control rule defaults
 
-(It is a general policy in Raku that any pragma designed to influence
+(It is a general policy in Perl 6 that any pragma designed to influence
 the surface behavior of a keyword is identical to the keyword itself, unless
 there is good reason to do otherwise.  On the other hand, pragmas designed
 to influence deep semantics should not be named identically, though of
@@ -4494,7 +4494,7 @@ Use the C<.=> form to do a translation in place:
 
      $str.=trans( %mapping.pairs );
 
-(Raku does not support the C<y///> form, which was only in C<sed> because
+(Perl 6 does not support the C<y///> form, which was only in C<sed> because
 they were running out of single letters.)
 
 =item *
@@ -4600,8 +4600,8 @@ Only non-bracket characters may be used for the "triple quote".  The
 right side is always evaluated as if it were a double-quoted string
 regardless of the quote chosen.
 
-As with Perl, a bracketing form is also supported, but unlike Perl,
-Raku uses the brackets I<only> around the pattern.  The replacement
+As with Perl 5, a bracketing form is also supported, but unlike Perl 5,
+Perl 6 uses the brackets I<only> around the pattern.  The replacement
 is then specified as if it were an ordinary item assignment, with ordinary
 quoting rules.  To pick your own quotes on the right just use one of the C<q>
 forms.  The substitution above is equivalent to:
@@ -4698,7 +4698,7 @@ the C<< <at($pos)> >> assertion to say that the current position
 is the same as the position object you supply.  You may set the
 current match position via the C<:c> and C<:p> modifiers.
 
-However, please remember that in Raku string positions are generally
+However, please remember that in Perl 6 string positions are generally
 I<not> integers, but objects that point to a particular place in
 the string regardless of whether you count by bytes or codepoints or
 graphemes.  If used with an integer, the C<at> assertion will assume
@@ -4798,7 +4798,7 @@ smartmatching:
 To provide implementational freedom, the C<$/> variable is not
 guaranteed to be defined until the pattern reaches a sequence
 point that requires it (such as completing the match, or calling an
-embedded closure, or even evaluating a submatch that requires a Raku
+embedded closure, or even evaluating a submatch that requires a Perl
 expression for its argument).  Within regex code, C<$/> is officially
 undefined, and references to C<$0> or other capture variables may
 be compiled to produce the current value without reference to C<$/>.
@@ -4812,7 +4812,7 @@ is of type C<Match>, while the match state is of a type derived from C<Cursor>.
 In any case this is all transparent to the user for simple matches;
 and outside of regex code (and inside closures within the regex)
 the C<$/> variable is guaranteed to represent the state of the match
-at that point.  That is, normal Raku code can always depend on C<<
+at that point.  That is, normal Perl code can always depend on C<<
 $<foo> >> meaning C<< $/<foo> >>, and C<$0> meaning C<$/[0]>, whether
 that code is embedded in a closure within the regex or outside the
 regex after the match completes.

@@ -266,8 +266,8 @@ The return type may also be put inside the parentheses:
 
     sub NAME (PARAMS --> RETTYPE) {...}
 
-Unlike in Perl, named subroutines are considered expressions,
-so this is valid Raku:
+Unlike in Perl 5, named subroutines are considered expressions,
+so this is valid Perl 6:
 
     my @subs = (sub foo { ... }, sub bar { ... });
 
@@ -314,9 +314,9 @@ B<Trait> is the name for a compile-time (C<is>) property.
 See L<"Properties and traits">.
 
 
-=head2 Perlish subroutine declarations
+=head2 Perl5ish subroutine declarations
 
-You can declare a sub without parameter list, as in Perl:
+You can declare a sub without parameter list, as in Perl 5:
 
     sub foo {...}
 
@@ -330,13 +330,13 @@ This is equivalent to one of:
 depending on whether either or both of those variables are used in the body of the routine.
 
 Positional arguments implicitly come in via the C<@_> array, but
-unlike in Perl they are C<readonly> aliases to actual arguments:
+unlike in Perl 5 they are C<readonly> aliases to actual arguments:
 
     sub say { print qq{"@_[]"\n}; }   # args appear in @_
 
     sub cap { $_ = uc $_ for @_ }   # Error: elements of @_ are read-only
 
-Also unlike in Perl, Raku has true named arguments, which come in
+Also unlike in Perl 5, Perl 6 has true named arguments, which come in
 via C<%_> instead of C<@_>.
 
 If you need to modify the elements of C<@_> or C<%_>, declare the
@@ -362,7 +362,7 @@ simply fail if the signature cannot be bound.
 
 =head2 Blocks
 
-Raw blocks are also executable code structures in Raku.
+Raw blocks are also executable code structures in Perl 6.
 
 Every block defines an object of type C<Block> (which C<does Callable>), which may either be
 executed immediately or passed on as a C<Block> object.  How a block is
@@ -427,11 +427,11 @@ To predeclare a subroutine without actually defining it, use a "stub block":
 
     sub foo {...}     # Yes, those three dots are part of the actual syntax
 
-The old Perl form:
+The old Perl 5 form:
 
     sub foo;
 
-is a compile-time error in Raku (because it would imply that the body of the
+is a compile-time error in Perl 6 (because it would imply that the body of the
 subroutine extends from that statement to the end of the file, as C<class> and
 C<module> declarations do).  The only allowed use of the semicolon form is to
 declare a C<MAIN> sub--see L</Declaring a MAIN subroutine> below.  (And this
@@ -620,7 +620,7 @@ A null operator name does not define a null or whitespace operator, but
 a default matching subrule for that syntactic category, which is useful when
 there is no fixed string that can be recognized, such as tokens beginning
 with digits.  Such an operator I<must> supply an C<is parsed> trait.
-The Raku grammar uses a default subrule for the C<:1st>, C<:2nd>, C<:3rd>,
+The Perl grammar uses a default subrule for the C<:1st>, C<:2nd>, C<:3rd>,
 etc. regex modifiers, something like this:
 
     sub regex_mod_external:<> ($x) is parsed(token { \d+[st|nd|rd|th] }) {...}
@@ -636,7 +636,7 @@ non-standard syntax available to other scopes.
 
 =head1 Calling conventions
 
-In Raku culture, we distinguish the terms I<parameter> and
+In Perl 6 culture, we distinguish the terms I<parameter> and
 I<argument>; a parameter is the formal name that will attach to an
 incoming argument during the course of execution, while an argument
 is the actual value that will be bound to the formal parameter.
@@ -646,7 +646,7 @@ uses the terms "formal argument" and "actual argument" for these
 two concepts, but here we try to avoid using the term "argument"
 for formal parameters.)
 
-Various Raku code objects (either routines or blocks) may be
+Various Perl 6 code objects (either routines or blocks) may be
 declared with parameter lists, either explicitly by use of a signature
 declaration, or implicitly by use of placeholder variables within the body
 of code.  (Use of both for the same code block is not allowed.)
@@ -717,7 +717,7 @@ not Iterable (and therefore elimination of the container would not affect
 flattening behavior).
 
 Array and hash parameters are simply bound "as is". (Conjectural: future
-versions of Raku may do static analysis and forbid assignments to array
+versions of Perl 6 may do static analysis and forbid assignments to array
 and hash parameters that can be caught by it. This will, however, only
 happen with the appropriate "use" declaration to opt in to that language
 version.)
@@ -750,7 +750,7 @@ Also, C<$ro> may not be returned from an lvalue subroutine or method.
 
 Parameters may be required or optional. They may be passed by position,
 or by name. Individual parameters may confer an item or list context
-on their corresponding arguments, but unlike in Perl, this is decided
+on their corresponding arguments, but unlike in Perl 5, this is decided
 lazily at parameter binding time.
 
 Arguments destined for required positional parameters must come before
@@ -871,7 +871,7 @@ arguments with parentheses or quotes:
     push @array, 1, 2, (:a<b>);
     push @array, 1, 2, 'a' => 'b';
 
-Raku allows multiple same-named arguments, and records the relative
+Perl 6 allows multiple same-named arguments, and records the relative
 order of arguments with the same name.  When there are more than one
 argument, the C<@> sigil in the parameter list causes the arguments
 to be appended:
@@ -1152,7 +1152,7 @@ so you can refer to it within the body.
         # %flag has elements (flag => (a => 1)) and (data => [1,2,3])
         # @data has nothing
 
-[Conjecture: a future Raku version will allow typed slurpy parameters, which
+[Conjecture: a future Perl 6 version will allow typed slurpy parameters, which
 will validate the types of the passed arguments.]
 
 =head2 Slurpy block
@@ -1916,7 +1916,7 @@ Also, it is illegal to use placeholder variables in a block that already
 has a signature, because the autogenerated signature would conflict with that.
 Positional placeholder names consisting of a single uppercase letter are disallowed,
 not because we're mean, but because it helps us catch references to
-obsolete Perl variables such as C<$^O>.
+obsolete Perl 5 variables such as C<$^O>.
 
 The C<$_> variable functions as a placeholder in a block without any
 other placeholders or signature.  Any bare block without placeholders
@@ -1960,7 +1960,7 @@ the block.  Subsequent mentions of that variable may omit the twigil.
 Within an internal nested block the twigil I<must> be omitted, since
 it would wrongly attach to the inner block.
 
-Note that, unlike in Perl, C<@_> may not be used within an inner block to
+Note that, unlike in Perl 5, C<@_> may not be used within an inner block to
 refer to the outer block's arguments:
 
     sub say-or-print {
@@ -1983,7 +1983,7 @@ because this desugars to:
         }
     }
 
-Translators of Perl will need to bear this in mind.
+Translators of Perl 5 will need to bear this in mind.
 
 =head1 Properties and traits
 
@@ -3133,7 +3133,7 @@ A compile-time call to a macro before its definition is erroneous.
 
 =head2 Quasiquoting
 
-In aid of returning syntax tree, Raku provides a "quasiquoting"
+In aid of returning syntax tree, Perl provides a "quasiquoting"
 mechanism using the quote C<quasi>, followed by a block intended to
 represent an AST:
 
@@ -3207,7 +3207,7 @@ is probably to be construed as Bad Style:
 
 (Note to implementors: this must not be implemented by finding
 the final closing delimiter and preprocessing, or we'll violate our
-one-pass parsing rule.  Raku parsing rules are parameterized to know
+one-pass parsing rule.  Perl 6 parsing rules are parameterized to know
 their closing delimiter, so adding the opening delimiter should not
 be a hardship.  Alternately the opening delimiter can be deduced from
 the closing delimiter.  Writing a rule that looks for three opening
@@ -3343,7 +3343,7 @@ the current block was defined).
 
 =head2 Declaring a C<MAIN> subroutine
 
-Ordinarily a top-level Raku "script" just evaluates its anonymous
+Ordinarily a top-level Perl "script" just evaluates its anonymous
 mainline code and exits.  During the mainline code, the program's
 arguments are available in raw form from the C<@*ARGS> array.  At the end of
 the mainline code, however, a C<MAIN> subroutine will be called with
@@ -3403,7 +3403,7 @@ A C<proto> or C<multi> definition may not be written in semicolon form,
 nor may C<MAIN> subs within a module or class be written in semicolon form.  (A C<MAIN> routine
 is allowed in a module or class, but is not usually invoked unless
 the file is run directly (see a above).  This corresponds to the
-"unless caller" idiom of Perl.)  In general, you may have only one
+"unless caller" idiom of Perl 5.)  In general, you may have only one
 semicolon-style declaration that controls the whole file.
 
 If an attempted dispatch to C<MAIN> fails, the C<USAGE> routine is called.
@@ -3454,7 +3454,7 @@ as follows:
     :name='spacey value'       :name«'spacey value'»
     :name=val1,'val 2',etc     :name«val1 'val 2' etc»
 
-Exact Raku forms are okay if quoted from shell processing:
+Exact Perl 6 forms are okay if quoted from shell processing:
 
     ':name<value>'             :name<value>
     ':name(42)'                :name(42)

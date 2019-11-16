@@ -13,14 +13,14 @@ Synopsis 2: Bits and Pieces
 
 This document summarizes Apocalypse 2, which covers small-scale lexical
 items and typological issues.  (These Synopses also contain updates to
-reflect the evolving design of Raku over time, unlike the Apocalypses,
+reflect the evolving design of Perl 6 over time, unlike the Apocalypses,
 which are frozen in time as "historical documents".  These updates are not
 marked--if a Synopsis disagrees with its Apocalypse, assume the Synopsis is
 correct.)
 
 =head1 One-pass parsing
 
-To the extent allowed by sublanguages' parsers, Raku is parsed using a
+To the extent allowed by sublanguages' parsers, Perl is parsed using a
 one-pass, predictive parser.  That is, lookahead of more than one "longest
 token" is discouraged.  The currently known exceptions to this are where the
 parser must:
@@ -44,31 +44,31 @@ dealing with at any moment, which in turn is fundamental to allowing
 unambiguous language mutation in any desired direction.  (Generic languages
 are allowed, but only if intended; accidentally generic languages lead to
 loss of linguistic identity and integrity.  This is the hard lesson of
-Perl's source filters and other multi-pass parsing mistakes.)
+Perl 5's source filters and other multi-pass parsing mistakes.)
 
 =head1 Lexical Conventions
 
 =head2 Unicode Semantics
 
-In the abstract, Raku is written in Unicode, and has consistent Unicode
+In the abstract, Perl is written in Unicode, and has consistent Unicode
 semantics regardless of the underlying text representations.  By default
-Raku presents Unicode in "NFG" formation, where each grapheme counts as one
+Perl presents Unicode in "NFG" formation, where each grapheme counts as one
 character.  A grapheme is what the novice user would think of as a character
 in their normal everyday life, including any diacritics.
 
-Raku can count Unicode line and paragraph separators as line markers, but
-that behavior had better be configurable so that Raku's idea of line numbers
+Perl can count Unicode line and paragraph separators as line markers, but
+that behavior had better be configurable so that Perl's idea of line numbers
 matches what your editor thinks about Unicode lines.
 
 Unicode horizontal whitespace is counted as whitespace, but it's better not
 to use thin spaces where they will make adjoining tokens look like a single
-token.  On the other hand, Raku doesn't use indentation as syntax, so you
+token.  On the other hand, Perl doesn't use indentation as syntax, so you
 are free to use any amount of whitespace anywhere that whitespace makes
 sense. Comments always count as whitespace.
 
 =head2 Bracketing Characters
 
-For some syntactic purposes, Raku distinguishes bracketing characters from
+For some syntactic purposes, Perl distinguishes bracketing characters from
 non-bracketing.  Bracketing characters are defined as any Unicode characters
 with either bidirectional mirrorings or Ps/Pe/Pi/Pf properties.
 
@@ -90,7 +90,7 @@ C<U+2990> (C<⦐>) are valid bracket openers, despite having reverse mappings in
 BidiMirroring table.
 
 The C<U+301D> (C<〝>) codepoint has two closing alternatives, C<U+301E> (C<〞>) and
-C<U+301F> (C<〟>); Raku only recognizes the one with lower code point number,
+C<U+301F> (C<〟>); Perl 6 only recognizes the one with lower code point number,
 C<U+301E> (C<〞>), as the closing brace.  This policy also applies to new
 one-to-many mappings introduced in the future.
 
@@ -103,8 +103,8 @@ alternatives are treated as non-bracketing characters within that construct.
 
 =head2 Multiline Comments
 
-Pod sections may be used reliably as multiline comments in Raku.  Unlike
-in Perl, Pod syntax now lets you use C<=begin comment> and C<=end comment>
+Pod sections may be used reliably as multiline comments in Perl 6.  Unlike
+in Perl 5, Pod syntax now lets you use C<=begin comment> and C<=end comment>
 to delimit a Pod block correctly without the need for C<=cut>.  (In fact,
 C<=cut> is now gone.)  The format name does not have to be C<comment> -- any
 unrecognized format name will do to make it a comment.  (However, bare
@@ -123,14 +123,14 @@ documentation.
 =head2 Single-line Comments
 
 Except within a quote literal, a C<#> character always introduces a comment
-in Raku.  There are two forms of comment based on C<#>.  Embedded comments
+in Perl 6.  There are two forms of comment based on C<#>.  Embedded comments
 require the C<#> to be followed by a backtick (C<`>) plus one or more
 opening bracketing characters.
 
 All other uses of C<#> are interpreted as single-line comments that work
-just as in Perl, starting with a C<#> character and ending at the
+just as in Perl 5, starting with a C<#> character and ending at the
 subsequent newline.  They count as whitespace equivalent to newline for
-purposes of separation.  Unlike in Perl, C<#> may I<not> be used as the
+purposes of separation.  Unlike in Perl 5, C<#> may I<not> be used as the
 delimiter in quoting constructs.
 
 =head2 Embedded Comments
@@ -187,11 +187,11 @@ C<m>, C<s>, C<tr>, and C<rx>) enable subsequent user-selected brackets.
 
 Some languages such as C allow you to escape newline characters to combine
 lines.  Other languages (such as regexes) allow you to backslash a space
-character for various reasons.  Raku generalizes this notion to any kind
+character for various reasons.  Perl 6 generalizes this notion to any kind
 of whitespace.  Any contiguous whitespace (including comments) may be hidden
 from the parser by prefixing it with C<\>.  This is known as the "unspace".
-An unspace can suppress any of several whitespace dependencies in Raku.  For
-example, since Raku requires an absence of whitespace between a noun and a
+An unspace can suppress any of several whitespace dependencies in Perl.  For
+example, since Perl requires an absence of whitespace between a noun and a
 postfix operator, using unspace lets you line up postfix operators:
 
     %hash\  {$key}
@@ -303,16 +303,16 @@ restriction on unspace applies only at the normal pattern-matching level.)
 
 =head2 Optional Whitespace and Exclusions
 
-In general, whitespace is optional in Raku except where it is needed to
+In general, whitespace is optional in Perl 6 except where it is needed to
 separate constructs that would be misconstrued as a single token or other
-syntactic unit.  (In other words, Raku follows the standard
+syntactic unit.  (In other words, Perl 6 follows the standard
 I<longest-token> principle, or in the cases of large constructs, a I<prefer
 shifting to reducing> principle.  See L</Grammatical Categories> below for
-more on how a Raku is analyzed into tokens.)
+more on how a Perl program is analyzed into tokens.)
 
 This is an unchanging deep rule, but the surface ramifications of it change
 as various operators and macros are added to or removed from the language,
-which we expect to happen because Raku is designed to be a mutable
+which we expect to happen because Perl 6 is designed to be a mutable
 language.  In particular, there is a natural conflict between postfix
 operators and infix operators, either of which may occur after a term.  If a
 given token may be interpreted as either a postfix operator or an infix
@@ -430,14 +430,14 @@ you omit the definition, you'd get a message like this:
 
 =head1 Built-In Data Types
 
-Raku has an optional type system that helps you write safer code that
+Perl 6 has an optional type system that helps you write safer code that
 performs better.  The compiler is free to infer what type information it can
 from the types you supply, but it will not complain about missing type
 information unless you ask it to.
 
-Raku is an OO engine, but you're not generally required to think in OO
+Perl 6 is an OO engine, but you're not generally required to think in OO
 when that's inconvenient.  However, some built-in concepts such as
-filehandles are more object-oriented in a user-visible way than in Perl.
+filehandles are more object-oriented in a user-visible way than in Perl 5.
 
 =head2 The P6opaque Datatype
 
@@ -467,7 +467,7 @@ immutable.
 
 =head2 Properties on Objects
 
-Raku supports the notion of B<properties> on various kinds of objects.
+Perl 6 supports the notion of B<properties> on various kinds of objects.
 Properties are like object attributes, except that they're managed by the
 individual object rather than by the object's class.
 
@@ -619,7 +619,7 @@ If you say
 you are declaring that the elements of C<@array> are native integers, but
 that the array itself is implemented by the C<MyArray> class.  Untyped
 arrays and hashes are still perfectly acceptable, but have the same
-performance issues they have in Perl.
+performance issues they have in Perl 5.
 
 =head2 Methods on Arrays
 
@@ -646,7 +646,7 @@ Non-object (native) types are lowercase: C<int>, C<num>, C<complex>, C<rat>,
 C<buf>, C<bit>.  Native types are primarily intended for declaring compact
 array storage, that is, a sequence of storage locations of the specified
 type laid out in memory contiguously without pointer indirection.  However,
-Raku will try to make those look like their corresponding uppercase types if
+Perl will try to make those look like their corresponding uppercase types if
 you treat them that way. (In other words, it does autoboxing and
 autounboxing as necessary.  Note, however, that repeated autoboxing and
 unboxing can make your program much slower, compared to a program that makes
@@ -737,7 +737,7 @@ merely managed by the same meta object.)
 
 =head2 Roles
 
-Raku supports generic types through what are called "roles" which represent
+Perl supports generic types through what are called "roles" which represent
 capabilities or interfaces.  These roles are generally not used directly as
 object types.  For instance all the numeric types perform the C<Numeric>
 role, and all string types perform the C<Stringy> role, but there's no such
@@ -758,7 +758,7 @@ roles include:
 
 =head2 C<Numeric> Types
 
-Raku intrinsically supports big integers and rationals through its system
+Perl 6 intrinsically supports big integers and rationals through its system
 of type declarations.  C<Int> automatically supports promotion to arbitrary
 precision, as well as holding C<Inf> and C<NaN> values.  Note that C<Int>
 assumes 2's complement arithmetic, so C<+^1 == -2> is guaranteed.  (Native
@@ -854,7 +854,7 @@ promotion of reasonably fast C<Rat> values into arbitrarily slow C<FatRat>
 values.
 
 Although most rational implementations normalize or "reduce" fractions to
-their smallest representation immediately through a GCD algorithm, Raku
+their smallest representation immediately through a GCD algorithm, Perl
 allows a rational datatype to do so lazily at need, such as whenever the
 denominator would run out of precision, but avoid the overhead otherwise.
 Hence, if you are adding a bunch of C<Rat>s that represent, say, dollars and
@@ -894,7 +894,7 @@ include the C<e> for the exponential.
 
 =head2 Infinity and C<NaN>
 
-Raku by default makes standard IEEE floating point concepts visible, such
+Perl 6 by default makes standard IEEE floating point concepts visible, such
 as C<Inf> (infinity) and C<NaN> (not a number).  Within a lexical scope,
 pragmas may specify the nature of temporary values, and how floating point
 is to behave under various circumstances.  All IEEE modes must be lexically
@@ -903,7 +903,7 @@ to bypass a braindead platform.
 
 The default floating-point modes do not throw exceptions but rather
 propagate C<Inf> and C<NaN>.  The boxed object types may carry more detailed
-information on where overflow or underflow occurred.  Numerics in Raku are
+information on where overflow or underflow occurred.  Numerics in Perl are
 not designed to give the identical answer everywhere.  They are designed to
 give the typical programmer the tools to achieve a good enough answer most
 of the time.  (Really good programmers may occasionally do even better.)
@@ -922,7 +922,7 @@ memory is implementation defined, so implementations are free to use ropes
 or other data structures internally in order to make concatenation, substring,
 and so forth cheaper.
 
-Implementation note: since Raku mandates that C<Str> must view graphemes
+Implementation note: since Perl 6 mandates that C<Str> must view graphemes
 as the fundamental unit rather than codepoints, this has some implications
 regarding efficient implementation. It is suggested that all graphemes be
 translated on input to unique grapheme numbers and represented as integers
@@ -1029,7 +1029,7 @@ special meaning:
     @slice = %x{*;'foo'};               # all keys in domain of 1st dimension
     @array[*]                           # list of all values, unlike @array[]
     (*, *, $x) = (1, 2, 3);             # skip first two elements
-                                        # (same as lvalue "undef" in Perl)
+                                        # (same as lvalue "undef" in Perl 5)
 
 C<Whatever> is an undefined prototype object derived from C<Any>.  As a type
 it is abstract, and may not be instantiated as a defined object.  When used
@@ -1048,7 +1048,7 @@ C<:-)>]
 
 =head3 Autopriming of Unary and Binary Operators with Whatever
 
-Raku has several ways of performing partial function application.  Since
+Perl 6 has several ways of performing partial function application.  Since
 this is an unwieldy term, we've settled on calling it I<priming>.  (Many
 folks call this "currying", but that's not really a correct technical usage
 of the term.)  Most generally, priming is performed on a C<Callable> object
@@ -1276,7 +1276,7 @@ treat them as objects:
     complex     native complex number
     bool        native boolean
 
-Since native types cannot represent Raku's concept of undefined values, in
+Since native types cannot represent Perl's concept of undefined values, in
 the absence of explicit initialization, native floating-point types default
 to C<NaN>, while integer types (including C<bit>) default to 0.  The complex
 type defaults to C<NaN + NaN\i>.  A buf type of known size defaults to a
@@ -1311,7 +1311,7 @@ based on 32-bit integers produces valid UTF-32 in the native endianness.)
 
 Among other things, C<Mu> is named after the eastern concept of "Mu" or 無
 (see L<http://en.wikipedia.org/wiki/MU>, especially the "Mu (negative)"
-entry), so in Raku it stands in for Perl's concept of "undef" when that
+entry), so in Perl 6 it stands in for Perl 5's concept of "undef" when that
 is used as a noun.  However, C<Mu> is also the "nothing" from which
 everything else is derived via the undefined type objects, so it stands in
 for the concept of "Object" as used in languages like Java.  Or think of it
@@ -1332,7 +1332,7 @@ everything and nothing.
 
 =head2 Undefined types
 
-Raku does not have a single value representing undefinedness.  Instead,
+Perl 6 does not have a single value representing undefinedness.  Instead,
 objects of various types can carry type information while nevertheless
 remaining undefined themselves.  Whether an object is defined is determined
 by whether C<.defined> returns true or not.  These typed objects typically
@@ -1348,9 +1348,9 @@ Whenever you declare any kind of type, class, module, or package, you're
 automatically declaring an undefined prototype value with the same name,
 known as the I<type object>.  The name itself returns that type object:
 
-    Mu          Raku object (default block parameter type, Any, Junction, or Each)
-    Any         Raku object (default routine parameter type, excludes Junction, Nil, Failure)
-    Cool        Raku Convenient OO Loopbacks
+    Mu          Perl 6 object (default block parameter type, Any, Junction, or Each)
+    Any         Perl 6 object (default routine parameter type, excludes Junction, Nil, Failure)
+    Cool        Perl 6 Convenient OO Loopbacks
     Whatever    Wildcard (like Any, but subject to do-what-I-mean via MMD)
     Int         Any Int object
     Widget      Any Widget object
@@ -1366,7 +1366,7 @@ name classes when the type's associated meta-object allows it:
 The C<Any> type encompasses all normal value and object types.  It is the
 unit type, but includes units that are containers of multiple values.  It is
 not the most general type, however.  C<Any> derives from C<Mu>, which is the
-top type in Raku, and encompasses certain conceptual types that fall
+top type in Perl 6, and encompasses certain conceptual types that fall
 outside the realm of ordinary C<Any> values.  These conceptual types
 include:
 
@@ -1384,7 +1384,7 @@ I<autothreading>.
 
 The C<Failure> type is considered conceptual so that dynamic context can
 determine the treatment of failures that in other languages would always
-throw exceptions.  This gives Raku programs the flexibility to handle
+throw exceptions.  This gives Perl 6 programs the flexibility to handle
 exceptions either in-band or out-of-band.  It is particularly important to
 be able to handle exceptions in-band when you are trying to perform parallel
 operations, so that the failure of one computation does not result in
@@ -1416,15 +1416,15 @@ Objects with these types behave like values, i.e. C<$x === $y> is true if
 and only if their types and contents are identical (that is, if C<$x.WHICH>
 eqv C<$y.WHICH>).
 
-    Str         Raku string (finite sequence of Unicode characters)
-    Bit         Raku single bit (allows traits, aliasing, undefinedness, etc.)
-    Int         Raku integer (allows Inf/NaN, arbitrary precision, etc.)
-    Num         Raku number (approximate Real, generally via floating point)
-    Rat         Raku rational (exact Real, limited denominator)
-    FatRat      Raku rational (unlimited precision in both parts)
-    Complex     Raku complex number
-    Bool        Raku boolean
-    Exception   Raku exception
+    Str         Perl string (finite sequence of Unicode characters)
+    Bit         Perl single bit (allows traits, aliasing, undefinedness, etc.)
+    Int         Perl integer (allows Inf/NaN, arbitrary precision, etc.)
+    Num         Perl number (approximate Real, generally via floating point)
+    Rat         Perl rational (exact Real, limited denominator)
+    FatRat      Perl rational (unlimited precision in both parts)
+    Complex     Perl complex number
+    Bool        Perl boolean
+    Exception   Perl exception
     Block       Executable objects that have lexical scopes
     Range       A pair of Ordered endpoints
     Set         Unordered collection of values that allows no duplicates
@@ -1607,24 +1607,24 @@ Objects with these types have distinct C<.WHICH> values that do not change
 even if the object's contents change.  (Routines are considered mutable
 because they can be wrapped in place.)
 
-    Iterator    Raku list
+    Iterator    Perl list
     RangeIter   Iterator over a Range
-    Scalar      Raku scalar
-    Array       Raku array
-    Hash        Raku hash
+    Scalar      Perl scalar
+    Array       Perl array
+    Hash        Perl hash
     SetHash     Setty QuantHash[Bool,False]
     BagHash     Baggy QuantHash[UInt,0]
     MixHash     Mixy  QuantHash[Real,0.0]
     Pair        A single key-to-value association
-    Buf         Raku buffer (array of integers with some stringy features)
-    IO          Raku filehandle
+    Buf         Perl buffer (array of integers with some stringy features)
+    IO          Perl filehandle
     Routine     Base class for all wrappable executable objects
-    Sub         Raku subroutine
-    Method      Raku method
-    Submethod   Raku subroutine acting like a method
-    Macro       Raku compile-time subroutine
-    Regex       Raku pattern
-    Match       Raku match, usually produced by applying a pattern
+    Sub         Perl subroutine
+    Method      Perl method
+    Submethod   Perl subroutine acting like a method
+    Macro       Perl compile-time subroutine
+    Regex       Perl pattern
+    Match       Perl match, usually produced by applying a pattern
     Stash       A symbol table hash (package, module, class, lexpad, etc)
     SoftRoutine A routine that is committed to staying mutable
 
@@ -1701,7 +1701,7 @@ See L<S06/"Wrapping"> for a discussion of soft vs. hard routines.
 
 =head2 Of types
 
-Explicit types are optional. Raku variables have two associated types: their
+Explicit types are optional. Perl variables have two associated types: their
 "of type" and their "container type".  (More generally, any container has a
 container type, including subroutines and modules.) The C<of> type is stored
 as its C<of> property, while the container type of the container is just the
@@ -1749,8 +1749,8 @@ given as a trait of the variable:
     my $spot is PersistentScalar;
     my $spot is DataBase;
 
-Defining a container type is the Raku equivalent to tying a variable in
-Perl.  But Raku variables are tied directly at declaration time, and for
+Defining a container type is the Perl 6 equivalent to tying a variable in
+Perl 5.  But Perl 6 variables are tied directly at declaration time, and for
 performance reasons may not be tied with a run-time C<tie> statement unless
 the variable is explicitly declared with a container type that does the
 C<Tieable> role.
@@ -1862,7 +1862,7 @@ followed by a character matching C<< <.alpha> >>)
 
 =head2 Sigils
 
-Raku includes a system of B<sigils> to mark the fundamental structural
+Perl 6 includes a system of B<sigils> to mark the fundamental structural
 type of a variable:
 
     $   scalar (object)
@@ -1934,7 +1934,7 @@ list does not imply subscripting back into the original object.
 
 =head3 No intervening whitespace
 
-Unlike in Perl, you may no longer put whitespace between a sigil and its
+Unlike in Perl 5, you may no longer put whitespace between a sigil and its
 following name or construct.
 
 =head2 Twigils
@@ -2007,27 +2007,27 @@ container.
 
 =head2 The C<.perl> method
 
-To get a Rakuish representation of any object, use the C<.raku> method.
-Like the C<Data::Dumper> module in Perl, the C<.raku> method will put
+To get a Perlish representation of any object, use the C<.perl> method.
+Like the C<Data::Dumper> module in Perl 5, the C<.perl> method will put
 quotes around strings, square brackets around list values, curlies around
 hash values, constructors around objects, properly handle circular
-references etc., so that Raku can evaluate the result back to the same
-object.  The C<.raku> method will return a representation of the object on
+references etc., so that Perl can evaluate the result back to the same
+object.  The C<.perl> method will return a representation of the object on
 the assumption that, if the code is reparsed at some point, it will be used
 to regenerate the object as a scalar in item context.  If you wish to
 interpolate the regenerated object in a list context, it may be necessary to
 use C<< prefix:<|> >> to force interpolation.
 
-Note that C<.raku> has a very specific definition, and it is expected that
+Note that C<.perl> has a very specific definition, and it is expected that
 some modules will rely on the ability to roundtrip values with C<EVAL>.  As
 such, overriding C<.perl> with a different format (globally using
 C<MONKEY-TYPING>, or for specific classes unless special care is taken to
-maintain parsability) is unwise.  Code which does not depend on C<.raku>'s
+maintain parsability) is unwise.  Code which does not depend on C<.perl>'s
 definition should use C<.gist> instead to allow more control.
 
 =head2 The C<.gist> method
 
-C<.gist>, by contrast with C<.raku>, returns a flexible form of an object
+C<.gist>, by contrast with C<.perl>, returns a flexible form of an object
 intended for human interpretation.  For example, when presented with a very
 long list or array, only the first 100 entries will be printed, followed by
 C<...> to indicate there are more entries.  If that's not what you want,
@@ -2127,7 +2127,7 @@ with a single dollar sign:
 =head2 List assignment and binding
 
 There is a need to distinguish list assignment from list binding.  List
-assignment works much like it does in Perl, copying the values.  There's a
+assignment works much like it does in Perl 5, copying the values.  There's a
 new C<:=> binding operator that lets you bind names to C<Array> and C<Hash>
 objects without copying, in the same way as subroutine arguments are bound
 to formal parameters.  See S06 for more about binding.
@@ -2262,10 +2262,10 @@ Str($/) )> to operate on the current match object; similarly C<@()> and
 C<%()> can extract positional and named submatches.
 
 C<Capture> objects fill the ecological niche of references in
-Raku.  You can think of them as "fat" references, that is, references that
+Perl 6.  You can think of them as "fat" references, that is, references that
 can capture not only the current identity of a single object, but also the
 relative identities of several related objects.  Conversely, you can think
-of Perl references as a degenerate form of C<Capture> when you want to
+of Perl 5 references as a degenerate form of C<Capture> when you want to
 refer only to a single item.
 
 The C<sink> statement prefix will eagerly evaluate any block or statement,
@@ -2287,7 +2287,7 @@ returning an empty list:
         $_ + 1;
     } or sink { warn 'Nil result'; $warnings++; }
 
-Given C<sink>, there's no need for an "else" clause on Raku's loops, and
+Given C<sink>, there's no need for an "else" clause on Perl 6's loops, and
 the C<sink> construct works in any list, not just C<for> loops.
 
 =head2 CaptureCursors
@@ -2326,7 +2326,7 @@ names yourself via an additional signature in parentheses:
 
 =head2 Ampersand and invocation
 
-Unlike in Perl, the notation C<&foo> merely stands for the C<foo> function
+Unlike in Perl 5, the notation C<&foo> merely stands for the C<foo> function
 as a C<Routine> object without calling it.  You may call any Code object by
 dereferencing it with parens (which may, of course, contain arguments):
 
@@ -2411,7 +2411,7 @@ A consequence of this is that you may not put more than one statement inside
 parens or brackets expecting sequence semantics, that is, the way a normal
 block evaluates all but the final statement for declarations or side
 effects, then returns the value of the final statement.  In order to do that
-in Raku, you need to use one of these constructs:
+in Perl 6, you need to use one of these constructs:
 
     do { my $x = 42; $x }
     $( my $x = 42; $x )
@@ -2557,7 +2557,7 @@ second elements, etc.  For more on C<sort> see S29.
 
 =head2 Special variables
 
-Many of the special variables of Perl are going away.  Those that apply to
+Many of the special variables of Perl 5 are going away.  Those that apply to
 some object such as a filehandle will instead be attributes of the
 appropriate object.  Those that are truly global will have global alphabetic
 names, such as C<$*PID> or C<@*ARGS>.
@@ -2599,7 +2599,7 @@ compile time, though C<::()> can also be used to introduce an interpolation
 (see below).  Also, in the absence of another sigil, C<::> can serve as its
 own sigil indicating intentional use of a not-yet-declared package name.
 
-Unlike in Perl, if a sigil is followed by comma, semicolon, a colon not
+Unlike in Perl 5, if a sigil is followed by comma, semicolon, a colon not
 followed by an identifier, or any kind of bracket or whitespace (including
 Unicode brackets and whitespace), it will be taken to be a sigil without a
 name rather than a punctuational variable.  This allows you to use sigils as
@@ -2623,7 +2623,7 @@ Which would be the same as:
 
 =head2 Package-qualified names
 
-Ordinary package-qualified names look like they do in Perl:
+Ordinary package-qualified names look like they do in Perl 5:
 
     $Foo::Bar::baz      # the $baz variable in package Foo::Bar
 
@@ -2640,7 +2640,7 @@ The following pseudo-package names are reserved at the front of a name:
 
     MY          # Symbols in the current lexical scope (aka $?SCOPE)
     OUR         # Symbols in the current package (aka $?PACKAGE)
-    CORE        # Outermost lexical scope, definition of standard Raku
+    CORE        # Outermost lexical scope, definition of standard Perl
     GLOBAL      # Interpreter-wide package symbols, really UNIT::GLOBAL
     PROCESS     # Process-related globals (superglobals)
     COMPILING   # Lexical symbols in the scope being compiled
@@ -2668,7 +2668,7 @@ coyotes.)
 The file's scope is known as C<UNIT>, but there are one or more lexical
 scopes outside of that corresponding to the linguistic setting (often known
 as the prelude in other cultures).  Hence, the C<SETTING> scope is
-equivalent to C<UNIT::OUTERS>.  For a standard Raku program C<SETTING> is the
+equivalent to C<UNIT::OUTERS>.  For a standard Perl program C<SETTING> is the
 same as C<CORE>, but various startup options (such as C<-n> or C<-p>) can
 put you into a domain specific language, in which case C<CORE> remains the
 scope of the standard language, while C<SETTING> represents the scope
@@ -2724,7 +2724,7 @@ C<GLOBAL>, which is pretty much empty when your program starts compiling,
 and mostly only contains things you either put there yourself, or some other
 module put there because you used that module.  In general things defined
 within (or imported into) C<CORE> should only be declared or imported with
-"my" semantics.  All Raku code can see C<CORE> anyway as the outermost
+"my" semantics.  All Perl code can see C<CORE> anyway as the outermost
 lexical scope, so there's no need to also put such things into C<GLOBAL>.
 
 The C<GLOBAL> package itself is accessible via C<UNIT::GLOBAL>.  The
@@ -2801,7 +2801,7 @@ are done with this notation:
     $::($foo)::Bar::baz # $Bar::Bar::baz
     $::($foobar)baz     # ILLEGAL at compile time (no operator baz)
 
-Note that unlike in Perl, initial C<::> doesn't imply global.  Here as
+Note that unlike in Perl 5, initial C<::> doesn't imply global.  Here as
 part of the interpolation syntax it doesn't even imply package.  After the
 interpolation of the C<::()> component, the indirect name is looked up
 exactly as if it had been there in the original source code, with priority
@@ -2985,7 +2985,7 @@ are actually process globals.
 
 =head2 The C<PROCESS> package
 
-There is only ever a single C<PROCESS> package.  For an ordinary Raku
+There is only ever a single C<PROCESS> package.  For an ordinary Perl
 program running by itself, there is only one C<GLOBAL> package as well.
 However, in certain situations (such as shared hosting under a webserver),
 the actual process may contain multiple virtual processes or interpreters,
@@ -3065,7 +3065,7 @@ The following return objects that contain all pertinent info:
     $?DISTRO    Which OS distribution am I compiling under
     $?VM        Which virtual machine am I compiling under
     $?XVM       Which virtual machine am I cross-compiling for
-    $?RAKU      Which Raku am I compiled for?
+    $?PERL      Which Perl am I compiled for?
     $?SCOPE     Which lexical scope am I in?
     $?PACKAGE   Which package am I in?
     $?MODULE    Which module am I in?
@@ -3093,7 +3093,7 @@ Note that some of these things have parallels in the C<*> space at run time:
     $*KERNEL    Which kernel I'm running under
     $*DISTRO    Which OS distribution I'm running under
     $*VM        Which VM I'm running under
-    $*RAKU      Which Raku I'm running under
+    $*PERL      Which Perl I'm running under
 
 You should not assume that these will have the same value as their
 compile-time cousins.
@@ -3148,14 +3148,14 @@ the importer's namespace.
 
 =head2 Switching parsers
 
-The currently compiling Raku parser is switched by modifying one of the
+The currently compiling Perl parser is switched by modifying one of the
 braided languages in C<< COMPILING::<%?LANG> >>.  Lexically scoped parser
 changes should temporize the modification.  Changes from here to
 end-of-compilation unit can just assign or bind it.  In general, most parser
 changes involve deriving a new grammar and then pointing one of the C<<
 COMPILING::<%?LANG> >> entries at that new grammar.  Alternately, the tables
 driving the current parser can be modified without derivation, but at least
-one level of anonymous derivation must intervene from the preceding Raku
+one level of anonymous derivation must intervene from the preceding Perl
 grammar, or you might be messing up someone else's grammar.  Basically, the
 current set of grammars in C<%?LANG> has to belong only to the current
 compiling scope.  It may not be shared, at least not without explicit
@@ -3167,14 +3167,14 @@ governed, and all that.
 Individual sublanguages ("slangs") may be referred to using the C<~> twigil.
 The following are useful:
 
-    $~MAIN       the current main language (e.g. Raku statements)
+    $~MAIN       the current main language (e.g. Perl statements)
     $~Quote      the current root of quoting language
     $~Quasi      the current root of quasiquoting language
     $~Regex      the current root of regex language
     $~Trans      the current root of transliteration language
-    $~P5Regex    the current root of the Raku regex language
+    $~P5Regex    the current root of the Perl 5 regex language
 
-Hence, when you are defining a normal Raku macro, you're replacing C<$~MAIN>
+Hence, when you are defining a normal Perl macro, you're replacing C<$~MAIN>
 with a derived language, but when you define a new regex backslash sequence,
 you're replacing C<$~Regex> with a derived language.  (There may or may not
 be a syntax in the main language to do this.)  Note that such changes are
@@ -3202,7 +3202,7 @@ disable that sublanguage in the current lexical scope:
     supersede slang P5Regex {}
     m:P5/./;             # kaboom
 
-If you supersede C<MAIN> then you're replacing the Raku parser entirely.
+If you supersede C<MAIN> then you're replacing the Perl parser entirely.
 This might be done by, say, the "use COBOL" declaration. C<:-)>
 
 =head2 Extended identifiers
@@ -3254,7 +3254,7 @@ Adverbial syntax is described in L</Adverbial Pair forms>.
 
 =head1 Literals
 
-Raku has a rich set of literal forms, many of which can be used for
+Perl 6 has a rich set of literal forms, many of which can be used for
 textual input as well.  For those forms simple enough to be allowed, the
 C<val()> function treats such a string value as if it were a literal in the
 program.  In some cases the C<val()> function will be applied on your
@@ -3262,7 +3262,7 @@ behalf, and in other cases you must do so explicitly.  The rationale for
 this function is that there are many cases where the programmer or user is
 forced to use a string type to represent a value that is intended to become
 a numeric type internally.  Committing pre-emptively to either a string type
-or a numeric type is likely to be wrongish, so Raku instead provides the
+or a numeric type is likely to be wrongish, so Perl 6 instead provides the
 concept of I<allomorphic> literals.  How these work is described below in
 L<Allomorphic value semantics>.
 
@@ -3356,7 +3356,7 @@ The generic string-to-number converter will recognize all of these forms
 time).  Also allowed in strings are leading plus or minus, and maybe a
 trailing Units type for an implied scaling.  Leading and trailing whitespace
 is ignored.  Note also that leading C<0> by itself I<never> implies octal in
-Raku.
+Perl 6.
 
 In all these cases, the type produced will be the narrowest of C<Int>,
 C<Rat>, or C<Num> that can accurately represent the number.  If no type can
@@ -3383,7 +3383,7 @@ Any of the adverbial forms may be used as a function:
     :10($x)     # "dec2num"
     :16($x)     # "hex2num"
 
-Think of these as setting the default radix, not forcing it.  Like Perl's
+Think of these as setting the default radix, not forcing it.  Like Perl 5's
 old C<oct()> function, any of these will recognize a number starting with a
 different radix marker and switch to the other radix.  However, note that
 the C<:16()> converter function will interpret leading C<0b> or C<0d> as hex
@@ -3475,7 +3475,7 @@ the bracketed forms by separating the numbers with comma: C<"\x[41,42,43]">.
 You must use the bracketed form to disambiguate if the unbracketed form
 would "eat" too many characters, because all of the unbracketed forms eat as
 many characters as they think look like digits in the radix specified.  None
-of these notations work in normal Raku code.  They work only in
+of these notations work in normal Perl code.  They work only in
 interpolations and regexes and the like.
 
 Note that the inside of the brackets is not an expression, and you may not
@@ -3569,7 +3569,7 @@ Instead, one can C<().item>, or less legibly, introduce a space as in C<$(
 =head3 Disallowed forms
 
 The degenerate case C<< <> >> is disallowed as a probable attempt to do IO
-in the style of Perl; that is now written C<lines()>.  (C<< <STDIN> >> is
+in the style of Perl 5; that is now written C<lines()>.  (C<< <STDIN> >> is
 also disallowed.)  Empty lists are better written with C<()> in any case
 because C<< <> >> will often be misread as meaning C<('')>.  (Likewise the
 subscript form C<< %foo<> >> should be written C<%foo{}> to avoid misreading
@@ -3589,7 +3589,7 @@ recognized inside C<«...»> and such "words" are returned as C<Pair> objects.
 
 Colon pairs (but not arrow pairs) are recognized within double angles.  In
 addition, the double angles allow for comments beginning with C<#>.  These
-comments work exactly like ordinary comments in Raku code.  Unlike in the
+comments work exactly like ordinary comments in Perl code.  Unlike in the
 shells, any literal C<#> must be quoted, even ones without whitespace in
 front of them, but note that this comes more or less for free with a colon
 pair like C<< :char<#x263a> >>, since comments only work in double angles,
@@ -3629,7 +3629,7 @@ form to generate a C<Pair> where the key is not an identifier.
 
 Despite that restriction, it's possible for other things to come between a
 colon and its brackets; however, all of the possible non-identifier
-adverbial keys are reserved for special syntactical forms.  Raku currently
+adverbial keys are reserved for special syntactical forms.  Perl 6 currently
 recognizes decimal numbers and the null key.  In the following table the
 first and second columns do I<not> mean the same thing:
 
@@ -3671,7 +3671,7 @@ so used, the adverb is considered an integral part of the name, so C<<
 infix:<+> >> and C<< infix:<-> >> are two different operators.  Likewise C<<
 prefix:<+> >> is different from C<< infix:<+> >>.  (The notation also has
 the benefit of grouping distinct identifiers into easily accessible sets;
-this is how the standard Raku grammar knows the current set of infix
+this is how the standard Perl 6 grammar knows the current set of infix
 operators, for instance.)
 
 Only identifiers that produce a list of one or more values (preferably
@@ -3748,7 +3748,7 @@ allows:
 The other forms of adverb (including the bare C<:a> form) I<always> look for
 an immediate bracketed argument, and will slurp it up.  If that's not
 intended, you must use whitespace between the adverb and the opening
-bracket.  The syntax of individual adverbs is the same everywhere in Raku.
+bracket.  The syntax of individual adverbs is the same everywhere in Perl 6.
 There are no exceptions based on whether an argument is wanted or not.
 (There is a minor exception for quote and regex adverbs, which accept
 I<only> parentheses as their bracketing operator, and ignore other brackets,
@@ -3974,7 +3974,7 @@ with empty brackets:
 Note that this fixes the spurious "C<@>" problem in double-quoted email
 addresses.
 
-As with Perl array interpolation, the elements are separated by a space.
+As with Perl 5 array interpolation, the elements are separated by a space.
 (Except that a space is not added if the element already ends in some kind
 of whitespace.  In particular, a list of pairs will interpolate with a tab
 between the key and value, and a newline after the pair.)
@@ -4221,7 +4221,7 @@ bit happier, along with any other naïve bracket counting algorithms...)
 
 =head2 Bare identifiers
 
-There are no barewords in Raku.  An undeclared bare identifier will always
+There are no barewords in Perl 6.  An undeclared bare identifier will always
 be taken to mean a subroutine name, and be parsed as a list operator.
 (Class names (and other type names) are predeclared, or prefixed with the
 C<::> type sigil when you're declaring a new one.)  A consequence of this is
@@ -4315,7 +4315,7 @@ ref form will admit real objects in a pinch.)
 
 =head2 Hash subscripts and bare keys
 
-There is no hash subscript autoquoting in Raku.  Use C<< %x<foo> >> for
+There is no hash subscript autoquoting in Perl 6.  Use C<< %x<foo> >> for
 constant hash subscripts, or the old standby C<< %x{'foo'} >>.  (It also
 works to say C<%x«foo»> as long as you realized it's subject to
 interpolation.)
@@ -4330,7 +4330,7 @@ subject to keyword or even macro interpretation.  If you say
     }
 
 then C<$x> ends up containing the pair C<< ("if" => 1) >>.  Always.  (Unlike
-in Perl, where version numbers didn't autoquote.)
+in Perl 5, where version numbers didn't autoquote.)
 
 You can also use the C<:key($value)> form to quote the keys of option pairs.
 To align values of option pairs, you may use the "unspace" postfix forms:
@@ -4378,7 +4378,7 @@ source file.
 
 [Speculative] It may also be possible to treat a Pod object as an
 IO::Handle, to read the Pod information line-by-line (like the C<DATA>
-filehandle in Perl, but for I<any> Pod block).
+filehandle in Perl 5, but for I<any> Pod block).
 
 The lexical routine itself is C<&?ROUTINE>; you can get its name with
 C<&?ROUTINE.name>.  The current block is C<&?BLOCK>.  If the block has any
@@ -4435,14 +4435,14 @@ to match at the beginning of any whitespace.)
 
 There are two possible ways to parse heredocs.  One is to look ahead for the
 newline and grab the lines corresponding to the heredoc, and then parse the
-rest of the original line.  This is how Perl does it.  Unfortunately this
-suffers from the problem pervasive in Perl of multi-pass parsing, which is
-masked somewhat because there's no way to hide a newline in Perl.  In
-Raku, however, we can use "unspace" to hide a newline, which means that an
+rest of the original line.  This is how Perl 5 does it.  Unfortunately this
+suffers from the problem pervasive in Perl 5 of multi-pass parsing, which is
+masked somewhat because there's no way to hide a newline in Perl 5.  In
+Perl 6, however, we can use "unspace" to hide a newline, which means that an
 algorithm looking ahead to find the newline must do a full parse (with
 possible untoward side effects) in order to locate the newline.
 
-Instead, Raku takes the one-pass approach, and just lazily queues up the
+Instead, Perl 6 takes the one-pass approach, and just lazily queues up the
 heredocs it finds in a line, and waits until it sees a "real" newline to
 look for the text and attach it to the appropriate heredoc.  The downside of
 this approach is a slight restriction--you may not use the actual text of
@@ -4481,7 +4481,7 @@ must coerce a string to a C<Version>:
     v1.2.3beta                  # illegal
     Version('1.2.3beta')        # okay
 
-Note though that most places that take a version number in Raku accept it as
+Note though that most places that take a version number in Perl accept it as
 a named argument, in which case saying C<< :ver<1.2.3beta> >> is fine.  See
 S11 for more on using versioned modules.
 
@@ -4532,7 +4532,7 @@ alphabetic, and that alphabetic is defined according to Unicode, not just
 according to ASCII.  The intent of all this is to make sure that prereleases
 sort before releases.  Note also that this is still a subset of the
 versioning schemes seen in the real world.  Modules with such strange
-versions can still be used by Raku since by default Raku imports external
+versions can still be used by Perl since by default Perl imports external
 modules by exact version number.  (See S11.)  Only range operations will be
 compromised by an unknown foreign collation order, such as a system that
 sorts "delta" before "gamma".
@@ -4626,7 +4626,7 @@ type.
 
 =item *
 
-Raku still has the three main contexts: sink (aka void), item (aka scalar),
+Perl still has the three main contexts: sink (aka void), item (aka scalar),
 and list.
 
 =item *
@@ -4645,7 +4645,7 @@ containers (such as slice and hash context; see S03 for details).
 
 =item *
 
-Unlike in Perl, objects are no longer always considered true.  It depends
+Unlike in Perl 5, objects are no longer always considered true.  It depends
 on the state of their C<.Bool> method, which may either be a synthetic
 attribute or an explicitly represented bit in the object.  Classes get to
 decide which of their values are true and which are false. In general,
@@ -4674,7 +4674,7 @@ however.)
 In general any container types should return false if they are empty, and
 true otherwise.  This is true of all the standard container types except
 Scalar, which always defers the definition of truth to its contents.
-Non-container types define truthiness much as Perl does, except
+Non-container types define truthiness much as Perl 5 does, except
 that the string C<"0"> is now considered true.  Coerce to numeric with
 C<<prefix:<+> >> if you want the other semantics.
 
@@ -4688,7 +4688,7 @@ partition makes sense in control flow using boolean contexts.
 
 =head2 Lazy flattening
 
-List context in Raku is by default lazy.  This means a list can contain
+List context in Perl 6 is by default lazy.  This means a list can contain
 infinite generators without blowing up.  No flattening happens to a lazy
 list until it is bound to the signature of a function or method at call time
 (and maybe not even then).  We say that such an argument list is "lazily
@@ -4795,13 +4795,13 @@ X<..>
 The C<< .. >> operator now constructs a C<Range> object rather than merely
 functioning as an operator.  Both sides are in item context.  Semantically,
 the C<Range> acts like a list of its values to the extent possible, but does
-so lazily, unlike Perl's eager range operator.
+so lazily, unlike Perl 5's eager range operator.
 
 =head2 Hash assignment
 
 There is no such thing as a hash list context.  Assignment to a hash
 produces an ordinary list context.  You may assign alternating keys and
-values just as in Perl.  You may also assign lists of C<Pair> objects, in
+values just as in Perl 5.  You may also assign lists of C<Pair> objects, in
 which case each pair provides a key and a value.  You may, in fact, mix the
 two forms, as long as the pairs come when a key is expected.  If you wish to
 supply a C<Pair> as a key, you must compose an outer C<Pair> in which the
@@ -4852,7 +4852,7 @@ you now write
 
 =head1 Grammatical Categories
 
-Lexing in Raku is controlled by a system of grammatical categories.  At
+Lexing in Perl 6 is controlled by a system of grammatical categories.  At
 each point in the parse, the lexer knows which subset of the grammatical
 categories are possible at that point, and follows the longest-token rule
 across all the active alternatives, including those representing any

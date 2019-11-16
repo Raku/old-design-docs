@@ -12,7 +12,7 @@ Synopsis 4: Blocks and Statements
     Version: 141
 
 This document summarizes Apocalypse 4, which covers the block and
-statement syntax of Raku.
+statement syntax of Perl.
 
 =head1 The Relationship of Lexical and Dynamic Scopes
 
@@ -43,7 +43,7 @@ up the dynamic call stack for a variable of a particular name, but at each
 "stop" along the way, they are actually looking in the lexical "pad"
 associated with that particular dynamic scope's call frame.
 
-In Raku, control flow is designed to do what the user expects most of the
+In Perl 6, control flow is designed to do what the user expects most of the
 time, but this implies that we must consider the declarative nature of
 labels and blocks and combine those with the dynamic nature of the call
 stack.  For instance, a C<return> statement always returns from the
@@ -53,7 +53,7 @@ internal to the subroutine's current call frame.  The lexical scope supplies
 the declared target for the dynamic operation.  There does not seem to be a
 prevailing term in the industry for this, so we've coined the term
 I<lexotic> to refer to these strange operations that perform a dynamic
-operation with a lexical target in mind.  Lexotic operators in Raku
+operation with a lexical target in mind.  Lexotic operators in Perl 6
 include:
 
     return
@@ -93,7 +93,7 @@ all work the same on the inside.
 
 Blocks are delimited by curlies, or by the beginning and end of the current
 compilation unit (either the current file or the current C<EVAL> string).
-Unlike in Perl, there are (by policy) no implicit blocks around standard
+Unlike in Perl 5, there are (by policy) no implicit blocks around standard
 control structures.  (You could write a macro that violates this, but resist
 the urge.)  Variables that mediate between an outer statement and an inner
 block (such as loop variables) should generally be declared as formal
@@ -120,7 +120,7 @@ enclosing block.  Period.  Lexicals may not "leak" from a block to any other
 external scope (at least, not without some explicit aliasing action on the
 part of the block, such as exportation of a symbol from a module).  The
 "point of declaration" is the moment the compiler sees "C<my $foo>", not the
-end of the statement as in Perl, so
+end of the statement as in Perl 5, so
 
     my $x = $x;
 
@@ -154,7 +154,7 @@ detected because it is hidden in an C<EVAL>, then it is erroneous, since the
 C<EVAL()> compiler might bind to either C<$OUTER::x> or the subsequently
 declared "C<my $x>".
 
-As in Perl, "C<our $foo>" introduces a lexically scoped alias for a
+As in Perl 5, "C<our $foo>" introduces a lexically scoped alias for a
 variable in the current package.
 
 The new C<constant> declarator introduces a compile-time constant, either a
@@ -174,13 +174,13 @@ beginning of the next.  Separate clones of the closure get separate state
 variables.  However, recursive calls to the same clone use the same state
 variable.
 
-Perl's "C<local>" function has been renamed to C<temp> to better reflect
+Perl 5's "C<local>" function has been renamed to C<temp> to better reflect
 what it does.  There is also a C<let> prefix operator that sets a
 hypothetical value.  It works exactly like C<temp>, except that the value
 will be restored only if the current block exits unsuccessfully.  (See
 Definition of Success below for more.)  C<temp> and C<let> temporize or
 hypotheticalize the value or the variable depending on whether you do
-assignment or binding.  One other difference from Perl is that the default
+assignment or binding.  One other difference from Perl 5 is that the default
 is not to undefine a variable.  So
 
     temp $x;
@@ -189,7 +189,7 @@ causes C<$x> to start with its current value.  Use
 
     undefine temp $x;
 
-to get the Perl behavior.
+to get the Perl 5 behavior.
 
 Note that temporizations that are undone upon scope exit must be prepared to
 be redone if a continuation within that scope is taken.
@@ -204,9 +204,9 @@ lower-level list of statements and, while they may be a final statement in
 their subscope, they're not considered the final statement of the outer
 block in question.
 
-This is subtly different from Perl's behavior, which was to return the
+This is subtly different from Perl 5's behavior, which was to return the
 value of the last expression evaluated, even if that expression was just a
-conditional.  Unlike in Perl, if a final statement in Raku is a
+conditional.  Unlike in Perl 5, if a final statement in Perl 6 is a
 conditional that does not execute any of its branches, it doesn't matter
 what the value of the conditional is, the value of that conditional
 statement is always C<()>.  If there are no statements in the block at all,
@@ -257,7 +257,7 @@ they are naturally terminated by some other statement terminator:
 =head1 Conditional statements
 X<if>X<unless>
 
-The C<if> and C<unless> statements work much as they do in Perl.  However,
+The C<if> and C<unless> statements work much as they do in Perl 5.  However,
 you may omit the parentheses on the conditional:
 
     if $foo == 123 {
@@ -274,7 +274,7 @@ The result of a conditional statement is the result of the block chosen to
 execute.  If the conditional does not execute any branch, the return value
 is C<()>.
 
-The C<unless> statement does not allow an C<elsif> or C<else> in Raku.
+The C<unless> statement does not allow an C<elsif> or C<else> in Perl 6.
 
 The value of the conditional expression may be optionally bound to a closure
 parameter:
@@ -284,7 +284,7 @@ parameter:
     else          -> $b { say $b }
 
 Note that the value being evaluated for truth and subsequently bound is not
-necessarily a value of type C<Bool>.  (All normal types in Raku may be
+necessarily a value of type C<Bool>.  (All normal types in Perl may be
 evaluated for truth.  In fact, this construct would be relatively useless if
 you could bind only boolean values as parameters, since within the closure
 you already know whether it evaluated to true or false.)  Binding within an
@@ -312,7 +312,7 @@ where each call to the block would bind a new invocant for the C<.waste>
 method, each of which is likely different from the original invocant to the
 C<.haste> method.)
 
-Conditional statement modifiers work as in Perl.  So do the implicit
+Conditional statement modifiers work as in Perl 5.  So do the implicit
 conditionals implied by short-circuit operators.  Note though that the
 contents of parens or brackets is parsed as a statement, so you can say:
 
@@ -354,13 +354,13 @@ There are also C<with> and C<without> statement modifiers:
 
 =head1 Loop statements
 
-Looping statement modifiers are the same as in Perl except that, for ease
+Looping statement modifiers are the same as in Perl 5 except that, for ease
 of writing list comprehensions, a looping statement modifier is allowed to
 contain a single conditional statement modifier:
 
     @evens = ($_ * 2 if .odd for 0..100);
 
-Loop modifiers C<next>, C<last>, and C<redo> also work much as in Perl.
+Loop modifiers C<next>, C<last>, and C<redo> also work much as in Perl 5.
 However, the labeled forms can use method call syntax: C<LABEL.next>, etc.
 The C<.next> and C<.last> methods take an optional argument giving the final
 value of that loop iteration.  So the old C<next LINE> syntax is still
@@ -392,7 +392,7 @@ and C<take>.
 =head2 The C<while> and C<until> statements
 X<while>X<until>
 
-The C<while> and C<until> statements work as in Perl, except that you may
+The C<while> and C<until> statements work as in Perl 5, except that you may
 leave out the parentheses around the conditional:
 
     while $bar < 100 {
@@ -418,7 +418,7 @@ generally use C<for> to iterate filehandles.
 =head2 The C<repeat> statement
 X<repeat>X<while>X<next>X<last>X<redo>
 
-Unlike in Perl, applying a statement modifier to a C<do> block is
+Unlike in Perl 5, applying a statement modifier to a C<do> block is
 specifically disallowed:
 
     do {
@@ -437,7 +437,7 @@ or equivalently:
         ...
     } until $x >= 10;
 
-Unlike Perl's C<do-while> loop, this is a real loop block now, so C<next>,
+Unlike Perl 5's C<do-while> loop, this is a real loop block now, so C<next>,
 C<last>, and C<redo> work as expected.  The loop conditional on a C<repeat>
 block is required, so it will be recognized even if you put it on a line by
 its own:
@@ -506,7 +506,7 @@ is equivalent to the C-ish idiom:
 X<for>X<zip>X<Z>X<STDIN>X<$*IN>X<lines>
 
 There is no C<foreach> statement any more. It's always spelled C<for> in
-Raku, so it always takes a list as an argument:
+Perl 6, so it always takes a list as an argument:
 
     for @foo { .print }
 
@@ -527,11 +527,11 @@ that can be bound to the corresponding number of parameters:
     for @a Z @b -> ($a, $b) { print "[$a, $b]\n" }        # same thing
 
 The list is evaluated lazily by default, so instead of using a C<while> to
-read a file a line at a time as you would in Perl:
+read a file a line at a time as you would in Perl 5:
 
     while (my $line = <STDIN>) {...}
 
-in Raku you should use a C<for> instead:
+in Perl 6 you should use a C<for> instead:
 
     for $*IN.lines -> $line {...}
 
@@ -545,11 +545,11 @@ block scopes.)  It is also possible to write
 However, this is likely to fail on autochomped filehandles, so use the
 C<for> loop instead.
 
-Note also that Perl's special rule causing
+Note also that Perl 5's special rule causing
 
     while (<>) {...}
 
-to automatically assign to C<$_> is not carried over to Raku.  That should
+to automatically assign to C<$_> is not carried over to Perl 6.  That should
 now be written:
 
     for lines() {...}
@@ -606,7 +606,7 @@ statement_control:<for> >> because it always calls a closure.
 
 =head2 The do-once loop
 
-In Perl, a bare block is deemed to be a do-once loop.  In Raku, the bare
+In Perl 5, a bare block is deemed to be a do-once loop.  In Perl 6, the bare
 block is not a do-once.  Instead C<do {...}> is the do-once loop (which is
 another reason you can't put a statement modifier on it; use C<repeat> for a
 test-at-the-end loop).
@@ -658,7 +658,7 @@ loop control statements.
 In any sequence of statements, only the value of the final statement is
 returned, so all prior statements are evaluated in sink context, which is
 automatically eager, to force the evaluation of side effects.  (Side effects
-are the only reason to execute such statements in the first place, and Raku
+are the only reason to execute such statements in the first place, and Perl
 will, in fact, warn you if you do something that is "useless" in sink
 context.)  A loop in sink context not only evaluates itself eagerly, but can
 optimize away the production of any values from the loop.
@@ -729,7 +729,7 @@ The C<given> construct is not considered a loop, and just returns normally.
 
 Although a bare block occurring as a single statement is no longer a do-once
 loop, as with loops when used in a statement list, it still executes
-immediately as in Perl, as if it were immediately dereferenced with a
+immediately as in Perl 5, as if it were immediately dereferenced with a
 C<.()> postfix, so within such a block C<CALLER::> refers to the dynamic
 scope associated with the lexical scope surrounding the block.
 
@@ -811,7 +811,7 @@ label syntax, such as .gather and .take methods on some identity object.)]
 If you take multiple items in a comma list (since it is, after all, a list
 operator), they will be wrapped up in a C<List> object for return as the
 next argument.  No additional context is applied by the C<take> operator,
-since all context is lazy in Raku.  The flattening or slicing of any such
+since all context is lazy in Perl 6.  The flattening or slicing of any such
 returned list will be dependent on how the C<gather>'s return iterator is
 iterated (with C<.get> vs C<.getarg>).
 
@@ -875,7 +875,7 @@ statement as in the examples above.
 The C<take> operation may be defined internally using resumable control
 exceptions, or dynamic variables, or pigeons carrying clay tablets.  The
 choice any particular implementation makes is specifically I<not> part of
-the definition of Raku, and you should not rely on it in portable code.
+the definition of Perl 6, and you should not rely on it in portable code.
 
 =head2 Other C<do>-like forms
 X<do>
@@ -887,7 +887,7 @@ without necessarily establishing a lexical scope.  (You can always establish
 a lexical scope explicitly by using the block form of argument.)  As
 statement introducers, all these keywords must be followed by whitespace.
 (You can say something like C<try({...})>, but then you are calling the
-C<try()> function using function call syntax instead, and since Raku does
+C<try()> function using function call syntax instead, and since Perl does
 not supply such a function, it will be assumed to be a user-defined
 function.) For purposes of flow control, none of these forms are considered
 loops, but they may easily be applied to a normal loop.
@@ -1031,10 +1031,10 @@ This is particularly useful for list comprehensions:
 =head1 Exception handlers
 X<CATCH>
 
-Unlike many other languages, Raku specifies exception handlers by placing
+Unlike many other languages, Perl 6 specifies exception handlers by placing
 a C<CATCH> block I<within> that block that is having its exceptions handled.
 
-The Raku equivalent to Perl's C<eval {...}> is C<try {...}>.  (Raku's
+The Perl 6 equivalent to Perl 5's C<eval {...}> is C<try {...}>.  (Perl 6's
 C<EVAL> function only evaluates strings, not blocks, and does not catch
 exceptions.) A C<try> block by default has a C<CATCH> block that handles all
 fatal exceptions by ignoring them.  If you define a C<CATCH> block within
@@ -1229,18 +1229,18 @@ be controlled.  In other words, it first tries this form:
 
 If there is no such lexically scoped outer loop in the current subroutine,
 then a fallback search is made outward through the dynamic scopes in the
-same way Perl does.  (The difference between Perl and Raku in this
-respect arises only because Perl didn't have user-defined control
+same way Perl 5 does.  (The difference between Perl 5 and Perl 6 in this
+respect arises only because Perl 5 didn't have user-defined control
 structures, hence the sub's lexical scope was I<always> the innermost
 dynamic scope, so the preference to the lexical scope in the current sub was
-implicit.  For Raku we have to make this preference for lexotic behavior
+implicit.  For Perl 6 we have to make this preference for lexotic behavior
 explicit.)
 
-Warnings are produced in Raku by throwing a resumable control exception to
+Warnings are produced in Perl 6 by throwing a resumable control exception to
 the outermost scope, which by default prints the warning and resumes the
 exception by extracting a resume continuation from the exception, which must
 be supplied by the C<warn()> function (or equivalent).  Exceptions are not
-resumable in Raku unless the exception object does the C<Resumable> role.
+resumable in Perl 6 unless the exception object does the C<Resumable> role.
 (Note that fatal exception types can do the C<Resumable> role even if thrown
 via C<fail()>--when uncaught they just hit the outermost fatal handler
 instead of the outermost warning handler, so some inner scope has to
@@ -1275,11 +1275,11 @@ failsoft semantics.
 =head1 The goto statement
 X<goto>
 
-In addition to C<next>, C<last>, and C<redo>, Raku also supports C<goto>.
+In addition to C<next>, C<last>, and C<redo>, Perl 6 also supports C<goto>.
 As with ordinary loop controls, the label is searched for first lexically
 within the current subroutine, then dynamically outside of it.  Unlike with
 loop controls, however, scanning a scope includes a scan of any lexical
-scopes included within the current candidate scope.  As in Perl, it is
+scopes included within the current candidate scope.  As in Perl 5, it is
 possible to C<goto> into a lexical scope, but only for lexical scopes that
 require no special initialization of parameters.  (Initialization of
 ordinary variables does not count--presumably the presence of a label will
@@ -1293,14 +1293,14 @@ for a bare block, so that doesn't fall under the prohibition on bypassing
 formal binding.)
 
 Because it is possible to go to a label that is after the operation, and
-because Raku does one-pass parsing, any C<goto> to a label that has not
+because Perl 6 does one-pass parsing, any C<goto> to a label that has not
 been yet declared (or is declared outside the outward lexical scope of the
 C<goto>) must enclose the label in quotes.
 
 =head1 Exceptions
 
-As in Perl, many built-in functions simply return an undefined value when
-you ask for a value out of range, or the function fails somehow.  Raku has
+As in Perl 5, many built-in functions simply return an undefined value when
+you ask for a value out of range, or the function fails somehow.  Perl 6 has
 C<Failure> objects, known as "unthrown exceptions" (though really a
 C<Failure> merely contains an unthrown exception), which know whether they
 have been handled or not.  C<$!> is a convenient link to the last failure,
@@ -1345,7 +1345,7 @@ You can cause built-ins to automatically throw exceptions on failure using
 
 The C<fail> function responds to the caller's C<use fatal> state.  It either
 returns an unthrown exception, or throws the exception.  Before you get too
-happy about this pragma, note that Raku contains various parallel
+happy about this pragma, note that Perl 6 contains various parallel
 processing primitives that will tend to get blown up prematurely by thrown
 exceptions.  Unthrown exceptions are meant to provide a failsoft mechanism
 in which failures can be treated as data and dealt with one by one, without
@@ -1616,7 +1616,7 @@ parentheses aren't necessary around C<EXPR> because the whitespace between
 C<EXPR> and the block forces the block to be considered a block rather than
 a subscript, provided the block occurs where an infix operator would be
 expected.  This works for all control structures, not just the new ones in
-Raku.  A top-level bare block is always considered a statement block if
+Perl 6.  A top-level bare block is always considered a statement block if
 there's a term and a space before it:
 
     if $foo { ... }
@@ -1771,17 +1771,17 @@ okay.
 
 In the absence of error exception propagation, a successful exit is one that
 returns a defined value or list.  (A defined list may contain undefined
-values.) So any Raku function can say
+values.) So any Perl 6 function can say
 
     fail "message";
 
 and not care about whether the function is being called in item or list
 context.  To return an explicit scalar undef, you can always say
 
-    return Mu;          # like "return undef" in Perl
+    return Mu;          # like "return undef" in Perl 5
 
 Then in list context, you're returning a list of length 1, which is defined
-(much like in Perl).  But generally you should be using C<fail> in such a
+(much like in Perl 5).  But generally you should be using C<fail> in such a
 case to return an exception object.  In any case, returning an unthrown
 exception is considered failure from the standpoint of C<let>.  Backtracking
 over a closure in a regex is also considered failure of the closure, which
@@ -1791,7 +1791,7 @@ regex.)
 
 =head1 When is a closure not a closure
 
-Everything is conceptually a closure in Raku, but the optimizer is free to
+Everything is conceptually a closure in Perl 6, but the optimizer is free to
 turn unreferenced closures into mere blocks of code.  It is also free to
 turn referenced closures into mere anonymous subroutines if the block does
 not refer to any external lexicals that should themselves be cloned.  (When
@@ -1832,7 +1832,7 @@ package declaration share the same set of compile-time declared functions,
 however, the runtime instances can have different lexical environments as
 described in the preceding paragraph.  If multiple conflicting definitions
 of a sub exist for the same compile-time package, an error condition exists
-and behavior is not specified for Raku.
+and behavior is not specified for Perl 6.0.
 
 Methods in classes behave functionally like package subroutines, and have
 the same binding behavior if the classes are cloned.  Note that a class
