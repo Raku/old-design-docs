@@ -17,7 +17,7 @@ Synopsis 8: Capture and Argument Lists
 Unlike most programming languages, the data structure that is used to
 send the parameters into a routine invocation (be it a method or a
 sub) is exposed to the language as a built-in type like any
-other. This represents a very important aspect of the Perl 6 runtime
+other. This represents a very important aspect of the Raku runtime
 requirements.
 
 Additionally to the fact that this data structure is visible in the
@@ -32,7 +32,7 @@ purposes, but it should allow the use of foreign types when invoking a
 routine, as long as the object says true to C<.^does(Capture)>.
 
 Captures and argument lists are also the basis for the multidimensionality of
-lists in Perl 6. Unlike Perl 5, no flattening happens unless it's
+lists in Raku. Unlike Perl, no flattening happens unless it's
 explicitly required by the user, which is done by enforcing the list
 context. If you use the item context the dimensionality should be
 preserved.
@@ -44,9 +44,9 @@ List is kept as-is while they are manipulated in the code. This is
 useful to avoid unwanted flattening as well as avoiding the DWIMmy
 features that might change the capture's behavior.
 
-This is the main point of why Captures replace Perl 5
+This is the main point of why Captures replace Perl
 references; they allow you to send data untouched from one place to
-another. The second reason is that as in Perl 6 everything is an
+another. The second reason is that as in Raku everything is an
 object, there isn't really "pass-by-value" anymore, you're always
 sending a reference, Captures simply carry other objects
 without enforcing any context on them.
@@ -103,7 +103,7 @@ information about the position of named arguments.
 =head1 Multidimensionality
 
 Probably the most important task of Lists and Captures is to
-implement the multidimensionality of lists in Perl 6, this means that
+implement the multidimensionality of lists in Raku, this means that
 the barrier used to detect the dimensionality of the data structures
 by the operators is whatever the item inside it implements List or
 Capture. For instance:
@@ -198,11 +198,11 @@ Capture context is able to preserve the values as-is,
 in a way that you can later apply any context and have the same result
 as if the context was applied immediately.
 
-Context deferral is actually the reason why Perl 6 no longer supports
+Context deferral is actually the reason why Raku no longer supports
 the "wantarray" operator, nor does it provide any substitute. The way
 you should implement wantarray-like behavior is by properly overriding
 the coercion for each context. The Contextual::Return module is an
-implementation of that concept in Perl 5.
+implementation of that concept in Perl.
 
 [ The capture sigil does not exist, though left in this document for the time
 being pending a suitable replacement mechanism to handle context deferral.]

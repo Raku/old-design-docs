@@ -15,14 +15,14 @@ Synopsis 1: Overview
 This document originally summarized Apocalypse 1, which covers the
 initial design concept.  That original summary may be found below
 under "Random Thoughts".  However, these Synopses also contain
-updates to reflect the evolving design of Perl 6 over time, unlike
+updates to reflect the evolving design of Raku over time, unlike
 the Apocalypses, which are frozen in time as "historical documents".
 These updates are not marked--if a Synopsis disagrees with its
 Apocalypse, assume the Synopsis is correct.
 
 Another assumption has been that if we don't talk about something in these
-Synopses, it's the same as it is in Perl 5.  Soon we plan to fill in
-the gaps with the Perl 5 details though.
+Synopses, it's the same as it is in Perl.  Soon we plan to fill in
+the gaps with the Perl details though.
 
 =head1 Project Plan
 
@@ -33,18 +33,18 @@ primarily a volunteer effort.
 
 This document does not attempt to summarize all these subprojects--see
 L<http://perl6.org> for such information.  What we can say here
-is that, unlike how it was with Perl 5, none of these projects is
-designed to be the Official Perl.  Perl 6 is anything that passes the
+is that, unlike how it was with Perl, none of these projects is
+designed to be the Official Raku.  Raku is anything that passes the
 official test suite.  This test suite was initially developed under the
 Pugs project because that project was at one point the furthest along
-in exploring the high-level semantics of Perl 6.  (Other projects
+in exploring the high-level semantics of Raku.  (Other projects
 may be better at other things, such as speed or interoperability.
 This is fine; it is not necessary that all implementations be equally
 good at everything.)  The official test suite is community property,
-and is intended to be platform neutral, so that Perl 6 is defined
+and is intended to be platform neutral, so that Raku is defined
 primarily by its desired semantics, not by accidents of history.
 
-Another aspect of this is the Perl 6 compiler will be self-hosting.
+Another aspect of this is the Raku compiler will be self-hosting.
 That is, the compiler will eventually compile itself, at least down
 to the point where various code-generating backends can take over.
 This largely removes platform dependencies from the frontend, so that
@@ -77,7 +77,7 @@ Larry's First Law of Language Redesign: Everyone wants the colon.
 
 RFCs are rated on "PSA": whether they point out a real B<P>roblem,
 whether they present a viable B<S>olution, and whether that solution is
-likely to be B<A>ccepted as part of Perl 6.
+likely to be B<A>ccepted as part of Raku.
 
 =item *
 
@@ -86,21 +86,21 @@ present the language to a new user.
 
 =item *
 
-Perl 6 should be malleable enough that it can evolve into the imaginary
-perfect language, Perl 7.  This darwinian imperative implies support
+Raku should be malleable enough that it can evolve into an imaginary
+perfect language with another name.  This darwinian imperative implies support
 for multiple syntaxes above and multiple platforms below.
 
 =item *
 
 Many details may change, but the essence of Perl will remain unchanged.
-Perl will continue to be a multiparadigmatic, context-sensitive
+Raku will continue to be a multiparadigmatic, context-sensitive
 language.  We are not turning Perl into any other existing language.
 
 =item *
 
-Migration is important.  A Perl 6 interpreter, if invoked as "C<perl>", will assume that it
-is being fed Perl 5 code unless the code starts with a "class" or
-"module" keyword, or you specifically tell it you're running Perl 6
+Migration is important.  A Raku interpreter, if invoked as "C<raku>", will assume that it
+is being fed Perl code unless the code starts with a "class" or
+"module" keyword, or you specifically tell it you're running Raku
 code in some other way, such as by:
 
     #!/usr/bin/perl6
@@ -109,38 +109,38 @@ code in some other way, such as by:
 Also, a file with a C<.p6> extension may be taken as indicative,
 as may any other extension containing the digit C<6>, such as C<p6l>
 or C<p6m> or C<pl6> or C<pm6>.  (Though C<.pl> and C<.pm> are still
-perfectly acceptable extensions as long as the Perl-6-ness is indicated
+perfectly acceptable extensions as long as the Raku-ness is indicated
 by one of the other indicators.)
 
 =item *
 
-Migration in the other direction is also important.  In Perl 6
-mode, one can drop back to Perl 5 mode  with C<use v5> at the
+Migration in the other direction is also important.  In Raku
+mode, one can drop back to Perl mode  with C<use v5> at the
 beginning of a lexical block.  Such blocks may be nested:
 
     use v6;
-    # ...some Perl 6 code...
+    # ...some Raku code...
     {
         use v5;
-        # ...some Perl 5 code...
+        # ...some Perl code...
         {
             use v6;
-            # ...more Perl 6 code...
+            # ...more Raku code...
         }
     }
 
-Some platforms may restrict this to a subset of Perl 5 when it is
-not expedient to include a full Perl 5 interpreter.  The standard
-Perl 6 grammar will include the ability to parse a well-behaved
-subset of Perl 5 on its own (much like PPI does); implementations
+Some platforms may restrict this to a subset of Perl when it is
+not expedient to include a full Perl interpreter.  The standard
+Raku grammar will include the ability to parse a well-behaved
+subset of Perl on its own (much like PPI does); implementations
 are required only to support this subset, though of course they may
 also choose to implement bug-for-bug compatibility.
 
 =item *
 
-Scaling is one of those areas where Perl needs to be multiparadigmatic
-and context sensitive.  Perl 5 code is not strict by default, while
-Perl 6 code is.   But it should be easy to relax with C<-e> or the
+Scaling is one of those areas where Raku needs to be multiparadigmatic
+and context sensitive.  Perl code is not strict by default, while
+Raku code is.   But it should be easy to relax with C<-e> or the
 'no strict' pragma:
 
     perl -e '$x = 1'
@@ -156,8 +156,8 @@ modules on the user's behalf.
 
 =item *
 
-If you want to treat everything as objects in Perl 6, Perl will help
-you do that.  If you don't want to treat everything as objects, Perl
+If you want to treat everything as objects in Raku, Raku will help
+you do that.  If you don't want to treat everything as objects, Raku
 will help you with that viewpoint as well.
 
 =item *
@@ -176,7 +176,7 @@ will be, despite requests for those particular features.  Therefore
 the design process will be spiral, cooperative, and convergent.
 The rate of convergence is an emergent property, and cannot be forced,
 only encouraged.  As long as anyone is hacking on any implementation
-of Perl 6 to make it conform to the test suite, or hacking on the
+of Raku to make it conform to the test suite, or hacking on the
 test suite to make it reflect consensus of specification, the rate
 of convergence will be deemed to be positive.  If you are unhappy
 with the current rate of convergence, please cooperate more with
@@ -197,7 +197,7 @@ should be considered somewhat conjectural, even if not so marked.
 As implementations start to agree on what is practical and what is not,
 do not be surprised if some features that are currently specced may be
 deferred to future versions; these should still be considered long-term
-direction in the evolution of Perl 6 over time, and the short-term
+direction in the evolution of Raku over time, and the short-term
 design should be conservative in preserving that long-term evolution.
 Note that we are not in a hurry to defer any sections of the spec,
 even if that would give the illusion of progress.  Convergence

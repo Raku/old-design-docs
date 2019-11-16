@@ -19,13 +19,13 @@ despite never having been written.
 
 =head1 Packages
 
-As in Perl 5, packages are the basis of modules and classes.  Unlike in
-Perl 5, modules and classes are declared with distinct keywords,
+As in Perl, packages are the basis of modules and classes.  Unlike in
+Perl, modules and classes are declared with distinct keywords,
 but they're still just packages with extra behaviors.  Likewise every
 typename has an associated package namespace, even if unused.
 
 An ordinary package is declared with the C<package> keyword.  Unlike in
-earlier versions of Perl 5, in Perl 6 it can only be used with a block:
+earlier versions of Perl, in Raku it can only be used with a block:
 
     package Bar {...}   # block is in package Bar
 
@@ -34,20 +34,20 @@ named subroutine declarations.
 
 As a special exception, if a braceless C<package> declaration occurs
 as the first executable statement in a file, then it's taken to mean that the rest of
-the file is Perl 5 code.
+the file is Perl code.
 
-    package Foo;        # the entire file is Perl 5
+    package Foo;        # the entire file is Perl
     ...
 
-This form is illegal in a Perl 6 file.  If you wish to have a file-scoped package,
+This form is illegal in a Raku file.  If you wish to have a file-scoped package,
 either use the brace form or declare it with the C<module> keyword instead.
 
-Since there are no barewords in Perl 6, package names must be predeclared.
+Since there are no barewords in Raku, package names must be predeclared.
 Alternatively, the sigil-like C<::PackageName> syntax may be used to indicate
 that the type will be supplied some other way, however this syntax is not valid
 in declarative scenarios, especially parameter lists where it has entirely
 different semantics.  The C<::> prefix does not imply globalness as it does in
-Perl 5.  (Use C<GLOBAL::> for that.)
+Perl.  (Use C<GLOBAL::> for that.)
 
 A bare C<package> declarator (without an explicit scope declarator
 such as C<my>) declares an C<our> package within the current package
@@ -64,7 +64,7 @@ To declare an anonymous package you can use either of
 All files start out being parsed in the C<GLOBAL>
 package, but may switch to some other package scope depending on the first
 package-ish declaration.  If that first declaration is not a package variant, then
-the parsing switches to the "C<main>" package for Perl 5 code.  Perl 6 code
+the parsing switches to the "C<main>" package for Perl code.  Raku code
 stays C<GLOBAL> in that situation.  The mainline code is thus in the
 C<GLOBAL> namespace unless declared otherwise.
 
@@ -139,7 +139,7 @@ package up through the containing packages to C<GLOBAL>.  If it is not found,
 a compiler error results.
 
 As with an initial C<::>, the presence of a C<::> within the name
-does not imply globalness (unlike in Perl 5).  True globals are always
+does not imply globalness (unlike in Perl).  True globals are always
 in the C<GLOBAL::> namespace.
 
 The C<PROCESS::> namespace, shared by all interpreters within the process,
@@ -150,7 +150,7 @@ locate C<$PROCESS::PID> if not hidden by an inner callframe's C<$*PID>.)
 =head1 Autoloading
 
 A package (or any other similar namespace) can control autoloading.
-However, Perl 5's C<AUTOLOAD> is being superseded by MMD autoloaders
+However, Perl's C<AUTOLOAD> is being superseded by MMD autoloaders
 that distinguish declaration from definition, but are not restricted
 to declaring subs.  A run-time declarator multisub is declared as:
 
@@ -175,7 +175,7 @@ The package itself is just passed as the first argument, since it's
 the container object.  Subsequent arguments identify the desired type
 of the inner container and the "name" or "key" by which the object is
 to be looked up in the outer container.  Such a name does not include
-its container name, unlike Perl 5's magical C<$AUTOLOAD> variable.
+its container name, unlike Perl's magical C<$AUTOLOAD> variable.
 Nor does it include the type information of a Code object's "long
 name"; this information comes in via the type parameter, and may be
 matched against using ordinary subsignature matching:
@@ -183,8 +183,8 @@ matched against using ordinary subsignature matching:
     multi CANDO ( MyPackage, &:($), $name, *%args)     # 1 arg
     multi CANDO ( MyPackage, &:($,$), $name, *%args)   # 2 args
 
-The slurpy C<%args> hash is likely to be empty in standard Perl 6
-usage, but it's possible that some dialects of Perl will desire
+The slurpy C<%args> hash is likely to be empty in standard Raku
+usage, but it's possible that some dialects of Raku will desire
 a mechanism to pass in additional contextual information, so this
 parameter is reserved for such purposes.
 
@@ -216,7 +216,7 @@ inherited but may still do MMD within the class.   (Ordinary multisubs
 are "inherited" only to the extent allowed by nested lexical scopes.)
 
 When the package in question is not a class, there is a slight problem
-insofar as Perl 6 doesn't by default look into packages for functions
+insofar as Raku doesn't by default look into packages for functions
 anymore, only lexical scopes.  However, we'd still like the ability
 to dynamic add functions to a package, so there are two ways to get
 around the lexical limitation.

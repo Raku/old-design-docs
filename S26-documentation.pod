@@ -1,7 +1,7 @@
 =begin pod
 
 =comment
-This file is deliberately specified in Perl 6 Pod format
+This file is deliberately specified in Raku Pod format
 
 =TITLE
 Synopsis 26 - Documentation
@@ -21,8 +21,8 @@ underlying document object model. Pod can be used for writing language
 documentation, for documenting programs and modules, as well as for
 other types of document composition.
 
-Pod is an evolution of Perl 5's L<I<Plain Ol' Documentation>|doc:perlpod>
-(POD) markup. Compared to POD, Perl 6's Pod is much more
+Pod is an evolution of Perl's L<I<Plain Ol' Documentation>|doc:perlpod>
+(POD) markup. Compared to POD, Raku's Pod is much more
 uniform, somewhat more compact, and considerably more expressive. The
 Pod dialect also differs in that it is a purely descriptive mark-up
 notation, with no presentational components.
@@ -33,7 +33,7 @@ notation, with no presentational components.
 Pod documents are specified using D<directives|directive>, which are
 used to declare configuration information and to delimit blocks of
 textual content. All Pod directives are considered to be special types
-of comments in Perl 6.
+of comments in Raku.
 
 Every directive starts either with an equals sign (C<=>) followed
 immediately by an identifier N<as specified in Synopsis 2>, or with
@@ -42,7 +42,7 @@ a C<#=> or C<#|> followed immediately by whitespace or an opening bracket.
 Directives that start with C<=> can be indented like the code they
 interleave, but their initial C<=> must still be the first non-whitespace
 character on their line. Directives that start with C<#=> or C<#|> can be placed
-anywhere that a Perl 6 comment can appear, though they are meaningful
+anywhere that a Raku comment can appear, though they are meaningful
 only in a subset of those places; see L<#Declarator blocks>.
 
 An indented Pod block is considered to have a I<virtual left margin>,
@@ -52,7 +52,7 @@ In other words, if a directive is indented from the left margin, the
 column at which the first character of its opening delimiter appears is
 thereafter considered the first column of the entire block's contents.
 
-As with Perl 6 heredocs, the virtual margin treats leading tabs as
+As with Raku heredocs, the virtual margin treats leading tabs as
 aligning to tabstops spaced every C<($?TABSTOP // 8)> characters.
 
 =head2
@@ -73,10 +73,10 @@ parsers still parse this text into the internal representation of the
 file, representing it as a C<Pod::Block::Ambient> block. Renderers
 will I<usually> ignore such blocks, but see L<#Aliases>.
 
-In Perl 5's POD format, once a POD directive is encountered, the parser
+In Perl's POD format, once a POD directive is encountered, the parser
 considers everything that follows to be POD, until an explicit C<=cut>
 directive is encountered, at which point the parser flips back to
-parsing ambient source code. The Perl 6 Pod format is different. All Pod
+parsing ambient source code. The Raku Pod format is different. All Pod
 directives have a defined terminator and the Pod parser always reverts to
 "ambient" at the end of each Pod directive or block. To cause the parser
 to remain in Pod mode, you must enclose the desired Pod region in a
@@ -97,7 +97,7 @@ C<pod> block:
 =head3 Delimited blocks
 
 Delimited blocks are bounded by C<=begin> and C<=end> markers, both of
-which are followed by a valid Perl 6 identifier, which is the
+which are followed by a valid Raku identifier, which is the
 D<typename> of the block. Typenames that are entirely lowercase (for
 example: C<=begin head1>) or entirely uppercase (for example: C<=begin
 SYNOPSIS>) are reserved.
@@ -105,7 +105,7 @@ SYNOPSIS>) are reserved.
 After the typename, the rest of the C<=begin> marker line is treated as
 configuration information for the block. This information is used in
 different ways by different types of blocks, but is always specified using
-Perl6-ish option pairs. That is, any of:
+raku-ish option pairs. That is, any of:
 
 =for table :nested
  Value is...       Specify with...       Or with...       Or with...
@@ -119,7 +119,7 @@ Perl6-ish option pairs. That is, any of:
 All option keys and values must, of course, be constants since Pod is a
 specification language, not a programming language. Specifically, option
 values cannot be closures. See Synopsis 2 for details of the various
-Perl 6 pair notations.
+Raku pair notations.
 
 The configuration section may be extended over subsequent lines by
 starting those lines with an C<=> in the first (virtual) column followed
@@ -129,7 +129,7 @@ The lines following the opening delimiter and configuration are the
 data or contents of the block, which continue until the block's matching
 C<=end> marker line. For most block types, these contents may be
 indented if you wish, without them being treated as L<code blocks|#Code
-blocks>. Unlike Perl 5, indented text is only treated as code within
+blocks>. Unlike Perl, indented text is only treated as code within
 C<=pod>, L<C<=nested>|#Nesting blocks>, L<C<=item>|#Lists>, C<=code>,
 and L<semantic|#Semantic blocks> blocks.
 
@@ -171,7 +171,7 @@ This is a universal feature of Pod.
 
 Note also that in the following specifications, a "blank line" is a line
 that is either empty or that contains only whitespace characters. That
-is, a blank line matches the Perl 6 pattern: C</^^ \h* $$/>. Pod uses
+is, a blank line matches the Raku pattern: C</^^ \h* $$/>. Pod uses
 blank lines as delimiters, rather than empty lines, to minimize unpleasant
 surprises when stray spaces or tabs mysteriously turn up in hitherto
 empty lines.
@@ -247,16 +247,16 @@ configuration is required, use a C<=for> or C<=begin>/C<=end> instead.
 
 The fourth form of Pod block differs from the first three in that it
 does not specify an explicit typename. Instead, it obtains its identity
-and purpose from the Perl 6 source code to which it is attached;
+and purpose from the Raku source code to which it is attached;
 specifically, from some nearby declarator.
 
-Declarator blocks are introduced by a special Perl comment: either C<#=>
+Declarator blocks are introduced by a special Raku comment: either C<#=>
 or C<#|>, which must be immediately followed by either by a space or an
 opening bracket. If followed by a space, the block is terminated by the
 end of line; if followed by one or more opening brackets, the block is
 terminated by the matching sequence of closing brackets.
 
-That is, declarator Pod blocks are syntactically like ordinary Perl 6
+That is, declarator Pod blocks are syntactically like ordinary Raku
 single-line comments and embedded comments. The general syntax is:
 
 =begin code :allow< R >
@@ -275,11 +275,11 @@ single-line comments and embedded comments. The general syntax is:
 
 =end code
 
-except that the bracketed forms may use I<any> valid Perl 6 bracket delimiter
+except that the bracketed forms may use I<any> valid Raku bracket delimiter
 (including repeated opening brackets), as described in Synopsis 2.
 
 Declarator Pod blocks must either precede or immediately follow a valid
-Perl 6 declarator, and are then said to be "attached" to it. They are
+Raku declarator, and are then said to be "attached" to it. They are
 primarily intended to simplify the documentation of code interfaces.
 
 Declarator blocks that start with C<#|> attach to the declarator immediately
@@ -649,7 +649,7 @@ be convenient to guide subsequent indentations. For example:
            V<=begin> pod :margin<|>
            |=head1 Hey Look: Indented Pod!
            |
-           |You can indent Pod in Perl 6
+           |You can indent Pod in Raku
            |which makes code look cleaner
            |when documentation is interspersed
            |
@@ -1526,12 +1526,12 @@ uppercase letters are reserved. See L<#Semantic blocks>.
 
 =head3 Pod comments
 
-All Pod blocks are intrinsically Perl 6 comments, but
+All Pod blocks are intrinsically Raku comments, but
 D<Pod comments|Pod comment> are comments that Pod renderers ignore too.
 That is, they are Pod blocks that are never to be rendered by any
 renderer. They are, of course, still included in any internal Pod
 representation, and are accessible via the Pod API...and via the
-C<$=pod> variable within a Perl 6 program.
+C<$=pod> variable within a Raku program.
 
 Comments are useful for meta-documentation (documenting the documentation):
 
@@ -1553,9 +1553,9 @@ and for temporarily removing parts of a document:
     B<=end comment>
 =end code
 
-Note that, since the Perl interpreter never executes embedded Pod
+Note that, since the Raku interpreter never executes embedded Pod
 blocks, C<comment> blocks can also be used as an alternative form of
-nestable block comments in Perl 6:
+nestable block comments in Raku:
 
 =begin code
     =begin comment
@@ -1583,8 +1583,8 @@ an C<=finish> block is in all other respects identical to a C<=pod> block.
 
 =head3 Data blocks
 
-Named Pod blocks whose typename is C<data> are the Perl 6 equivalent of
-the Perl 5 C<__DATA__> section. The difference is that C<=data> blocks are
+Named Pod blocks whose typename is C<data> are the Raku equivalent of
+the Perl C<__DATA__> section. The difference is that C<=data> blocks are
 just regular Pod blocks and may appear anywhere within a source file, and as
 many times as required.
 
@@ -1640,7 +1640,7 @@ C<=data> blocks are never rendered by the standard Pod renderers.
 All uppercase block typenames are reserved for specifying standard
 documentation, publishing, source components, or meta-information of a
 compunit it needs to be able to be selected for loading. In particular, all the
-standard components found in Perl and manpage documentation have
+standard components found in Raku and manpage documentation have
 reserved uppercase typenames.
 
 Standard semantic blocks include:
@@ -1731,9 +1731,9 @@ C<=SYNOPSIS> block of the preceding example might be rendered like so:
 B<3.E<nbsp;nbsp>I<Synopsis>>
 
 =begin code
-    use Perl6::Magic::Parser;
+    use Raku::Magic::Parser;
 
-    my $rep = Perl6::Magic::Parser.parse($fh, :all_pod);
+    my $rep = Raku::Magic::Parser.parse($fh, :all_pod);
 =end code
 =end nested
 
@@ -1767,7 +1767,7 @@ characters that are longer than the delimiters:
         These are errors...
 
     C< $fooB«<<»barB«>>» >
-    The Perl 5 heredoc syntax was: C< B«<<»END_MARKER >
+    The Perl heredoc syntax was: C< B«<<»END_MARKER >
 =end code
 
 You I<can> use sequences of angles that are the same length as
@@ -1780,14 +1780,14 @@ If you need an unbalanced angle, either use different delimiters:
 
 =begin code :allow<B>
     CB<«>$foo < $barB<»>
-    The Perl 5 heredoc syntax was: CB<«> <<END_MARKER B<»>
+    The Perl heredoc syntax was: CB<«> <<END_MARKER B<»>
 =end code
 
 or delimiters with more consecutive angles than your text contains:
 
 =begin code :allow<B>
     CB«<<»$foo < $barB«>>»
-    The Perl 5 heredoc syntax was: CB«<<<» <<END_MARKER B«>>>»
+    The Perl heredoc syntax was: CB«<<<» <<END_MARKER B«>>>»
 =end code
 
 A formatting code ends at the matching closing angle bracket(s), or at
@@ -1887,7 +1887,7 @@ L<reconfigure|#Block pre-configuration> it:
 =begin code :allow<B>
     =begin para
     B<=config C<> :allow<E I>>
-    Perl 6 makes extensive use of the C<B<E<laquo>>> and C<B<E<raquo>>>
+    Raku makes extensive use of the C<B<E<laquo>>> and C<B<E<raquo>>>
     characters, for example, in a hash look-up:
     C<%hashB<I<E<laquo>>>keyB<I<E<raquo>>>>
     =end para
@@ -1961,11 +1961,11 @@ For example:
     to quit all applications.
 =end code
 
-In Perl 5 POD, the C<Z<>> code was widely used to break up text that would
+In Perl POD, the C<Z<>> code was widely used to break up text that would
 otherwise be considered mark-up:
 
 =begin code :allow<B>
-    In Perl 5 POD, the ZB<Z<>><> code was widely used to break up text
+    In Perl POD, the ZB<Z<>><> code was widely used to break up text
     that would otherwise be considered mark-up.
 =end code
 
@@ -1973,7 +1973,7 @@ That technique still works, but it's now easier to accomplish the same goal
 using a verbatim formatting code:
 
 =begin code :allow<B>
-    In Perl 5 POD, the B«V<V<Z<>>>» code was widely used to break up text
+    In Perl POD, the B«V<V<Z<>>>» code was widely used to break up text
     that would otherwise be considered mark-up.
 =end code
 
@@ -1981,7 +1981,7 @@ Moreover, the C<C<>> code automatically treats its contents as being
 verbatim, which often eliminates the need for the C<V<>> as well:
 
 =begin code :allow<B>
-    In Perl 5 POD, the B«V<C<Z<>>>» code was widely used to break up text
+    In Perl POD, the B«V<C<Z<>>>» code was widely used to break up text
     that would otherwise be considered mark-up.
 =end code
 
@@ -2279,7 +2279,7 @@ For example:
     laid out by A<VENDOR>, as specified at A<TERMS_URL>.
 =end code
 
-Any compile-time Perl 6 object that starts with a sigil is automatically
+Any compile-time Raku object that starts with a sigil is automatically
 available within an alias placement as well. Unless the object is already
 a string type, it is converted to a string during document-generation by
 implicitly calling C<.perl> on it.
@@ -2338,31 +2338,31 @@ Pod document, specify the required D<entity|entities> using the C<E<>> code.
 If the C<E<>> contains a number, that number is treated as the decimal
 Unicode value for the desired code point. For example:
 
-    Perl 6 makes considerable use of E<171> and E<187>.
+    Raku makes considerable use of E<171> and E<187>.
 
 You can also use explicit binary, octal, decimal, or hexadecimal numbers
-(using the Perl 6 notations for explicitly based numbers):
+(using the Raku notations for explicitly based numbers):
 
-    Perl 6 makes considerable use of E<0b10101011> and E<0b10111011>.
-    Perl 6 makes considerable use of E<0o253> and E<0o273>.
-    Perl 6 makes considerable use of E<0d171> and E<0d187>.
-    Perl 6 makes considerable use of E<0xAB> and E<0xBB>.
+    Raku makes considerable use of E<0b10101011> and E<0b10111011>.
+    Raku makes considerable use of E<0o253> and E<0o273>.
+    Raku makes considerable use of E<0d171> and E<0d187>.
+    Raku makes considerable use of E<0xAB> and E<0xBB>.
 
 If the C<E<>> contains anything that is not a number, the contents are
 interpreted as a Unicode character name (which is always uppercase), or
 else as an HTML5 named character reference. For example:
 
-    Perl 6 makes considerable use of E<LEFT DOUBLE ANGLE BRACKET>
+    Raku makes considerable use of E<LEFT DOUBLE ANGLE BRACKET>
     and E<RIGHT DOUBLE ANGLE BRACKET>.
 
 or, equivalently:
 
-    Perl 6 makes considerable use of E<laquo> and E<raquo>.
+    Raku makes considerable use of E<laquo> and E<raquo>.
 
 Multiple consecutive entities (in any format) can be specified in a
 single C<E<>> code, separated by semicolons:
 
-    Perl 6 makes considerable use of E<LEFT DOUBLE ANGLE BRACKET;hellip;0xBB>.
+    Raku makes considerable use of E<LEFT DOUBLE ANGLE BRACKET;hellip;0xBB>.
 
 
 =head3 Indexing terms
@@ -2422,8 +2422,8 @@ Anything enclosed in an C<N<>> code is an inline B<note>.
 For example:
 
 =begin code :allow<B>
-    Use a C<for> loop instead.B<N<The Perl 6 C<for> loop is far more
-    powerful than its Perl 5 predecessor.>> Preferably with an explicit
+    Use a C<for> loop instead.B<N<The Raku C<for> loop is far more
+    powerful than its Perl predecessor.>> Preferably with an explicit
     iterator variable.
 =end code
 
@@ -2442,7 +2442,7 @@ and later:
 B<Footnotes>
 
 =para
-E<dagger> The Perl 6 C<for> loop is far more powerful than its Perl 5
+E<dagger> The Raku C<for> loop is far more powerful than its Perl
 predecessor.
 =end nested
 
@@ -2516,7 +2516,7 @@ byte of the file. For example, at the start of a ShiftJIS-encoded file
 you can specify C<=encoding ShiftJIS> in the ShiftJIS encoding.
 
 An C<=encoding> directive affects any ambient code between the Pod
-as well. That is, Perl 6 uses C<=encoding> directives to determine the
+as well. That is, Raku uses C<=encoding> directives to determine the
 encoding of its source code as well as that of any documentation.
 
 Note that C<=encoding> is a fundamental Pod directive, like C<=begin> or
@@ -2627,7 +2627,7 @@ identifier (which is usually specified in uppercase, though this is
 certainly not mandatory). The second argument consists of one or more
 lines of replacement text.
 
-This creates a lexically scoped Perl 6 macro that can be invoked during
+This creates a lexically scoped Raku macro that can be invoked during
 document generation by placing the identifier (i.e. the first argument
 of the alias) in an C<A<>> formatting code. This formatting code is then
 replaced by the text returned by new macro.
@@ -2692,7 +2692,7 @@ and some portion of the following code is used as the value returned by the
 alias macro.
 
 Note that the code block following the C<=alias> line is still treated
-as real code by the Perl 6 parser, but its contents are I<also> used to
+as real code by the Raku parser, but its contents are I<also> used to
 create the replacement macro of the alias. This allows the developer to
 reproduce chunks of actual source code directly in the documentation,
 without having to copy it.
@@ -2777,8 +2777,8 @@ attribute. By default, handles are opened to the file "C<db.log>".
 
 =head1 How Pod is parsed and processed
 
-Pod is just a collection of specialized forms of Perl 6 comment. Every
-Perl 6 implementation must provide a special command-line flag that
+Pod is just a collection of specialized forms of Raku comment. Every
+Raku implementation must provide a special command-line flag that
 locates, parses, and processes Pod to produce documentation. That flag
 is K<--doc>.
 
@@ -2790,7 +2790,7 @@ Hence, to read Pod documentation you would type things like:
 
     perl --doc  ./lib/My/Module.pm
 
-When the Perl 6 interpreter is run in this mode, it sets the compiler
+When the Raku interpreter is run in this mode, it sets the compiler
 hint C<$?DOC> to true. If the K<--doc> flag is given a value, that value
 (with a C<but true> added) is placed in C<$?DOC>. This can be used to
 specify, for example, the output format desired:
@@ -2815,7 +2815,7 @@ the C<$=pod> tree, and any C<DOC> blocks that have loaded Pod-related
 handler code.
 
 Because the conversion of documentation is just a variation on the
-standard Perl 6 compilation process, the processing of any given file of
+standard Raku compilation process, the processing of any given file of
 Pod can be modified from within that file itself by the appropriate
 insertion of C<DOC> blocks. For example:
 
@@ -2856,7 +2856,7 @@ long as you remember to exit before the default C<DOC INIT> can run:
 The idea is that developers will be able to add their own documentation
 mechanisms simply by loading a module (via a C<DOC use>) to augment or
 override the default documentation behaviour. Such mechanisms can then
-be built using code written in standard Perl 6 that accesses C<$=pod>,
+be built using code written in standard Raku that accesses C<$=pod>,
 as well as using the C<.WHY> and C<.WHEREFORE> introspection methods of
 any constructs that have attached Pod blocks.
 
@@ -2915,7 +2915,7 @@ create a self-converting documentation file like so:
     C<=para>            Ordinary paragraph
     C<=pod>             No "ambient" blocks inside
     C<=table>           Simple rectangular table
-    C<=data>            Perl 6 data section
+    C<=data>            Raku data section
     C<=finish>          No ambient blocks after this point
     C<=>R<RESERVED>     Semantic blocks (C<=SYNOPSIS>, C<=BUGS>, etc.)
     C<=>R<Typename>     User-defined block

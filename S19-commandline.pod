@@ -13,9 +13,9 @@ DRAFT: Synopsis 19: Command Line Interface
     Version: 28
 
 This is a draft document. This document describes the command line interface.
-It has changed extensively from previous versions of Perl in order to increase
+It has changed extensively from previous versions of Raku in order to increase
 clarity, consistency, and extensibility. Many of the syntax revisions are
-extensions, so you'll find that much of the Perl 5 syntax embedded in your
+extensions, so you'll find that much of the Perl syntax embedded in your
 muscle memory will still work.
 
 Notable features described in the sections below include:
@@ -44,7 +44,7 @@ New C<++> metasyntax allows options to be passed through to subsystems
 
 =back
 
-This interface to Perl 6 is special in that it occurs at the intersection of
+This interface to Raku is special in that it occurs at the intersection of
 the program and the operating system's command line shell, and thus is not
 accessed via a consistent syntax everywhere. A few assumptions are made here,
 which will hopefully stand the test of time: All command-line arguments are
@@ -69,26 +69,26 @@ variable (normally accessed as C<$*PROGRAM>) as an C<IO::Path>.
 Command line I<arguments> are broken down into I<options> and I<values>.
 Each option may take zero or more values. After all options have been
 processed, the remaining values (if any) generally consist of the name of a
-script for Perl to execute, followed by arguments for that script. If no
-values remain, Perl 6 implicitly opens STDIN to read the script. If you wish
+script for Raku to execute, followed by arguments for that script. If no
+values remain, Raku implicitly opens STDIN to read the script. If you wish
 to pass arguments to a script read from STDIN, you must specify STDIN by name
 (C<-> on most operating systems).
 
 
 =head1 Backward (In)compatibility
 
-You may find yourself typing your favorite Perl 5 options, even after
+You may find yourself typing your favorite Perl options, even after
 Christmas has arrived.  As you'll see below, common options are provided
 which behave similarly.  Less common options, however, may not be available
-or may have changed syntax.  If you provide Perl with unrecognized command-line
-syntax, Perl gives you a friendly error message.  If the unrecognized
-syntax is a valid Perl 5 option, Perl provides helpful suggestions to allow
+or may have changed syntax.  If you provide Raku with unrecognized command-line
+syntax, Raku gives you a friendly error message.  If the unrecognized
+syntax is a valid Perl option, Raku provides helpful suggestions to allow
 you to perform the same action using the current syntax.
 
 
 =head2 Unchanged Syntactic Features
 
-Several features have not changed from Perl 5, including:
+Several features have not changed from Perl, including:
 
 =over 4
 
@@ -126,8 +126,8 @@ different semantics, so see L</"Option Reference"> below for the details.
 
 =head2 Removed Syntactic Features
 
-Some Perl 5 command-line features are no longer available, either because
-there's a new and different way to do it in Perl 6, or because they're
+Some Perl command-line features are no longer available, either because
+there's a new and different way to do it in Raku, or because they're
 no longer relevant.  Here's a breakdown of what's been removed:
 
 =over 4
@@ -140,7 +140,7 @@ section at the end of this document.
 
 =item -C *number/list*
 
-Control Unicode features.  Perl 6 has Unicode semantics and assumes a
+Control Unicode features.  Raku has Unicode semantics and assumes a
 UTF-8 command-line interface (until proven otherwise, at which point this
 functionality may be readdressed).
 
@@ -151,7 +151,7 @@ Debugging commands.  Replaced with the C<++BUG> metasyntactic option.
 =item -E *line*
 
 Execute a line of code, with all features enabled.  This is specific to
-Perl 5.10, and not relevant to Perl 6, where C<-e> performs this function.
+Perl 5.10, and not relevant to Raku, where C<-e> performs this function.
 
 =item -i *extension*
 
@@ -168,11 +168,11 @@ use/no module.  Replaced by C<--use>.
 
 =item -P
 
-Run option through C preprocessor. This caused problems for Perl 5, and is completely obsolete now.
+Run option through C preprocessor. This caused problems for Perl, and is completely obsolete now.
 
 =item -s
 
-Enable rudimentary switch parsing.  By default, Perl 6 parses the
+Enable rudimentary switch parsing.  By default, Raku parses the
 arguments passed to a script using the signature supplied by the user
 in the MAIN routine (see L<S06/"Declaring a MAIN subroutine">).
 
@@ -246,7 +246,7 @@ negated options are rare anyway, as most boolean options default to False.
 
 =item *
 
-Option names follow Perl 6 identifier naming convention, except C<'> is not
+Option names follow Raku identifier naming convention, except C<'> is not
 allowed, and single-character options may be any character or number.
 
 =item *
@@ -302,10 +302,10 @@ like a closing HTML tag.
 These options are made available in dynamic variables matching their name,
 and are invisible to C<MAIN()> except as C<< %*OPTSZ<><name> >>.  For example:
 
-  ++PARSER --setting=Perl6-autoloop-no-print ++/PARSER
+  ++PARSER --setting=Raku-autoloop-no-print ++/PARSER
 
 is available inside your script as C<< %*OPTSZ<><PARSER> >>, and contains
-C<--setting=Perl6-autoloop-no-print>.  Since eager matching is used, if you
+C<--setting=Raku-autoloop-no-print>.  Since eager matching is used, if you
 need to pass something like:
 
   ++foo -bar ++foo baz ++/foo ++/foo
@@ -351,11 +351,11 @@ of the option, as in C<--option=val1 --option='val 2'>.
 
 =head2 Remaining arguments
 
-Any remaining arguments to the Perl 6 program are placed in the C<@*ARGS> array.
+Any remaining arguments to the Raku program are placed in the C<@*ARGS> array.
 
 =head1 Option Reference
 
-Perl 6 options, descriptions, and services.
+Raku options, descriptions, and services.
 
 =head2 Synopsis
 
@@ -404,7 +404,7 @@ Check syntax, then exit.  Desugars to C<-e 'CHECK { compiles_ok(); exit; }'>.
 
 =item --doc
 
-Lookup Perl documentation in Pod format.  Desugars to
+Lookup Raku documentation in Pod format.  Desugars to
 C<-e 'CHECK { compiles_ok(); dump_perldoc(); }'>. C<@*ARGS> contains the
 arguments passed to C<perl6>, and is available at C<CHECK> time, so
 C<dump_perldoc()> can respond to command-line options.
@@ -454,18 +454,18 @@ C<++PARSER --setting=*dsl* ++/PARSER>.
 =item --autoloop-no-print, -n
 
 Act like awk.  Desugars to
-C<++PARSER --setting=Perl6-autoloop-no-print ++/PARSER>.
+C<++PARSER --setting=Raku-autoloop-no-print ++/PARSER>.
 
 =item --output-format, -O *format*
 
 Emit compiler output to STDOUT in the specified format, rather than invoking
 the compiled code immediately. This option is implementation-specific, so
-consult the documentation for your Perl 6 implementation for further details.
+consult the documentation for your Raku implementation for further details.
 
 =item --autoloop-print, -p
 
 Act like sed.  Desugars to
-C<++PARSER --setting=Perl6-autoloop-print ++/PARSER>.
+C<++PARSER --setting=Raku-autoloop-print ++/PARSER>.
 
 =item --search-path, -S
 
@@ -504,7 +504,7 @@ This is useful for running a program embedded in a larger message.
 (In this case you would indicate the end of the program using the C<=END>
 block, as defined in L<Synopsis 26|S26-documentation/"The =END block">.)
 
-Desugars to C<--PARSER --Perl6-extract-from-text --/PARSER>.
+Desugars to C<--PARSER --Raku-extract-from-text --/PARSER>.
 
 =back
 
@@ -512,13 +512,13 @@ Desugars to C<--PARSER --Perl6-extract-from-text --/PARSER>.
 =head1 Metasyntactic Options
 
 Metasyntactic options are a subset of delimited options used to pass arguments
-to an underlying component of Perl. Perl itself does not parse these options,
+to an underlying component of Raku. Raku itself does not parse these options,
 but makes them available to run-time components via the C<%*META-ARGS> dynamic
 variable.
 
-Standard in Perl 6 are three underlying components, C<CMD>, C<PARSER>,
+Standard in Raku are three underlying components, C<CMD>, C<PARSER>,
 and C<BUG>.  Implementations may expose other components via this
-interface, so consult the documentation for your Perl 6 implementation.
+interface, so consult the documentation for your Raku implementation.
 
   On command line...                   Subsystem gets...
    ++X a -b  ++/X                      a -b
@@ -545,7 +545,7 @@ is used.
 
 =item PERL6LIB
 
-A list of directories in which to look for ad hoc Perl library files.
+A list of directories in which to look for ad hoc Raku library files.
 
 Note: this is speculative, as library loading is not yet specified,
 except insofar as S11 mandates various behaviors incompatible with
@@ -571,7 +571,7 @@ list of arguments provided on the command-line.
 
 =item L<http://design.perl6.org/S06.html#Declaring_a_MAIN_subroutine>
 
-=item L<http://search.cpan.org/dist/Perl6-Pugs/docs/Pugs/Doc/Run.pod>
+=item L<http://search.cpan.org/dist/Raku-Pugs/docs/Pugs/Doc/Run.pod>
 
 =item L<http://haskell.org/ghc/docs/latest/html/users_guide/using-ghc.html>
 
