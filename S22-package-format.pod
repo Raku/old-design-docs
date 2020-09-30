@@ -241,16 +241,19 @@ convert from the module names given, to the actual associated file).
 =head3 depends
 
 Optional.  A list of run-time dependencies, specified as C<use> strings.  To
-indicate alternatives, it is possible to specify a list of C<use> strings,
-instead of just a single use string.  So:
+indicate alternatives, it is possible to specify an object with an C<any> key
+and a list of C<use> strings as a value, instead of just a single use string.
+So:
 
   "depends" : [
     "Sereal:auth<cpan:*>:ver(1..*)",
-    [ "Archive::Compress", "Archive::Zlib" ]
+    {"any": ["Archive::Compress", "Archive::Zlib"]}
   ]
 
 would indicate a dependency on Sereal, and either Archive::Compress or
-Archive::Zlib.
+Archive::Zlib. An alternative itself may again be a list which in turn may
+again contain alternatives, i.e. the dependencies form a fully recursive
+tree.
 
 The dependencies may also be split between different phases, e.g. build time
 dependencies are only needed on the machine where a package is built, not
@@ -306,6 +309,18 @@ A dependency like C<curl:from<native>> tells the installer, that the system
 library with the given name must be present. The name is expanded following the
 same rules as NativeCall uses, e.g. C<curl> will be expanded to C<libcurl.so>
 on UNIX-like systems and C<curl.dll> on Windows.
+
+=head4 System specific values
+
+All information in C<build> and C<depends> is subject to system specific
+collapsing, i.e. at any point one can specify an object with a
+C<by-something.property> key and the whole object gets replaced with one of the
+appropriate values. The "somethings" in the key may be C<env>, C<env-exists>
+for checking environment variables or C<distro>, C<kernel>, C<backend> for
+Raku's C<$*DISTRO>, C<$*KERNEL>, C<$*BACKEND> objects respectively.
+
+E.g. the whole C<depends> section may depend on the distro name. Or just the
+version of one of the dependencies may depend on the VM backend.
 
 =head4 Dependency hints
 
@@ -442,7 +457,7 @@ in the same lexical scope.
 
 =head3 build-depends
 
-Optional.  A list of build-time dependencies, specified as C<use> strings.  An
+Deprecated.  A list of build-time dependencies, specified as C<use> strings.  An
 example of this would be:
 
   "build-depends" : [
@@ -451,7 +466,7 @@ example of this would be:
 
 =head3 test-depends
 
-Optional.  A list of test-time dependencies, specified as C<use> strings.  An
+Deprecated.  A list of test-time dependencies, specified as C<use> strings.  An
 example of this would be:
 
   "test-depends" : [
