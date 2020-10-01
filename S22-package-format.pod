@@ -314,13 +314,31 @@ on UNIX-like systems and C<curl.dll> on Windows.
 
 All information in C<build> and C<depends> is subject to system specific
 collapsing, i.e. at any point one can specify an object with a
-C<by-something.property> key and the whole object gets replaced with one of the
-appropriate values. The "somethings" in the key may be C<env>, C<env-exists>
-for checking environment variables or C<distro>, C<kernel>, C<backend> for
-Raku's C<$*DISTRO>, C<$*KERNEL>, C<$*BACKEND> objects respectively.
+C<by-something.property> key and an object as the value. The "somethings" in the
+key may be C<env>, C<env-exists> for checking environment variables or
+C<distro>, C<kernel>, C<raku>, C<vm> for Raku's C<$*DISTRO>, C<$*KERNEL>,
+C<$*RAKU> and C<$*VM> objects respectively.
 
-E.g. the whole C<depends> section may depend on the distro name. Or just the
-version of one of the dependencies may depend on the VM backend.
+The value object is structured like a C<switch> statement with possible values
+and/or a default value (the empty string) as the key and the value to replace the
+whole object with on a match.
+
+An example where the name of the only dependency is picked by the currently
+running VM:
+
+  "depends" : {
+    "name" : {
+      "by-vm.name": {
+        "moar": "Low::Level::Backend::MoarVM",
+        "jvm":  "Low::Level::Backend::JVM",
+        "":     "Low::Level::Backend::Generic",
+      }
+    }
+  }
+
+Dynamically determined values may appear anywhere in the dependency
+specification. e.g. the whole C<depends> section may depend on the distro name.
+Or just the version of one of the dependencies may depend on the VM backend.
 
 =head4 Dependency hints
 
